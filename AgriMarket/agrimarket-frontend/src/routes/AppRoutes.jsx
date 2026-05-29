@@ -4,6 +4,9 @@ import AuthLayout from '../layouts/AuthLayout'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
 
+import ViewProfile from "../pages/Profile/ViewProfile";
+import EditProfile from "../pages/Profile/EditProfile";
+
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -13,6 +16,9 @@ const AppRoutes = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Route>
+
+        <Route path="/profile" element={<ViewProfile />} />
+        <Route path="/profile/edit" element={<EditProfile />} />
 
         {/* Redirect from root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
