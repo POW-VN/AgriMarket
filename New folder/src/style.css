@@ -1,0 +1,1691 @@
+npm /* Reset and Global Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  --primary-color: #2e7d32; /* Forest Green for AgriMarket */
+  --primary-hover: #1b5e20;
+  --primary-light: #e8f5e9;
+  --primary-dark: #0d2310;
+  --accent-color: #ff9800; /* Harvest Orange */
+  --accent-hover: #f57c00;
+  --accent-light: #fff3e0;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --text-white: #ffffff;
+  --border-color: #e2e8f0;
+  --bg-canvas: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-sidenav: #f9f9f8;
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 25px -5px rgba(46, 125, 50, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0 20px 25px -5px rgba(46, 125, 50, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--text-main);
+  overflow-x: hidden;
+}
+
+/* User Profile Layout (Based on User's specs) */
+.user-profile {
+  align-items: flex-start;
+  background:
+    linear-gradient(
+      0deg,
+      rgba(249, 249, 248, 1) 0%,
+      rgba(249, 249, 248, 1) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 1) 100%
+    );
+  display: flex;
+  flex-direction: column;
+  min-height: 1079px;
+  position: relative;
+  width: 100%;
+}
+
+.user-profile .container-24 {
+  align-items: flex-start;
+  display: flex;
+  flex: 0 0 auto;
+  max-width: 1440px; /* Increased from 1280px to accommodate larger monitors beautifully */
+  margin: 0 auto;
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Sidenavbar Desktop styling */
+.sidenavbar-desktop {
+  width: 280px;
+  background: var(--bg-sidenav);
+  border-right: 1px solid var(--border-color);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  justify-content: space-between;
+  flex-shrink: 0;
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.sidenavbar-desktop .logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+  text-decoration: none;
+}
+
+.sidenavbar-desktop .logo-icon {
+  background: linear-gradient(135deg, #4caf50, #2e7d32);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+  transition: var(--transition-fast);
+}
+
+.sidenavbar-desktop .logo-section:hover .logo-icon {
+  transform: rotate(-10deg) scale(1.05);
+}
+
+.sidenavbar-desktop .logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-dark);
+  letter-spacing: -0.5px;
+}
+
+.sidenavbar-desktop .logo-accent {
+  color: var(--accent-color);
+}
+
+.sidenavbar-desktop .nav-menu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.sidenavbar-desktop .nav-item {
+  width: 100%;
+}
+
+.sidenavbar-desktop .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  transition: var(--transition-fast);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.sidenavbar-desktop .nav-link svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--text-muted);
+  transition: var(--transition-fast);
+}
+
+.sidenavbar-desktop .nav-link:hover {
+  background: var(--bg-card);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.sidenavbar-desktop .nav-link:hover svg {
+  stroke: var(--primary-color);
+}
+
+.sidenavbar-desktop .nav-link.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
+  border: 1px solid rgba(46, 125, 50, 0.1);
+}
+
+.sidenavbar-desktop .nav-link.active svg {
+  stroke: var(--primary-color);
+}
+
+.sidenavbar-desktop .user-summary-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-normal);
+}
+
+.sidenavbar-desktop .user-summary-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.sidenavbar-desktop .user-summary-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-light);
+}
+
+.sidenavbar-desktop .user-summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.sidenavbar-desktop .user-summary-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidenavbar-desktop .user-summary-role {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.sidenavbar-desktop .btn-logout {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.sidenavbar-desktop .btn-logout:hover {
+  background: #fee2e2;
+  color: var(--error);
+}
+
+.sidenavbar-desktop .btn-logout svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+/* Main Content Canvas styling */
+.main-content-canvas {
+  flex: 1;
+  padding: 40px;
+  background-color: var(--bg-canvas);
+  animation: fadeIn 0.6s ease-out;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Top Navbar of Canvas */
+.canvas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.canvas-header .search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+.canvas-header .search-bar:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+}
+
+.canvas-header .search-bar input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.canvas-header .search-bar svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-muted);
+}
+
+.canvas-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.canvas-header .action-btn {
+  background: white;
+  border: 1px solid var(--border-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  position: relative;
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.canvas-header .action-btn:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.canvas-header .action-btn .badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--error);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+/* Banner Component */
+.profile-banner {
+  position: relative;
+  height: 240px;
+  background: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);
+  border-radius: var(--radius-lg);
+  overflow: visible;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 60px; /* Space for the avatar overlapping */
+}
+
+.profile-banner .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  opacity: 0.65;
+  mix-blend-mode: overlay;
+}
+
+.profile-banner .banner-edit-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition-fast);
+  backdrop-filter: blur(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-banner .banner-edit-btn:hover {
+  background: white;
+  transform: scale(1.03);
+}
+
+.profile-banner .banner-edit-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Avatar overlapping container */
+.profile-avatar-container {
+  position: absolute;
+  bottom: -50px;
+  left: 40px;
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.profile-avatar-container .avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.profile-avatar-container .avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid white;
+  box-shadow: var(--shadow-md);
+}
+
+.profile-avatar-container .avatar-upload-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: var(--primary-color);
+  color: white;
+  border: 2px solid white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-fast);
+}
+
+.profile-avatar-container .avatar-upload-btn:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.profile-avatar-container .avatar-upload-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: white;
+}
+
+.profile-avatar-container .profile-meta {
+  margin-bottom: 12px;
+}
+
+.profile-avatar-container .profile-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-white);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.profile-avatar-container .profile-tagline {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-white);
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Card & Form Styles */
+.profile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 24px;
+  transition: var(--transition-normal);
+  position: relative;
+}
+
+.profile-card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-title svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--primary-color);
+}
+
+.profile-strength-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.profile-strength-badge .progress-bar-container {
+  width: 80px;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.profile-strength-badge .progress-fill {
+  height: 100%;
+  background: var(--success);
+  width: 80%; /* complete percent */
+  border-radius: 3px;
+}
+
+/* Grid Layout for Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 24px;
+}
+
+.form-grid-full {
+  grid-column: span 2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.form-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-wrapper svg {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-muted);
+  pointer-events: none;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  background-color: white;
+  transition: var(--transition-fast);
+  outline: none;
+}
+
+.form-input-wrapper .form-control {
+  padding-left: 44px;
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
+}
+
+.form-control:disabled {
+  background-color: #f1f5f9;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 90px;
+}
+
+/* Form Action Buttons */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  outline: none;
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2e7d32, #4caf50);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 10px rgba(46, 125, 50, 0.2);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1b5e20, #388e3c);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(46, 125, 50, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Notification Alerts */
+.notification-banner {
+  background: var(--accent-light);
+  border: 1px solid rgba(255, 152, 0, 0.2);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notification-banner svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--accent-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-content {
+  font-size: 13.5px;
+  color: #7c2d12;
+}
+
+.notification-content span {
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Success toast message overlay */
+.toast-success {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #064e3b;
+  color: white;
+  padding: 16px 24px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 500;
+}
+
+.toast-success svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--success);
+}
+
+/* Keyframes animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive queries */
+@media (max-width: 1024px) {
+  .user-profile .container-24 {
+    flex-direction: column;
+  }
+  .sidenavbar-desktop {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 20px;
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .sidenavbar-desktop .nav-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    gap: 4px;
+  }
+  .sidenavbar-desktop .nav-link {
+    white-space: nowrap;
+  }
+  .sidenavbar-desktop .user-summary-card {
+    margin-top: 0;
+    padding: 8px 12px;
+  }
+  .main-content-canvas {
+    width: 100%;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid-full {
+    grid-column: span 1;
+  }
+  .sidenavbar-desktop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .sidenavbar-desktop .logo-section {
+    margin-bottom: 0;
+  }
+  .sidenavbar-desktop .nav-menu {
+    width: 100%;
+  }
+}
+
+/* ========================================== */
+/* LOGIN SCREEN STYLING (FarmConnect)         */
+/* ========================================== */
+.login-farmconnect {
+  align-items: center;
+  background: linear-gradient(0deg, rgba(241, 245, 242, 1) 0%, rgba(241, 245, 242, 1) 100%);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 60px 16px;
+  position: relative;
+  width: 100%;
+}
+
+.login-farmconnect .main-login-container {
+  align-items: stretch;
+  background-color: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0px 20px 40px rgba(27, 67, 50, 0.08);
+  display: flex;
+  flex: 1;
+  max-width: 1200px;
+  overflow: hidden;
+  position: relative;
+  min-height: 700px;
+}
+
+.login-farmconnect .image-section-hidden {
+  position: relative;
+  flex: 1;
+  background-color: #edeeed;
+  display: flex;
+  align-items: flex-end;
+  padding: 48px;
+}
+
+.login-farmconnect .fresh-organic {
+  background-image: url("https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&width=800&auto=format&fit=crop");
+  background-position: center;
+  background-size: cover;
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.login-farmconnect .overlay-overlayblur {
+  height: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+  width: 100%;
+  background: linear-gradient(180deg, rgba(1, 45, 29, 0.2) 0%, rgba(1, 45, 29, 0.8) 100%);
+}
+
+.login-farmconnect .container {
+  position: relative;
+  z-index: 2;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.login-farmconnect .cultivating-trust {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.32px;
+  line-height: 40px;
+}
+
+.login-farmconnect .join-the-digital {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 26px;
+  opacity: 0.9;
+}
+
+.login-farmconnect .form-section {
+  flex: 1;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 48px;
+  position: relative;
+}
+
+.login-farmconnect .container-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-farmconnect .brand-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-farmconnect .text-wrapper {
+  color: #012d1d;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.login-farmconnect .p {
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.login-farmconnect .role-selection {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.login-farmconnect .role-selection button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color);
+  background-color: white;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: center;
+}
+
+.login-farmconnect .role-selection button.active {
+  background-color: #1b4332;
+  border-color: #1b4332;
+  color: white;
+}
+
+.login-farmconnect .role-selection button:hover:not(.active) {
+  border-color: #1b4332;
+  color: #1b4332;
+  background-color: rgba(27, 67, 50, 0.04);
+}
+
+.login-farmconnect .button-google-sign {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 48px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  width: 100%;
+}
+
+.login-farmconnect .button-google-sign:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.login-farmconnect .google-logo {
+  width: 20px;
+  height: 20px;
+}
+
+.login-farmconnect .text-3 {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.login-farmconnect .container-3 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.login-farmconnect .horizontal-divider {
+  background-color: var(--border-color);
+  height: 1px;
+  flex: 1;
+}
+
+.login-farmconnect .text-4 {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.login-farmconnect .login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.login-farmconnect .container-4 {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  position: relative;
+}
+
+.login-farmconnect .label {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.login-farmconnect .input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.login-farmconnect .input-wrapper svg.field-icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-muted);
+  pointer-events: none;
+}
+
+.login-farmconnect .container-5 {
+  width: 100%;
+  height: 48px;
+  padding: 12px 14px 12px 44px;
+  font-size: 15px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background-color: #f9f9f8;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.login-farmconnect .container-5:focus {
+  border-color: #1b4332;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.12);
+}
+
+.login-farmconnect .button-toggle {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.login-farmconnect .button-toggle:hover {
+  color: var(--text-main);
+}
+
+.login-farmconnect .button-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.login-farmconnect .margin {
+  margin-top: 4px;
+}
+
+.login-farmconnect .container-6 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.login-farmconnect .label-2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.login-farmconnect .label-2 input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #1b4332;
+}
+
+.login-farmconnect .text-5 {
+  color: #2c694e;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.login-farmconnect .text-5:hover {
+  color: #1b4332;
+}
+
+.login-farmconnect .button-3 {
+  width: 100%;
+  height: 48px;
+  background-color: #012d1d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0px 4px 12px rgba(27, 67, 50, 0.15);
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-farmconnect .button-3:hover {
+  background-color: #1b4332;
+  transform: translateY(-1px);
+  box-shadow: 0px 6px 16px rgba(27, 67, 50, 0.25);
+}
+
+.login-farmconnect .paragraph {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.login-farmconnect .text-7 {
+  color: var(--text-muted);
+}
+
+.login-farmconnect .link-register-here {
+  color: #2c694e;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.login-farmconnect .link-register-here:hover {
+  color: #1b4332;
+}
+
+/* ========================================== */
+/* REGISTER SCREEN STYLING (FarmConnect)      */
+/* ========================================== */
+.register-farmconnect {
+  background: linear-gradient(0deg, rgba(249, 249, 248, 1) 0%, rgba(249, 249, 248, 1) 100%);
+  min-height: 100vh;
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+}
+
+.register-farmconnect .container {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+}
+
+.register-farmconnect .left-side-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 48px;
+  background-color: white;
+}
+
+.register-farmconnect .div {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.register-farmconnect .brand-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.register-farmconnect .text-wrapper {
+  color: #012d1d;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.32px;
+}
+
+.register-farmconnect .p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.register-farmconnect .tablist-role {
+  display: flex;
+  background-color: #edeeed;
+  border-radius: 8px;
+  padding: 4px;
+  width: 100%;
+  gap: 4px;
+}
+
+.register-farmconnect .tablist-role .tab-btn {
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+  text-align: center;
+}
+
+.register-farmconnect .tablist-role .tab-btn.active {
+  background-color: white;
+  color: #012d1d;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.register-farmconnect .base-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.register-farmconnect .text-wrapper-2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.register-farmconnect .input-field {
+  width: 100%;
+  height: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  transition: var(--transition-fast);
+  background-color: #f9f9f8;
+}
+
+.register-farmconnect .input-field:focus {
+  border-color: #1b4332;
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.12);
+}
+
+.register-farmconnect .container-4 {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.register-farmconnect .container-4 input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: #1b4332;
+}
+
+.register-farmconnect .label-i-agree-to-the {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 18px;
+}
+
+.register-farmconnect .text-wrapper-3 {
+  color: #2c694e;
+  text-decoration: underline;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.register-farmconnect .button {
+  width: 100%;
+  padding: 14px;
+  background-color: #012d1d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0px 4px 12px rgba(27, 67, 50, 0.15);
+  transition: var(--transition-fast);
+  margin-top: 8px;
+}
+
+.register-farmconnect .button:hover {
+  background-color: #1b4332;
+  transform: translateY(-1px);
+}
+
+.register-farmconnect .or-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 12px 0;
+  width: 100%;
+}
+
+.register-farmconnect .or-divider::before,
+.register-farmconnect .or-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.register-farmconnect .or-divider:not(:empty)::before {
+  margin-right: .5em;
+}
+
+.register-farmconnect .or-divider:not(:empty)::after {
+  margin-left: .5em;
+}
+
+.register-farmconnect .or-divider span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.register-farmconnect .button-2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 48px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  width: 100%;
+}
+
+.register-farmconnect .button-2:hover {
+  background-color: #f8fafc;
+}
+
+.register-farmconnect .paragraph {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.register-farmconnect .text-6 {
+  color: var(--text-muted);
+}
+
+.register-farmconnect .link-log-in-here {
+  color: #2c694e;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.register-farmconnect .right-side-imagery {
+  flex: 1;
+  background-image: url("https://images.unsplash.com/photo-1595273670150-db0c3c66f51c?q=80&width=800&auto=format&fit=crop");
+  background-position: center;
+  background-size: cover;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 48px;
+}
+
+.register-farmconnect .glassmorphism {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  width: 100%;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+}
+
+.register-farmconnect .glassmorphism-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.register-farmconnect .glassmorphism-text {
+  font-size: 14px;
+  line-height: 22px;
+  opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================== */
+/* FORGOT PASSWORD SCREEN STYLING             */
+/* ========================================== */
+.forgot-password {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(0deg, rgba(249, 249, 248, 1) 0%, rgba(249, 249, 248, 1) 100%);
+  position: relative;
+}
+
+.forgot-password .main-transactional {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 48px 24px;
+  z-index: 1;
+}
+
+.forgot-password .ambient-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.forgot-password .a-serene-wide-angle {
+  width: 100%;
+  height: 100%;
+  background-image: url("https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&width=1200&auto=format&fit=crop");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.2;
+}
+
+.forgot-password .gradient-overlay-to {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(249, 249, 248, 0.5) 0%, rgba(249, 249, 248, 0.8) 60%, rgba(249, 249, 248, 1) 100%);
+}
+
+.forgot-password .forgot-password-card {
+  background: rgba(249, 249, 248, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(113, 121, 115, 0.15);
+  border-radius: 24px;
+  box-shadow: 0px 20px 40px -15px rgba(27, 67, 50, 0.08);
+  width: 100%;
+  max-width: 448px;
+  padding: 40px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.forgot-password .brand-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.forgot-password .background-shadow {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #e8f5e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  box-shadow: 0px 4px 10px rgba(46, 125, 50, 0.1);
+  margin-bottom: 8px;
+}
+
+.forgot-password .background-shadow svg {
+  width: 24px;
+  height: 24px;
+}
+
+.forgot-password .heading-reset {
+  font-size: 28px;
+  font-weight: 700;
+  color: #012d1d;
+  letter-spacing: -0.5px;
+}
+
+.forgot-password .text {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 22px;
+}
+
+.forgot-password .form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.forgot-password .input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.forgot-password .input-wrapper svg.field-icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-muted);
+  pointer-events: none;
+}
+
+.forgot-password .container-2 {
+  width: 100%;
+  height: 48px;
+  padding: 12px 14px 12px 44px;
+  font-size: 15px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background-color: white;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.forgot-password .container-2:focus {
+  border-color: #1b4332;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.12);
+}
+
+.forgot-password .button {
+  width: 100%;
+  height: 48px;
+  background-color: #012d1d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0px 4px 12px rgba(27, 67, 50, 0.15);
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.forgot-password .button:hover {
+  background-color: #1b4332;
+  transform: translateY(-1px);
+}
+
+.forgot-password .footer-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.forgot-password .link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2c694e;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.forgot-password .link:hover {
+  color: #1b4332;
+}
+
+.forgot-password .link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.forgot-password .footer-from-shared {
+  background-color: #f9f9f8;
+  border-top: 1px solid var(--border-color);
+  padding: 24px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.forgot-password .footer-from-shared .p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.forgot-password .container-4 {
+  display: flex;
+  gap: 20px;
+}
+
+.forgot-password .text-4 {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.forgot-password .text-4:hover {
+  color: var(--primary-color);
+}
+
+/* Responsive adjustments for Login, Register, Forgot Password */
+@media (max-width: 1024px) {
+  .login-farmconnect .image-section-hidden,
+  .register-farmconnect .right-side-imagery {
+    display: none;
+  }
+  
+  .login-farmconnect .main-login-container {
+    max-width: 500px;
+  }
+  
+  .register-farmconnect .left-side-form {
+    padding: 60px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-farmconnect .form-section,
+  .register-farmconnect .left-side-form,
+  .forgot-password .forgot-password-card {
+    padding: 32px 20px;
+  }
+  
+  .login-farmconnect .role-selection {
+    flex-direction: column;
+  }
+  
+  .forgot-password .footer-from-shared {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+  }
+}
+
