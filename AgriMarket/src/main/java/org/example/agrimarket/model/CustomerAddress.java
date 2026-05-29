@@ -17,9 +17,13 @@ public class CustomerAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "receiver_name")
     private String receiverName;
+    
     private String phone;
     private String address;
+    
+    @Column(name = "is_default")
     private Boolean isDefault;
 
     @ManyToOne

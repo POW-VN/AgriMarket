@@ -9,7 +9,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "admins")
+@Table(name = "admin")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,9 +19,15 @@ public class Admin {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "full_name")
     private String fullName;
+    
     private String email;
     private String password;
+    
+    @Column(name = "avatar_url")
     private String avatarUrl;
+    
+    @Column(name = "create_at")
     private LocalDateTime createdAt;
 }
