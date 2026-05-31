@@ -4,6 +4,10 @@ import AuthLayout from '../layouts/AuthLayout'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
 import { RoleSelection } from '../pages/RoleCard/RoleCard'
+import ForgotPassword from '../pages/ForgotPassword/ForgotPassword'
+import ResetPassword from '../pages/ResetPassword/ResetPassword'
+import ResetSuccess from '../pages/ResetSuccess/ResetSuccess'
+import ChangePassword from '../pages/ChangePassword/ChangePassword'
 
 import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
@@ -17,10 +21,14 @@ const AppRoutes = () => {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-success" element={<ResetSuccess />} />
         </Route>
 
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
+        <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
         
         {/* Route to test RoleSelection */}
