@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
+
+.role-selection-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #fafbf9;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Vòng tròn trang trí mờ giả lập họa tiết lá */
+.background-decoration {
+    position: absolute;
+    bottom: -150px;
+    left: -150px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(234, 245, 233, 0.8) 0%, rgba(250, 251, 249, 0) 70%);
+    border-radius: 50%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Header */
+.role-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 48px;
+    position: relative;
+    z-index: 1;
+}
+
+.logo-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #012d1d;
+}
+
+.help-icon svg {
+    width: 24px;
+    height: 24px;
+    color: #414844;
+    cursor: pointer;
+}
+
+/* Main Content */
+.role-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.role-titles {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.role-titles h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 40px;
+    color: #012d1d;
+    margin: 0 0 16px 0;
+    font-weight: 700;
+}
+
+.role-titles p {
+    color: #414844;
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Cards Layout */
+.role-cards-container {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.role-card {
+    background-color: #ffffff;
+    border: 1.5px solid #e2e8e4;
+    border-radius: 20px;
+    width: 360px;
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    box-sizing: border-box;
+}
+
+.role-card:hover {
+    border-color: #a3cdae;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    transform: translateY(-4px);
+}
+
+.role-card.selected {
+    border-color: #012d1d;
+    box-shadow: 0 8px 30px rgba(1, 45, 29, 0.1);
+}
+
+/* Icon tròn bên trong card */
+.card-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    background-color: #c9e8d4;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.card-main-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.role-card h2 {
+    font-size: 24px;
+    color: #012d1d;
+    margin: 0 0 16px 0;
+    font-weight: 600;
+}
+
+.card-description {
+    text-align: center;
+    color: #414844;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 32px 0;
+    height: 42px;
+}
+
+/* Danh sách tính năng */
+.card-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.card-features li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #191c1c;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.card-features li:last-child {
+    margin-bottom: 0;
+}
+
+.card-features svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Nút bấm Actions */
+.role-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.btn-back, .btn-continue {
+    padding: 14px 40px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-back {
+    background-color: #ffffff;
+    border: 1px solid #c1c8c2;
+    color: #414844;
+}
+
+.btn-back:hover {
+    background-color: #f3f4f3;
+}
+
+.btn-continue {
+    background-color: #819888;
+    border: none;
+    color: #ffffff;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-continue.active {
+    opacity: 1;
+    cursor: pointer;
+    background-color: #6a7d70;
+}
+
+/* Footer */
+.role-footer {
+    background-color: #f3f4f3;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 48px;
+    position: relative;
+    z-index: 1;
+}
+
+.footer-brand {
+    font-weight: 700;
+    color: #012d1d;
+    font-size: 14px;
+}
+
+.footer-copyright {
+    color: #414844;
+    font-size: 12px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    color: #414844;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
