@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface FarmerRepository extends JpaRepository<Farmer, Long> {
     Optional<Farmer> findByEmail(String email);
+    boolean existsByPhone(String phone);
 }
 

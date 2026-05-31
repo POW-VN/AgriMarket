@@ -41,10 +41,14 @@ export const LoginFarmconnect = () => {
       try {
         const response = await authService.googleLogin({
           token: tokenResponse.access_token,
-          role: role,
+          role: "",
         });
-        console.log("Google login successful:", response);
-        navigate("/profile");
+        if (response?.newUser || response?.isNewUser) {
+          navigate("/role", { state: { googleAccessToken: tokenResponse.access_token } });
+        } else {
+          console.log("Google login successful:", response);
+          navigate("/profile");
+        }
       } catch (err) {
         setError(err.message || "Đăng nhập Google thất bại. Vui lòng thử lại.");
       } finally {

@@ -1,22 +1,50 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import authService from "../../services/authService";
 import "./RoleCard.css";
 
 export const RoleSelection = () => {
     // State để lưu trữ thẻ nào đang được chọn (customer hoặc farmer)
     const [selectedRole, setSelectedRole] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
     // Khởi tạo hàm chuyển trang
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Lấy access token từ location state (nếu được truyền từ Login/Register)
+    const googleAccessToken = location.state?.googleAccessToken;
 
     // Hàm xử lý khi bấm nút Continue
-    const handleContinue = () => {
-        if (selectedRole === 'customer') {
-            // Khách hàng -> Đi thẳng vào trang Home
-            navigate("/home");
-        } else if (selectedRole === 'farmer') {
-            // Nông dân -> Đi vào trang khai báo Farm Details
-            navigate("/farm-onboarding");
+    const handleContinue = async () => {
+        if (!selectedRole) {
+            setError("Vui lòng chọn vai trò để tiếp tục.");
+            return;
+        }
+
+        if (googleAccessToken) {
+            setLoading(true);
+            setError("");
+            try {
+                const response = await authService.googleLogin({
+                    token: googleAccessToken,
+                    role: selectedRole
+                });
+                console.log("Google registration and login successful:", response);
+                navigate("/profile");
+            } catch (err) {
+                setError(err.message || "Đăng ký vai trò thất bại. Vui lòng thử lại.");
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            // Trường hợp test trực tiếp hoặc không có token
+            if (selectedRole === 'customer') {
+                navigate("/profile");
+            } else if (selectedRole === 'farmer') {
+                navigate("/profile");
+            }
         }
     };      
 
@@ -43,6 +71,8 @@ export const RoleSelection = () => {
                     <h1>Chào mừng đến với FarmConnect</h1>
                     <p>Chọn cách bạn muốn sử dụng nền tảng để bắt đầu hành trình nông nghiệp của mình.</p>
                 </div>
+
+                {error && <div className="error-message" style={{ color: 'var(--error-color)', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffcdd2', textAlign: 'center', width: '100%', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>{error}</div>}
 
                 <div className="role-cards-container">
                     {/* Thẻ Customer */}
@@ -141,12 +171,13 @@ export const RoleSelection = () => {
                 </div>
 
                 <div className="role-actions">
-                    <button className="btn-back">Quay lại</button>
+                    <button className="btn-back" onClick={() => navigate("/login")}>Quay lại</button>
                     <button
                         className={`btn-continue ${selectedRole ? 'active' : ''}`}
                         onClick={handleContinue}
+                        disabled={loading}
                     >
-                        Tiếp tục
+                        {loading ? "Đang xử lý..." : "Tiếp tục"}
                     </button>
                 </div>
             </main>

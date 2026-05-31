@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
 import container from "./container.svg";
 import googleLogo from "./google-logo.svg";
 import authService from "../../services/authService";
@@ -49,9 +50,32 @@ export const RegisterFarmconnect = () => {
     }
   };
 
-  const handleGoogleRegister = () => {
-    console.log("Google register clicked");
-  };
+  const handleGoogleRegister = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await authService.googleLogin({
+          token: tokenResponse.access_token,
+          role: "",
+        });
+        if (response?.newUser || response?.isNewUser) {
+          navigate("/role", { state: { googleAccessToken: tokenResponse.access_token } });
+        } else {
+          console.log("Google login/register successful:", response);
+          navigate("/profile");
+        }
+      } catch (err) {
+        setError(err.message || "Đăng ký bằng Google thất bại. Vui lòng thử lại.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error("Google Register Error:", error);
+      setError("Đăng ký bằng Google thất bại.");
+    }
+  });
 
   return (
     <div className="register-farmconnect">

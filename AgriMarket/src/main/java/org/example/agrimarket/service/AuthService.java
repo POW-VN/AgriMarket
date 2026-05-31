@@ -128,6 +128,8 @@ public class AuthService {
                 farmer.setVerificationStatus("pending");
                 farmer.setStatus("pending");
                 farmer.setCreatedAt(LocalDateTime.now());
+                farmer.setFarmName("Nông trại của " + (request.getFullName() != null ? request.getFullName() : "Nông Dân"));
+                farmer.setFarmAddress("Chưa cập nhật");
 
                 return farmerRepository.save(farmer);
 
@@ -148,11 +150,6 @@ public class AuthService {
     }
 
     public AuthResponse googleLogin(String googleAccessToken, String role) {
-        if (role == null || role.isBlank()) {
-            throw new RuntimeException("Role is required");
-        }
-        role = role.toLowerCase();
-
         org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Authorization", "Bearer " + googleAccessToken);
@@ -179,42 +176,102 @@ public class AuthService {
         String name = (String) userInfo.get("name");
         String picture = (String) userInfo.get("picture");
 
-        Object user;
-        if ("customer".equals(role)) {
-            Customer customer = customerRepository.findByEmail(email).orElse(null);
-            if (customer == null) {
-                customer = new Customer();
-                customer.setFullName(name != null ? name : "Google User");
-                customer.setEmail(email);
-                customer.setAvatarUrl(picture);
-                customer.setStatus("active");
-                customer.setCreatedAt(LocalDateTime.now());
-                customer = customerRepository.save(customer);
-            }
+        // Check if the user already exists in the database
+        Customer customer = customerRepository.findByEmail(email).orElse(null);
+        Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
+
+        Object user = null;
+        String resolvedRole = null;
+
+        if (customer != null) {
             user = customer;
-        } else if ("farmer".equals(role)) {
-            Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
-            if (farmer == null) {
-                farmer = new Farmer();
-                farmer.setFullName(name != null ? name : "Google User");
-                farmer.setEmail(email);
-                farmer.setAvatarUrl(picture);
-                farmer.setVerificationStatus("pending");
-                farmer.setStatus("active");
-                farmer.setCreatedAt(LocalDateTime.now());
-                farmer = farmerRepository.save(farmer);
-            }
+            resolvedRole = "customer";
+        } else if (farmer != null) {
             user = farmer;
-        } else {
-            throw new RuntimeException("Invalid role");
+            resolvedRole = "farmer";
         }
 
-        String token = jwtUtil.generateToken(email, role);
+        if (user != null) {
+            // User exists, login immediately and return successful auth response
+            String token = jwtUtil.generateToken(email, resolvedRole);
+            AuthResponse response = new AuthResponse();
+            response.setToken(token);
+            response.setUser(user);
+            response.setNewUser(false);
+            return response;
+        }
 
+        // User does not exist. Do they have a selected role from RoleCard?
+        if (role == null || role.isBlank() || (!"customer".equalsIgnoreCase(role) && !"farmer".equalsIgnoreCase(role))) {
+            // No role selected yet, return response indicating we need role selection
+            AuthResponse response = new AuthResponse();
+            response.setNewUser(true);
+            return response;
+        }
+
+        // Role is provided. Register the user and generate login details.
+        String lowercaseRole = role.toLowerCase();
+        if ("customer".equals(lowercaseRole)) {
+            customer = new Customer();
+            customer.setFullName(name != null ? name : "Google User");
+            customer.setEmail(email);
+            customer.setAvatarUrl(picture);
+            customer.setStatus("active");
+            customer.setCreatedAt(LocalDateTime.now());
+            // Auto-generate remaining attributes:
+            customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            customer.setPhone(generateUniquePhoneForCustomer());
+            customer = customerRepository.save(customer);
+            user = customer;
+            resolvedRole = "customer";
+        } else if ("farmer".equals(lowercaseRole)) {
+            farmer = new Farmer();
+            farmer.setFullName(name != null ? name : "Google User");
+            farmer.setEmail(email);
+            farmer.setAvatarUrl(picture);
+            farmer.setVerificationStatus("pending");
+            farmer.setStatus("active");
+            farmer.setCreatedAt(LocalDateTime.now());
+            // Auto-generate remaining attributes:
+            farmer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            farmer.setPhone(generateUniquePhoneForFarmer());
+            farmer.setFarmName("Nông trại của " + (name != null ? name : "Google Farmer"));
+            farmer.setFarmAddress("Chưa cập nhật");
+            farmer.setDescription("Mô tả nông trại chưa được cập nhật.");
+            farmer.setRatingAverage(0.0);
+            farmer.setTotalProducts(0);
+            farmer = farmerRepository.save(farmer);
+            user = farmer;
+            resolvedRole = "farmer";
+        }
+
+        String token = jwtUtil.generateToken(email, resolvedRole);
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setUser(user);
-
+        response.setNewUser(false);
         return response;
+    }
+
+    private String generateUniquePhoneForCustomer() {
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < 100; i++) {
+            String phone = "0" + (300000000L + random.nextLong(700000000L));
+            if (!customerRepository.existsByPhone(phone)) {
+                return phone;
+            }
+        }
+        throw new RuntimeException("Failed to generate unique phone number");
+    }
+
+    private String generateUniquePhoneForFarmer() {
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < 100; i++) {
+            String phone = "0" + (300000000L + random.nextLong(700000000L));
+            if (!farmerRepository.existsByPhone(phone)) {
+                return phone;
+            }
+        }
+        throw new RuntimeException("Failed to generate unique phone number");
     }
 }
