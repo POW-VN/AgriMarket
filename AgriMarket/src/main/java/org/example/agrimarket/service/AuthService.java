@@ -5,14 +5,18 @@ import org.example.agrimarket.dto.RegisterRequest;
 import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
+import org.example.agrimarket.model.OtpVerification;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
+import org.example.agrimarket.repository.OtpVerificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class AuthService {
@@ -27,6 +31,12 @@ public class AuthService {
     private AdminRepository adminRepository;
 
     @Autowired
+    private OtpVerificationRepository otpVerificationRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
@@ -35,10 +45,13 @@ public class AuthService {
     public AuthResponse login(String email, String password, String role) {
 
         if (role == null || role.isBlank()) {
-            throw new RuntimeException("Role is required");
+            throw new RuntimeException("Vai trò là bắt buộc");
         }
 
         role = role.toLowerCase();
+        if (email != null) {
+            email = email.trim().toLowerCase();
+        }
 
         Object user;
 
@@ -46,21 +59,21 @@ public class AuthService {
 
             case "customer":
                 user = customerRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Customer not found"));
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng"));
                 break;
 
             case "farmer":
                 user = farmerRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Farmer not found"));
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản nông dân"));
                 break;
 
             case "admin":
                 user = adminRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Admin not found"));
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản quản trị viên"));
                 break;
 
             default:
-                throw new RuntimeException("Invalid role");
+                throw new RuntimeException("Vai trò không hợp lệ");
         }
 
         String hashedPassword;
@@ -79,8 +92,12 @@ public class AuthService {
                 break;
         }
 
+        System.out.println("DEBUG LOGIN: email=" + email + ", role=" + role + ", inputPassword=" + password + ", storedHashedPassword=" + hashedPassword);
         if (!passwordEncoder.matches(password, hashedPassword)) {
-            throw new RuntimeException("Invalid credentials");
+            System.out.println("DEBUG LOGIN: matches FAILED!");
+            throw new RuntimeException("Tài khoản hoặc mật khẩu không chính xác");
+        } else {
+            System.out.println("DEBUG LOGIN: matches SUCCESS!");
         }
 
         String token = jwtUtil.generateToken(email, role);
@@ -95,8 +112,33 @@ public class AuthService {
     public Object register(RegisterRequest request) {
 
         if (request.getRole() == null || request.getRole().isBlank()) {
-            throw new RuntimeException("Role is required");
+            throw new RuntimeException("Vai trò là bắt buộc");
         }
+
+        String email = request.getEmail();
+        if (email != null) {
+            email = email.trim().toLowerCase();
+            request.setEmail(email);
+        }
+        String otpCode = request.getOtpCode();
+        if (otpCode == null || otpCode.isBlank()) {
+            throw new RuntimeException("Mã OTP là bắt buộc.");
+        }
+
+        OtpVerification otp = otpVerificationRepository
+                .findFirstByEmailAndOtpCodeAndTypeOrderByCreatedAtDesc(email, otpCode, "register")
+                .orElseThrow(() -> new RuntimeException("Mã OTP không hợp lệ."));
+
+        if (otp.isVerified()) {
+            throw new RuntimeException("Mã OTP này đã được sử dụng.");
+        }
+
+        if (otp.getExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Mã OTP đã hết hạn.");
+        }
+
+        otp.setVerified(true);
+        otpVerificationRepository.save(otp);
 
         String role = request.getRole().toLowerCase();
 
@@ -112,7 +154,7 @@ public class AuthService {
                 customer.setEmail(request.getEmail());
                 customer.setPhone(request.getPhoneNumber());
                 customer.setPassword(hashedPassword);
-                customer.setStatus("pending");
+                customer.setStatus("active");
                 customer.setCreatedAt(LocalDateTime.now());
 
                 return customerRepository.save(customer);
@@ -126,10 +168,10 @@ public class AuthService {
                 farmer.setPhone(request.getPhoneNumber());
                 farmer.setPassword(hashedPassword);
                 farmer.setVerificationStatus("pending");
-                farmer.setStatus("pending");
+                farmer.setStatus("active");
                 farmer.setCreatedAt(LocalDateTime.now());
-                farmer.setFarmName("Nông trại của " + (request.getFullName() != null ? request.getFullName() : "Nông Dân"));
-                farmer.setFarmAddress("Chưa cập nhật");
+                farmer.setFarmName("Farm of " + (request.getFullName() != null ? request.getFullName() : "Farmer"));
+                farmer.setFarmAddress("Not updated");
 
                 return farmerRepository.save(farmer);
 
@@ -145,7 +187,7 @@ public class AuthService {
                 return adminRepository.save(admin);
 
             default:
-                throw new RuntimeException("Invalid role");
+                throw new RuntimeException("Vai trò không hợp lệ");
         }
     }
 
@@ -164,15 +206,18 @@ public class AuthService {
                     java.util.Map.class
             );
         } catch (Exception e) {
-            throw new RuntimeException("Failed to verify Google token: " + e.getMessage());
+            throw new RuntimeException("Xác thực token Google thất bại: " + e.getMessage());
         }
 
         java.util.Map<String, Object> userInfo = responseEntity.getBody();
         if (userInfo == null || !userInfo.containsKey("email")) {
-            throw new RuntimeException("Invalid token response or email not found");
+            throw new RuntimeException("Phản hồi token không hợp lệ hoặc không tìm thấy email");
         }
 
         String email = (String) userInfo.get("email");
+        if (email != null) {
+            email = email.trim().toLowerCase();
+        }
         String name = (String) userInfo.get("name");
         String picture = (String) userInfo.get("picture");
 
@@ -220,6 +265,7 @@ public class AuthService {
             customer.setCreatedAt(LocalDateTime.now());
             // Auto-generate remaining attributes:
             customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            customer.setPasswordSet(false);
             customer.setPhone(generateUniquePhoneForCustomer());
             customer = customerRepository.save(customer);
             user = customer;
@@ -234,6 +280,7 @@ public class AuthService {
             farmer.setCreatedAt(LocalDateTime.now());
             // Auto-generate remaining attributes:
             farmer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            farmer.setPasswordSet(false);
             farmer.setPhone(generateUniquePhoneForFarmer());
             farmer.setFarmName("Nông trại của " + (name != null ? name : "Google Farmer"));
             farmer.setFarmAddress("Chưa cập nhật");
@@ -261,7 +308,7 @@ public class AuthService {
                 return phone;
             }
         }
-        throw new RuntimeException("Failed to generate unique phone number");
+        throw new RuntimeException("Tạo số điện thoại duy nhất thất bại");
     }
 
     private String generateUniquePhoneForFarmer() {
@@ -272,6 +319,114 @@ public class AuthService {
                 return phone;
             }
         }
-        throw new RuntimeException("Failed to generate unique phone number");
+        throw new RuntimeException("Tạo số điện thoại duy nhất thất bại");
+    }
+
+    public void sendForgotPasswordOtp(String email) {
+        if (email != null) {
+            email = email.trim().toLowerCase();
+        }
+        String userType = null;
+        if (customerRepository.findByEmail(email).isPresent()) {
+            userType = "customer";
+        } else if (farmerRepository.findByEmail(email).isPresent()) {
+            userType = "farmer";
+        } else if (adminRepository.findByEmail(email).isPresent()) {
+            userType = "admin";
+        }
+
+        if (userType == null) {
+            throw new RuntimeException("Email không tồn tại trong hệ thống.");
+        }
+
+        // Generate 6 digit OTP code
+        String otpCode = String.format("%06d", new Random().nextInt(999999));
+
+        OtpVerification otpVerification = new OtpVerification();
+        otpVerification.setEmail(email);
+        otpVerification.setUserType(userType);
+        otpVerification.setOtpCode(otpCode);
+        otpVerification.setType("forgot_password");
+        otpVerification.setExpiredAt(LocalDateTime.now().plusMinutes(5));
+        otpVerification.setVerified(false);
+        otpVerification.setCreatedAt(LocalDateTime.now());
+
+        otpVerificationRepository.save(otpVerification);
+
+        emailService.sendOtpEmail(email, otpCode, "forgot_password");
+    }
+
+    public void sendRegisterOtp(RegisterRequest request) {
+        String email = request.getEmail();
+        if (email != null) {
+            email = email.trim().toLowerCase();
+            request.setEmail(email);
+        }
+        if (customerRepository.findByEmail(email).isPresent() ||
+            farmerRepository.findByEmail(email).isPresent() ||
+            adminRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Địa chỉ email đã được đăng ký.");
+        }
+
+        if (customerRepository.existsByPhone(request.getPhoneNumber()) ||
+            farmerRepository.existsByPhone(request.getPhoneNumber())) {
+            throw new RuntimeException("Số điện thoại đã được đăng ký.");
+        }
+
+        String otpCode = String.format("%06d", new Random().nextInt(999999));
+
+        OtpVerification otpVerification = new OtpVerification();
+        otpVerification.setEmail(email);
+        otpVerification.setUserType(request.getRole().toLowerCase());
+        otpVerification.setOtpCode(otpCode);
+        otpVerification.setType("register");
+        otpVerification.setExpiredAt(LocalDateTime.now().plusMinutes(5));
+        otpVerification.setVerified(false);
+        otpVerification.setCreatedAt(LocalDateTime.now());
+
+        otpVerificationRepository.save(otpVerification);
+
+        emailService.sendOtpEmail(email, otpCode, "register");
+    }
+
+    public void resetPassword(String email, String otpCode, String newPassword) {
+        if (email != null) {
+            email = email.trim().toLowerCase();
+        }
+        OtpVerification otp = otpVerificationRepository
+                .findFirstByEmailAndOtpCodeAndTypeOrderByCreatedAtDesc(email, otpCode, "forgot_password")
+                .orElseThrow(() -> new RuntimeException("Mã OTP không chính xác."));
+
+        if (otp.isVerified()) {
+            throw new RuntimeException("Mã OTP này đã được sử dụng.");
+        }
+
+        if (otp.getExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Mã OTP đã hết hạn.");
+        }
+
+        otp.setVerified(true);
+        otpVerificationRepository.save(otp);
+
+        String hashedPassword = passwordEncoder.encode(newPassword);
+
+        if ("customer".equals(otp.getUserType())) {
+            Customer customer = customerRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng"));
+            customer.setPassword(hashedPassword);
+            customer.setPasswordSet(true);
+            customerRepository.save(customer);
+        } else if ("farmer".equals(otp.getUserType())) {
+            Farmer farmer = farmerRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản nông dân"));
+            farmer.setPassword(hashedPassword);
+            farmer.setPasswordSet(true);
+            farmerRepository.save(farmer);
+        } else if ("admin".equals(otp.getUserType())) {
+            Admin admin = adminRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản quản trị viên"));
+            admin.setPassword(hashedPassword);
+            adminRepository.save(admin);
+        }
     }
 }

@@ -48,7 +48,7 @@ const Home = () => {
               <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
               <path d="M16 9h3l2 3v4"></path>
             </svg>
-            <span className="logo-text">FarmConnect</span>
+            <span className="logo-text">AgriMarket</span>
           </div>
 
           <nav className="header-nav">
@@ -326,9 +326,9 @@ const Home = () => {
                 <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
                 <path d="M16 9h3l2 3v4"></path>
               </svg>
-              <span className="logo-text">FarmConnect</span>
+              <span className="logo-text">AgriMarket</span>
             </div>
-            <p className="footer-copy">© 2026 FarmConnect. Kết nối Nông nghiệp số.</p>
+            <p className="footer-copy">© 2026 AgriMarket. Kết nối Nông nghiệp số.</p>
           </div>
           <div className="footer-right">
             <Link to="/help" className="footer-link">Trung tâm trợ giúp</Link>

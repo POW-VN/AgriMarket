@@ -26,9 +26,9 @@ const Navbar = ({ logo, actions }) => {
         {/* ===================================== */}
 
         {/* Logo / Brand */}
-        <Link to="/" className="navbar-logo" aria-label="FarmConnect home">
+        <Link to="/" className="navbar-logo" aria-label="AgriMarket home">
           {/* PASTE ANIMA LOGO JSX HERE */}
-          {logo ?? <span>FarmConnect</span>}
+          {logo ?? <span>AgriMarket</span>}
         </Link>
 
         {/* Right Side Actions */}

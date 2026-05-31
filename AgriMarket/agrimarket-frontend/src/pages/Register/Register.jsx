@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import container from "./container.svg";
@@ -18,33 +18,159 @@ export const RegisterFarmconnect = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
+  // OTP Verification Modal State
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otpError, setOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const otpRefs = useRef([]);
+
+  const startResendTimer = () => {
+    setResendCooldown(60);
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleOtpChange = (element, index) => {
+    const val = element.value;
+    if (isNaN(val)) return;
+
+    let newOtp = [...otp];
+    newOtp[index] = val.substring(val.length - 1);
+    setOtp(newOtp);
+
+    // Focus next input
+    if (val && index < 5) {
+      otpRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e, index) => {
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        otpRefs.current[index - 1].focus();
+      }
+    }
+  };
+
+  const handleOtpPaste = (e) => {
     e.preventDefault();
-    setError("");
-
-    if (password !== confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
-      return;
+    const text = e.clipboardData.getData("text");
+    if (/^\d{6}$/.test(text)) {
+      const digits = text.split("");
+      setOtp(digits);
+      otpRefs.current[5].focus();
     }
+  };
 
-    if (!agreeTerms) {
-      setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật");
-      return;
-    }
-
-    setLoading(true);
+  const handleResendOtp = async () => {
+    setOtpError("");
     try {
-      const response = await authService.register({
+      await authService.sendRegisterOTP({
         fullName,
         email,
         phoneNumber,
         password,
         role
       });
-      console.log("Registration successful:", response);
-      navigate("/login");
+      startResendTimer();
     } catch (err) {
-      setError(err.message || "Đăng ký thất bại. Vui lòng thử lại.");
+      const errMsg = typeof err === "string" ? err : (err.message || "Gửi lại mã OTP thất bại. Vui lòng thử lại.");
+      setOtpError(errMsg);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setOtpError("");
+    const otpCode = otp.join("");
+    if (otpCode.length !== 6) {
+      setOtpError("Vui lòng nhập đủ 6 chữ số của mã xác thực.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.register({
+        fullName,
+        email,
+        phoneNumber,
+        password,
+        role,
+        otpCode
+      });
+      
+      try {
+        // Tự động đăng nhập
+        await authService.login({ email, password, role });
+        setShowOtpModal(false);
+        if (role === "farmer") {
+          navigate("/farmer/farm-details");
+        } else {
+          navigate("/");
+        }
+      } catch (loginErr) {
+        setShowOtpModal(false);
+        navigate("/login", { state: { message: "Đăng ký thành công. Vui lòng đăng nhập." } });
+      }
+    } catch (err) {
+      const errMsg = typeof err === "string" ? err : (err.message || "Xác thực OTP thất bại. Vui lòng thử lại.");
+      setOtpError(errMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Kiểm tra định dạng số điện thoại (10 chữ số và bắt đầu bằng số 0)
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      setError("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
+      return;
+    }
+
+    // Kiểm tra yêu cầu độ dài mật khẩu (tối thiểu 8 ký tự)
+    if (password.length < 8) {
+      setError("Mật khẩu phải dài ít nhất 8 ký tự.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    if (!agreeTerms) {
+      setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.sendRegisterOTP({
+        fullName,
+        email,
+        phoneNumber,
+        password,
+        role
+      });
+      setShowOtpModal(true);
+      setOtp(["", "", "", "", "", ""]);
+      setOtpError("");
+      startResendTimer();
+    } catch (err) {
+      const errMsg = typeof err === "string" ? err : (err.message || "Gửi mã xác thực thất bại. Vui lòng thử lại.");
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -62,11 +188,12 @@ export const RegisterFarmconnect = () => {
         if (response?.newUser || response?.isNewUser) {
           navigate("/role", { state: { googleAccessToken: tokenResponse.access_token } });
         } else {
-          console.log("Google login/register successful:", response);
-          navigate("/profile");
+          console.log("Đăng nhập/Đăng ký Google thành công:", response);
+          navigate("/");
         }
       } catch (err) {
-        setError(err.message || "Đăng ký bằng Google thất bại. Vui lòng thử lại.");
+        const errMsg = typeof err === "string" ? err : (err.message || "Đăng ký bằng Google thất bại. Vui lòng thử lại.");
+        setError(errMsg);
       } finally {
         setLoading(false);
       }
@@ -84,11 +211,11 @@ export const RegisterFarmconnect = () => {
           <div className="div">
             <div className="brand-header">
               <div className="div-2">
-                <div className="text-wrapper">Tham gia FarmConnect</div>
+                <div className="text-wrapper">Tham gia AgriMarket</div>
               </div>
               <div className="div-2">
                 <p className="p">
-                  Bắt đầu hành trình hướng tới nông nghiệp sạch, địa phương.
+                  Bắt đầu hành trình của bạn hướng tới nền nông nghiệp sạch địa phương.
                 </p>
               </div>
             </div>
@@ -130,7 +257,7 @@ export const RegisterFarmconnect = () => {
                 <div className="base-fields">
                   <div className="container-3">
                     <div className="div-2">
-                      <div className="text-wrapper-2">Họ và tên</div>
+                      <div className="text-wrapper-2">Họ và Tên</div>
                     </div>
                     <input 
                       className="input" 
@@ -213,7 +340,7 @@ export const RegisterFarmconnect = () => {
                   </div>
                 </div>
                 <button className="button" type="submit" disabled={loading}>
-                  <div className="text-3">{loading ? "Đang đăng ký..." : "Đăng ký tài khoản"}</div>
+                  <div className="text-3">{loading ? "Đang xử lý..." : "Đăng ký tài khoản"}</div>
                 </button>
               </form>
             </div>
@@ -224,7 +351,7 @@ export const RegisterFarmconnect = () => {
                 </div>
                 <div className="background-wrapper">
                   <div className="background">
-                    <div className="text-4">Hoặc tiếp tục bằng</div>
+                    <div className="text-4">Hoặc tiếp tục với</div>
                   </div>
                 </div>
               </div>
@@ -242,8 +369,85 @@ export const RegisterFarmconnect = () => {
           </div>
         </div>
         <div className="right-side-imagery">
+          {/* Glassmorphic Brand Tag */}
+          <div className="glassmorphism">
+            <div className="container-5">
+              <div className="container-6">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ width: '32px', height: '32px' }}>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <div className="heading">
+                <div className="text-7">AgriMarket</div>
+              </div>
+            </div>
+            <div className="farmconnect-wrapper">
+              <p className="farmconnect">
+                Kết nối trực tiếp nông dân địa phương với người tiêu dùng để có nông sản tươi ngon hơn, giá cả hợp lý hơn và cộng đồng vững mạnh hơn.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* OTP POPUP MODAL */}
+      {showOtpModal && (
+        <div className="otp-modal-overlay">
+          <div className="otp-modal-content">
+            <button className="otp-modal-close" onClick={() => setShowOtpModal(false)}>×</button>
+            <div className="otp-modal-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '28px', height: '28px' }}>
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </div>
+            <h3 className="otp-modal-title">Xác thực Email</h3>
+            <p className="otp-modal-description">
+              Chúng tôi đã gửi mã xác thực gồm 6 chữ số đến <br />
+              <strong>{email}</strong>
+            </p>
+
+            {otpError && (
+              <div className="otp-modal-error">
+                {otpError}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} className="otp-modal-actions">
+              <div className="otp-modal-inputs" onPaste={handleOtpPaste}>
+                {otp.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => (otpRefs.current[idx] = el)}
+                    type="text"
+                    maxLength="1"
+                    className="otp-input-field"
+                    value={digit}
+                    onChange={(e) => handleOtpChange(e.target, idx)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                    required
+                  />
+                ))}
+              </div>
+
+              <button className="otp-btn-verify" type="submit" disabled={loading}>
+                {loading ? "Đang xác thực..." : "Xác thực mã"}
+              </button>
+
+              <div className="otp-resend-text">
+                Không nhận được mã?{" "}
+                {resendCooldown > 0 ? (
+                  <span>Gửi lại sau {resendCooldown}s</span>
+                ) : (
+                  <button type="button" className="otp-btn-resend" onClick={handleResendOtp}>
+                    Gửi lại
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

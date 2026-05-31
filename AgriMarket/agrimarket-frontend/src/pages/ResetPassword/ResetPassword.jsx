@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/ResetPassword/ResetPassword.jsx
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import authService from '../../services/authService';
 
 import PasswordInput from '../../components/common/PasswordInput/PasswordInput';
 import Button from '../../components/common/Button/Button';
@@ -10,6 +12,8 @@ const OTP_LENGTH = 6;
 
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email;
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const [newPassword, setNewPassword] = useState('');
@@ -18,6 +22,12 @@ const ResetPassword = () => {
   const [confirmError, setConfirmError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendDisabled, setResendDisabled] = useState(false);
+
+  useEffect(() => {
+    if (!email) {
+      navigate('/forgot-password');
+    }
+  }, [email, navigate]);
 
   const otpRefs = useRef([]);
 
@@ -38,10 +48,17 @@ const ResetPassword = () => {
     }
   };
 
-  const handleResendOTP = () => {
+  const handleResendOTP = async () => {
+    if (!email) return;
     setResendDisabled(true);
     setOtp(Array(OTP_LENGTH).fill(''));
     otpRefs.current[0]?.focus();
+
+    try {
+      await authService.sendForgotPasswordOTP(email);
+    } catch (err) {
+      console.error("Error resending OTP:", err);
+    }
 
     setTimeout(() => {
       setResendDisabled(false);
@@ -52,20 +69,20 @@ const ResetPassword = () => {
     let valid = true;
 
     if (!newPassword) {
-      setPasswordError('Yêu cầu nhập mật khẩu');
+      setPasswordError('Vui lòng nhập mật khẩu mới.');
       valid = false;
     } else if (newPassword.length < 8) {
-      setPasswordError('Mật khẩu phải có ít nhất 8 ký tự');
+      setPasswordError('Mật khẩu phải dài ít nhất 8 ký tự.');
       valid = false;
     } else {
       setPasswordError('');
     }
 
     if (!confirmPassword) {
-      setConfirmError('Vui lòng xác nhận mật khẩu');
+      setConfirmError('Vui lòng xác nhận mật khẩu.');
       valid = false;
     } else if (newPassword !== confirmPassword) {
-      setConfirmError('Mật khẩu không khớp');
+      setConfirmError('Mật khẩu xác nhận không khớp.');
       valid = false;
     } else {
       setConfirmError('');
@@ -74,16 +91,37 @@ const ResetPassword = () => {
     return valid;
   };
 
-  const handleConfirmReset = (e) => {
+  const handleConfirmReset = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!email) {
+      setConfirmError("Không tìm thấy địa chỉ email. Vui lòng quay lại.");
+      return;
+    }
+
+    const otpCode = otp.join('');
+    if (otpCode.length !== OTP_LENGTH) {
+      setConfirmError("Vui lòng nhập đầy đủ mã xác minh 6 số.");
+      return;
+    }
 
     setIsLoading(true);
+    setConfirmError("");
+    setPasswordError("");
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await authService.resetPassword({ email, otpCode, newPassword });
       navigate('/reset-success');
-    }, 1500);
+    } catch (err) {
+      const errMsg = typeof err === 'string' ? err : err.message || "Đặt lại mật khẩu thất bại. Vui lòng thử lại.";
+      if (errMsg.toLowerCase().includes("otp")) {
+        setConfirmError(errMsg);
+      } else {
+        setPasswordError(errMsg);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -91,14 +129,14 @@ const ResetPassword = () => {
         {/* HEADER LOGO */}
         <header className="header-topappbar">
           <div className="container-wrapper">
-            <h2 className="brand-logo">FarmConnect</h2>
+            <h2 className="brand-logo">AgriMarket</h2>
           </div>
         </header>
 
         {/* MAIN CONTENT */}
         <main className="main-content-canvas">
           <div className="reset-card-wrapper">
-            {/* Hiệu ứng phát sáng phía sau thẻ */}
+            {/* Glow effect behind the card */}
             <div className="card-glow-background"></div>
 
             <div className="reset-password-card">
@@ -112,9 +150,9 @@ const ResetPassword = () => {
                     <path d="M12 14V14.01" stroke="#012d1d" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h1 className="reset-password-title">Khôi Phục An Toàn</h1>
+                <h1 className="reset-password-title">Đặt lại mật khẩu</h1>
                 <p className="reset-password-description">
-                  Xác minh danh tính của bạn để tạo mật khẩu mới.
+                  Xác minh danh tính của bạn để thiết lập mật khẩu mới.
                 </p>
               </div>
 
@@ -124,8 +162,8 @@ const ResetPassword = () => {
                 {/* OTP SECTION */}
                 <div className="form-section">
                   <div className="section-header-texts">
-                    <label className="input-label">Mã Xác Minh</label>
-                    <p className="sub-label">Nhập mã gồm 6 chữ số được gửi đến email đã đăng ký của bạn.</p>
+                    <label className="input-label">Mã xác minh</label>
+                    <p className="sub-label">Nhập mã gồm 6 chữ số được gửi đến địa chỉ email đã đăng ký của bạn.</p>
                   </div>
 
                   <div className="otp-inputs">
@@ -150,7 +188,7 @@ const ResetPassword = () => {
                         onClick={handleResendOTP}
                         disabled={resendDisabled}
                     >
-                      Gửi Lại Mã
+                      Gửi lại mã
                     </button>
                   </div>
                 </div>
@@ -160,7 +198,7 @@ const ResetPassword = () => {
                 {/* PASSWORD SECTION */}
                 <div className="form-section password-section-spacing">
                   <div className="password-input-wrapper">
-                    <label className="input-label">Mật Khẩu Mới</label>
+                    <label className="input-label">Mật khẩu mới</label>
                     <PasswordInput
                         id="new-password"
                         name="newPassword"
@@ -176,11 +214,11 @@ const ResetPassword = () => {
                   </div>
 
                   <div className="password-input-wrapper">
-                    <label className="input-label">Xác Nhận Mật Khẩu</label>
+                    <label className="input-label">Xác nhận mật khẩu mới</label>
                     <PasswordInput
                         id="confirm-password"
                         name="confirmPassword"
-                        placeholder="Nhập lại mật khẩu"
+                        placeholder="Nhập lại mật khẩu mới"
                         value={confirmPassword}
                         onChange={(e) => {
                           setConfirmPassword(e.target.value);
@@ -206,7 +244,7 @@ const ResetPassword = () => {
                       <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.709 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    Xác Nhận Đặt Lại
+                    Xác nhận đặt lại
                   </div>
                 </Button>
               </form>
@@ -218,7 +256,7 @@ const ResetPassword = () => {
         <footer className="footer">
           <div className="footer-container">
             <p className="footer-text">
-              © 2024 FarmConnect. Quản lý kỹ thuật số nông nghiệp.
+              © 2026 AgriMarket. Digital Stewardship.
             </p>
             <div className="footer-links">
               <span className="link">Trung tâm trợ giúp</span>

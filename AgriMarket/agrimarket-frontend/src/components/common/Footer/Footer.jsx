@@ -25,7 +25,7 @@ const Footer = ({ copyrightText }) => {
       {/* ===================================== */}
 
       <p className="footer-text">
-        {copyrightText ?? `© ${year} FarmConnect. All rights reserved.`}
+        {copyrightText ?? `© ${year} AgriMarket. All rights reserved.`}
       </p>
 
       <nav className="footer-links" aria-label="Footer links">

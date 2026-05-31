@@ -1,5 +1,7 @@
+// src/pages/ForgotPassword/ForgotPassword.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import authService from '../../services/authService';
 
 import './ForgotPassword.css';
 
@@ -19,7 +21,7 @@ const ForgotPassword = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const validateEmail = (value) => {
-        if (!value) return 'Vui lòng nhập email.';
+        if (!value) return 'Vui lòng nhập email của bạn.';
 
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
             return 'Vui lòng nhập địa chỉ email hợp lệ.';
@@ -36,7 +38,7 @@ const ForgotPassword = () => {
         }
     };
 
-    const handleSendOTP = (e) => {
+    const handleSendOTP = async (e) => {
         e.preventDefault();
 
         const error = validateEmail(email);
@@ -47,18 +49,24 @@ const ForgotPassword = () => {
         }
 
         setIsLoading(true);
+        setEmailError("");
 
-        setTimeout(() => {
+        try {
+            await authService.sendForgotPasswordOTP(email);
+            navigate('/reset-password', { state: { email } });
+        } catch (err) {
+            const errMsg = typeof err === 'string' ? err : err.message || "Gửi mã OTP thất bại. Vui lòng thử lại.";
+            setEmailError(errMsg);
+        } finally {
             setIsLoading(false);
-            navigate('/reset-password');
-        }, 1500);
+        }
     };
 
     return (
         <div className="forgot-password-container">
             <div className="forgot-password-card">
 
-                {/* Phía Trái: Banner */}
+                {/* Left Side: Banner */}
                 <div className="forgot-password-card__left">
                     <img
                         src={bannerImage}
@@ -66,26 +74,26 @@ const ForgotPassword = () => {
                         className="banner-image"
                     />
                     <div className="banner-content">
-                        <h2 className="banner-title">Bảo Vệ Vụ Mùa Của Bạn</h2>
+                        <h2 className="banner-title">Bảo vệ mùa vụ của bạn</h2>
                         <p className="banner-text">
-                            Bảo vệ dữ liệu nông nghiệp của bạn với các giao thức bảo mật cấp doanh nghiệp.
+                            Bảo mật dữ liệu nông nghiệp của bạn với các giao thức bảo mật hàng đầu.
                         </p>
                     </div>
                 </div>
 
-                {/* Phía Phải: Form */}
+                {/* Right Side: Form */}
                 <div className="forgot-password-card__right">
                     <div className="forgot-password__header">
-                        <h2 className="brand-logo">FarmConnect</h2>
+                        <h2 className="brand-logo">AgriMarket</h2>
                     </div>
 
                     <div className="forgot-password__body">
                         <h1 className="forgot-password__title">
-                            Quên Mật Khẩu
+                            Quên mật khẩu
                         </h1>
 
                         <p className="forgot-password__description">
-                            Nhập địa chỉ email của bạn và chúng tôi sẽ gửi cho bạn một mã xác minh để đặt lại mật khẩu.
+                            Nhập địa chỉ email của bạn và chúng tôi sẽ gửi mã xác minh để đặt lại mật khẩu.
                         </p>
 
                         <form
@@ -104,7 +112,7 @@ const ForgotPassword = () => {
 
                                     <input
                                         type="email"
-                                        placeholder="nongdan@example.com"
+                                        placeholder="farmer@example.com"
                                         value={email}
                                         onChange={handleEmailChange}
                                         className="forgot-password__input"
@@ -143,11 +151,11 @@ const ForgotPassword = () => {
                         <div className="forgot-password__security">
                             <img
                                 src={securityLockIcon}
-                                alt="Security"
-                            />
+                                        alt="Security"
+                                    />
                             <p>
-                                Vì sự an toàn của bạn, liên kết đặt lại mật khẩu sẽ hết hạn sau một thời gian nhất định.
-                                Nếu bạn không nhận được email, vui lòng kiểm tra hộp thư rác.
+                                Vì sự an toàn của bạn, mã xác minh sẽ hết hạn sau một khoảng thời gian ngắn.
+                                Nếu bạn không nhận được email, vui lòng kiểm tra thư mục thư rác.
                             </p>
                         </div>
                     </div>

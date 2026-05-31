@@ -70,7 +70,7 @@ const ChangePasswordSuccess = ({
             />
 
             <p className="change-password-success__warning-text">
-              Nếu đây không phải là bạn, vui lòng liên hệ hỗ trợ ngay lập tức.
+              Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với bộ phận hỗ trợ ngay lập tức.
             </p>
           </div>
 

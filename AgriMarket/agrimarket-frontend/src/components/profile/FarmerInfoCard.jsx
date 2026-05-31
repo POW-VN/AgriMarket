@@ -11,7 +11,7 @@ const FarmerInfoCard = ({ profile }) => {
   return (
     <section className="profile-card profile-detail-card farm-info-card">
       <div className="profile-card-title-row">
-        <h3>Thông tin nông trại</h3>
+        <h3>Thông tin trang trại</h3>
         <span className="profile-badge light">
           {verificationText}
         </span>
@@ -19,17 +19,17 @@ const FarmerInfoCard = ({ profile }) => {
 
       <div className="profile-detail-list">
         <div>
-          <p>Tên nông trại / doanh nghiệp</p>
+          <p>Tên trang trại / Doanh nghiệp</p>
           <strong>{profile?.farmName || "Chưa cập nhật"}</strong>
         </div>
 
         <div>
-          <p>Địa chỉ nông trại</p>
+          <p>Địa chỉ trang trại</p>
           <strong>{profile?.farmAddress || "Chưa cập nhật"}</strong>
         </div>
 
         <div>
-          <p>Mô tả</p>
+          <p>Mô tả trang trại</p>
           <strong>{profile?.description || "Chưa cập nhật"}</strong>
         </div>
       </div>
@@ -41,7 +41,7 @@ const FarmerInfoCard = ({ profile }) => {
         </div>
 
         <div>
-          <p>Tổng sản phẩm</p>
+          <p>Tổng số sản phẩm</p>
           <strong>{profile?.totalProducts || 0}</strong>
         </div>
       </div>

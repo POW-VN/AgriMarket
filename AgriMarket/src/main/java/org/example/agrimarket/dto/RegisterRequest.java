@@ -6,6 +6,7 @@ public class RegisterRequest {
     private String phoneNumber;
     private String password;
     private String role;
+    private String otpCode;
 
     public RegisterRequest() {}
 
@@ -15,6 +16,15 @@ public class RegisterRequest {
         this.phoneNumber = phoneNumber;
         this.password = password;
         this.role = role;
+    }
+
+    public RegisterRequest(String fullName, String email, String phoneNumber, String password, String role, String otpCode) {
+        this.fullName = fullName;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+        this.password = password;
+        this.role = role;
+        this.otpCode = otpCode;
     }
 
     public String getFullName() {
@@ -55,5 +65,13 @@ public class RegisterRequest {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getOtpCode() {
+        return otpCode;
+    }
+
+    public void setOtpCode(String otpCode) {
+        this.otpCode = otpCode;
     }
 }

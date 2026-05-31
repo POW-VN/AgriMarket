@@ -1,3 +1,4 @@
+// src/pages/Login/Login.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -26,9 +27,10 @@ export const LoginFarmconnect = () => {
     try {
       const response = await authService.login({ email, password, role });
       console.log("Login successful:", response);
-      navigate("/profile");
+      navigate("/");
     } catch (err) {
-      setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
+      const errMsg = typeof err === "string" ? err : (err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -47,17 +49,18 @@ export const LoginFarmconnect = () => {
           navigate("/role", { state: { googleAccessToken: tokenResponse.access_token } });
         } else {
           console.log("Google login successful:", response);
-          navigate("/profile");
+          navigate("/");
         }
       } catch (err) {
-        setError(err.message || "Đăng nhập Google thất bại. Vui lòng thử lại.");
+        const errMsg = typeof err === "string" ? err : (err.message || "Đăng nhập bằng Google thất bại. Vui lòng thử lại.");
+        setError(errMsg);
       } finally {
         setLoading(false);
       }
     },
     onError: (error) => {
       console.error("Google Login Error:", error);
-      setError("Đăng nhập Google thất bại.");
+      setError("Đăng nhập bằng Google thất bại.");
     }
   });
 
@@ -70,16 +73,16 @@ export const LoginFarmconnect = () => {
           <div className="container">
             <div className="div">
               <div className="cultivating-trust">
-                Gieo Niềm Tin,
+                Cultivating Trust,
                 <br />
-                Trao Tươi Sạch.
+                Delivering Freshness.
               </div>
             </div>
             <div className="join-the-digital-wrapper">
               <p className="join-the-digital">
-                Tham gia cuộc cách mạng số kết nối những nông dân
+                Join the digital revolution connecting dedicated
                 <br />
-                tận tâm với những người tiêu dùng thông thái.
+                farmers with smart consumers.
               </p>
             </div>
           </div>
@@ -88,7 +91,7 @@ export const LoginFarmconnect = () => {
           <div className="container-2">
             <div className="brand-header">
               <div className="div">
-                <div className="text-wrapper">FarmConnect</div>
+                <div className="text-wrapper">AgriMarket</div>
               </div>
               <div className="div">
                 <p className="p">Đăng nhập vào tài khoản của bạn</p>
@@ -182,10 +185,10 @@ export const LoginFarmconnect = () => {
                       {rememberMe && "✓"}
                     </div>
                     <div className="text-wrapper-2">
-                      <div className="text-4">Ghi nhớ đăng nhập</div>
+                      <div className="text-4">Ghi nhớ tài khoản</div>
                     </div>
                   </div>
-                  <div className="text-wrapper-2" onClick={() => console.log('Forgot password clicked')} style={{ cursor: 'pointer' }}>
+                  <div className="text-wrapper-2" onClick={() => navigate('/forgot-password')} style={{ cursor: 'pointer' }}>
                     <div className="text-5">Quên mật khẩu?</div>
                   </div>
                 </div>

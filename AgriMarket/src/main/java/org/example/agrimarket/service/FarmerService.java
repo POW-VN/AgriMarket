@@ -23,6 +23,8 @@ public class FarmerService {
         Farmer existing = farmerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Farmer not found"));
 
+        System.out.println("DEBUG UPDATE_PROFILE (Farmer): password before save: " + existing.getPassword());
+
         if (updatedFarmer.getFullName() != null) {
             existing.setFullName(updatedFarmer.getFullName());
         }
@@ -48,7 +50,9 @@ public class FarmerService {
         }
 
         existing.setRole("farmer");
-        return farmerRepository.save(existing);
+        Farmer saved = farmerRepository.save(existing);
+        System.out.println("DEBUG UPDATE_PROFILE (Farmer): password after save: " + saved.getPassword());
+        return saved;
     }
 
     private void deletePhysicalAvatarFile(String avatarUrl) {

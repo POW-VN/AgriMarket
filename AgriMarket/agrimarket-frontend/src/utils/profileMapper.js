@@ -43,6 +43,8 @@ export const normalizeProfileData = (rawUser) => {
 
     status: rawUser.status || "",
 
+    passwordSet: rawUser.passwordSet !== undefined ? rawUser.passwordSet : (rawUser.password_set !== undefined ? rawUser.password_set : true),
+
     createdAt:
       rawUser.createdAt ||
       rawUser.created_at ||

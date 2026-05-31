@@ -113,6 +113,8 @@ const normalizeAuthUser = (user, fallbackRole) => {
 
     status: user.status || "active",
 
+    passwordSet: user.passwordSet !== undefined ? user.passwordSet : (user.password_set !== undefined ? user.password_set : true),
+
     createdAt:
       user.createdAt ||
       user.created_at ||
@@ -184,18 +186,24 @@ export const authService = {
   },
 
   googleLogin: async (googleData) => {
-   // googleData: { token, role }
-      try {
-        const response = await apiClient.post('/auth/google', googleData)
-        if (response.data?.token) {
-          localStorage.setItem('farmconnect_token', response.data.token)
-          localStorage.setItem('farmconnect_user', JSON.stringify(response.data.user))
-        }
-        return response.data
-      } catch (error) {
-        throw error.response?.data || error
+    // googleData: { token, role }
+    try {
+      const response = await apiClient.post('/auth/google', googleData)
+      if (response.data?.token) {
+        localStorage.setItem('farmconnect_token', response.data.token)
       }
-    },
+      if (response.data?.user) {
+        const normalizedUser = normalizeAuthUser(
+          response.data.user,
+          response.data.user.role || googleData.role
+        );
+        localStorage.setItem('farmconnect_user', JSON.stringify(normalizedUser))
+      }
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
+    }
+  },
 
   register: async (userData) => {
     // userData: { fullName, email, phoneNumber, password, role }
@@ -244,6 +252,35 @@ export const authService = {
   getToken: () => {
     return localStorage.getItem("farmconnect_token");
   },
+
+  sendRegisterOTP: async (registerData) => {
+    // registerData: { email, role, phoneNumber }
+    try {
+      const response = await apiClient.post("/auth/register/send-otp", registerData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  sendForgotPasswordOTP: async (email) => {
+    try {
+      const response = await apiClient.post("/auth/forgot-password/send-otp", { email });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  resetPassword: async (resetData) => {
+    // resetData: { email, otpCode, newPassword }
+    try {
+      const response = await apiClient.post("/auth/forgot-password/reset", resetData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  }
 
   /*
     TODO GOOGLE LOGIN:

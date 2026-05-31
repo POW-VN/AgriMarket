@@ -35,7 +35,7 @@ export const RoleSelection = () => {
                 if (selectedRole === 'farmer') {
                     navigate("/farmer/farm-details");
                 } else {
-                    navigate("/profile");
+                    navigate("/");
                 }
             } catch (err) {
                 setError(err.message || "Đăng ký vai trò thất bại. Vui lòng thử lại.");
@@ -43,9 +43,9 @@ export const RoleSelection = () => {
                 setLoading(false);
             }
         } else {
-            // Trường hợp test trực tiếp hoặc không có token
+            // Case for direct testing or no token
             if (selectedRole === 'customer') {
-                navigate("/profile");
+                navigate("/");
             } else if (selectedRole === 'farmer') {
                 navigate("/farmer/farm-details");
             }
@@ -54,7 +54,7 @@ export const RoleSelection = () => {
 
     return (
         <div className="role-selection-page">
-            {/* Vòng tròn trang trí mờ ở góc dưới bên trái */}
+            {/* Decorative background circle */}
             <div className="background-decoration"></div>
 
             {/* Header */}
@@ -72,14 +72,14 @@ export const RoleSelection = () => {
             {/* Main Content */}
             <main className="role-main">
                 <div className="role-titles">
-                    <h1>Chào mừng đến với FarmConnect</h1>
+                    <h1>Chào mừng đến với AgriMarket</h1>
                     <p>Chọn cách bạn muốn sử dụng nền tảng để bắt đầu hành trình nông nghiệp của mình.</p>
                 </div>
 
                 {error && <div className="error-message" style={{ color: 'var(--error-color)', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffcdd2', textAlign: 'center', width: '100%', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>{error}</div>}
 
                 <div className="role-cards-container">
-                    {/* Thẻ Customer */}
+                    {/* Customer Card */}
                     <div
                         className={`role-card ${selectedRole === 'customer' ? 'selected' : ''}`}
                         onClick={() => setSelectedRole('customer')}
@@ -125,7 +125,7 @@ export const RoleSelection = () => {
                         </ul>
                     </div>
 
-                    {/* Thẻ Farmer */}
+                    {/* Farmer Card */}
                     <div
                         className={`role-card ${selectedRole === 'farmer' ? 'selected' : ''}`}
                         onClick={() => setSelectedRole('farmer')}

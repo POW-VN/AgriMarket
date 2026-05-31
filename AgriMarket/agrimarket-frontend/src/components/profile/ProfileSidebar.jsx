@@ -16,7 +16,7 @@ const ProfileSidebar = ({ profile }) => {
 
   return (
     <aside className="profile-sidebar">
-      <div className="profile-brand">FarmConnect</div>
+      <div className="profile-brand">AgriMarket</div>
 
       <div className="profile-sidebar-user">
         <ProfileAvatar
@@ -27,7 +27,7 @@ const ProfileSidebar = ({ profile }) => {
         />
 
         <div>
-          <p className="sidebar-welcome">Xin chào</p>
+          <p className="sidebar-welcome">Xin chào,</p>
           <p className="sidebar-name">
             {profile?.fullName || "Người dùng"}
           </p>
@@ -55,7 +55,11 @@ const ProfileSidebar = ({ profile }) => {
           Hồ sơ
         </button>
 
-        <button className="sidebar-menu-item">
+        <button
+          className={`sidebar-menu-item ${location.pathname === "/security" ? "active" : ""
+            }`}
+          onClick={() => navigate("/security")}
+        >
           <span>🔒</span>
           Bảo mật
         </button>
@@ -67,7 +71,7 @@ const ProfileSidebar = ({ profile }) => {
 
         <button className="sidebar-menu-item">
           <span>🕘</span>
-          Lịch sử
+          Lịch sử giao dịch
         </button>
       </nav>
 

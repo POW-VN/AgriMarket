@@ -28,6 +28,9 @@ public class Farmer {
     private String email;
     private String phone;
     private String password;
+
+    @Column(name = "password_set")
+    private Boolean passwordSet = true;
     
     @Column(name = "avatar_url")
     private String avatarUrl;
