@@ -1,0 +1,88 @@
+// src/services/profileService.js
+
+import { PROFILE_STORAGE_KEYS, USER_ROLES } from "../constants/profileConstants";
+import { normalizeProfileData } from "../utils/profileMapper";
+import apiClient from "./apiClient";
+
+const getLocalUser = () => {
+  const userStr = localStorage.getItem(PROFILE_STORAGE_KEYS.USER);
+
+  if (!userStr) return null;
+
+  try {
+    return JSON.parse(userStr);
+  } catch (error) {
+    console.error("Không đọc được dữ liệu user trong localStorage:", error);
+    return null;
+  }
+};
+
+const saveLocalUser = (user) => {
+  localStorage.setItem(PROFILE_STORAGE_KEYS.USER, JSON.stringify(user));
+};
+
+const getCurrentProfile = async () => {
+  try {
+    const response = await apiClient.get("/api/profile/me");
+    if (response.data) {
+      saveLocalUser(response.data);
+      return normalizeProfileData(response.data);
+    }
+  } catch (error) {
+    console.warn("Failed to fetch fresh profile from backend, falling back to local storage:", error);
+  }
+
+  const localUser = getLocalUser();
+  if (!localUser) return null;
+
+  return normalizeProfileData(localUser);
+};
+
+const updateProfile = async (profileData) => {
+  const currentUser = getLocalUser();
+
+  if (!currentUser) {
+    throw new Error("Không tìm thấy người dùng hiện tại.");
+  }
+
+  const normalizedUser = normalizeProfileData(currentUser);
+
+  if (normalizedUser.role === USER_ROLES.ADMIN) {
+    throw new Error("Admin không được chỉnh sửa hồ sơ.");
+  }
+
+  if (normalizedUser.role === USER_ROLES.CUSTOMER) {
+    const response = await apiClient.put(`/api/customers/${normalizedUser.id}`, profileData);
+    saveLocalUser(response.data);
+    return normalizeProfileData(response.data);
+  }
+
+  if (normalizedUser.role === USER_ROLES.FARMER) {
+    const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
+    saveLocalUser(response.data);
+    return normalizeProfileData(response.data);
+  }
+
+  const updatedUser = {
+    ...currentUser,
+    ...profileData,
+    role: normalizedUser.role,
+  };
+
+  saveLocalUser(updatedUser);
+
+  return normalizeProfileData(updatedUser);
+};
+
+const logout = () => {
+  localStorage.removeItem(PROFILE_STORAGE_KEYS.USER);
+  localStorage.removeItem(PROFILE_STORAGE_KEYS.TOKEN);
+};
+
+const profileService = {
+  getCurrentProfile,
+  updateProfile,
+  logout,
+};
+
+export default profileService;
