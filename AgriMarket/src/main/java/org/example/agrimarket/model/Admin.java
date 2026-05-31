@@ -19,6 +19,9 @@ public class Admin {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Transient
+    private String role = "admin";
+
     @Column(name = "full_name")
     private String fullName;
     

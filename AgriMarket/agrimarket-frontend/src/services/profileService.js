@@ -2,11 +2,7 @@
 
 import { PROFILE_STORAGE_KEYS, USER_ROLES } from "../constants/profileConstants";
 import { normalizeProfileData } from "../utils/profileMapper";
-
-// TODO BACKEND API:
-// Khi nhóm bạn đã có file apiClient.js hoặc axios instance,
-// mở dòng này ra để gọi API thật.
-// import apiClient from "./apiClient";
+import apiClient from "./apiClient";
 
 const getLocalUser = () => {
   const userStr = localStorage.getItem(PROFILE_STORAGE_KEYS.USER);
@@ -26,26 +22,20 @@ const saveLocalUser = (user) => {
 };
 
 const getCurrentProfile = async () => {
-  const localUser = getLocalUser();
+  try {
+    const response = await apiClient.get("/api/profile/me");
+    if (response.data) {
+      saveLocalUser(response.data);
+      return normalizeProfileData(response.data);
+    }
+  } catch (error) {
+    console.warn("Failed to fetch fresh profile from backend, falling back to local storage:", error);
+  }
 
+  const localUser = getLocalUser();
   if (!localUser) return null;
 
-  const normalizedUser = normalizeProfileData(localUser);
-
-  // TODO BACKEND API:
-  // Khi backend có API lấy profile theo user hiện tại,
-  // thay phần return localStorage bằng gọi API.
-  //
-  // Ví dụ:
-  // const response = await apiClient.get("/profile/me");
-  // return normalizeProfileData(response.data);
-  //
-  // Hoặc nếu backend tách riêng:
-  // GET /api/customers/{id}
-  // GET /api/farmers/{id}
-  // GET /api/admins/{id}
-
-  return normalizedUser;
+  return normalizeProfileData(localUser);
 };
 
 const updateProfile = async (profileData) => {
@@ -61,21 +51,17 @@ const updateProfile = async (profileData) => {
     throw new Error("Admin không được chỉnh sửa hồ sơ.");
   }
 
-  // TODO BACKEND API:
-  // Khi backend có API update profile, thay phần lưu localStorage bằng gọi API.
-  //
-  // Ví dụ:
-  // if (normalizedUser.role === "customer") {
-  //   const response = await apiClient.put(`/api/customers/${normalizedUser.id}`, profileData);
-  //   saveLocalUser(response.data);
-  //   return normalizeProfileData(response.data);
-  // }
-  //
-  // if (normalizedUser.role === "farmer") {
-  //   const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
-  //   saveLocalUser(response.data);
-  //   return normalizeProfileData(response.data);
-  // }
+  if (normalizedUser.role === USER_ROLES.CUSTOMER) {
+    const response = await apiClient.put(`/api/customers/${normalizedUser.id}`, profileData);
+    saveLocalUser(response.data);
+    return normalizeProfileData(response.data);
+  }
+
+  if (normalizedUser.role === USER_ROLES.FARMER) {
+    const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
+    saveLocalUser(response.data);
+    return normalizeProfileData(response.data);
+  }
 
   const updatedUser = {
     ...currentUser,

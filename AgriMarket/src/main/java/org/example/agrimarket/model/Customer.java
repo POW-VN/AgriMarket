@@ -20,6 +20,9 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Transient
+    private String role = "customer";
+
     @Column(name = "full_name")
     private String fullName;
     
@@ -40,6 +43,6 @@ public class Customer {
     private LocalDateTime createdAt;
 
     // Quan hệ 1-nhiều với CustomerAddress
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<CustomerAddress> addresses;
 }

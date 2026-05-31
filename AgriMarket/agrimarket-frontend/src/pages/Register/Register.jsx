@@ -22,12 +22,12 @@ export const RegisterFarmconnect = () => {
     setError("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError("Mật khẩu xác nhận không khớp");
       return;
     }
 
     if (!agreeTerms) {
-      setError("You must agree to the Terms of Service and Privacy Policy");
+      setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật");
       return;
     }
 
@@ -43,7 +43,7 @@ export const RegisterFarmconnect = () => {
       console.log("Registration successful:", response);
       navigate("/login");
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
+      setError(err.message || "Đăng ký thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -60,11 +60,11 @@ export const RegisterFarmconnect = () => {
           <div className="div">
             <div className="brand-header">
               <div className="div-2">
-                <div className="text-wrapper">Join FarmConnect</div>
+                <div className="text-wrapper">Tham gia FarmConnect</div>
               </div>
               <div className="div-2">
                 <p className="p">
-                  Start your journey towards fresh, local agriculture.
+                  Bắt đầu hành trình hướng tới nông nghiệp sạch, địa phương.
                 </p>
               </div>
             </div>
@@ -81,10 +81,10 @@ export const RegisterFarmconnect = () => {
                   style={{ cursor: 'pointer' }}
                 >
                   {role === 'customer' ? (
-                    <div className="text">Customer</div>
+                    <div className="text">Khách hàng</div>
                   ) : (
                     <div className="div-wrapper">
-                      <div className="text-2">Customer</div>
+                      <div className="text-2">Khách hàng</div>
                     </div>
                   )}
                 </div>
@@ -94,10 +94,10 @@ export const RegisterFarmconnect = () => {
                   style={{ cursor: 'pointer' }}
                 >
                   {role === 'farmer' ? (
-                    <div className="text">Farmer</div>
+                    <div className="text">Nông dân</div>
                   ) : (
                     <div className="div-wrapper">
-                      <div className="text-2">Farmer</div>
+                      <div className="text-2">Nông dân</div>
                     </div>
                   )}
                 </div>
@@ -106,12 +106,12 @@ export const RegisterFarmconnect = () => {
                 <div className="base-fields">
                   <div className="container-3">
                     <div className="div-2">
-                      <div className="text-wrapper-2">Full Name</div>
+                      <div className="text-wrapper-2">Họ và tên</div>
                     </div>
                     <input 
                       className="input" 
                       type="text" 
-                      placeholder="John Doe" 
+                      placeholder="Nguyễn Văn A" 
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
@@ -120,7 +120,7 @@ export const RegisterFarmconnect = () => {
                   </div>
                   <div className="container-3">
                     <div className="div-2">
-                      <div className="text-wrapper-2">Email address</div>
+                      <div className="text-wrapper-2">Địa chỉ Email</div>
                     </div>
                     <input 
                       className="input" 
@@ -134,7 +134,7 @@ export const RegisterFarmconnect = () => {
                   </div>
                   <div className="container-3">
                     <div className="div-2">
-                      <div className="text-wrapper-2">Phone Number</div>
+                      <div className="text-wrapper-2">Số điện thoại</div>
                     </div>
                     <input 
                       className="input" 
@@ -148,7 +148,7 @@ export const RegisterFarmconnect = () => {
                   </div>
                   <div className="container-3">
                     <div className="div-2">
-                      <div className="text-wrapper-2">Password</div>
+                      <div className="text-wrapper-2">Mật khẩu</div>
                     </div>
                     <input 
                       className="input" 
@@ -162,7 +162,7 @@ export const RegisterFarmconnect = () => {
                   </div>
                   <div className="container-3">
                     <div className="div-2">
-                      <div className="text-wrapper-2">Confirm Password</div>
+                      <div className="text-wrapper-2">Xác nhận mật khẩu</div>
                     </div>
                     <input 
                       className="input" 
@@ -181,15 +181,15 @@ export const RegisterFarmconnect = () => {
                   </div>
                   <div className="label-margin">
                     <p className="label-i-agree-to-the">
-                      <span className="span">I agree to the </span>
-                      <span className="text-wrapper-3">Terms of Service</span>
-                      <span className="span"> and </span>
-                      <span className="text-wrapper-3">Privacy Policy</span>
+                      <span className="span">Tôi đồng ý với </span>
+                      <span className="text-wrapper-3">Điều khoản dịch vụ</span>
+                      <span className="span"> và </span>
+                      <span className="text-wrapper-3">Chính sách bảo mật</span>
                     </p>
                   </div>
                 </div>
                 <button className="button" type="submit" disabled={loading}>
-                  <div className="text-3">{loading ? "Registering..." : "Register Account"}</div>
+                  <div className="text-3">{loading ? "Đang đăng ký..." : "Đăng ký tài khoản"}</div>
                 </button>
               </form>
             </div>
@@ -200,7 +200,7 @@ export const RegisterFarmconnect = () => {
                 </div>
                 <div className="background-wrapper">
                   <div className="background">
-                    <div className="text-4">Or continue with</div>
+                    <div className="text-4">Hoặc tiếp tục bằng</div>
                   </div>
                 </div>
               </div>
@@ -212,34 +212,12 @@ export const RegisterFarmconnect = () => {
               </div>
             </div>
             <div className="paragraph">
-              <div className="text-6">Already have an account?</div>
-              <Link to="/login" className="link-log-in-here">Log in here</Link>
+              <div className="text-6">Đã có tài khoản?</div>
+              <Link to="/login" className="link-log-in-here">Đăng nhập tại đây</Link>
             </div>
           </div>
         </div>
         <div className="right-side-imagery">
-          <div className="glassmorphism">
-            <div className="container-5">
-              <img className="container-6" alt="Container" src={container} />
-              <div className="heading">
-                <div className="text-7">Growing Together</div>
-              </div>
-            </div>
-            <div className="farmconnect-wrapper">
-              <p className="farmconnect">
-                &#34;FarmConnect transformed how we reach our local community.
-                <br />
-                We spend less time managing orders and more time focusing
-                <br />
-                on what we do best: growing fresh, healthy food.&#34;
-              </p>
-            </div>
-            <div className="container-7">
-              <p className="text-wrapper-4">
-                — Sarah Jenkins, Sunny Valley Farms
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

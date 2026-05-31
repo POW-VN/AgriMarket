@@ -26,10 +26,9 @@ export const LoginFarmconnect = () => {
     try {
       const response = await authService.login({ email, password, role });
       console.log("Login successful:", response);
-      // Example redirect on successful auth:
-      // navigate("/dashboard");
+      navigate("/profile");
     } catch (err) {
-      setError(err.message || "Login failed. Please check your credentials.");
+      setError(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
     } finally {
       setLoading(false);
     }
@@ -45,17 +44,16 @@ export const LoginFarmconnect = () => {
           role: role,
         });
         console.log("Google login successful:", response);
-        // Example redirect on successful auth:
-        // navigate("/dashboard");
+        navigate("/profile");
       } catch (err) {
-        setError(err.message || "Google login failed. Please try again.");
+        setError(err.message || "Đăng nhập Google thất bại. Vui lòng thử lại.");
       } finally {
         setLoading(false);
       }
     },
     onError: (error) => {
       console.error("Google Login Error:", error);
-      setError("Google Login failed.");
+      setError("Đăng nhập Google thất bại.");
     }
   });
 
@@ -68,16 +66,16 @@ export const LoginFarmconnect = () => {
           <div className="container">
             <div className="div">
               <div className="cultivating-trust">
-                Cultivating Trust, Delivering
+                Gieo Niềm Tin,
                 <br />
-                Freshness.
+                Trao Tươi Sạch.
               </div>
             </div>
             <div className="join-the-digital-wrapper">
               <p className="join-the-digital">
-                Join the digital stewardship revolution connecting dedicated
+                Tham gia cuộc cách mạng số kết nối những nông dân
                 <br />
-                farmers with mindful consumers.
+                tận tâm với những người tiêu dùng thông thái.
               </p>
             </div>
           </div>
@@ -89,7 +87,7 @@ export const LoginFarmconnect = () => {
                 <div className="text-wrapper">FarmConnect</div>
               </div>
               <div className="div">
-                <p className="p">Sign in to your account</p>
+                <p className="p">Đăng nhập vào tài khoản của bạn</p>
               </div>
             </div>
             {error && <div className="error-message" style={{ color: 'var(--error-color)', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', width: '100%', marginBottom: '10px', border: '1px solid #ffcdd2' }}>{error}</div>}
@@ -100,31 +98,24 @@ export const LoginFarmconnect = () => {
                 className={role === "customer" ? "button" : "div-wrapper"}
                 onClick={() => setRole("customer")}
               >
-                <div className={role === "customer" ? "text" : "text-2"}>Customer</div>
+                <div className={role === "customer" ? "text" : "text-2"}>Khách hàng</div>
               </button>
               <button 
                 type="button" 
                 className={role === "farmer" ? "button" : "div-wrapper"}
                 onClick={() => setRole("farmer")}
               >
-                <div className={role === "farmer" ? "text" : "text-2"}>Farmer</div>
+                <div className={role === "farmer" ? "text" : "text-2"}>Nông dân</div>
               </button>
-              {/* <button 
-                type="button" 
-                className={role === "admin" ? "button" : "button-2"}
-                onClick={() => setRole("admin")}
-              >
-                <div className={role === "admin" ? "text" : "text-2"}>Admin</div>
-              </button> */}
             </div>
             <div className="button-google-sign" onClick={handleGoogleLogin} style={{ cursor: "pointer" }}>
               <img className="google-logo" alt="Google logo" src={googleLogo} />
-              <div className="text-3">Sign in with Google</div>
+              <div className="text-3">Đăng nhập bằng Google</div>
             </div>
             <div className="container-3">
               <div className="horizontal-divider" />
               <div className="text-wrapper-2">
-                <p className="text-4">or sign in with email</p>
+                <p className="text-4">hoặc đăng nhập bằng email</p>
               </div>
               <div className="horizontal-divider" />
             </div>
@@ -132,7 +123,7 @@ export const LoginFarmconnect = () => {
               <div className="container-4">
                 <div className="div">
                   <label className="label" htmlFor="input-1">
-                    Email address
+                    Địa chỉ Email
                   </label>
                 </div>
                 <div className="div">
@@ -155,7 +146,7 @@ export const LoginFarmconnect = () => {
               <div className="container-4">
                 <div className="div">
                   <label className="label" htmlFor="input-2">
-                    Password
+                    Mật khẩu
                   </label>
                 </div>
                 <div className="div">
@@ -187,23 +178,23 @@ export const LoginFarmconnect = () => {
                       {rememberMe && "✓"}
                     </div>
                     <div className="text-wrapper-2">
-                      <div className="text-4">Remember me</div>
+                      <div className="text-4">Ghi nhớ đăng nhập</div>
                     </div>
                   </div>
                   <div className="text-wrapper-2" onClick={() => console.log('Forgot password clicked')} style={{ cursor: 'pointer' }}>
-                    <div className="text-5">Forgot password?</div>
+                    <div className="text-5">Quên mật khẩu?</div>
                   </div>
                 </div>
               </div>
               <div className="button-margin">
                 <button className="button-3" type="submit" disabled={loading}>
-                  <div className="text-6">{loading ? "Logging in..." : "Login"}</div>
+                  <div className="text-6">{loading ? "Đang đăng nhập..." : "Đăng nhập"}</div>
                 </button>
               </div>
             </form>
             <div className="paragraph">
-              <div className="text-7">Don&#39;t have an account?</div>
-              <Link to="/register" className="link-register-here">Register here</Link>
+              <div className="text-7">Chưa có tài khoản?</div>
+              <Link to="/register" className="link-register-here">Đăng ký tại đây</Link>
             </div>
           </div>
         </div>

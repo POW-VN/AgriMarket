@@ -19,6 +19,9 @@ public class Farmer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Transient
+    private String role = "farmer";
+
     @Column(name = "full_name")
     private String fullName;
     

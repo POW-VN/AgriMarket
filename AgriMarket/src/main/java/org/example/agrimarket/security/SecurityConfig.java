@@ -51,6 +51,7 @@ public class SecurityConfig {
                         // Public APIs
                         .requestMatchers(
                                 "/auth/**",
+                                "/uploads/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/error"
@@ -73,9 +74,9 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://127.0.0.1:3000"
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
         ));
 
         configuration.setAllowedMethods(List.of(

@@ -9,6 +9,7 @@ import ProfileAvatar from "../../components/profile/ProfileAvatar";
 import ProfileFooter from "../../components/profile/ProfileFooter";
 import { USER_ROLES } from "../../constants/profileConstants";
 import { buildProfileUpdatePayload } from "../../utils/profileMapper";
+import apiClient from "../../services/apiClient";
 import "./Profile.css";
 
 const EditProfile = () => {
@@ -63,30 +64,41 @@ const EditProfile = () => {
     }));
   };
 
-  const handleAvatarChange = (event) => {
+  const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
+    // Instant local preview
     const reader = new FileReader();
-
     reader.onloadend = () => {
       setFormData((prev) => ({
         ...prev,
         avatarUrl: reader.result,
       }));
     };
-
     reader.readAsDataURL(file);
 
-    // TODO BACKEND FILE UPLOAD:
-    // Hiện tại ảnh được đổi tạm bằng base64 trong localStorage.
-    // Khi có backend thật, nên upload file lên server/cloud:
-    //
-    // const formData = new FormData();
-    // formData.append("avatar", file);
-    // const response = await apiClient.post("/api/upload/avatar", formData);
-    // setFormData(prev => ({ ...prev, avatarUrl: response.data.avatarUrl }));
+    // Upload to live backend
+    try {
+      const uploadData = new FormData();
+      uploadData.append("avatar", file);
+      
+      const response = await apiClient.post("/api/upload/avatar", uploadData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (response.data && response.data.avatarUrl) {
+        setFormData((prev) => ({
+          ...prev,
+          avatarUrl: response.data.avatarUrl,
+        }));
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải ảnh lên server:", error);
+    }
   };
 
   const handleRemoveAvatar = () => {
