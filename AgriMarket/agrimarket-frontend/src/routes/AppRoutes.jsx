@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AuthLayout from '../layouts/AuthLayout'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
+import { RoleSelection } from '../pages/RoleCard/RoleCard'
 
 import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
@@ -19,6 +20,9 @@ const AppRoutes = () => {
 
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
+        
+        {/* Route to test RoleSelection */}
+        <Route path="/role" element={<RoleSelection />} />
 
         {/* Redirect from root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
