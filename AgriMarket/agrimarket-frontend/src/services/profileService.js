@@ -79,9 +79,16 @@ const logout = () => {
   localStorage.removeItem(PROFILE_STORAGE_KEYS.TOKEN);
 };
 
+const changePassword = async (passwordData) => {
+  // passwordData: { currentPassword, newPassword }
+  const response = await apiClient.post("/api/profile/change-password", passwordData);
+  return response.data;
+};
+
 const profileService = {
   getCurrentProfile,
   updateProfile,
+  changePassword,
   logout,
 };
 

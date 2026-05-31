@@ -1,14 +1,9 @@
 // src/components/profile/ProfileOverviewCard.jsx
 
 import ProfileAvatar from "./ProfileAvatar";
-import { ROLE_LABELS, STATUS_LABELS } from "../../constants/profileConstants";
+import { ROLE_LABELS } from "../../constants/profileConstants";
 
 const ProfileOverviewCard = ({ profile, onEdit }) => {
-  const statusText =
-    STATUS_LABELS[profile?.status] ||
-    profile?.status ||
-    "Chưa cập nhật";
-
   return (
     <section className="profile-card profile-overview-card">
       <div className="profile-overview-left">
@@ -21,15 +16,11 @@ const ProfileOverviewCard = ({ profile, onEdit }) => {
 
         <div className="profile-overview-info">
           <div className="profile-name-line">
-            <h2>{profile?.fullName || "Chưa cập nhật tên"}</h2>
+            <h2>{profile?.fullName || "Tên chưa cập nhật"}</h2>
 
             <div className="profile-badge-row">
               <span className="profile-badge dark">
                 {ROLE_LABELS[profile?.role] || "Tài khoản"}
-              </span>
-
-              <span className="profile-badge light">
-                {statusText}
               </span>
             </div>
           </div>

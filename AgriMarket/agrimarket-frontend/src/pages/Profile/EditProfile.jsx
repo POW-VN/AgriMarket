@@ -97,7 +97,7 @@ const EditProfile = () => {
         }));
       }
     } catch (error) {
-      console.error("Lỗi khi tải ảnh lên server:", error);
+      console.error("Error uploading avatar image:", error);
     }
   };
 
@@ -137,7 +137,7 @@ const EditProfile = () => {
   if (isProfileLoading) {
     return (
       <div className="profile-center-state">
-        Đang tải thông tin...
+        Đang tải thông tin chi tiết...
       </div>
     );
   }
@@ -159,7 +159,7 @@ const EditProfile = () => {
       <section className="profile-content">
         <ProfileHeader
           title="Chỉnh sửa hồ sơ"
-          subtitle="Cập nhật thông tin cá nhân và thông tin tài khoản."
+          subtitle="Cập nhật thông tin cá nhân và chi tiết tài khoản của bạn."
         />
 
         <form className="profile-card edit-profile-card" onSubmit={handleSubmit}>
@@ -178,12 +178,12 @@ const EditProfile = () => {
             <div>
               <h3>Ảnh đại diện</h3>
               <p>
-                Nên sử dụng ảnh rõ mặt, kích thước tối thiểu 400x400px.
+                Vui lòng sử dụng ảnh chân dung rõ nét, kích thước tối thiểu 400x400px.
               </p>
 
               <div className="edit-avatar-actions">
                 <label className="profile-secondary-button file-upload-button">
-                  Tải ảnh mới
+                  Tải lên ảnh mới
                   <input
                     type="file"
                     accept="image/*"
@@ -222,13 +222,8 @@ const EditProfile = () => {
               />
 
               <small>
-                Email dùng để đăng nhập nên không chỉnh sửa trực tiếp tại đây.
+                Email này dùng để đăng nhập và không thể chỉnh sửa tại đây.
               </small>
-
-              {/* TODO BACKEND:
-                  Nếu sau này muốn đổi email,
-                  cần tạo API xác minh email bằng OTP trước khi cập nhật.
-              */}
             </div>
 
             <div className="form-group">
@@ -248,7 +243,7 @@ const EditProfile = () => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  placeholder="Nhập địa chỉ nhận hàng"
+                  placeholder="Nhập địa chỉ giao hàng mặc định"
                   rows="4"
                 />
               </div>
@@ -257,33 +252,33 @@ const EditProfile = () => {
             {profile.role === USER_ROLES.FARMER && (
               <>
                 <div className="form-group full-width">
-                  <label>Tên nông trại / doanh nghiệp</label>
+                  <label>Tên trang trại / Doanh nghiệp</label>
                   <input
                     name="farmName"
                     value={formData.farmName}
                     onChange={handleChange}
-                    placeholder="Nhập tên nông trại"
+                    placeholder="Nhập tên trang trại"
                   />
                 </div>
 
                 <div className="form-group full-width">
-                  <label>Địa chỉ nông trại</label>
+                  <label>Địa chỉ trang trại</label>
                   <textarea
                     name="farmAddress"
                     value={formData.farmAddress}
                     onChange={handleChange}
-                    placeholder="Nhập địa chỉ nông trại"
+                    placeholder="Nhập địa chỉ trang trại"
                     rows="3"
                   />
                 </div>
 
                 <div className="form-group full-width">
-                  <label>Mô tả nông trại</label>
+                  <label>Mô tả trang trại</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Mô tả ngắn về nông trại, sản phẩm hoặc quy trình canh tác"
+                    placeholder="Mô tả ngắn gọn về trang trại, nông sản hoặc phương pháp canh tác của bạn"
                     rows="4"
                   />
                 </div>

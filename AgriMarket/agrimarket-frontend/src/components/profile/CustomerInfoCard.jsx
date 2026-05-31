@@ -9,7 +9,7 @@ const CustomerInfoCard = ({ profile }) => {
     <section className="profile-card profile-detail-card">
       <div className="profile-card-title-row">
         <h3>Thông tin khách hàng</h3>
-        <span className="profile-badge light">Tài khoản mua hàng</span>
+        <span className="profile-badge light">Tài khoản người mua</span>
       </div>
 
       <div className="profile-detail-list">

@@ -28,6 +28,9 @@ public class Farmer {
     private String email;
     private String phone;
     private String password;
+
+    @Column(name = "password_set")
+    private Boolean passwordSet = true;
     
     @Column(name = "avatar_url")
     private String avatarUrl;
@@ -35,9 +38,10 @@ public class Farmer {
     @Column(name = "farm_name")
     private String farmName;
     
-    @Column(name = "farm_address")
+    @Column(name = "farm_address", columnDefinition = "nvarchar(1000)")
     private String farmAddress;
     
+    @Column(columnDefinition = "nvarchar(max)")
     private String description;
     
     @Column(name = "verification_status")

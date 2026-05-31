@@ -32,7 +32,7 @@ public class CustomerController {
         if (customer.isPresent()) {
             return ResponseEntity.ok("Login successful");
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Tài khoản hoặc mật khẩu không chính xác");
     }
 
     @PutMapping("/{id}")

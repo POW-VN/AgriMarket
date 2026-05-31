@@ -10,7 +10,7 @@ const ProfileAvatar = ({ src, name, email, size = "large" }) => {
     return (
       <img
         src={src}
-        alt="Ảnh đại diện"
+        alt="Avatar"
         className={`profile-avatar profile-avatar-${size}`}
       />
     );

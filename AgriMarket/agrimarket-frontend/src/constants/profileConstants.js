@@ -20,11 +20,11 @@ export const ROLE_LABELS = {
 export const STATUS_LABELS = {
   active: "Đang hoạt động",
   pending: "Đang chờ duyệt",
-  banned: "Đã bị khóa",
+  banned: "Bị khóa",
 };
 
 export const FARMER_VERIFICATION_LABELS = {
   verified: "Đã xác minh",
-  pending: "Đang chờ xác minh",
+  pending: "Chờ xác minh",
   rejected: "Bị từ chối",
 };

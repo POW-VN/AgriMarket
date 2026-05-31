@@ -22,6 +22,8 @@ public class CustomerAddress {
     private String receiverName;
     
     private String phone;
+    
+    @Column(columnDefinition = "nvarchar(1000)")
     private String address;
     
     @Column(name = "is_default")

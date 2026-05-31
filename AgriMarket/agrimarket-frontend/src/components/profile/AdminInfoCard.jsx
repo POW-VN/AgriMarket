@@ -5,7 +5,7 @@ const AdminInfoCard = ({ profile }) => {
     <section className="profile-card profile-detail-card">
       <div className="profile-card-title-row">
         <h3>Thông tin quản trị viên</h3>
-        <span className="profile-badge light">Admin</span>
+        <span className="profile-badge light">Quản trị viên</span>
       </div>
 
       <div className="profile-detail-list">
@@ -26,7 +26,7 @@ const AdminInfoCard = ({ profile }) => {
       </div>
 
       <p className="admin-note">
-        Tài khoản quản trị viên chỉ được xem hồ sơ, không có chức năng chỉnh sửa tại trang này.
+        Tài khoản quản trị viên chỉ có quyền xem thông tin và không thể thực hiện các thay đổi trên trang này.
       </p>
     </section>
   );
