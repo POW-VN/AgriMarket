@@ -12,33 +12,35 @@ import ChangePassword from '../pages/ChangePassword/ChangePassword'
 import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
 import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
+import Home from '../pages/Home/Home'
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Main route (Home page) */}
+        <Route path="/" element={<Home />} />
+        <Route path="/Home" element={<Home />} />
+
         {/* Auth routes under AuthLayout */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/reset-success" element={<ResetSuccess />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-success" element={<ResetSuccess />} />
         </Route>
 
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
-        
+
         {/* Route to test RoleSelection */}
         <Route path="/role" element={<RoleSelection />} />
 
-        {/* Redirect from root to login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        
-        {/* Fallback to login for any other unknown path */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Fallback to Home for any other unknown path */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
