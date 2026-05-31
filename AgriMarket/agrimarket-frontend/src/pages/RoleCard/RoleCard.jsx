@@ -32,7 +32,11 @@ export const RoleSelection = () => {
                     role: selectedRole
                 });
                 console.log("Google registration and login successful:", response);
-                navigate("/profile");
+                if (selectedRole === 'farmer') {
+                    navigate("/farmer/farm-details");
+                } else {
+                    navigate("/profile");
+                }
             } catch (err) {
                 setError(err.message || "Đăng ký vai trò thất bại. Vui lòng thử lại.");
             } finally {
@@ -43,7 +47,7 @@ export const RoleSelection = () => {
             if (selectedRole === 'customer') {
                 navigate("/profile");
             } else if (selectedRole === 'farmer') {
-                navigate("/profile");
+                navigate("/farmer/farm-details");
             }
         }
     };      

@@ -7,6 +7,7 @@ import { RoleSelection } from '../pages/RoleCard/RoleCard'
 
 import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
+import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
 
 const AppRoutes = () => {
   return (
@@ -20,6 +21,7 @@ const AppRoutes = () => {
 
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
+        <Route path="/farmer/farm-details" element={<FarmDetails />} />
         
         {/* Route to test RoleSelection */}
         <Route path="/role" element={<RoleSelection />} />
