@@ -39,9 +39,16 @@ const ProfileSidebar = ({ profile }) => {
 
       <nav className="profile-sidebar-menu">
         <button
-          className={`sidebar-menu-item ${
-            location.pathname === "/profile" ? "active" : ""
-          }`}
+          className="sidebar-menu-item"
+          onClick={() => navigate("/home")}
+        >
+          <span>🏠</span>
+          Trang chủ
+        </button>
+
+        <button
+          className={`sidebar-menu-item ${location.pathname === "/profile" ? "active" : ""
+            }`}
           onClick={() => navigate("/profile")}
         >
           <span>👤</span>
