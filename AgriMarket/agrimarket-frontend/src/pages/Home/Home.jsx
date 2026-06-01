@@ -78,23 +78,25 @@ const Home = () => {
             </button>
 
             {/* Cart Icon */}
-            <button className="icon-btn" aria-label="Giỏ hàng">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="9" cy="21" r="1"></circle>
-                <circle cx="20" cy="21" r="1"></circle>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-              </svg>
-            </button>
+            {user && user.role !== "farmer" && (
+              <button className="icon-btn" aria-label="Giỏ hàng">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="9" cy="21" r="1"></circle>
+                  <circle cx="20" cy="21" r="1"></circle>
+                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+              </button>
+            )}
 
             {/* Profile & Auth Info */}
             {user ? (
@@ -115,22 +117,6 @@ const Home = () => {
               </div>
             ) : (
               <div className="auth-profile-container">
-                <button className="icon-btn-profile" onClick={() => navigate("/login")} title="Tài khoản">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </button>
                 <button className="btn-auth btn-login" onClick={() => navigate("/login")}>
                   Đăng nhập
                 </button>
@@ -215,23 +201,25 @@ const Home = () => {
                   <p className="card-farm">Nông trại Thung Lũng Xanh · Thu hoạch hôm nay</p>
                   <p className="card-price">$4.99 <span className="unit">/ kg</span></p>
                 </div>
-                <button className="add-cart-btn large-add-btn" aria-label="Thêm vào giỏ hàng">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                  </svg>
-                </button>
+                {(!user || user.role !== "farmer") && (
+                  <button className="add-cart-btn large-add-btn" aria-label="Thêm vào giỏ hàng">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="9" cy="21" r="1"></circle>
+                      <circle cx="20" cy="21" r="1"></circle>
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -246,22 +234,24 @@ const Home = () => {
                 <p className="standard-card-farm">Nông trại Bình Minh</p>
                 <div className="card-footer">
                   <p className="standard-card-price">$2.49 <span className="unit">/ bó</span></p>
-                  <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                  </button>
+                  {(!user || user.role !== "farmer") && (
+                    <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -281,22 +271,24 @@ const Home = () => {
                     $1.99 <span className="unit">/ kg</span>
                     <span className="old-price">$2.99</span>
                   </p>
-                  <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                  </button>
+                  {(!user || user.role !== "farmer") && (
+                    <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -635,3 +635,44 @@
     align-items: flex-start;
   }
 }
+
+.delete-account-item {
+  color: var(--profile-danger) !important;
+}
+
+.delete-account-item:hover {
+  background-color: #ffebee !important;
+  color: var(--profile-danger) !important;
+}
+
+.delete-account-card {
+  background: #fff8f8;
+  border: 1px solid #ffdddd;
+  color: #b91c1c;
+}
+
+.delete-account-card:hover {
+  background: #ffebeb;
+  border-color: #ffb3b3;
+  box-shadow: 0 8px 25px rgba(185, 28, 28, 0.06);
+}
+
+.delete-account-card .profile-action-icon {
+  background: #ffebeb;
+}
+
+.delete-account-card:hover .profile-action-icon {
+  background: #ffd6d6;
+}
+
+.delete-account-card strong {
+  color: #b91c1c;
+}
+
+.delete-account-card p {
+  color: #c53030;
+}
+
+.delete-account-card span:last-child {
+  color: #b91c1c;
+}

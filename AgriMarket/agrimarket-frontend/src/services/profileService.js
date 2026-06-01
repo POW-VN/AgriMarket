@@ -85,10 +85,18 @@ const changePassword = async (passwordData) => {
   return response.data;
 };
 
+const deleteAccount = async () => {
+  const response = await apiClient.delete("/api/profile/delete-account");
+  localStorage.removeItem(PROFILE_STORAGE_KEYS.USER);
+  localStorage.removeItem(PROFILE_STORAGE_KEYS.TOKEN);
+  return response.data;
+};
+
 const profileService = {
   getCurrentProfile,
   updateProfile,
   changePassword,
+  deleteAccount,
   logout,
 };
 
