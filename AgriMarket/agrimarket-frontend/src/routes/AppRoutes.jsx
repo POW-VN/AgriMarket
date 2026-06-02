@@ -13,6 +13,7 @@ import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
 import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
 import Home from '../pages/Home/Home'
+import ProductPage from "../pages/Product/ProductPage";
 
 const AppRoutes = () => {
   return (
@@ -35,6 +36,7 @@ const AppRoutes = () => {
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
+        <Route path="/products" element={<ProductPage />} />
 
         {/* Route to test RoleSelection */}
         <Route path="/role" element={<RoleSelection />} />
