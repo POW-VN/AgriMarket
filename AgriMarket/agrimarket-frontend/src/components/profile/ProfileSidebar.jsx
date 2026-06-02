@@ -14,6 +14,10 @@ const ProfileSidebar = ({ profile }) => {
     navigate("/login");
   };
 
+  const userRole = profile?.role?.toLowerCase();
+  const isFarmer = userRole === "farmer";
+
+
   return (
     <aside className="profile-sidebar">
       <div className="profile-brand">AgriMarket</div>
@@ -54,6 +58,16 @@ const ProfileSidebar = ({ profile }) => {
           <span>👤</span>
           Hồ sơ
         </button>
+
+        {isFarmer && (
+          <button
+            className={`sidebar-menu-item ${location.pathname === "/products" ? "active" : ""}`}
+            onClick={() => navigate("/products")}
+          >
+            <span>📦</span>
+            Sản phẩm
+          </button>
+        )}
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/security" ? "active" : ""
