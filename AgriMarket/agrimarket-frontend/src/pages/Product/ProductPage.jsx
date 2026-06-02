@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import "./ProductPage.css";
-import { getFarmerProducts } from "../../services/productService";
+import { getFarmerProducts, deleteFarmerProduct } from "../../services/productService";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useProfile from "../../hooks/useProfile";
 
@@ -42,12 +42,28 @@ export default function ProductPage() {
 
             const matchesFilter =
                 activeFilter === "ALL" ||
-                product.status === activeFilter ||
-                (activeFilter === "sold_out" && Number(product.stock) <= 0);
+                product.status === activeFilter;
 
             return matchesKeyword && matchesFilter;
         });
     }, [products, keyword, activeFilter]);
+
+    const handleDelete = async (productId) => {
+        if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này không?")) {
+            try {
+                await deleteFarmerProduct(productId);
+                setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+                alert("Xóa sản phẩm thành công!");
+            } catch (error) {
+                console.error("Lỗi khi xóa sản phẩm:", error);
+                alert(
+                    error.response?.data ||
+                    error.message ||
+                    "Không thể xóa sản phẩm. Vui lòng thử lại sau."
+                );
+            }
+        }
+    };
 
     const formatPrice = (price) => {
         return new Intl.NumberFormat("vi-VN").format(price) + " đ";
@@ -55,9 +71,6 @@ export default function ProductPage() {
 
     // Render status sản phẩm
     const renderStatus = (status, stock) => {
-        if (status === "sold_out" || Number(stock) <= 0) {
-            return <span className="product-status sold-out">Hết hàng</span>;
-        }
         switch (status) {
             case "approved":
                 return <span className="product-status approved">Đã duyệt</span>;
@@ -69,6 +82,8 @@ export default function ProductPage() {
                 return <span className="product-status rejected">Bị từ chối</span>;
             case "hidden":
                 return <span className="product-status hidden">Đã ẩn</span>;
+            case "sold_out":
+                return <span className="product-status sold-out">Hết hàng</span>;
             default:
                 return <span className="product-status draft">Không xác định</span>;
         }
@@ -188,7 +203,7 @@ export default function ProductPage() {
                                                     <div className="product-actions">
                                                         <button title="Chỉnh sửa sản phẩm">✏️</button>
                                                         <button title="Sao chép sản phẩm">📋</button>
-                                                        <button title="Xóa sản phẩm">🗑️</button>
+                                                        <button title="Xóa sản phẩm" onClick={() => handleDelete(product.id)}>🗑️</button>
                                                     </div>
                                                 </td>
                                             </tr>

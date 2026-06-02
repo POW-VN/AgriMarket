@@ -1,62 +1,13 @@
 // src/services/productService.js
 
+import apiClient from "./apiClient";
+
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
 /*
   File này dùng để lấy danh sách sản phẩm của farmer.
-
-  Database của bạn đang có các bảng liên quan:
-
-  1. product
-     - id
-     - farmer_id
-     - category_id
-     - name
-     - description
-     - ai_generated_description
-     - price
-     - ai_suggested_price
-     - stock_quantity
-     - unit
-     - status
-     - harvest_date
-     - created_at
-
-  2. categories
-     - id
-     - name
-     - description
-     - parent_id
-
-  3. product_image
-     - id
-     - product_id
-     - img_url
-     - is_thumbnail
-
-  Backend sau này nên trả về dữ liệu đã join sẵn từ 3 bảng trên.
-  Ví dụ dữ liệu API nên trả về:
-
-  [
-    {
-      id: 1,
-      farmer_id: 2,
-      category_id: 3,
-      category_name: "Rau củ",
-      name: "Cà chua hữu cơ",
-      description: "Cà chua sạch...",
-      price: 49900,
-      stock_quantity: 45,
-      unit: "kg",
-      status: "approved",
-      harvest_date: "2026-06-01",
-      created_at: "2026-06-01",
-      thumbnail_url: "https://..."
-    }
-  ]
-
-  Nếu backend trả khác tên field, bạn chỉ cần sửa trong hàm normalizeProduct().
+...
 */
 
 const normalizeProduct = (item) => {
@@ -65,10 +16,10 @@ const normalizeProduct = (item) => {
         id: item.id,
 
         // product.farmer_id
-        farmerId: item.farmer_id,
+        farmerId: item.farmer_id || item.farmerId,
 
         // product.category_id
-        categoryId: item.category_id,
+        categoryId: item.category_id || item.categoryId,
 
         // product.name
         name: item.name || "Chưa có tên sản phẩm",
@@ -77,7 +28,7 @@ const normalizeProduct = (item) => {
         description: item.description || "",
 
         // product.ai_generated_description
-        aiGeneratedDescription: item.ai_generated_description || "",
+        aiGeneratedDescription: item.ai_generated_description || item.aiGeneratedDescription || "",
 
         // categories.name
         // Backend nên join categories và trả về category_name
@@ -85,16 +36,16 @@ const normalizeProduct = (item) => {
             item.category_name ||
             item.categoryName ||
             item.category?.name ||
-            `Danh mục #${item.category_id || "N/A"}`,
+            `Danh mục #${item.category_id || item.categoryId || "N/A"}`,
 
         // product.price
         price: Number(item.price ?? 0),
 
         // product.ai_suggested_price
-        aiSuggestedPrice: Number(item.ai_suggested_price ?? 0),
+        aiSuggestedPrice: Number(item.ai_suggested_price ?? item.aiSuggestedPrice ?? 0),
 
-        // product.stock_quantity
-        stock: Number(item.stock_quantity ?? 0),
+        // product.stock
+        stock: Number(item.stockQuantity ?? item.stock_quantity ?? item.stock ?? 0),
 
         // product.unit
         unit: item.unit || "sản phẩm",
@@ -104,16 +55,18 @@ const normalizeProduct = (item) => {
         status: item.status || "draft",
 
         // product.harvest_date
-        harvestDate: item.harvest_date || null,
+        harvestDate: item.harvest_date || item.harvestDate || null,
 
         // product.created_at
-        createdAt: item.created_at || null,
+        createdAt: item.created_at || item.createdAt || null,
 
         // product_image.img_url
         // Backend nên trả ảnh thumbnail là thumbnail_url
         imageUrl:
             item.thumbnail_url ||
+            item.thumbnailUrl ||
             item.image_url ||
+            item.imageUrl ||
             item.img_url ||
             item.productImage ||
             "",
@@ -122,53 +75,14 @@ const normalizeProduct = (item) => {
 
 export const getFarmerProducts = async () => {
     try {
-        /*
-          TODO: Sau này sửa endpoint này theo backend thật của bạn.
-    
-          Một số endpoint hợp lý có thể là:
-          GET /api/farmer/products
-          GET /api/farmers/{farmerId}/products
-          GET /api/products/farmer/{farmerId}
-    
-          Nếu backend cần token đăng nhập, thêm như sau:
-    
-          const token = localStorage.getItem("token");
-    
-          const response = await fetch(`${API_BASE_URL}/farmer/products`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-        */
-
-        const response = await fetch(`${API_BASE_URL}/farmer/products`);
-
-        if (!response.ok) {
-            throw new Error("Không thể tải danh sách sản phẩm");
-        }
-
-        const data = await response.json();
-
-        /*
-          Nếu backend trả về dạng:
-          {
-            data: [...]
-          }
-    
-          thì dùng:
-          const productList = data.data || [];
-    
-          Nếu backend trả trực tiếp array:
-          [...]
-          thì dùng:
-          const productList = data;
-        */
-
+        const response = await apiClient.get("/api/farmer/products");
+        const data = response.data;
         const productList = Array.isArray(data) ? data : data.data || [];
-
         return productList.map(normalizeProduct);
     } catch (error) {
         console.error("Lỗi khi lấy danh sách sản phẩm:", error);
+        console.warn("⚠️ Không thể kết nối API Backend hoặc chưa đăng nhập hợp lệ. Đang tự động sử dụng Dữ liệu mô phỏng (Mock Data)! Chi tiết lỗi:", error);
+
 
         /*
           Dữ liệu mẫu dưới đây chỉ để test giao diện frontend.
@@ -290,5 +204,15 @@ export const getFarmerProducts = async () => {
                 imageUrl: "",
             },
         ];
+    }
+};
+
+export const deleteFarmerProduct = async (productId) => {
+    try {
+        const response = await apiClient.delete(`/api/farmer/products/${productId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi xóa sản phẩm:", error);
+        throw error;
     }
 };
