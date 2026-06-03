@@ -91,7 +91,27 @@ export const LoginFarmconnect = () => {
           <div className="container-2">
             <div className="brand-header">
               <div className="div">
-                <div className="text-wrapper">AgriMarket</div>
+                <div className="logo-container" onClick={() => navigate("/")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "12px" }}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="logo-tractor"
+                    style={{ stroke: "#012d1d", fill: "none" }}
+                  >
+                    <circle cx="7" cy="18" r="2"></circle>
+                    <circle cx="18" cy="18" r="2"></circle>
+                    <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+                    <path d="M16 9h3l2 3v4"></path>
+                  </svg>
+                  <div className="text-wrapper">AgriMarket</div>
+                </div>
               </div>
               <div className="div">
                 <p className="p">Đăng nhập vào tài khoản của bạn</p>

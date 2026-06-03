@@ -370,11 +370,25 @@ export const RegisterFarmconnect = () => {
         </div>
         <div className="right-side-imagery">
           {/* Glassmorphic Brand Tag */}
-          <div className="glassmorphism">
+          <div className="glassmorphism" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
             <div className="container-5">
-              <div className="container-6">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ width: '32px', height: '32px' }}>
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <div className="container-6" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="logo-tractor"
+                >
+                  <circle cx="7" cy="18" r="2"></circle>
+                  <circle cx="18" cy="18" r="2"></circle>
+                  <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+                  <path d="M16 9h3l2 3v4"></path>
                 </svg>
               </div>
               <div className="heading">

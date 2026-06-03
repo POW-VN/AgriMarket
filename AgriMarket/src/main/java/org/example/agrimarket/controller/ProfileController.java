@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -118,5 +119,51 @@ public class ProfileController {
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+    }
+
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<?> deleteAccount(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        String email = principal.getName();
+
+        Optional<Customer> customerOpt = customerRepository.findByEmail(email);
+        if (customerOpt.isPresent()) {
+            Customer customer = customerOpt.get();
+            deletePhysicalAvatarFile(customer.getAvatarUrl());
+            customerRepository.delete(customer);
+            return ResponseEntity.ok("Xóa tài khoản thành công.");
+        }
+
+        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+        if (farmerOpt.isPresent()) {
+            Farmer farmer = farmerOpt.get();
+            deletePhysicalAvatarFile(farmer.getAvatarUrl());
+            farmerRepository.delete(farmer);
+            return ResponseEntity.ok("Xóa tài khoản thành công.");
+        }
+
+        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
+        if (adminOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa tài khoản Admin.");
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+    }
+
+    private void deletePhysicalAvatarFile(String avatarUrl) {
+        if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
+            try {
+                String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
+                java.io.File fileToDelete = new java.io.File("uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
+                if (fileToDelete.exists()) {
+                    fileToDelete.delete();
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to delete avatar file: " + e.getMessage());
+            }
+        }
     }
 }

@@ -1,5 +1,4 @@
-// src/pages/Profile/ViewProfile.jsx
-
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useProfile from "../../hooks/useProfile";
 import ProfileLayout from "../../components/profile/ProfileLayout";
@@ -21,6 +20,16 @@ const ViewProfile = () => {
     isProfileLoading,
     profileError,
   } = useProfile();
+
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
 
   if (isProfileLoading) {
     return (
@@ -131,10 +140,45 @@ const ViewProfile = () => {
           <AdminInfoCard profile={profile} />
         )}
 
-        <ProfileActionCards />
+        <ProfileActionCards 
+          showToast={showToast}
+          setConfirmModal={setConfirmModal}
+        />
       </section>
 
       <ProfileFooter />
+
+      {/* Custom Confirm Modal */}
+      {confirmModal.show && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal">
+            <div className="custom-modal-header">
+              <span className="custom-modal-icon">⚠️</span>
+              <h3>{confirmModal.title}</h3>
+            </div>
+            <p className="custom-modal-message">{confirmModal.message}</p>
+            <div className="custom-modal-actions">
+              <button className="custom-btn-cancel" onClick={() => setConfirmModal({ show: false })}>
+                Hủy bỏ
+              </button>
+              <button className="custom-btn-confirm" onClick={() => { confirmModal.onConfirm(); setConfirmModal({ show: false }); }}>
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Toast Notification */}
+      {toast.show && (
+        <div className={`custom-toast ${toast.type}`}>
+          <span className="custom-toast-icon">
+            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+          </span>
+          <span className="custom-toast-message">{toast.message}</span>
+          <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>
+        </div>
+      )}
     </ProfileLayout>
   );
 };

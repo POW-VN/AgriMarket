@@ -24,4 +24,21 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Tự động xử lý lỗi 401 (Unauthorized) - Xóa token hết hạn và chuyển hướng về đăng nhập
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("farmconnect_token");
+      localStorage.removeItem("farmconnect_user");
+      
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/login" && currentPath !== "/register" && currentPath !== "/") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;

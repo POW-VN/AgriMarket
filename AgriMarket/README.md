@@ -73,9 +73,7 @@ Gửi thông báo hệ thống
 Duyệt sản phẩm trước khi hiển thị
 Xem danh mục sản phẩm
 Tạo voucher
-Xem thống kê AI chat
 Xem danh sách nội dung AI phản hồi
-AI kiểm duyệt nội dung sản phẩm 
 view sản phẩm vi phạm 
 
 Đơn vị vận chuyển:
