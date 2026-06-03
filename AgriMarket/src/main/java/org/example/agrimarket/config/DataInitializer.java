@@ -11,6 +11,7 @@ import org.example.agrimarket.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -32,44 +33,85 @@ public class DataInitializer implements CommandLineRunner {
     private FarmerRepository farmerRepository;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
-        // 1. Initialize Categories
-        if (categoryRepository.count() == 0) {
-            String[] categoryNames = {
-                    "Rau củ",
-                    "Trái cây",
-                    "Sữa & Trứng",
-                    "Bách hóa",
-                    "Hoa tươi",
-                    "Thịt & Hải sản"
-            };
+        // 1. Ensure the 8 main categories exist
+        String[] targetCategories = {
+                "Cây lương thực",
+                "Rau củ quả",
+                "Trái cây",
+                "Cây công nghiệp",
+                "Nông sản hữu cơ",
+                "Chăn nuôi",
+                "Giống cây trồng",
+                "Nông sản chế biến"
+        };
 
-            List<Category> categories = new ArrayList<>();
-            for (String name : categoryNames) {
+        for (String name : targetCategories) {
+            if (!categoryRepository.findByName(name).isPresent()) {
                 Category cat = new Category();
                 cat.setName(name);
                 cat.setDescription("Danh mục nông sản " + name);
-                categories.add(cat);
+                categoryRepository.save(cat);
+                System.out.println(">>> DataInitializer: Đã tạo danh mục mới: " + name);
             }
-            categoryRepository.saveAll(categories);
-            System.out.println(">>> DataInitializer: Đã thêm các Danh mục sản phẩm mẫu.");
         }
 
-        // 2. Initialize Mock Products for first farmer if product table is empty
+        // 2. Fetch target categories for re-mapping and seeding
+        Category rauCuQua = categoryRepository.findByName("Rau củ quả").orElse(null);
+        Category chanNuoi = categoryRepository.findByName("Chăn nuôi").orElse(null);
+        Category nongSanCheBien = categoryRepository.findByName("Nông sản chế biến").orElse(null);
+        Category giongCayTrong = categoryRepository.findByName("Giống cây trồng").orElse(null);
+        Category traiCay = categoryRepository.findByName("Trái cây").orElse(null);
+
+        // 3. Map existing products in database from old categories to new ones
+        List<Product> products = productRepository.findAll();
+        for (Product product : products) {
+            Category currentCat = product.getCategory();
+            if (currentCat != null) {
+                String catName = currentCat.getName();
+                Category targetCat = null;
+                if ("Rau củ".equals(catName)) {
+                    targetCat = rauCuQua;
+                } else if ("Sữa & Trứng".equals(catName) || "Thịt & Hải sản".equals(catName)) {
+                    targetCat = chanNuoi;
+                } else if ("Bách hóa".equals(catName)) {
+                    targetCat = nongSanCheBien;
+                } else if ("Hoa tươi".equals(catName)) {
+                    targetCat = giongCayTrong;
+                }
+
+                if (targetCat != null) {
+                    product.setCategory(targetCat);
+                    productRepository.save(product);
+                    System.out.println(">>> DataInitializer: Di chuyển sản phẩm '" + product.getName() + "' sang danh mục '" + targetCat.getName() + "'");
+                }
+            }
+        }
+
+        // 4. Safely delete old default categories if no products reference them
+        List<String> oldSystemCategories = List.of("Rau củ", "Bách hóa", "Sữa & Trứng", "Thịt & Hải sản", "Hoa tươi");
+        for (String oldName : oldSystemCategories) {
+            categoryRepository.findByName(oldName).ifPresent(oldCat -> {
+                try {
+                    categoryRepository.delete(oldCat);
+                    System.out.println(">>> DataInitializer: Đã xóa danh mục cũ '" + oldName + "' khỏi database.");
+                } catch (Exception e) {
+                    System.err.println(">>> DataInitializer: Không thể xóa danh mục cũ '" + oldName + "': " + e.getMessage());
+                }
+            });
+        }
+
+        // 5. Initialize Mock Products for first farmer if product table is empty
         if (productRepository.count() == 0) {
             List<Farmer> farmers = farmerRepository.findAll();
             if (!farmers.isEmpty()) {
                 Farmer testFarmer = farmers.get(0);
-                
-                Category rauCu = categoryRepository.findByName("Rau củ").orElse(null);
-                Category bachHoa = categoryRepository.findByName("Bách hóa").orElse(null);
-                Category suaTrung = categoryRepository.findByName("Sữa & Trứng").orElse(null);
-                Category traiCay = categoryRepository.findByName("Trái cây").orElse(null);
 
                 // Product 1: Cà chua hữu cơ
                 Product p1 = new Product();
                 p1.setFarmer(testFarmer);
-                p1.setCategory(rauCu);
+                p1.setCategory(rauCuQua);
                 p1.setName("Cà chua hữu cơ");
                 p1.setDescription("Cà chua sạch được trồng tại nông trại địa phương, không dùng thuốc trừ sâu hóa học.");
                 p1.setPrice(49900.0);
@@ -89,7 +131,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Product 2: Mật ong hoa rừng
                 Product p2 = new Product();
                 p2.setFarmer(testFarmer);
-                p2.setCategory(bachHoa);
+                p2.setCategory(nongSanCheBien);
                 p2.setName("Mật ong hoa rừng");
                 p2.setDescription("Mật ong nguyên chất từ hoa rừng tự nhiên.");
                 p2.setPrice(120000.0);
@@ -109,7 +151,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Product 3: Trứng gà thả vườn
                 Product p3 = new Product();
                 p3.setFarmer(testFarmer);
-                p3.setCategory(suaTrung);
+                p3.setCategory(chanNuoi);
                 p3.setName("Trứng gà thả vườn");
                 p3.setDescription("Trứng gà sạch từ mô hình thả vườn tự nhiên.");
                 p3.setPrice(65000.0);
@@ -123,7 +165,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Product 4: Rau cải xanh
                 Product p4 = new Product();
                 p4.setFarmer(testFarmer);
-                p4.setCategory(rauCu);
+                p4.setCategory(rauCuQua);
                 p4.setName("Rau cải xanh");
                 p4.setDescription("Rau cải xanh thu hoạch trong ngày, tươi ngon, an toàn.");
                 p4.setPrice(15000.0);
@@ -137,7 +179,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Product 5: Dưa leo sạch
                 Product p5 = new Product();
                 p5.setFarmer(testFarmer);
-                p5.setCategory(rauCu);
+                p5.setCategory(rauCuQua);
                 p5.setName("Dưa leo sạch");
                 p5.setDescription("Dưa leo tươi, phù hợp cho món salad và nước ép giải nhiệt.");
                 p5.setPrice(22000.0);

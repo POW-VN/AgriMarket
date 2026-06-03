@@ -529,6 +529,12 @@
   padding: 32px;
   position: absolute;
   width: calc(100% - 96px);
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.register-farmconnect .glassmorphism:hover {
+  transform: translateY(-2px);
+  background-color: #ffffff40;
 }
 
 .register-farmconnect .container-5 {

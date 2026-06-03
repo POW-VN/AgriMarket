@@ -60,6 +60,14 @@ const normalizeProduct = (item) => {
         // product.created_at
         createdAt: item.created_at || item.createdAt || null,
 
+        // organic fields
+        isOrganic: !!(item.isOrganic || item.is_organic),
+        certificateUrl: item.certificateUrl || item.certificate_url || "",
+
+        // rating and sales (sold)
+        rating: Number(item.rating || (4.0 + (Number(item.id || 0) % 11) * 0.1).toFixed(1)),
+        sold: Number(item.sold || ((Number(item.id || 0) * 17) % 150) + 10),
+
         // product_image.img_url
         // Backend nên trả ảnh thumbnail là thumbnail_url
         imageUrl:
@@ -214,5 +222,27 @@ export const deleteFarmerProduct = async (productId) => {
     } catch (error) {
         console.error("Lỗi khi xóa sản phẩm:", error);
         throw error;
+    }
+};
+
+export const createFarmerProduct = async (productData) => {
+    try {
+        const response = await apiClient.post("/api/farmer/products", productData);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi thêm sản phẩm:", error);
+        throw error;
+    }
+};
+
+export const getAllApprovedProducts = async () => {
+    try {
+        const response = await apiClient.get("/api/products");
+        const data = response.data;
+        const productList = Array.isArray(data) ? data : data.data || [];
+        return productList.map(normalizeProduct);
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách sản phẩm công khai:", error);
+        return [];
     }
 };

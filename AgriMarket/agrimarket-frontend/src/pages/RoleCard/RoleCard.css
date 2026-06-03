@@ -88,8 +88,16 @@
     transition: var(--transition-smooth);
 }
 
-.logo-text:hover {
+.logo-container:hover .logo-text {
     color: var(--accent-color);
+}
+
+.logo-container:hover .logo-tractor {
+    stroke: var(--accent-color) !important;
+}
+
+.logo-container .logo-tractor {
+    transition: var(--transition-smooth);
 }
 
 .help-icon {

@@ -38,6 +38,9 @@
 }
 
 .onboarding-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     color: #059669;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 800;
@@ -45,6 +48,11 @@
     letter-spacing: -0.5px;
     transition: transform 0.3s;
     cursor: pointer;
+}
+
+.onboarding-header .logo .logo-tractor {
+    stroke: #059669;
+    fill: none;
 }
 
 .onboarding-header .logo:hover {

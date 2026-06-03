@@ -53,6 +53,12 @@ public class Product {
     @Column(name = "harvest_date")
     private LocalDate harvestDate;
 
+    @Column(name = "is_organic")
+    private Boolean isOrganic = false;
+
+    @Column(name = "certificate_url", length = 1000)
+    private String certificateUrl;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

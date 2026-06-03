@@ -166,6 +166,19 @@
   line-height: 56px;
   margin-top: -1px;
   position: relative;
+  transition: color 0.3s ease;
+}
+
+.login-farmconnect .logo-container:hover .text-wrapper {
+  color: #2c694e;
+}
+
+.login-farmconnect .logo-container:hover .logo-tractor {
+  stroke: #2c694e !important;
+}
+
+.login-farmconnect .logo-container .logo-tractor {
+  transition: stroke 0.3s ease;
 }
 
 .login-farmconnect .p {

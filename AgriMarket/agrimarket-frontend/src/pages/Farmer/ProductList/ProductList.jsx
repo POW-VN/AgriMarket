@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getFarmerProducts, deleteFarmerProduct } from "../../../services/productService";
 import "./ProductList.css";
 
 // ── Nav items (shared sidebar) ──────────────────────────────
@@ -12,15 +13,7 @@ const NAV_ITEMS = [
   { icon: "history",  label: "Lịch sử giao dịch",  path: "/farmer/orders" },
 ];
 
-// ── Mock product data ──────────────────────────────────────
-const MOCK_PRODUCTS = [
-  { id: "SP-6", name: "Bơ sáp Đắk Lắk",    category: "Trái cây",   stock: 12, unit: "kg",  price: 75000,  status: "rejected" },
-  { id: "SP-5", name: "Dưa leo sạch",        category: "Rau củ",    stock: 18, unit: "kg",  price: 22000,  status: "hidden" },
-  { id: "SP-4", name: "Rau cải xanh",        category: "Rau củ",    stock: 30, unit: "bó",  price: 15000,  status: "draft" },
-  { id: "SP-3", name: "Trứng gà thả vườn",   category: "Sữa & Trứng", stock: 24, unit: "v?", price: 65000, status: "pending" },
-  { id: "SP-2", name: "Mật ong hoa rừng",    category: "Bách hóa",  stock: 0,  unit: "hu", price: 120000,  status: "out_of_stock" },
-  { id: "SP-1", name: "Cà rốt đà lạt",       category: "Rau củ",    stock: 45, unit: "kg",  price: 18000,  status: "approved" },
-];
+// Mock data removed in favor of real API calls
 
 const STATUS_CONFIG = {
   approved:     { label: "Đã duyệt",   cls: "st-approved" },
@@ -57,7 +50,39 @@ export const ProductList = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  useEffect(() => {
+    const successMsg = sessionStorage.getItem("product_success_message");
+    if (successMsg) {
+      showToast(successMsg, "success");
+      sessionStorage.removeItem("product_success_message");
+    }
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await getFarmerProducts();
+      setProducts(data);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách sản phẩm:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [currentUser, setCurrentUser] = useState(() => {
     const userStr = localStorage.getItem("farmconnect_user");
@@ -80,18 +105,42 @@ export const ProductList = () => {
   const filtered = products.filter((p) => {
     const matchTab = activeTab === "all" || p.status === activeTab;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                        p.id.toLowerCase().includes(search.toLowerCase());
+                        p.id.toString().toLowerCase().includes(search.toLowerCase());
     return matchTab && matchSearch;
   });
+
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeTab]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginatedProducts = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const tabCount = (key) => key === "all"
     ? products.length
     : products.filter(p => p.status === key).length;
 
   const handleDelete = (id) => {
-    if (window.confirm("Bạn có chắc muốn xoá sản phẩm này?")) {
-      setProducts(prev => prev.filter(p => p.id !== id));
-    }
+    const prod = products.find(p => p.id === id);
+    const prodName = prod ? prod.name : "này";
+    setConfirmModal({
+      show: true,
+      title: "Xác nhận xóa",
+      message: `Bạn có chắc muốn xoá sản phẩm "${prodName}" không? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        try {
+          await deleteFarmerProduct(id);
+          setProducts(prev => prev.filter(p => p.id !== id));
+          showToast("Xóa sản phẩm thành công!", "success");
+        } catch (err) {
+          console.error("Lỗi khi xóa sản phẩm:", err);
+          showToast("Xóa sản phẩm thất bại: " + (err.response?.data || err.message), "error");
+        }
+      }
+    });
   };
 
   const formatPrice = (price, unit) =>
@@ -101,7 +150,24 @@ export const ProductList = () => {
     <div className="pl-page">
       {/* ── SIDEBAR ── */}
       <aside className="pl-sidebar">
-        <div className="pl-sidebar-logo">
+        <div className="pl-sidebar-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="logo-tractor"
+          >
+            <circle cx="7" cy="18" r="2"></circle>
+            <circle cx="18" cy="18" r="2"></circle>
+            <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+            <path d="M16 9h3l2 3v4"></path>
+          </svg>
           <span className="pl-logo-text">AgriMarket</span>
         </div>
 
@@ -189,23 +255,31 @@ export const ProductList = () => {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="pl-empty">Đang tải danh sách sản phẩm...</td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="pl-empty">Không có sản phẩm nào.</td>
                 </tr>
               ) : (
-                filtered.map((p) => {
+                paginatedProducts.map((p) => {
                   const st = STATUS_CONFIG[p.status];
                   return (
                     <tr key={p.id} className="pl-row">
                       <td>
                         <div className="pl-product-cell">
                           <div className="pl-product-thumb">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5" width="18" height="18">
-                              <rect x="3" y="3" width="18" height="18" rx="2"/>
-                              <circle cx="8.5" cy="8.5" r="1.5"/>
-                              <polyline points="21 15 16 10 5 21"/>
-                            </svg>
+                            {p.imageUrl ? (
+                              <img src={p.imageUrl} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "4px" }} />
+                            ) : (
+                              <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.5" width="18" height="18">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                              </svg>
+                            )}
                           </div>
                           <div>
                             <span className="pl-product-name">{p.name}</span>
@@ -253,6 +327,32 @@ export const ProductList = () => {
               )}
             </tbody>
           </table>
+
+          {/* Pagination Footer */}
+          {!loading && filtered.length > 0 && (
+            <div className="pl-pagination-footer">
+              <p className="pl-pagination-summary">
+                Hiển thị {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} trong tổng số {filtered.length} sản phẩm
+              </p>
+              <div className="pl-pagination-controls">
+                <button
+                  className="pl-page-btn"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ‹
+                </button>
+                <span className="pl-page-info">Trang {currentPage} / {totalPages}</span>
+                <button
+                  className="pl-page-btn"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Floating add button */}
@@ -260,6 +360,38 @@ export const ProductList = () => {
           + Thêm sản phẩm mới
         </button>
       </div>
+
+      {/* Custom Confirm Modal */}
+      {confirmModal.show && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal">
+            <div className="custom-modal-header">
+              <span className="custom-modal-icon">⚠️</span>
+              <h3>{confirmModal.title}</h3>
+            </div>
+            <p className="custom-modal-message">{confirmModal.message}</p>
+            <div className="custom-modal-actions">
+              <button className="custom-btn-cancel" onClick={() => setConfirmModal({ show: false })}>
+                Hủy bỏ
+              </button>
+              <button className="custom-btn-confirm" onClick={() => { confirmModal.onConfirm(); setConfirmModal({ show: false }); }}>
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Toast Notification */}
+      {toast.show && (
+        <div className={`custom-toast ${toast.type}`}>
+          <span className="custom-toast-icon">
+            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+          </span>
+          <span className="custom-toast-message">{toast.message}</span>
+          <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,12 +1,14 @@
 // src/pages/Product/ProductPage.jsx
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./ProductPage.css";
 import { getFarmerProducts, deleteFarmerProduct } from "../../services/productService";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useProfile from "../../hooks/useProfile";
 
 export default function ProductPage() {
+    const navigate = useNavigate();
     // Lấy profile trực tiếp từ hook
     const { profile, isProfileLoading } = useProfile();
     const isFarmer = profile?.role?.toLowerCase() === "farmer";
@@ -17,8 +19,24 @@ export default function ProductPage() {
     const [activeFilter, setActiveFilter] = useState("ALL");
     const [loading, setLoading] = useState(true);
 
+    const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+    const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+
+    const showToast = (message, type = "success") => {
+        setToast({ show: true, message, type });
+        setTimeout(() => {
+            setToast({ show: false, message: "", type: "success" });
+        }, 3000);
+    };
+
     // Load products khi profile load xong và là farmer
     useEffect(() => {
+        const successMsg = sessionStorage.getItem("product_success_message");
+        if (successMsg) {
+            showToast(successMsg, "success");
+            sessionStorage.removeItem("product_success_message");
+        }
+
         const loadProducts = async () => {
             setLoading(true);
             try {
@@ -48,21 +66,42 @@ export default function ProductPage() {
         });
     }, [products, keyword, activeFilter]);
 
-    const handleDelete = async (productId) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này không?")) {
-            try {
-                await deleteFarmerProduct(productId);
-                setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
-                alert("Xóa sản phẩm thành công!");
-            } catch (error) {
-                console.error("Lỗi khi xóa sản phẩm:", error);
-                alert(
-                    error.response?.data ||
-                    error.message ||
-                    "Không thể xóa sản phẩm. Vui lòng thử lại sau."
-                );
+    const ITEMS_PER_PAGE = 10;
+    const [currentPage, setCurrentPage] = useState(1);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [keyword, activeFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+    const paginatedProducts = useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    }, [filteredProducts, currentPage]);
+
+    const handleDelete = (productId) => {
+        const prod = products.find(p => p.id === productId);
+        const prodName = prod ? prod.name : "này";
+        setConfirmModal({
+            show: true,
+            title: "Xác nhận xóa",
+            message: `Bạn có chắc chắn muốn xóa sản phẩm "${prodName}" không? Hành động này không thể hoàn tác.`,
+            onConfirm: async () => {
+                try {
+                    await deleteFarmerProduct(productId);
+                    setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
+                    showToast("Xóa sản phẩm thành công!", "success");
+                } catch (error) {
+                    console.error("Lỗi khi xóa sản phẩm:", error);
+                    showToast(
+                        error.response?.data ||
+                        error.message ||
+                        "Không thể xóa sản phẩm. Vui lòng thử lại sau.",
+                        "error"
+                    );
+                }
             }
-        }
+        });
     };
 
     const formatPrice = (price) => {
@@ -178,7 +217,7 @@ export default function ProductPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredProducts.map((product) => (
+                                        {paginatedProducts.map((product) => (
                                             <tr key={product.id}>
                                                 <td>
                                                     <div className="product-info">
@@ -213,18 +252,59 @@ export default function ProductPage() {
                             </div>
 
                             <div className="product-footer">
-                                <p>Hiển thị {filteredProducts.length} trong tổng số {products.length} sản phẩm</p>
-                                <div className="product-pagination">
-                                    <button>‹</button>
-                                    <button>›</button>
+                                <p>Hiển thị {filteredProducts.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredProducts.length)} trong tổng số {filteredProducts.length} sản phẩm</p>
+                                <div className="product-pagination" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    <button 
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        style={{ cursor: currentPage === 1 ? "not-allowed" : "pointer", opacity: currentPage === 1 ? 0.5 : 1 }}
+                                    >‹</button>
+                                    <span style={{ fontSize: "14px", fontWeight: "600" }}>Trang {currentPage} / {totalPages}</span>
+                                    <button 
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        style={{ cursor: currentPage === totalPages ? "not-allowed" : "pointer", opacity: currentPage === totalPages ? 0.5 : 1 }}
+                                    >›</button>
                                 </div>
                             </div>
                         </>
                     )}
                 </section>
 
-                <button className="add-product-floating">＋ Thêm sản phẩm mới</button>
+                <button className="add-product-floating" onClick={() => navigate("/farmer/products/add")}>＋ Thêm sản phẩm mới</button>
             </main>
+
+            {/* Custom Confirm Modal */}
+            {confirmModal.show && (
+                <div className="custom-modal-overlay">
+                    <div className="custom-modal">
+                        <div className="custom-modal-header">
+                            <span className="custom-modal-icon">⚠️</span>
+                            <h3>{confirmModal.title}</h3>
+                        </div>
+                        <p className="custom-modal-message">{confirmModal.message}</p>
+                        <div className="custom-modal-actions">
+                            <button className="custom-btn-cancel" onClick={() => setConfirmModal({ show: false })}>
+                                Hủy bỏ
+                            </button>
+                            <button className="custom-btn-confirm" onClick={() => { confirmModal.onConfirm(); setConfirmModal({ show: false }); }}>
+                                Xác nhận
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Toast Notification */}
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    <span className="custom-toast-icon">
+                        {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+                    </span>
+                    <span className="custom-toast-message">{toast.message}</span>
+                    <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>
+                </div>
+            )}
         </div>
     );
 }

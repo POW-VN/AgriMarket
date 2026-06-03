@@ -10,4 +10,5 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByFarmerIdOrderByCreatedAtDesc(Long farmerId);
     List<Product> findByFarmerEmailOrderByCreatedAtDesc(String email);
+    List<Product> findByStatusOrderByCreatedAtDesc(String status);
 }

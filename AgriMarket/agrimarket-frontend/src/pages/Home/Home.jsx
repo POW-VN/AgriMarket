@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
+import { getAllApprovedProducts } from "../../services/productService";
 import "./Home.css";
 
 // Import local images
@@ -9,15 +10,241 @@ import heirloomTomatoes from "./assets/heirloom_tomatoes.png";
 import bunchedCarrots from "./assets/bunched_carrots.png";
 import honeycrispApples from "./assets/honeycrisp_apples.png";
 
+const MAIN_CATEGORIES = [
+  { name: "Cây lương thực", icon: "🌾" },
+  { name: "Rau củ quả", icon: "🥕" },
+  { name: "Trái cây", icon: "🍎" },
+  { name: "Cây công nghiệp", icon: "🪵" },
+  { name: "Nông sản hữu cơ", icon: "🌿" },
+  { name: "Chăn nuôi", icon: "🐖" },
+  { name: "Giống cây trồng", icon: "🌱" },
+  { name: "Nông sản chế biến", icon: "🥫" },
+  { name: "Khác", icon: "📦" }
+];
+
 const Home = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("Rau củ quả");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check login state
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
+
+    // Fetch approved products
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const data = await getAllApprovedProducts();
+        setProducts(data);
+      } catch (err) {
+        console.error("Lỗi khi load sản phẩm trang chủ:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
   }, []);
+
+  const displayProducts = products.length > 0 ? products : [
+    {
+      id: "mock-1",
+      name: "Cà chua Heirloom hữu cơ",
+      category: "Rau củ quả",
+      price: 49900,
+      unit: "kg",
+      isOrganic: true,
+      imageUrl: heirloomTomatoes,
+      rating: 4.8,
+      sold: 120
+    },
+    {
+      id: "mock-2",
+      name: "Cà rốt tươi Đà Lạt",
+      category: "Rau củ quả",
+      price: 25000,
+      unit: "bó",
+      isOrganic: true,
+      imageUrl: bunchedCarrots,
+      rating: 4.5,
+      sold: 85
+    },
+    {
+      id: "mock-3",
+      name: "Táo Honeycrisp giòn ngọt",
+      category: "Trái cây",
+      price: 69000,
+      unit: "kg",
+      isOrganic: false,
+      imageUrl: honeycrispApples,
+      rating: 4.9,
+      sold: 210
+    },
+    {
+      id: "mock-4",
+      name: "Gạo Tám Xoan Điện Biên",
+      category: "Cây lương thực",
+      price: 32000,
+      unit: "kg",
+      isOrganic: true,
+      imageUrl: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600",
+      rating: 4.7,
+      sold: 340
+    },
+    {
+      id: "mock-5",
+      name: "Dâu tây sạch loại A",
+      category: "Trái cây",
+      price: 150000,
+      unit: "hộp",
+      isOrganic: true,
+      imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600",
+      rating: 4.9,
+      sold: 400
+    },
+    {
+      id: "mock-6",
+      name: "Mật ong hoa nhãn nguyên chất",
+      category: "Nông sản chế biến",
+      price: 180000,
+      unit: "chai",
+      isOrganic: false,
+      imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600",
+      rating: 4.6,
+      sold: 150
+    },
+    {
+      id: "mock-7",
+      name: "Hạt tiêu đen chín đỏ",
+      category: "Cây công nghiệp",
+      price: 95000,
+      unit: "hộp",
+      isOrganic: true,
+      imageUrl: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?w=600",
+      rating: 4.4,
+      sold: 95
+    },
+    {
+      id: "mock-8",
+      name: "Trà ô long thượng hạng",
+      category: "Nông sản hữu cơ",
+      price: 250000,
+      unit: "hộp",
+      isOrganic: true,
+      imageUrl: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=600",
+      rating: 4.8,
+      sold: 180
+    },
+    {
+      id: "mock-9",
+      name: "Thịt heo rừng lai hữu cơ",
+      category: "Chăn nuôi",
+      price: 160000,
+      unit: "kg",
+      isOrganic: true,
+      imageUrl: "https://images.unsplash.com/photo-1602491453977-63a5385166cf?w=600",
+      rating: 4.5,
+      sold: 70
+    },
+    {
+      id: "mock-10",
+      name: "Giống xoài cát Hòa Lộc",
+      category: "Giống cây trồng",
+      price: 45000,
+      unit: "cây",
+      isOrganic: false,
+      imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=600",
+      rating: 4.3,
+      sold: 50
+    }
+  ];
+
+  const filteredProducts = displayProducts.filter((product) => {
+    const mainNames = ["Cây lương thực", "Rau củ quả", "Trái cây", "Cây công nghiệp", "Nông sản hữu cơ", "Chăn nuôi", "Giống cây trồng", "Nông sản chế biến"];
+    if (selectedCategory === "Khác") {
+      return !mainNames.includes(product.category);
+    }
+    return product.category === selectedCategory;
+  });
+
+  const featuredProducts = [...displayProducts]
+    .sort((a, b) => {
+      if (b.sold !== a.sold) {
+        return b.sold - a.sold;
+      }
+      return b.rating - a.rating;
+    })
+    .slice(0, 6);
+
+  const renderProductCard = (p, isBestSeller = false) => {
+    return (
+      <div key={p.id} className={`product-card standard-card ${isBestSeller ? "best-seller-card" : ""}`}>
+        <div className="card-img-wrapper" style={{ height: "200px", overflow: "hidden", position: "relative" }}>
+          {p.imageUrl ? (
+            <img src={p.imageUrl} alt={p.name} className="standard-card-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0fdf4", color: "#16a34a", fontSize: "40px" }}>
+              🌾
+            </div>
+          )}
+          {p.isOrganic && <span className="tag-pill tag-organic" style={{ position: "absolute", top: "10px", left: "10px", zIndex: 1 }}>Hữu cơ</span>}
+          {isBestSeller && <span className="tag-pill tag-bestseller" style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2 }}>🔥 Bán chạy nhất</span>}
+        </div>
+        <div className="card-body">
+          <span className="card-category">{p.category}</span>
+          <h3 className="standard-card-title" title={p.name}>
+            {isBestSeller && <span className="bestseller-crown">🏆 </span>}
+            {p.name}
+          </h3>
+          
+          {/* Rating and Sold */}
+          <div className="product-rating-sold">
+            <div className="stars-container">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span
+                  key={star}
+                  className={`star-icon ${star <= Math.round(p.rating) ? "filled" : ""}`}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+            <span className="rating-val">{p.rating}</span>
+            <span className="divider">•</span>
+            <span className={`sold-count ${isBestSeller ? "bestseller-sold" : ""}`}>Đã bán {p.sold}</span>
+          </div>
+
+          <p className="standard-card-farm">Nông trại địa phương</p>
+          <div className="card-footer">
+            <p className="standard-card-price">
+              {p.price.toLocaleString("vi-VN")} đ <span className="unit">/ {p.unit}</span>
+            </p>
+            {(!user || user.role !== "farmer") && (
+              <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const handleLogout = () => {
     authService.logout();
@@ -144,43 +371,12 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Categories Section */}
-        <section className="categories-section">
-          <h2 className="section-title">Duyệt theo danh mục</h2>
-          <div className="categories-grid">
-            <div className="category-pill active">
-              <span className="category-icon">🌿</span>
-              <span className="category-name">Rau củ</span>
-            </div>
-            <div className="category-pill">
-              <span className="category-icon">🍎</span>
-              <span className="category-name">Trái cây</span>
-            </div>
-            <div className="category-pill">
-              <span className="category-icon">🥛</span>
-              <span className="category-name">Sữa & Trứng</span>
-            </div>
-            <div className="category-pill">
-              <span className="category-icon">🌾</span>
-              <span className="category-name">Bách hóa</span>
-            </div>
-            <div className="category-pill">
-              <span className="category-icon">🌸</span>
-              <span className="category-name">Hoa tươi</span>
-            </div>
-            <div className="category-pill">
-              <span className="category-icon">🥩</span>
-              <span className="category-name">Thịt & Hải sản</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Featured Products Section */}
+        {/* Nông sản nổi bật Section */}
         <section className="featured-section">
           <div className="featured-header">
             <div>
-              <h2 className="section-title">Nông sản hữu cơ nổi bật</h2>
-              <p className="section-subtitle">Lựa chọn tuyển chọn kỹ lưỡng từ các nông trại địa phương hàng đầu.</p>
+              <h2 className="section-title">Nông sản nổi bật</h2>
+              <p className="section-subtitle">Top sản phẩm bán chạy có đánh giá cao nhất hệ thống.</p>
             </div>
             <Link to="/shop" className="view-all-link">
               Xem tất cả <span className="arrow">→</span>
@@ -188,109 +384,50 @@ const Home = () => {
           </div>
 
           <div className="products-grid">
-            {/* Heirloom Tomatoes - Large Card */}
-            <div className="product-card large-card" style={{ backgroundImage: `url(${heirloomTomatoes})` }}>
-              <div className="card-overlay"></div>
-              <div className="card-top-tags">
-                <span className="tag-pill tag-organic">Hữu cơ</span>
-                <span className="tag-pill tag-local">Địa phương</span>
+            {loading ? (
+              <div className="product-empty" style={{ width: "100%", padding: "40px", gridColumn: "1 / -1", textAlign: "center", color: "#9ca3af" }}>
+                Đang tải danh sách sản phẩm...
               </div>
-              <div className="card-bottom-content">
-                <div className="card-info">
-                  <h3 className="card-title">Cà chua Heirloom</h3>
-                  <p className="card-farm">Nông trại Thung Lũng Xanh · Thu hoạch hôm nay</p>
-                  <p className="card-price">$4.99 <span className="unit">/ kg</span></p>
-                </div>
-                {(!user || user.role !== "farmer") && (
-                  <button className="add-cart-btn large-add-btn" aria-label="Thêm vào giỏ hàng">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="9" cy="21" r="1"></circle>
-                      <circle cx="20" cy="21" r="1"></circle>
-                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                    </svg>
-                  </button>
-                )}
+            ) : featuredProducts.length === 0 ? (
+              <div className="product-empty" style={{ width: "100%", padding: "60px 40px", gridColumn: "1 / -1", textAlign: "center", color: "#6b7280", background: "#f9fafb", borderRadius: "16px", border: "1.5px dashed #e5e7eb" }}>
+                Chưa có nông sản nổi bật nào.
               </div>
-            </div>
+            ) : (
+              featuredProducts.map((p, idx) => renderProductCard(p, idx === 0))
+            )}
+          </div>
+        </section>
 
-            {/* Bunched Carrots - Standard Card */}
-            <div className="product-card standard-card">
-              <div className="card-img-wrapper">
-                <img src={bunchedCarrots} alt="Cà rốt bó" className="standard-card-img" />
+        {/* Categories Section */}
+        <section className="categories-section">
+          <h2 className="section-title">Duyệt theo danh mục</h2>
+          <div className="categories-grid">
+            {MAIN_CATEGORIES.map((cat) => (
+              <div
+                key={cat.name}
+                className={`category-pill ${selectedCategory === cat.name ? "active" : ""}`}
+                onClick={() => setSelectedCategory(cat.name)}
+                style={{ cursor: "pointer" }}
+              >
+                <span className="category-icon">{cat.icon}</span>
+                <span className="category-name">{cat.name}</span>
               </div>
-              <div className="card-body">
-                <span className="card-category">Rau củ quả</span>
-                <h3 className="standard-card-title">Cà rốt bó</h3>
-                <p className="standard-card-farm">Nông trại Bình Minh</p>
-                <div className="card-footer">
-                  <p className="standard-card-price">$2.49 <span className="unit">/ bó</span></p>
-                  {(!user || user.role !== "farmer") && (
-                    <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Honeycrisp Apples - Standard Card with Sale */}
-            <div className="product-card standard-card">
-              <div className="card-img-wrapper">
-                <img src={honeycrispApples} alt="Táo Honeycrisp" className="standard-card-img" />
-                <span className="tag-pill tag-sale">GIẢM GIÁ</span>
-              </div>
-              <div className="card-body">
-                <span className="card-category">Trái cây vườn quả</span>
-                <h3 className="standard-card-title">Táo Honeycrisp</h3>
-                <p className="standard-card-farm">Nông trại Đồi Trái Cây</p>
-                <div className="card-footer">
-                  <p className="standard-card-price">
-                    $1.99 <span className="unit">/ kg</span>
-                    <span className="old-price">$2.99</span>
-                  </p>
-                  {(!user || user.role !== "farmer") && (
-                    <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                      </svg>
-                    </button>
-                  )}
+          <div className="category-products-container" style={{ marginTop: "24px" }}>
+            <div className="products-grid">
+              {loading ? (
+                <div className="product-empty" style={{ width: "100%", padding: "40px", gridColumn: "1 / -1", textAlign: "center", color: "#9ca3af" }}>
+                  Đang tải danh sách sản phẩm...
                 </div>
-              </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="product-empty" style={{ width: "100%", padding: "60px 40px", gridColumn: "1 / -1", textAlign: "center", color: "#6b7280", background: "#f9fafb", borderRadius: "16px", border: "1.5px dashed #e5e7eb" }}>
+                  Chưa có sản phẩm nào thuộc danh mục "{selectedCategory}".
+                </div>
+              ) : (
+                filteredProducts.map((p) => renderProductCard(p, false))
+              )}
             </div>
           </div>
         </section>

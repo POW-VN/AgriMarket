@@ -1,37 +1,23 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { createFarmerProduct } from "../../../services/productService";
+import ProfileSidebar from "../../../components/profile/ProfileSidebar";
+import useProfile from "../../../hooks/useProfile";
 import "./AddProduct.css";
+import "../../Product/ProductPage.css";
 
-// --- Sidebar nav items ---
-const NAV_ITEMS = [
-  { icon: "home",     label: "Trang chủ",          path: "/" },
-  { icon: "profile",  label: "Hồ sơ",              path: "/profile" },
-  { icon: "product",  label: "Sản phẩm",          path: "/farmer/products", active: true },
-  { icon: "security", label: "Bảo mật",           path: "/security" },
-  { icon: "bell",     label: "Thông báo",          path: "/farmer/notifications" },
-  { icon: "history",  label: "Lịch sử giao dịch", path: "/farmer/orders" },
-];
-
-const NavIcon = ({ type }) => {
-  const props = { viewBox: "0 0 24 24", fill: "none", strokeWidth: "2", width: "18", height: "18" };
-  if (type === "home")     return <svg {...props} stroke="#f97316"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
-  if (type === "profile")  return <svg {...props} stroke="#8b5cf6"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-  if (type === "product")  return <svg {...props} stroke="#16a34a"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>;
-  if (type === "security") return <svg {...props} stroke="#f59e0b"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>;
-  if (type === "bell")     return <svg {...props} stroke="#eab308"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>;
-  if (type === "history")  return <svg {...props} stroke="#64748b"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 109.03-7.93"/><polyline points="3 4 3 11 10 11"/></svg>;
-  return null;
-};
+// Nav constants removed in favor of ProfileSidebar component
 
 const CATEGORIES = [
-  "Rau củ",
+  "Cây lương thực",
+  "Rau củ quả",
   "Trái cây",
-  "Ngũ cốc & Hạt",
-  "Thảo mộc & Gia vị",
-  "Sản phẩm bơ sữa",
-  "Thịt & Gia cầm",
-  "Thủy hải sản",
-  "Đồ uống hữu cơ",
+  "Cây công nghiệp",
+  "Nông sản hữu cơ",
+  "Chăn nuôi",
+  "Giống cây trồng",
+  "Nông sản chế biến",
+  "Khác"
 ];
 
 const UNITS = ["kg", "bó", "thùng", "cái", "lít"];
@@ -40,9 +26,13 @@ export const AddProduct = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
+  const { profile, isProfileLoading } = useProfile();
+  const isFarmer = profile?.role?.toLowerCase() === "farmer";
+
   // Form state
   const [productName, setProductName] = useState("");
   const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [harvestDate, setHarvestDate] = useState("");
   const [description, setDescription] = useState("");
   const [isOrganic, setIsOrganic] = useState(false);
@@ -52,24 +42,6 @@ export const AddProduct = () => {
   const [customUnitVal, setCustomUnitVal] = useState("");
   const [stockQty, setStockQty] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("");
-
-  const [currentUser, setCurrentUser] = useState(() => {
-    const userStr = localStorage.getItem("farmconnect_user");
-    try {
-      return userStr ? JSON.parse(userStr) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  const getRoleLabel = (role) => {
-    const roles = {
-      farmer: "Nông dân",
-      customer: "Khách hàng",
-      admin: "Quản trị viên"
-    };
-    return roles[role] || "Nông dân";
-  };
 
   // Multi-image state
   const [productImages, setProductImages] = useState([]);  // [{ id, url }]
@@ -84,6 +56,38 @@ export const AddProduct = () => {
   const [loading, setLoading] = useState(false);
   const [previewToast, setPreviewToast] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  if (isProfileLoading) {
+    return (
+      <div className="product-loading">
+        <div className="loading-spinner"></div>
+        <span>Đang tải hồ sơ...</span>
+      </div>
+    );
+  }
+
+  if (!isFarmer) {
+    return (
+      <div className="product-layout">
+        <ProfileSidebar profile={profile} />
+        <main className="product-main">
+          <div className="product-permission-box">
+            <h2>Không có quyền truy cập</h2>
+            <p>Chức năng thêm sản phẩm chỉ dành cho tài khoản nông dân.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   // ── Multi-image handlers ──────────────────────────────
   const readFiles = (files) => {
@@ -130,30 +134,84 @@ export const AddProduct = () => {
   const validate = () => {
     const newErrors = {};
     if (!productName.trim()) newErrors.productName = "Vui lòng nhập tên sản phẩm.";
-    if (!category) newErrors.category = "Vui lòng chọn danh mục.";
+    if (!category) {
+      newErrors.category = "Vui lòng chọn danh mục.";
+    } else if (category === "Khác" && !customCategory.trim()) {
+      newErrors.customCategory = "Vui lòng nhập tên danh mục tự chọn.";
+    }
     if (!basePrice || isNaN(basePrice) || parseFloat(basePrice) < 0)
       newErrors.basePrice = "Vui lòng nhập giá hợp lệ.";
     if (!stockQty || isNaN(stockQty) || parseInt(stockQty) < 0)
       newErrors.stockQty = "Vui lòng nhập số lượng hợp lệ.";
+    if (isOrganic && !certFile) {
+      newErrors.certFile = "Vui lòng tải lên ảnh giấy chứng nhận.";
+    }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) {
+      showToast("Vui lòng nhập đầy đủ thông tin các mục bắt buộc (có dấu *)", "warning");
+    }
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    navigate("/farmer/products");
+    try {
+      const payload = {
+        name: productName,
+        categoryName: category === "Khác" ? customCategory.trim() : category,
+        description: description,
+        price: parseFloat(basePrice),
+        stockQuantity: parseInt(stockQty),
+        unit: selectedUnit,
+        status: "pending",
+        harvestDate: harvestDate || null,
+        isOrganic: isOrganic,
+        certificateFileBase64: isOrganic && certFile ? certFile.url : null,
+        certificateFileName: isOrganic && certFile ? certFile.name : null,
+        images: productImages.map((img) => img.url),
+      };
+      await createFarmerProduct(payload);
+      sessionStorage.setItem("product_success_message", "Thêm sản phẩm thành công và đang chờ phê duyệt!");
+      navigate("/products");
+    } catch (err) {
+      console.error(err);
+      showToast("Đã xảy ra lỗi khi thêm sản phẩm: " + (err.response?.data || err.message), "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveDraft = async () => {
+    if (!validate()) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    // Optionally show a toast
+    try {
+      const payload = {
+        name: productName,
+        categoryName: category === "Khác" ? customCategory.trim() : (category || null),
+        description: description || "",
+        price: basePrice ? parseFloat(basePrice) : 0.0,
+        stockQuantity: stockQty ? parseInt(stockQty) : 0,
+        unit: selectedUnit,
+        status: "draft",
+        harvestDate: harvestDate || null,
+        isOrganic: isOrganic,
+        certificateFileBase64: isOrganic && certFile ? certFile.url : null,
+        certificateFileName: isOrganic && certFile ? certFile.name : null,
+        images: productImages.map((img) => img.url),
+      };
+      await createFarmerProduct(payload);
+      sessionStorage.setItem("product_success_message", "Đã lưu bản nháp thành công!");
+      navigate("/products");
+    } catch (err) {
+      console.error(err);
+      showToast("Đã xảy ra lỗi khi lưu bản nháp: " + (err.response?.data || err.message), "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handlePreviewCart = () => {
@@ -179,48 +237,8 @@ export const AddProduct = () => {
     setPreviewSlideIdx((i) => (i + 1) % Math.max(slideCount, 1));
 
   return (
-    <div className="ap-page">
-      {/* SIDEBAR */}
-      <aside className="ap-sidebar">
-        {/* Logo */}
-        <div className="ap-sidebar-logo">
-          <span className="ap-logo-text">AgriMarket</span>
-        </div>
-
-        {/* User info */}
-        <div className="ap-sidebar-user">
-          <div className="ap-user-avatar">
-            {currentUser?.avatarUrl ? (
-              <img src={currentUser.avatarUrl} alt="Avatar" className="ap-user-avatar-img" />
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="22" height="22">
-                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-            )}
-          </div>
-          <div className="ap-user-info">
-            <span className="ap-user-greeting">Xin chào,</span>
-            <span className="ap-user-name">{currentUser?.fullName || "Khách"}</span>
-            <span className="ap-user-role">{getRoleLabel(currentUser?.role)}</span>
-          </div>
-        </div>
-
-        <nav className="ap-sidebar-nav">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              className={`ap-nav-item ${item.active ? "ap-nav-active" : ""}`}
-              onClick={() => navigate(item.path)}
-            >
-              <span className="ap-nav-icon">
-                <NavIcon type={item.icon} />
-              </span>
-              <span className="ap-nav-label">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      </aside>
+    <div className="ap-page product-layout">
+      <ProfileSidebar profile={profile} />
 
       {/* MAIN CONTENT */}
       <div className="ap-main">
@@ -324,34 +342,38 @@ export const AddProduct = () => {
                 {errors.productName && <span className="ap-error-msg">{errors.productName}</span>}
               </div>
 
-              <div className="ap-field-row">
-                <div className="ap-field-group">
-                  <label className="ap-label">
-                    Danh mục <span className="ap-required">*</span>
-                  </label>
-                  <select
-                    className={`ap-select ${errors.category ? "ap-input-error" : ""}`}
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  >
-                    <option value="">Chọn danh mục</option>
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  {errors.category && <span className="ap-error-msg">{errors.category}</span>}
-                </div>
-
-                <div className="ap-field-group">
-                  <label className="ap-label">Ngày đăng sản phẩm</label>
-                  <input
-                    type="date"
-                    className="ap-input"
-                    value={harvestDate}
-                    onChange={(e) => setHarvestDate(e.target.value)}
-                  />
-                </div>
+              <div className="ap-field-group">
+                <label className="ap-label">
+                  Danh mục <span className="ap-required">*</span>
+                </label>
+                <select
+                  className={`ap-select ${errors.category ? "ap-input-error" : ""}`}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">Chọn danh mục</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {errors.category && <span className="ap-error-msg">{errors.category}</span>}
               </div>
+
+              {category === "Khác" && (
+                <div className="ap-field-group" style={{ marginTop: "12px" }}>
+                  <label className="ap-label">
+                    Tên danh mục khác <span className="ap-required">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className={`ap-input ${errors.customCategory ? "ap-input-error" : ""}`}
+                    placeholder="Nhập tên danh mục tự chọn (ví dụ: Hoa tươi, Nấm...)"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                  />
+                  {errors.customCategory && <span className="ap-error-msg">{errors.customCategory}</span>}
+                </div>
+              )}
 
               <div className="ap-field-group">
                 <label className="ap-label">Mô tả sản phẩm</label>
@@ -413,7 +435,7 @@ export const AddProduct = () => {
                     </div>
                   ) : (
                     <div
-                      className="ap-cert-zone"
+                      className={`ap-cert-zone ${errors.certFile ? "ap-input-error" : ""}`}
                       onClick={() => certInputRef.current?.click()}
                     >
                       <input
@@ -432,6 +454,7 @@ export const AddProduct = () => {
                       <p className="ap-cert-zone-hint">JPG, PNG hoặc PDF — tối đa 10MB</p>
                     </div>
                   )}
+                  {errors.certFile && <span className="ap-error-msg" style={{ display: "block", marginTop: "6px" }}>{errors.certFile}</span>}
                 </div>
               )}
             </section>
@@ -608,7 +631,7 @@ export const AddProduct = () => {
               </div>
 
               <div className="ap-preview-meta">
-                <span className="ap-preview-category">{category || "DANH MỤC"}</span>
+                <span className="ap-preview-category">{(category === "Khác" ? customCategory : category) || "DANH MỤC"}</span>
                 <span className="ap-preview-new-badge">★ Mới</span>
               </div>
 
@@ -631,6 +654,15 @@ export const AddProduct = () => {
           </aside>
         </div>
       </div>
+      {toast.show && (
+        <div className={`custom-toast ${toast.type}`}>
+          <span className="custom-toast-icon">
+            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+          </span>
+          <span className="custom-toast-message">{toast.message}</span>
+          <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>
+        </div>
+      )}
     </div>
   );
 };

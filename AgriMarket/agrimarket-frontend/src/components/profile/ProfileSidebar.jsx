@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import profileService from "../../services/profileService";
 import ProfileAvatar from "./ProfileAvatar";
 import { ROLE_LABELS } from "../../constants/profileConstants";
+import "../../pages/Profile/Profile.css";
 
 const ProfileSidebar = ({ profile }) => {
   const navigate = useNavigate();
@@ -20,7 +21,26 @@ const ProfileSidebar = ({ profile }) => {
 
   return (
     <aside className="profile-sidebar">
-      <div className="profile-brand">AgriMarket</div>
+      <div className="profile-brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="logo-tractor"
+        >
+          <circle cx="7" cy="18" r="2"></circle>
+          <circle cx="18" cy="18" r="2"></circle>
+          <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+          <path d="M16 9h3l2 3v4"></path>
+        </svg>
+        <span className="logo-text">AgriMarket</span>
+      </div>
 
       <div className="profile-sidebar-user">
         <ProfileAvatar
@@ -61,7 +81,9 @@ const ProfileSidebar = ({ profile }) => {
 
         {isFarmer && (
           <button
-            className={`sidebar-menu-item ${location.pathname === "/products" ? "active" : ""}`}
+            className={`sidebar-menu-item ${
+              (location.pathname.startsWith("/products") || location.pathname.startsWith("/farmer/products")) ? "active" : ""
+            }`}
             onClick={() => navigate("/products")}
           >
             <span>📦</span>
