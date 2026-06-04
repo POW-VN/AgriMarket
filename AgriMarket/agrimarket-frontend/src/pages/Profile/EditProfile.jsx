@@ -10,6 +10,7 @@ import ProfileFooter from "../../components/profile/ProfileFooter";
 import { USER_ROLES } from "../../constants/profileConstants";
 import { buildProfileUpdatePayload } from "../../utils/profileMapper";
 import apiClient from "../../services/apiClient";
+import * as addressService from "../../services/addressService";
 import "./Profile.css";
 
 const EditProfile = () => {
@@ -34,6 +35,148 @@ const EditProfile = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [formMessage, setFormMessage] = useState("");
+
+  // Address States
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [addrProvince, setAddrProvince] = useState({ code: "", name: "" });
+  const [addrDistrict, setAddrDistrict] = useState({ code: "", name: "" });
+  const [addrWard, setAddrWard] = useState({ code: "", name: "" });
+  const [addrStreet, setAddrStreet] = useState("");
+
+  // Load provinces on mount
+  useEffect(() => {
+    const initProvinces = async () => {
+      const provs = await addressService.getProvinces();
+      setProvinces(provs);
+    };
+    initProvinces();
+  }, []);
+
+  // Parse and initialize address when profile or provinces load
+  useEffect(() => {
+    if (!profile || provinces.length === 0) return;
+
+    const rawAddress = profile.role === USER_ROLES.FARMER 
+      ? (profile.farmAddress || "") 
+      : (profile.addresses?.[0]?.address || "");
+
+    const initializeAddress = async () => {
+      const parsed = addressService.parseAddress(rawAddress);
+      
+      if (!parsed.province) {
+        setAddrStreet(rawAddress);
+        setAddrProvince({ code: "", name: "" });
+        setAddrDistrict({ code: "", name: "" });
+        setAddrWard({ code: "", name: "" });
+        setDistricts([]);
+        setWards([]);
+        return;
+      }
+
+      setAddrStreet(parsed.street || "");
+
+      // Find province
+      const normProv = addressService.normalizeName(parsed.province);
+      const provinceMatch = provinces.find(
+        (p) => addressService.normalizeName(p.name) === normProv
+      );
+
+      if (provinceMatch) {
+        const provCode = provinceMatch.code;
+        setAddrProvince({ code: provCode, name: provinceMatch.name });
+
+        // Load districts
+        const dists = await addressService.getDistricts(provCode);
+        setDistricts(dists);
+
+        // Find district
+        const normDist = addressService.normalizeName(parsed.district);
+        const districtMatch = dists.find(
+          (d) => addressService.normalizeName(d.name) === normDist
+        );
+
+        if (districtMatch) {
+          const distCode = districtMatch.code;
+          setAddrDistrict({ code: distCode, name: districtMatch.name });
+
+          // Load wards
+          const wds = await addressService.getWards(distCode);
+          setWards(wds);
+
+          // Find ward
+          const normWard = addressService.normalizeName(parsed.ward);
+          const wardMatch = wds.find(
+            (w) => addressService.normalizeName(w.name) === normWard
+          );
+
+          if (wardMatch) {
+            setAddrWard({ code: wardMatch.code, name: wardMatch.name });
+          } else {
+            setAddrWard({ code: "", name: "" });
+          }
+        } else {
+          setAddrDistrict({ code: "", name: "" });
+          setAddrWard({ code: "", name: "" });
+          setWards([]);
+        }
+      } else {
+        setAddrStreet(rawAddress);
+        setAddrProvince({ code: "", name: "" });
+        setAddrDistrict({ code: "", name: "" });
+        setAddrWard({ code: "", name: "" });
+        setDistricts([]);
+        setWards([]);
+      }
+    };
+
+    initializeAddress();
+  }, [profile, provinces]);
+
+  const handleProvinceChange = async (e) => {
+    const provinceCode = e.target.value;
+    const provinceObj = provinces.find((p) => p.code === parseInt(provinceCode));
+    if (provinceObj) {
+      setAddrProvince({ code: provinceCode, name: provinceObj.name });
+      setAddrDistrict({ code: "", name: "" });
+      setAddrWard({ code: "", name: "" });
+      setWards([]);
+      const dists = await addressService.getDistricts(provinceCode);
+      setDistricts(dists);
+    } else {
+      setAddrProvince({ code: "", name: "" });
+      setAddrDistrict({ code: "", name: "" });
+      setAddrWard({ code: "", name: "" });
+      setDistricts([]);
+      setWards([]);
+    }
+  };
+
+  const handleDistrictChange = async (e) => {
+    const districtCode = e.target.value;
+    const districtObj = districts.find((d) => d.code === parseInt(districtCode));
+    if (districtObj) {
+      setAddrDistrict({ code: districtCode, name: districtObj.name });
+      setAddrWard({ code: "", name: "" });
+      const wds = await addressService.getWards(districtCode);
+      setWards(wds);
+    } else {
+      setAddrDistrict({ code: "", name: "" });
+      setAddrWard({ code: "", name: "" });
+      setWards([]);
+    }
+  };
+
+  const handleWardChange = (e) => {
+    const wardCode = e.target.value;
+    const wardObj = wards.find((w) => w.code === parseInt(wardCode));
+    if (wardObj) {
+      setAddrWard({ code: wardCode, name: wardObj.name });
+    } else {
+      setAddrWard({ code: "", name: "" });
+    }
+  };
 
   useEffect(() => {
     if (!profile) return;
@@ -113,11 +256,31 @@ const EditProfile = () => {
 
     if (!profile) return;
 
+    if (addrProvince.code || addrDistrict.code || addrWard.code || addrStreet.trim()) {
+      if (!addrProvince.name || !addrDistrict.name || !addrWard.name || !addrStreet.trim()) {
+        setFormMessage("Vui lòng nhập đầy đủ địa chỉ 4 cấp (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà/Tên đường).");
+        return;
+      }
+    }
+
     setIsSaving(true);
     setFormMessage("");
 
+    const formattedAddress = addressService.formatAddress({
+      street: addrStreet.trim(),
+      ward: addrWard.name,
+      district: addrDistrict.name,
+      province: addrProvince.name,
+    });
+
+    const updatedFormData = {
+      ...formData,
+      address: profile.role === USER_ROLES.CUSTOMER ? formattedAddress : formData.address,
+      farmAddress: profile.role === USER_ROLES.FARMER ? formattedAddress : formData.farmAddress,
+    };
+
     try {
-      const payload = buildProfileUpdatePayload(profile.role, formData);
+      const payload = buildProfileUpdatePayload(profile.role, updatedFormData);
 
       await updateProfile(payload);
 
@@ -237,16 +400,64 @@ const EditProfile = () => {
             </div>
 
             {profile.role === USER_ROLES.CUSTOMER && (
-              <div className="form-group full-width">
-                <label>Địa chỉ mặc định</label>
-                <textarea
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Nhập địa chỉ giao hàng mặc định"
-                  rows="4"
-                />
-              </div>
+              <>
+                <div className="form-group">
+                  <label>Tỉnh / Thành phố</label>
+                  <select
+                    value={addrProvince.code}
+                    onChange={handleProvinceChange}
+                  >
+                    <option value="">Chọn Tỉnh / Thành phố</option>
+                    {provinces.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Quận / Huyện</label>
+                  <select
+                    value={addrDistrict.code}
+                    onChange={handleDistrictChange}
+                    disabled={!addrProvince.code}
+                  >
+                    <option value="">Chọn Quận / Huyện</option>
+                    {districts.map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Phường / Xã</label>
+                  <select
+                    value={addrWard.code}
+                    onChange={handleWardChange}
+                    disabled={!addrDistrict.code}
+                  >
+                    <option value="">Chọn Phường / Xã</option>
+                    {wards.map((w) => (
+                      <option key={w.code} value={w.code}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Số nhà / Tên đường</label>
+                  <input
+                    type="text"
+                    placeholder="Số nhà, ngõ, tên đường..."
+                    value={addrStreet}
+                    onChange={(e) => setAddrStreet(e.target.value)}
+                  />
+                </div>
+              </>
             )}
 
             {profile.role === USER_ROLES.FARMER && (
@@ -261,14 +472,60 @@ const EditProfile = () => {
                   />
                 </div>
 
-                <div className="form-group full-width">
-                  <label>Địa chỉ trang trại</label>
-                  <textarea
-                    name="farmAddress"
-                    value={formData.farmAddress}
-                    onChange={handleChange}
-                    placeholder="Nhập địa chỉ trang trại"
-                    rows="3"
+                <div className="form-group">
+                  <label>Tỉnh / Thành phố</label>
+                  <select
+                    value={addrProvince.code}
+                    onChange={handleProvinceChange}
+                  >
+                    <option value="">Chọn Tỉnh / Thành phố</option>
+                    {provinces.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Quận / Huyện</label>
+                  <select
+                    value={addrDistrict.code}
+                    onChange={handleDistrictChange}
+                    disabled={!addrProvince.code}
+                  >
+                    <option value="">Chọn Quận / Huyện</option>
+                    {districts.map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Phường / Xã</label>
+                  <select
+                    value={addrWard.code}
+                    onChange={handleWardChange}
+                    disabled={!addrDistrict.code}
+                  >
+                    <option value="">Chọn Phường / Xã</option>
+                    {wards.map((w) => (
+                      <option key={w.code} value={w.code}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Số nhà / Tên đường</label>
+                  <input
+                    type="text"
+                    placeholder="Số nhà, ngõ, tên đường..."
+                    value={addrStreet}
+                    onChange={(e) => setAddrStreet(e.target.value)}
                   />
                 </div>
 

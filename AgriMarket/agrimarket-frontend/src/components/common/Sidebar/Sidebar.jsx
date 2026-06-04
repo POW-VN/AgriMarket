@@ -18,12 +18,6 @@ const NAV_ITEMS = [
         icon: null,
     },
     {
-        id: 'notifications',
-        label: 'Thông báo',
-        path: '/notifications',
-        icon: null,
-    },
-    {
         id: 'history',
         label: 'Lịch sử',
         path: '/history',

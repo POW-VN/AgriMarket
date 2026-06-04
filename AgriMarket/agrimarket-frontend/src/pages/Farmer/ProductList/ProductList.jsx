@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getFarmerProducts, deleteFarmerProduct } from "../../../services/productService";
+import Footer from "../../../components/common/Footer/Footer";
 import "./ProductList.css";
 
 // ── Nav items (shared sidebar) ──────────────────────────────
@@ -359,6 +360,7 @@ export const ProductList = () => {
         <button className="pl-fab" onClick={() => navigate("/farmer/products/add")}>
           + Thêm sản phẩm mới
         </button>
+        <Footer />
       </div>
 
       {/* Custom Confirm Modal */}

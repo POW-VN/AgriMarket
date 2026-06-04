@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createFarmerProduct } from "../../../services/productService";
+import apiClient from "../../../services/apiClient";
+import Footer from "../../../components/common/Footer/Footer";
 import ProfileSidebar from "../../../components/profile/ProfileSidebar";
 import useProfile from "../../../hooks/useProfile";
 import "./AddProduct.css";
@@ -58,6 +60,81 @@ export const AddProduct = () => {
   const [errors, setErrors] = useState({});
 
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // AI description suggestion state
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiGeneratedText, setAiGeneratedText] = useState("");
+
+  // AI price suggestion state
+  const [isAiSuggestingPrice, setIsAiSuggestingPrice] = useState(false);
+  const [showAiPriceModal, setShowAiPriceModal] = useState(false);
+  const [aiPriceData, setAiPriceData] = useState({ recommendedPrice: 0, minPrice: 0, maxPrice: 0, explanation: "" });
+
+  const handleAiGenerate = async () => {
+    if (!productName.trim()) {
+      showToast("Vui lòng nhập tên sản phẩm trước để AI gợi ý mô tả.", "warning");
+      return;
+    }
+    if (!category) {
+      showToast("Vui lòng chọn danh mục trước để AI gợi ý mô tả.", "warning");
+      return;
+    }
+
+    setIsAiGenerating(true);
+    try {
+      const response = await apiClient.post("/api/ai/generate-description", {
+        productName: productName.trim(),
+        category: category === "Khác" ? customCategory.trim() : category,
+        isOrganic: isOrganic
+      });
+
+      if (response.data && response.data.description) {
+        setAiGeneratedText(response.data.description);
+        setShowAiModal(true);
+      } else {
+        showToast("Không thể sinh mô tả tự động lúc này. Vui lòng thử lại.", "error");
+      }
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      showToast("Sinh mô tả thất bại: " + (err.response?.data || err.message), "error");
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const handleAiSuggestPrice = async () => {
+    if (!productName.trim()) {
+      showToast("Vui lòng nhập tên sản phẩm trước để gợi ý giá bán.", "warning");
+      return;
+    }
+    if (!category) {
+      showToast("Vui lòng chọn danh mục trước để gợi ý giá bán.", "warning");
+      return;
+    }
+
+    setIsAiSuggestingPrice(true);
+    try {
+      const response = await apiClient.post("/api/ai/suggest-price", {
+        productName: productName.trim(),
+        category: category === "Khác" ? customCategory.trim() : category,
+        isOrganic: isOrganic,
+        unit: selectedUnit
+      });
+
+      if (response.data && response.data.recommendedPrice) {
+        setAiPriceData(response.data);
+        setShowAiPriceModal(true);
+      } else {
+        showToast("Không thể gợi ý giá lúc này. Vui lòng thử lại.", "error");
+      }
+    } catch (err) {
+      console.error("AI price suggestion failed:", err);
+      showToast("Gợi ý giá thất bại: " + (err.response?.data || err.message), "error");
+    } finally {
+      setIsAiSuggestingPrice(false);
+    }
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -376,13 +453,29 @@ export const AddProduct = () => {
               )}
 
               <div className="ap-field-group">
-                <label className="ap-label">Mô tả sản phẩm</label>
+                <div className="ap-label-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label className="ap-label" style={{ marginBottom: 0 }}>Mô tả sản phẩm</label>
+                  <button
+                    type="button"
+                    className="ap-btn-ai"
+                    onClick={handleAiGenerate}
+                    disabled={isAiGenerating}
+                  >
+                    {isAiGenerating ? (
+                      <>
+                        <span className="ap-ai-spinner" /> Đang tạo...
+                      </>
+                    ) : (
+                      "✨ AI gợi ý mô tả"
+                    )}
+                  </button>
+                </div>
                 <textarea
                   className="ap-textarea"
                   placeholder="Mô tả hương vị, hình thức và phương pháp canh tác..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
+                  rows={6}
                 />
               </div>
 
@@ -469,9 +562,25 @@ export const AddProduct = () => {
                 </div>
 
                 <div className="ap-field-group">
-                  <label className="ap-label">
-                    Giá bán <span className="ap-required">*</span>
-                  </label>
+                  <div className="ap-label-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <label className="ap-label" style={{ marginBottom: 0 }}>
+                      Giá bán <span className="ap-required">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      className="ap-btn-ai"
+                      onClick={handleAiSuggestPrice}
+                      disabled={isAiSuggestingPrice}
+                    >
+                      {isAiSuggestingPrice ? (
+                        <>
+                          <span className="ap-ai-spinner" /> Đang gợi ý...
+                        </>
+                      ) : (
+                        "✨ AI gợi ý giá"
+                      )}
+                    </button>
+                  </div>
                   <div className="ap-price-input-wrap">
                     <input
                       type="number"
@@ -653,7 +762,211 @@ export const AddProduct = () => {
             </div>
           </aside>
         </div>
+        <Footer />
       </div>
+      {showAiModal && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal ai-modal" style={{ maxWidth: "600px", width: "90%" }}>
+            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
+              <span className="custom-modal-icon" style={{ fontSize: "22px" }}>✨</span>
+              <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý mô tả nông sản</h3>
+            </div>
+            <div className="ai-modal-body" style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+              <p className="ai-modal-intro" style={{ fontSize: "14px", color: "#4b5563" }}>
+                AI đã tự động thiết kế nội dung mô tả dựa trên các thông số sản phẩm của bạn. Bạn có thể tự chỉnh sửa nội dung này trực tiếp bên dưới trước khi áp dụng:
+              </p>
+              <textarea
+                className="ai-modal-textarea"
+                value={aiGeneratedText}
+                onChange={(e) => setAiGeneratedText(e.target.value)}
+                rows={12}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "1px solid #d1d5db",
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "14.5px",
+                  lineHeight: "1.6",
+                  color: "#1f2937",
+                  backgroundColor: "#f9fafb",
+                  resize: "vertical"
+                }}
+              />
+            </div>
+            <div className="custom-modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                type="button"
+                className="custom-btn-cancel"
+                onClick={() => setShowAiModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="custom-btn-confirm"
+                style={{ backgroundColor: "#10b981", boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)" }}
+                onClick={() => {
+                  setDescription(aiGeneratedText);
+                  setShowAiModal(false);
+                  showToast("Đã áp dụng mô tả từ AI!", "success");
+                }}
+              >
+                Áp dụng mô tả
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAiPriceModal && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal ai-modal" style={{ maxWidth: "550px", width: "90%" }}>
+            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
+              <span className="custom-modal-icon" style={{ fontSize: "22px" }}>💰</span>
+              <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý giá bán nông sản</h3>
+            </div>
+            
+            <div className="ai-modal-body" style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+              <p style={{ fontSize: "14px", color: "#4b5563", margin: 0 }}>
+                Dựa trên tên sản phẩm, danh mục và trạng thái hữu cơ của bạn, AI đề xuất giá bán sau (đơn vị: <strong>{selectedUnit}</strong>):
+              </p>
+
+              {/* Price Options Grid */}
+              <div className="ai-price-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                
+                {/* Min Price Card */}
+                <div 
+                  className="ai-price-card"
+                  onClick={() => {
+                    setBasePrice(aiPriceData.minPrice);
+                    setShowAiPriceModal(false);
+                    showToast("Đã áp dụng giá sàn!", "success");
+                  }}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #e5e7eb",
+                    backgroundColor: "#f9fafb",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Giá tối thiểu</div>
+                  <div style={{ fontSize: "16px", fontWeight: "600", color: "#374151" }}>
+                    {aiPriceData.minPrice?.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
+                </div>
+
+                {/* Recommended Price Card */}
+                <div 
+                  className="ai-price-card recommended"
+                  onClick={() => {
+                    setBasePrice(aiPriceData.recommendedPrice);
+                    setShowAiPriceModal(false);
+                    showToast("Đã áp dụng giá đề xuất!", "success");
+                  }}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "2px solid #10b981",
+                    backgroundColor: "#ecfdf5",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <span style={{
+                    position: "absolute",
+                    top: "-10px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "#10b981",
+                    color: "#fff",
+                    fontSize: "9px",
+                    padding: "2px 8px",
+                    borderRadius: "20px",
+                    fontWeight: "600",
+                    textTransform: "uppercase"
+                  }}>Đề xuất</span>
+                  <div style={{ fontSize: "12px", color: "#065f46", marginBottom: "4px", marginTop: "4px" }}>Giá tối ưu</div>
+                  <div style={{ fontSize: "18px", fontWeight: "700", color: "#047857" }}>
+                    {aiPriceData.recommendedPrice?.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#059669", display: "block", marginTop: "4px", fontWeight: "500" }}>Bấm để chọn</span>
+                </div>
+
+                {/* Max Price Card */}
+                <div 
+                  className="ai-price-card"
+                  onClick={() => {
+                    setBasePrice(aiPriceData.maxPrice);
+                    setShowAiPriceModal(false);
+                    showToast("Đã áp dụng giá trần!", "success");
+                  }}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #e5e7eb",
+                    backgroundColor: "#f9fafb",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Giá tối đa</div>
+                  <div style={{ fontSize: "16px", fontWeight: "600", color: "#374151" }}>
+                    {aiPriceData.maxPrice?.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
+                </div>
+
+              </div>
+
+              {/* Explanation section */}
+              {aiPriceData.explanation && (
+                <div style={{ 
+                  backgroundColor: "#f3f4f6", 
+                  padding: "12px 16px", 
+                  borderRadius: "10px", 
+                  fontSize: "13.5px", 
+                  lineHeight: "1.5", 
+                  color: "#4b5563",
+                  borderLeft: "4px solid #10b981"
+                }}>
+                  <strong>💡 Giải thích từ AI:</strong> {aiPriceData.explanation}
+                </div>
+              )}
+            </div>
+
+            <div className="custom-modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                type="button"
+                className="custom-btn-cancel"
+                onClick={() => setShowAiPriceModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="custom-btn-confirm"
+                style={{ backgroundColor: "#10b981", boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)" }}
+                onClick={() => {
+                  setBasePrice(aiPriceData.recommendedPrice);
+                  setShowAiPriceModal(false);
+                  showToast("Đã áp dụng giá tối ưu!", "success");
+                }}
+              >
+                Áp dụng giá tối ưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">

@@ -101,11 +101,6 @@ const ProfileSidebar = ({ profile }) => {
         </button>
 
         <button className="sidebar-menu-item">
-          <span>🔔</span>
-          Thông báo
-        </button>
-
-        <button className="sidebar-menu-item">
           <span>🕘</span>
           Lịch sử giao dịch
         </button>

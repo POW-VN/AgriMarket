@@ -1339,3 +1339,65 @@
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* AI Description Button & Modal Styling */
+.ap-btn-ai {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ap-btn-ai:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.ap-btn-ai:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ap-ai-spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: ap-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+.ai-modal .ai-modal-textarea:focus {
+  border-color: #10b981 !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12) !important;
+  outline: none;
+}
+
+/* AI Price Cards hover effect */
+.ai-price-card {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.ai-price-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08) !important;
+  border-color: #10b981 !important;
+}
+
+.ai-price-card.recommended:hover {
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2) !important;
+  border-color: #047857 !important;
+}
+

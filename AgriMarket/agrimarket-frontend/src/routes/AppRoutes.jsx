@@ -16,6 +16,8 @@ import { AddProduct } from "../pages/Farmer/AddProduct/AddProduct";
 import { ProductList } from "../pages/Farmer/ProductList/ProductList";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
+import PrivacyPolicy from "../pages/Privacy/PrivacyPolicy";
+import TermsOfService from "../pages/Terms/TermsOfService";
 
 const AppRoutes = () => {
   return (
@@ -44,6 +46,10 @@ const AppRoutes = () => {
 
         {/* Route to test RoleSelection */}
         <Route path="/role" element={<RoleSelection />} />
+
+        {/* Privacy Policy and Terms of Service */}
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />

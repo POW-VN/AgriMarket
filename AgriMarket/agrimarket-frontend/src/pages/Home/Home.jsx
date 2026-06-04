@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import { getAllApprovedProducts } from "../../services/productService";
 import "./Home.css";
+import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
 
 // Import local images
 import heroBanner from "./assets/hero_banner.png";
@@ -324,6 +325,9 @@ const Home = () => {
                 </svg>
               </button>
             )}
+
+            {/* Bell Icon (Thông báo) */}
+            {user && <NotificationBell user={user} />}
 
             {/* Profile & Auth Info */}
             {user ? (

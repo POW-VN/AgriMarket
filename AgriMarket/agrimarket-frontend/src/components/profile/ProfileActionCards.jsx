@@ -68,17 +68,6 @@ const ProfileActionCards = ({ showToast, setConfirmModal }) => {
 
                     <span>›</span>
                 </button>
-
-                <button className="profile-action-card">
-                    <span className="profile-action-icon">🔔</span>
-
-                    <div>
-                        <strong>Thông báo</strong>
-                        <p>Quản lý thông báo từ hệ thống</p>
-                    </div>
-
-                    <span>›</span>
-                </button>
             </div>
 
             <button 
