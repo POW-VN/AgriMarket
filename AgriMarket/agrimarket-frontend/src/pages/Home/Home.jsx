@@ -64,13 +64,13 @@ const Home = () => {
     },
     {
       id: "mock-2",
-      name: "Cà rốt tươi Đà Lạt",
+      name: "Cà rốt gia truyền hữu cơ",
       category: "Rau củ quả",
-      price: 25000,
+      price: 112500,
       unit: "bó",
       isOrganic: true,
       imageUrl: bunchedCarrots,
-      rating: 4.5,
+      rating: 4.8,
       sold: 85
     },
     {
@@ -183,7 +183,11 @@ const Home = () => {
   const renderProductCard = (p, isBestSeller = false) => {
     return (
       <div key={p.id} className={`product-card standard-card ${isBestSeller ? "best-seller-card" : ""}`}>
-        <div className="card-img-wrapper" style={{ height: "200px", overflow: "hidden", position: "relative" }}>
+        <div 
+          className="card-img-wrapper" 
+          style={{ height: "200px", overflow: "hidden", position: "relative", cursor: "pointer" }}
+          onClick={() => navigate(`/products/${p.id}`)}
+        >
           {p.imageUrl ? (
             <img src={p.imageUrl} alt={p.name} className="standard-card-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
@@ -196,7 +200,12 @@ const Home = () => {
         </div>
         <div className="card-body">
           <span className="card-category">{p.category}</span>
-          <h3 className="standard-card-title" title={p.name}>
+          <h3 
+            className="standard-card-title" 
+            title={p.name}
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate(`/products/${p.id}`)}
+          >
             {isBestSeller && <span className="bestseller-crown">🏆 </span>}
             {p.name}
           </h3>
