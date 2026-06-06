@@ -119,22 +119,6 @@ export const LoginFarmconnect = () => {
             </div>
             {error && <div className="error-message" style={{ color: 'var(--error-color)', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', width: '100%', marginBottom: '10px', border: '1px solid #ffcdd2' }}>{error}</div>}
             
-            <div className="role-selection">
-              <button 
-                type="button" 
-                className={role === "customer" ? "button" : "div-wrapper"}
-                onClick={() => setRole("customer")}
-              >
-                <div className={role === "customer" ? "text" : "text-2"}>Khách hàng</div>
-              </button>
-              <button 
-                type="button" 
-                className={role === "farmer" ? "button" : "div-wrapper"}
-                onClick={() => setRole("farmer")}
-              >
-                <div className={role === "farmer" ? "text" : "text-2"}>Nông dân</div>
-              </button>
-            </div>
             <div className="button-google-sign" onClick={handleGoogleLogin} style={{ cursor: "pointer" }}>
               <img className="google-logo" alt="Google logo" src={googleLogo} />
               <div className="text-3">Đăng nhập bằng Google</div>

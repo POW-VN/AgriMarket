@@ -1,5 +1,6 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import authService from '../services/authService'
 import AuthLayout from '../layouts/AuthLayout'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
@@ -14,6 +15,7 @@ import EditProfile from "../pages/Profile/EditProfile";
 import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
 import { AddProduct } from "../pages/Farmer/AddProduct/AddProduct";
 import { ProductList } from "../pages/Farmer/ProductList/ProductList";
+import { FarmerRegister } from "../pages/Farmer/FarmerRegister/FarmerRegister";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -24,6 +26,17 @@ import { OrderDetail } from "../pages/Farmer/Orders/OrderDetail";
 import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 
+const FarmsRoute = () => {
+  const user = authService.getCurrentUser();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.role === 'farmer') {
+    return <Navigate to="/farmer/products" replace />;
+  }
+  return <Navigate to="/farmer/register" replace />;
+};
+
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -31,6 +44,7 @@ const AppRoutes = () => {
         {/* Main route (Home page) */}
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />
+        <Route path="/farms" element={<FarmsRoute />} />
 
         {/* Auth routes under AuthLayout */}
         <Route element={<AuthLayout />}>
@@ -47,6 +61,7 @@ const AppRoutes = () => {
         <Route path="/profile/orders/:id" element={<CustomerOrderDetail />} />
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
+        <Route path="/farmer/register" element={<FarmerRegister />} />
         <Route path="/farmer/products/add" element={<AddProduct />} />
         <Route path="/farmer/products" element={<ProductList />} />
         <Route path="/farmer/orders" element={<OrderHistory />} />

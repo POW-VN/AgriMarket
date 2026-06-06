@@ -43,56 +43,57 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     public AuthResponse login(String email, String password, String role) {
-
-        if (role == null || role.isBlank()) {
-            throw new RuntimeException("Vai trò là bắt buộc");
-        }
-
-        role = role.toLowerCase();
         if (email != null) {
             email = email.trim().toLowerCase();
         }
 
-        Object user;
+        Object user = null;
+        String resolvedRole = null;
 
-        switch (role) {
+        // 1. Try logging in as Admin
+        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
+        if (adminOpt.isPresent()) {
+            user = adminOpt.get();
+            resolvedRole = "admin";
+        }
 
-            case "customer":
-                user = customerRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng"));
-                break;
+        // 2. Try logging in as Customer
+        if (user == null) {
+            Optional<Customer> customerOpt = customerRepository.findByEmail(email);
+            if (customerOpt.isPresent()) {
+                user = customerOpt.get();
+                // Check if this Customer is also registered as a Farmer
+                if (farmerRepository.findByEmail(email).isPresent()) {
+                    resolvedRole = "farmer";
+                } else {
+                    resolvedRole = "customer";
+                }
+            }
+        }
 
-            case "farmer":
-                user = farmerRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản nông dân"));
-                break;
+        // 3. Fallback for legacy users who are only in Farmer table
+        if (user == null) {
+            Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+            if (farmerOpt.isPresent()) {
+                user = farmerOpt.get();
+                resolvedRole = "farmer";
+            }
+        }
 
-            case "admin":
-                user = adminRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản quản trị viên"));
-                break;
-
-            default:
-                throw new RuntimeException("Vai trò không hợp lệ");
+        if (user == null) {
+            throw new RuntimeException("Không tìm thấy tài khoản với email này");
         }
 
         String hashedPassword;
-
-        switch (role) {
-            case "admin":
-                hashedPassword = ((Admin) user).getPassword();
-                break;
-
-            case "farmer":
-                hashedPassword = ((Farmer) user).getPassword();
-                break;
-
-            default:
-                hashedPassword = ((Customer) user).getPassword();
-                break;
+        if ("admin".equals(resolvedRole)) {
+            hashedPassword = ((Admin) user).getPassword();
+        } else if (user instanceof Farmer) {
+            hashedPassword = ((Farmer) user).getPassword();
+        } else {
+            hashedPassword = ((Customer) user).getPassword();
         }
 
-        System.out.println("DEBUG LOGIN: email=" + email + ", role=" + role + ", inputPassword=" + password + ", storedHashedPassword=" + hashedPassword);
+        System.out.println("DEBUG LOGIN: email=" + email + ", resolvedRole=" + resolvedRole + ", inputPassword=" + password + ", storedHashedPassword=" + hashedPassword);
         if (!passwordEncoder.matches(password, hashedPassword)) {
             System.out.println("DEBUG LOGIN: matches FAILED!");
             throw new RuntimeException("Tài khoản hoặc mật khẩu không chính xác");
@@ -100,7 +101,7 @@ public class AuthService {
             System.out.println("DEBUG LOGIN: matches SUCCESS!");
         }
 
-        String token = jwtUtil.generateToken(email, role);
+        String token = jwtUtil.generateToken(email, resolvedRole);
 
         AuthResponse response = new AuthResponse();
         response.setToken(token);
@@ -246,56 +247,23 @@ public class AuthService {
             return response;
         }
 
-        // User does not exist. Do they have a selected role from RoleCard?
-        if (role == null || role.isBlank() || (!"customer".equalsIgnoreCase(role) && !"farmer".equalsIgnoreCase(role))) {
-            // No role selected yet, return response indicating we need role selection
-            AuthResponse response = new AuthResponse();
-            response.setNewUser(true);
-            return response;
-        }
+        // New Google User: Auto-register as Customer by default
+        customer = new Customer();
+        customer.setFullName(name != null ? name : "Google User");
+        customer.setEmail(email);
+        customer.setAvatarUrl(picture);
+        customer.setStatus("active");
+        customer.setCreatedAt(LocalDateTime.now());
+        // Auto-generate remaining attributes:
+        customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        customer.setPasswordSet(false);
+        customer.setPhone(generateUniquePhoneForCustomer());
+        customer = customerRepository.save(customer);
 
-        // Role is provided. Register the user and generate login details.
-        String lowercaseRole = role.toLowerCase();
-        if ("customer".equals(lowercaseRole)) {
-            customer = new Customer();
-            customer.setFullName(name != null ? name : "Google User");
-            customer.setEmail(email);
-            customer.setAvatarUrl(picture);
-            customer.setStatus("active");
-            customer.setCreatedAt(LocalDateTime.now());
-            // Auto-generate remaining attributes:
-            customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
-            customer.setPasswordSet(false);
-            customer.setPhone(generateUniquePhoneForCustomer());
-            customer = customerRepository.save(customer);
-            user = customer;
-            resolvedRole = "customer";
-        } else if ("farmer".equals(lowercaseRole)) {
-            farmer = new Farmer();
-            farmer.setFullName(name != null ? name : "Google User");
-            farmer.setEmail(email);
-            farmer.setAvatarUrl(picture);
-            farmer.setVerificationStatus("pending");
-            farmer.setStatus("active");
-            farmer.setCreatedAt(LocalDateTime.now());
-            // Auto-generate remaining attributes:
-            farmer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
-            farmer.setPasswordSet(false);
-            farmer.setPhone(generateUniquePhoneForFarmer());
-            farmer.setFarmName("Nông trại của " + (name != null ? name : "Google Farmer"));
-            farmer.setFarmAddress("Chưa cập nhật");
-            farmer.setDescription("Mô tả nông trại chưa được cập nhật.");
-            farmer.setRatingAverage(0.0);
-            farmer.setTotalProducts(0);
-            farmer = farmerRepository.save(farmer);
-            user = farmer;
-            resolvedRole = "farmer";
-        }
-
-        String token = jwtUtil.generateToken(email, resolvedRole);
+        String token = jwtUtil.generateToken(email, "customer");
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-        response.setUser(user);
+        response.setUser(customer);
         response.setNewUser(false);
         return response;
     }

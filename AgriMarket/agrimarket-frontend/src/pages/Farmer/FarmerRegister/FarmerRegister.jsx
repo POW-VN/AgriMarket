@@ -1,0 +1,390 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import profileService from "../../../services/profileService";
+import authService from "../../../services/authService";
+import apiClient from "../../../services/apiClient";
+import * as addressService from "../../../services/addressService";
+import "./FarmerRegister.css";
+
+export const FarmerRegister = () => {
+    const navigate = useNavigate();
+    const currentUser = authService.getCurrentUser();
+    const [farmName, setFarmName] = useState("");
+    const [provinces, setProvinces] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [selectedProvince, setSelectedProvince] = useState({ code: "", name: "" });
+    const [selectedDistrict, setSelectedDistrict] = useState({ code: "", name: "" });
+    const [selectedWard, setSelectedWard] = useState({ code: "", name: "" });
+    const [street, setStreet] = useState("");
+    const [description, setDescription] = useState("");
+    const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || "");
+    const [photoLoading, setPhotoLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const data = await addressService.getProvinces();
+                setProvinces(data);
+            } catch (err) {
+                console.error("Failed to load provinces:", err);
+            }
+        };
+        fetchProvinces();
+    }, []);
+
+    const handleProvinceChange = async (e) => {
+        const provinceCode = e.target.value;
+        const provinceObj = provinces.find(p => p.code === parseInt(provinceCode));
+        if (provinceObj) {
+            setSelectedProvince({ code: provinceCode, name: provinceObj.name });
+            setSelectedDistrict({ code: "", name: "" });
+            setSelectedWard({ code: "", name: "" });
+            setWards([]);
+            try {
+                const districtData = await addressService.getDistricts(provinceCode);
+                setDistricts(districtData);
+            } catch (err) {
+                console.error("Failed to load districts:", err);
+            }
+        } else {
+            setSelectedProvince({ code: "", name: "" });
+            setSelectedDistrict({ code: "", name: "" });
+            setSelectedWard({ code: "", name: "" });
+            setDistricts([]);
+            setWards([]);
+        }
+    };
+
+    const handleDistrictChange = async (e) => {
+        const districtCode = e.target.value;
+        const districtObj = districts.find(d => d.code === parseInt(districtCode));
+        if (districtObj) {
+            setSelectedDistrict({ code: districtCode, name: districtObj.name });
+            setSelectedWard({ code: "", name: "" });
+            try {
+                const wardData = await addressService.getWards(districtCode);
+                setWards(wardData);
+            } catch (err) {
+                console.error("Failed to load wards:", err);
+            }
+        } else {
+            setSelectedDistrict({ code: "", name: "" });
+            setSelectedWard({ code: "", name: "" });
+            setWards([]);
+        }
+    };
+
+    const handleWardChange = (e) => {
+        const wardCode = e.target.value;
+        const wardObj = wards.find(w => w.code === parseInt(wardCode));
+        if (wardObj) {
+            setSelectedWard({ code: wardCode, name: wardObj.name });
+        } else {
+            setSelectedWard({ code: "", name: "" });
+        }
+    };
+
+    const handlePhotoChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setPhotoLoading(true);
+        setError("");
+
+        try {
+            const formData = new FormData();
+            formData.append("avatar", file);
+
+            const response = await apiClient.post("/api/upload/avatar", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            if (response.data && response.data.avatarUrl) {
+                setAvatarUrl(response.data.avatarUrl);
+            }
+        } catch (err) {
+            console.error("Failed to upload image:", err);
+            setError("Tải ảnh lên thất bại. Vui lòng thử lại.");
+        } finally {
+            setPhotoLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!farmName.trim()) {
+            setError("Vui lòng điền tên trang trại.");
+            return;
+        }
+
+        const currentLocalUser = authService.getCurrentUser();
+        if (!currentLocalUser) {
+            setError("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại.");
+            return;
+        }
+
+        if (!selectedProvince.name || !selectedDistrict.name || !selectedWard.name || !street.trim()) {
+            setError("Vui lòng điền đầy đủ địa chỉ trang trại (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà/Tên đường).");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        const farmAddress = addressService.formatAddress({
+            street: street.trim(),
+            ward: selectedWard.name,
+            district: selectedDistrict.name,
+            province: selectedProvince.name
+        });
+
+        try {
+            // Call API to register as farmer
+            const response = await authService.registerAsFarmer({
+                farmName: farmName.trim(),
+                farmAddress,
+                description: description.trim()
+            });
+
+            // If an avatar was uploaded/updated, update the farmer profile
+            if (avatarUrl && avatarUrl !== currentLocalUser?.avatarUrl) {
+                try {
+                    await profileService.updateProfile({
+                        avatarUrl: avatarUrl
+                    });
+                } catch (imgErr) {
+                    console.error("Failed to update profile avatar:", imgErr);
+                }
+            }
+
+            // Redirect to farmer workspace
+            navigate("/farmer/products");
+            window.location.reload();
+        } catch (err) {
+            setError(err.message || "Đăng ký làm đối tác nhà vườn thất bại. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="farmer-register-page">
+            <header className="onboarding-header">
+                <div className="logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="logo-tractor"
+                    >
+                      <circle cx="7" cy="18" r="2"></circle>
+                      <circle cx="18" cy="18" r="2"></circle>
+                      <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+                      <path d="M16 9h3l2 3v4"></path>
+                    </svg>
+                    <span>AgriMarket</span>
+                </div>
+                <div className="help-circle">?</div>
+            </header>
+
+            <main className="farmer-register-container">
+                {/* LEFT COLUMN - HERO IMAGE */}
+                <div className="farm-hero-side">
+                    <div className="hero-card">
+                        <div className="hero-image-placeholder">
+                            <div className="hero-overlay-text">
+                                <h2>Đồng hành cùng AgriMarket</h2>
+                                <p>Đăng ký trở thành nhà vườn để quảng bá và kinh doanh nông sản của bạn trực tiếp tới khách hàng.</p>
+                            </div>
+                        </div>
+                        <div className="trust-card">
+                            <div className="trust-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="#012d1d" strokeWidth="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                            </div>
+                            <div className="trust-content">
+                                <h4>Xác minh thông tin</h4>
+                                <p>Hồ sơ trang trại của bạn sẽ được gửi tới Ban quản trị hệ thống để kiểm duyệt chất lượng trước khi mở bán.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN - FORM CONTENT */}
+                <div className="farm-form-side">
+                    <div className="form-wrapper">
+                        <h1>Đăng ký làm Nhà vườn</h1>
+                        <p className="subtitle">Điền thông tin chi tiết về trang trại để bắt đầu đưa nông sản của bạn lên kệ hàng.</p>
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="input-group">
+                                <label>Tên Trang trại</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ví dụ: Nông trại Xanh Đà Lạt" 
+                                    value={farmName}
+                                    onChange={(e) => setFarmName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="input-row">
+                                <div className="input-group">
+                                    <label>Tỉnh / Thành phố</label>
+                                    <select 
+                                        value={selectedProvince.code}
+                                        onChange={handleProvinceChange}
+                                        required
+                                    >
+                                        <option value="">Chọn Tỉnh / Thành phố</option>
+                                        {provinces.map((p) => (
+                                            <option key={p.code} value={p.code}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="input-group">
+                                    <label>Quận / Huyện</label>
+                                    <select 
+                                        value={selectedDistrict.code}
+                                        onChange={handleDistrictChange}
+                                        disabled={!selectedProvince.code}
+                                        required
+                                    >
+                                        <option value="">Chọn Quận / Huyện</option>
+                                        {districts.map((d) => (
+                                            <option key={d.code} value={d.code}>{d.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="input-row">
+                                <div className="input-group">
+                                    <label>Phường / Xã</label>
+                                    <select 
+                                        value={selectedWard.code}
+                                        onChange={handleWardChange}
+                                        disabled={!selectedDistrict.code}
+                                        required
+                                    >
+                                        <option value="">Chọn Phường / Xã</option>
+                                        {wards.map((w) => (
+                                            <option key={w.code} value={w.code}>{w.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="input-group">
+                                    <label>Số nhà / Tên đường</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Số 123, đường..." 
+                                        value={street}
+                                        onChange={(e) => setStreet(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="input-group">
+                                <label>Mô tả Trang trại</label>
+                                <textarea 
+                                    placeholder="Giới thiệu về trang trại, các loại nông sản chủ lực và phương pháp canh tác bền vững của bạn..."
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    rows="4"
+                                ></textarea>
+                            </div>
+
+                            <div className="upload-box" onClick={() => document.getElementById("farm-photo-input").click()}>
+                                <input 
+                                    type="file" 
+                                    id="farm-photo-input" 
+                                    accept="image/*" 
+                                    style={{ display: "none" }} 
+                                    onChange={handlePhotoChange}
+                                />
+                                {photoLoading ? (
+                                    <div className="upload-loading">Đang tải ảnh lên...</div>
+                                ) : avatarUrl ? (
+                                    <>
+                                        <div className="upload-preview-container">
+                                            <img src={avatarUrl} alt="Farm Preview" className="upload-preview-img" />
+                                        </div>
+                                        <div className="upload-text">
+                                            <strong>Thay đổi Ảnh Trang trại</strong>
+                                            <p>Nhấp vào đây để thay đổi hình ảnh đại diện nông trại</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="upload-icon">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="#317a55" strokeWidth="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                                <polyline points="21 15 16 10 5 21"/>
+                                            </svg>
+                                        </div>
+                                        <div className="upload-text">
+                                            <strong>Tải lên Ảnh Trang trại</strong>
+                                            <p>Một hình ảnh đẹp sẽ tăng uy tín thương hiệu đối với người tiêu dùng</p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {error && (
+                                <div className="error-message" style={{ color: '#d32f2f', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #ffcdd2', fontSize: '14px' }}>
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="form-actions" style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+                                <button 
+                                    type="button"
+                                    className="btn-skip"
+                                    onClick={() => navigate("/profile")}
+                                    style={{ flex: 1, padding: "14px", borderRadius: "12px", cursor: "pointer", border: "1.5px solid #e5e7eb", background: "#ffffff", fontWeight: "600", fontSize: "15px" }}
+                                >
+                                    Quay lại
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="btn-continue-farm" 
+                                    disabled={loading || photoLoading}
+                                    style={{ flex: 2 }}
+                                >
+                                    {loading ? "Đang xử lý..." : "Hoàn tất đăng ký"} <span>→</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+
+            <footer className="onboarding-footer">
+                <div className="footer-left">AgriMarket</div>
+                <div className="footer-right">
+                    <span>Chính sách bảo mật</span>
+                    <span>Điều khoản dịch vụ</span>
+                    <span>Trung tâm trợ giúp</span>
+                    <span className="copyright">© 2026 AgriMarket. Tất cả các quyền được bảo lưu.</span>
+                </div>
+            </footer>
+        </div>
+    );
+};
+
+export default FarmerRegister;

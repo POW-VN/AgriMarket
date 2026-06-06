@@ -3,7 +3,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import profileService from "../../services/profileService";
 import ProfileAvatar from "./ProfileAvatar";
-import { ROLE_LABELS } from "../../constants/profileConstants";
 import "../../pages/Profile/Profile.css";
 
 const ProfileSidebar = ({ profile }) => {
@@ -54,9 +53,6 @@ const ProfileSidebar = ({ profile }) => {
           <p className="sidebar-welcome">Xin chào,</p>
           <p className="sidebar-name">
             {profile?.fullName || "Người dùng"}
-          </p>
-          <p className="sidebar-role">
-            {ROLE_LABELS[profile?.role] || "Tài khoản"}
           </p>
         </div>
       </div>

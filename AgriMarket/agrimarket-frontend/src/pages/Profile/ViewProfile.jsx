@@ -129,7 +129,52 @@ const ViewProfile = () => {
         />
 
         {profile.role === USER_ROLES.CUSTOMER && (
-          <CustomerInfoCard profile={profile} />
+          <>
+            <CustomerInfoCard profile={profile} />
+            <div className="become-farmer-banner" style={{
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#ffffff",
+              borderRadius: "16px",
+              padding: "24px",
+              marginTop: "24px",
+              boxShadow: "0 10px 15px -3px rgba(16, 185, 129, 0.2)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "16px"
+            }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", color: "#ffffff" }}>Trở thành đối tác Nhà vườn 🌾</h3>
+                <p style={{ margin: 0, fontSize: "14.5px", opacity: 0.95, lineHeight: "1.5" }}>Bắt đầu bán nông sản của bạn trực tiếp tới khách hàng trên AgriMarket.</p>
+              </div>
+              <button 
+                onClick={() => navigate("/farmer/register")} 
+                style={{
+                  backgroundColor: "#ffffff",
+                  color: "#059669",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px 24px",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                  transition: "all 0.2s"
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = "translateY(-2px)";
+                  e.target.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = "none";
+                  e.target.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.1)";
+                }}
+              >
+                Đăng ký bán hàng
+              </button>
+            </div>
+          </>
         )}
 
         {profile.role === USER_ROLES.FARMER && (

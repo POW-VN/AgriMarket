@@ -45,6 +45,33 @@ public class ProfileController {
 
         String email = principal.getName();
 
+        org.springframework.security.core.Authentication auth = 
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        
+        boolean isFarmer = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_FARMER"));
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (isFarmer) {
+            Optional<Farmer> farmer = farmerRepository.findByEmail(email);
+            if (farmer.isPresent()) {
+                Farmer f = farmer.get();
+                f.setRole("farmer");
+                return ResponseEntity.ok(f);
+            }
+        }
+
+        if (isAdmin) {
+            Optional<Admin> admin = adminRepository.findByEmail(email);
+            if (admin.isPresent()) {
+                Admin a = admin.get();
+                a.setRole("admin");
+                return ResponseEntity.ok(a);
+            }
+        }
+
+        // Default or Customer
         Optional<Customer> customer = customerRepository.findByEmail(email);
         if (customer.isPresent()) {
             Customer c = customer.get();
@@ -52,6 +79,7 @@ public class ProfileController {
             return ResponseEntity.ok(c);
         }
 
+        // Fallback checks
         Optional<Farmer> farmer = farmerRepository.findByEmail(email);
         if (farmer.isPresent()) {
             Farmer f = farmer.get();
@@ -78,6 +106,12 @@ public class ProfileController {
         String email = principal.getName();
 
         Optional<Customer> customerOpt = customerRepository.findByEmail(email);
+        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
+
+        boolean passwordChecked = false;
+        String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
+
         if (customerOpt.isPresent()) {
             Customer customer = customerOpt.get();
             boolean requiresCurrentPassword = customer.getPasswordSet() == null || customer.getPasswordSet();
@@ -86,35 +120,39 @@ public class ProfileController {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu hiện tại không chính xác.");
                 }
             }
-            customer.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            customer.setPassword(encodedNewPassword);
             customer.setPasswordSet(true);
             customerRepository.save(customer);
-            return ResponseEntity.ok("Đổi mật khẩu thành công.");
+            passwordChecked = true;
         }
 
-        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
         if (farmerOpt.isPresent()) {
             Farmer farmer = farmerOpt.get();
-            boolean requiresCurrentPassword = farmer.getPasswordSet() == null || farmer.getPasswordSet();
-            if (requiresCurrentPassword) {
-                if (request.getCurrentPassword() == null || !passwordEncoder.matches(request.getCurrentPassword(), farmer.getPassword())) {
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu hiện tại không chính xác.");
+            if (!passwordChecked) {
+                boolean requiresCurrentPassword = farmer.getPasswordSet() == null || farmer.getPasswordSet();
+                if (requiresCurrentPassword) {
+                    if (request.getCurrentPassword() == null || !passwordEncoder.matches(request.getCurrentPassword(), farmer.getPassword())) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu hiện tại không chính xác.");
+                    }
                 }
+                passwordChecked = true;
             }
-            farmer.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            farmer.setPassword(encodedNewPassword);
             farmer.setPasswordSet(true);
             farmerRepository.save(farmer);
-            return ResponseEntity.ok("Đổi mật khẩu thành công.");
         }
 
-        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
         if (adminOpt.isPresent()) {
             Admin admin = adminOpt.get();
             if (!passwordEncoder.matches(request.getCurrentPassword(), admin.getPassword())) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu hiện tại không chính xác.");
             }
-            admin.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            admin.setPassword(encodedNewPassword);
             adminRepository.save(admin);
+            passwordChecked = true;
+        }
+
+        if (passwordChecked) {
             return ResponseEntity.ok("Đổi mật khẩu thành công.");
         }
 
@@ -130,24 +168,31 @@ public class ProfileController {
         String email = principal.getName();
 
         Optional<Customer> customerOpt = customerRepository.findByEmail(email);
+        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
+
+        boolean deleted = false;
+
         if (customerOpt.isPresent()) {
             Customer customer = customerOpt.get();
             deletePhysicalAvatarFile(customer.getAvatarUrl());
             customerRepository.delete(customer);
-            return ResponseEntity.ok("Xóa tài khoản thành công.");
+            deleted = true;
         }
 
-        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
         if (farmerOpt.isPresent()) {
             Farmer farmer = farmerOpt.get();
             deletePhysicalAvatarFile(farmer.getAvatarUrl());
             farmerRepository.delete(farmer);
-            return ResponseEntity.ok("Xóa tài khoản thành công.");
+            deleted = true;
         }
 
-        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
         if (adminOpt.isPresent()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa tài khoản Admin.");
+        }
+
+        if (deleted) {
+            return ResponseEntity.ok("Xóa tài khoản thành công.");
         }
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");

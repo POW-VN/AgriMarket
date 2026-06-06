@@ -1,10 +1,16 @@
 package org.example.agrimarket.service;
 
+import org.example.agrimarket.dto.AuthResponse;
+import org.example.agrimarket.dto.FarmerRegistrationRequest;
+import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
+import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -12,6 +18,49 @@ public class FarmerService {
 
     @Autowired
     private FarmerRepository farmerRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Transactional
+    public AuthResponse registerAsFarmer(String email, FarmerRegistrationRequest request) {
+        if (farmerRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Tài khoản nhà vườn đã tồn tại với email này.");
+        }
+
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng tương ứng."));
+
+        Farmer farmer = new Farmer();
+        farmer.setFullName(customer.getFullName());
+        farmer.setEmail(customer.getEmail());
+        farmer.setPhone(customer.getPhone());
+        farmer.setPassword(customer.getPassword());
+        farmer.setPasswordSet(customer.getPasswordSet());
+        farmer.setAvatarUrl(customer.getAvatarUrl());
+        farmer.setFarmName(request.getFarmName());
+        farmer.setFarmAddress(request.getFarmAddress());
+        farmer.setDescription(request.getDescription());
+        farmer.setVerificationStatus("pending");
+        farmer.setStatus("active");
+        farmer.setCreatedAt(LocalDateTime.now());
+        farmer.setRatingAverage(0.0);
+        farmer.setTotalProducts(0);
+        farmer.setRole("farmer");
+
+        Farmer savedFarmer = farmerRepository.save(farmer);
+
+        String token = jwtUtil.generateToken(email, "farmer");
+
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setToken(token);
+        authResponse.setUser(savedFarmer);
+
+        return authResponse;
+    }
 
     public Optional<Farmer> findById(Long id) {
         Optional<Farmer> farmer = farmerRepository.findById(id);

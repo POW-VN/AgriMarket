@@ -225,34 +225,6 @@ export const RegisterFarmconnect = () => {
               </div>
             )}
             <div className="container-2">
-              <div className="tablist-role">
-                <div 
-                  className={role === 'customer' ? 'tab' : 'tab-margin'} 
-                  onClick={() => setRole('customer')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {role === 'customer' ? (
-                    <div className="text">Khách hàng</div>
-                  ) : (
-                    <div className="div-wrapper">
-                      <div className="text-2">Khách hàng</div>
-                    </div>
-                  )}
-                </div>
-                <div 
-                  className={role === 'farmer' ? 'tab' : 'tab-margin'} 
-                  onClick={() => setRole('farmer')}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {role === 'farmer' ? (
-                    <div className="text">Nông dân</div>
-                  ) : (
-                    <div className="div-wrapper">
-                      <div className="text-2">Nông dân</div>
-                    </div>
-                  )}
-                </div>
-              </div>
               <form className="div-3" onSubmit={handleSubmit}>
                 <div className="base-fields">
                   <div className="container-3">
