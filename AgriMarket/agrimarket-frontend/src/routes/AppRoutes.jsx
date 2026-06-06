@@ -21,6 +21,8 @@ import PrivacyPolicy from "../pages/Privacy/PrivacyPolicy";
 import TermsOfService from "../pages/Terms/TermsOfService";
 import { OrderHistory } from "../pages/Farmer/Orders/OrderHistory";
 import { OrderDetail } from "../pages/Farmer/Orders/OrderDetail";
+import MyOrders from "../pages/Orders/MyOrders";
+import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 
 const AppRoutes = () => {
   return (
@@ -41,6 +43,8 @@ const AppRoutes = () => {
 
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
+        <Route path="/profile/orders" element={<MyOrders />} />
+        <Route path="/profile/orders/:id" element={<CustomerOrderDetail />} />
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
         <Route path="/farmer/products/add" element={<AddProduct />} />
