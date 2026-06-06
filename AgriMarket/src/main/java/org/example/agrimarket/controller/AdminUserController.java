@@ -1,0 +1,232 @@
+package org.example.agrimarket.controller;
+
+import org.example.agrimarket.model.Admin;
+import org.example.agrimarket.model.Customer;
+import org.example.agrimarket.model.Farmer;
+import org.example.agrimarket.model.Partner;
+import org.example.agrimarket.repository.AdminRepository;
+import org.example.agrimarket.repository.CustomerRepository;
+import org.example.agrimarket.repository.FarmerRepository;
+import org.example.agrimarket.repository.PartnerRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin/users")
+public class AdminUserController {
+
+    @Autowired
+    private AdminRepository adminRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private FarmerRepository farmerRepository;
+
+    @Autowired
+    private PartnerRepository partnerRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @GetMapping
+    public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+        List<Map<String, Object>> userList = new ArrayList<>();
+
+        // Fetch admins
+        for (Admin a : adminRepository.findAll()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", a.getId());
+            map.put("fullName", a.getFullName());
+            map.put("email", a.getEmail());
+            map.put("phone", "");
+            map.put("role", "admin");
+            map.put("status", "active");
+            map.put("avatarUrl", a.getAvatarUrl());
+            map.put("createdAt", a.getCreatedAt());
+            userList.add(map);
+        }
+
+        // Fetch customers
+        for (Customer c : customerRepository.findAll()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", c.getId());
+            map.put("fullName", c.getFullName());
+            map.put("email", c.getEmail());
+            map.put("phone", c.getPhone());
+            map.put("role", "customer");
+            map.put("status", c.getStatus() != null ? c.getStatus() : "active");
+            map.put("avatarUrl", c.getAvatarUrl());
+            map.put("createdAt", c.getCreatedAt());
+            userList.add(map);
+        }
+
+        // Fetch farmers
+        for (Farmer f : farmerRepository.findAll()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", f.getId());
+            map.put("fullName", f.getFullName());
+            map.put("email", f.getEmail());
+            map.put("phone", f.getPhone());
+            map.put("role", "farmer");
+            map.put("status", f.getStatus() != null ? f.getStatus() : "active");
+            map.put("avatarUrl", f.getAvatarUrl());
+            map.put("createdAt", f.getCreatedAt());
+            map.put("farmName", f.getFarmName());
+            map.put("farmAddress", f.getFarmAddress());
+            map.put("description", f.getDescription());
+            userList.add(map);
+        }
+
+        // Fetch partners
+        for (Partner p : partnerRepository.findAll()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", p.getId());
+            map.put("fullName", p.getFullName());
+            map.put("email", p.getEmail());
+            map.put("phone", p.getPhone());
+            map.put("role", "partner");
+            map.put("status", p.getStatus() != null ? p.getStatus() : "active");
+            map.put("avatarUrl", p.getAvatarUrl());
+            map.put("createdAt", p.getCreatedAt());
+            userList.add(map);
+        }
+
+        return ResponseEntity.ok(userList);
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createUser(@RequestBody Map<String, Object> payload) {
+        String role = (String) payload.get("role");
+        if (role == null) {
+            return ResponseEntity.badRequest().body("Role is required");
+        }
+        role = role.toLowerCase();
+
+        String fullName = (String) payload.get("fullName");
+        String email = (String) payload.get("email");
+        String phone = (String) payload.get("phone");
+        String password = (String) payload.get("password");
+        String avatarUrl = (String) payload.get("avatarUrl");
+        String status = (String) payload.getOrDefault("status", "active");
+
+        String encodedPassword = passwordEncoder.encode(password != null ? password : "Password123");
+
+        if ("admin".equals(role)) {
+            Admin admin = new Admin();
+            admin.setFullName(fullName);
+            admin.setEmail(email);
+            admin.setPassword(encodedPassword);
+            admin.setAvatarUrl(avatarUrl);
+            admin.setCreatedAt(LocalDateTime.now());
+            return ResponseEntity.ok(adminRepository.save(admin));
+        } else if ("customer".equals(role)) {
+            Customer customer = new Customer();
+            customer.setFullName(fullName);
+            customer.setEmail(email);
+            customer.setPhone(phone);
+            customer.setPassword(encodedPassword);
+            customer.setAvatarUrl(avatarUrl);
+            customer.setStatus(status);
+            customer.setCreatedAt(LocalDateTime.now());
+            customer.setPasswordSet(true);
+            return ResponseEntity.ok(customerRepository.save(customer));
+        } else if ("farmer".equals(role)) {
+            Farmer farmer = new Farmer();
+            farmer.setFullName(fullName);
+            farmer.setEmail(email);
+            farmer.setPhone(phone);
+            farmer.setPassword(encodedPassword);
+            farmer.setAvatarUrl(avatarUrl);
+            farmer.setStatus(status);
+            farmer.setVerificationStatus("verified");
+            farmer.setCreatedAt(LocalDateTime.now());
+            farmer.setPasswordSet(true);
+
+            String farmName = (String) payload.get("farmName");
+            String farmAddress = (String) payload.get("farmAddress");
+            String description = (String) payload.get("description");
+            farmer.setFarmName(farmName != null ? farmName : "Nông trại của " + fullName);
+            farmer.setFarmAddress(farmAddress != null ? farmAddress : "");
+            farmer.setDescription(description != null ? description : "");
+            farmer.setRatingAverage(0.0);
+            farmer.setTotalProducts(0);
+
+            return ResponseEntity.ok(farmerRepository.save(farmer));
+        } else if ("partner".equals(role)) {
+            Partner partner = new Partner();
+            partner.setFullName(fullName);
+            partner.setEmail(email);
+            partner.setPhone(phone);
+            partner.setPassword(encodedPassword);
+            partner.setAvatarUrl(avatarUrl);
+            partner.setStatus(status);
+            partner.setCreatedAt(LocalDateTime.now());
+            return ResponseEntity.ok(partnerRepository.save(partner));
+        } else {
+            return ResponseEntity.badRequest().body("Invalid role: " + role);
+        }
+    }
+
+    @PutMapping("/{role}/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable String role, @PathVariable Long id, @RequestBody Map<String, String> body) {
+        String newStatus = body.get("status");
+        if (newStatus == null) {
+            return ResponseEntity.badRequest().body("Status is required");
+        }
+        
+        String lowerRole = role.toLowerCase();
+        if ("admin".equals(lowerRole)) {
+            return ResponseEntity.badRequest().body("Cannot change admin status");
+        } else if ("customer".equals(lowerRole)) {
+            Customer c = customerRepository.findById(id).orElse(null);
+            if (c == null) return ResponseEntity.notFound().build();
+            c.setStatus(newStatus);
+            customerRepository.save(c);
+            return ResponseEntity.ok().build();
+        } else if ("farmer".equals(lowerRole)) {
+            Farmer f = farmerRepository.findById(id).orElse(null);
+            if (f == null) return ResponseEntity.notFound().build();
+            f.setStatus(newStatus);
+            farmerRepository.save(f);
+            return ResponseEntity.ok().build();
+        } else if ("partner".equals(lowerRole)) {
+            Partner p = partnerRepository.findById(id).orElse(null);
+            if (p == null) return ResponseEntity.notFound().build();
+            p.setStatus(newStatus);
+            partnerRepository.save(p);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.badRequest().body("Invalid role: " + role);
+        }
+    }
+
+    @DeleteMapping("/{role}/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable String role, @PathVariable Long id) {
+        String lowerRole = role.toLowerCase();
+        if ("admin".equals(lowerRole)) {
+            adminRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else if ("customer".equals(lowerRole)) {
+            customerRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else if ("farmer".equals(lowerRole)) {
+            farmerRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else if ("partner".equals(lowerRole)) {
+            partnerRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.badRequest().body("Invalid role: " + role);
+        }
+    }
+}
