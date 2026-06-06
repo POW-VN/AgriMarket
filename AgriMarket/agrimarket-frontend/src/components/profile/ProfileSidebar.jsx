@@ -100,7 +100,10 @@ const ProfileSidebar = ({ profile }) => {
           Bảo mật
         </button>
 
-        <button className="sidebar-menu-item">
+        <button
+          className={`sidebar-menu-item ${location.pathname === "/profile/orders" ? "active" : ""}`}
+          onClick={() => navigate("/profile/orders")}
+        >
           <span>🕘</span>
           Lịch sử giao dịch
         </button>
