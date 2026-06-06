@@ -19,6 +19,8 @@ import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
 import PrivacyPolicy from "../pages/Privacy/PrivacyPolicy";
 import TermsOfService from "../pages/Terms/TermsOfService";
+import { OrderHistory } from "../pages/Farmer/Orders/OrderHistory";
+import { OrderDetail } from "../pages/Farmer/Orders/OrderDetail";
 
 const AppRoutes = () => {
   return (
@@ -43,6 +45,8 @@ const AppRoutes = () => {
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
         <Route path="/farmer/products/add" element={<AddProduct />} />
         <Route path="/farmer/products" element={<ProductList />} />
+        <Route path="/farmer/orders" element={<OrderHistory />} />
+        <Route path="/farmer/orders/:id" element={<OrderDetail />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
 
