@@ -179,14 +179,17 @@ const Home = () => {
       return b.rating - a.rating;
     })
     .slice(0, 6);
-
   const renderProductCard = (p, isBestSeller = false) => {
     return (
-      <div key={p.id} className={`product-card standard-card ${isBestSeller ? "best-seller-card" : ""}`}>
+      <Link 
+        key={p.id} 
+        to={`/products/${p.id}`} 
+        className={`product-card standard-card ${isBestSeller ? "best-seller-card" : ""}`}
+        style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}
+      >
         <div 
           className="card-img-wrapper" 
-          style={{ height: "200px", overflow: "hidden", position: "relative", cursor: "pointer" }}
-          onClick={() => navigate(`/products/${p.id}`)}
+          style={{ height: "200px", overflow: "hidden", position: "relative" }}
         >
           {p.imageUrl ? (
             <img src={p.imageUrl} alt={p.name} className="standard-card-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -203,8 +206,6 @@ const Home = () => {
           <h3 
             className="standard-card-title" 
             title={p.name}
-            style={{ cursor: "pointer" }}
-            onClick={() => navigate(`/products/${p.id}`)}
           >
             {isBestSeller && <span className="bestseller-crown">🏆 </span>}
             {p.name}
@@ -233,7 +234,15 @@ const Home = () => {
               {p.price.toLocaleString("vi-VN")} đ <span className="unit">/ {p.unit}</span>
             </p>
             {(!user || user.role !== "farmer") && (
-              <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
+              <button 
+                className="add-cart-btn-plus" 
+                aria-label="Thêm vào giỏ hàng"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/products/${p.id}`);
+                }}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -252,7 +261,7 @@ const Home = () => {
             )}
           </div>
         </div>
-      </div>
+      </Link>
     );
   };
 

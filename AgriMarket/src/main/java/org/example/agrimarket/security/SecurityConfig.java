@@ -55,7 +55,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/error",
-                                "/api/products"
+                                "/api/products/**"
                         ).permitAll()
 
                         // Other APIs need login

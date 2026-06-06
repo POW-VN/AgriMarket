@@ -12,4 +12,5 @@ public interface ProductService {
     void deleteProduct(Long id, String farmerEmail);
     ProductResponse createProduct(ProductRequest request, String farmerEmail) throws Exception;
     List<ProductResponse> getAllApprovedProducts();
+    ProductResponse getProductById(Long id);
 }

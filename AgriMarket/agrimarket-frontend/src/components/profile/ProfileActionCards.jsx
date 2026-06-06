@@ -54,21 +54,7 @@ const ProfileActionCards = ({ showToast, setConfirmModal }) => {
 
     return (
         <div className="profile-actions-container" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div className="profile-action-grid">
-                <button
-                    className="profile-action-card"
-                    onClick={() => navigate('/security')}
-                >
-                    <span className="profile-action-icon">🔐</span>
 
-                    <div>
-                        <strong>Mật khẩu & Bảo mật</strong>
-                        <p>Cập nhật mật khẩu, bảo mật tài khoản</p>
-                    </div>
-
-                    <span>›</span>
-                </button>
-            </div>
 
             <button 
                 className="profile-action-card delete-account-card"

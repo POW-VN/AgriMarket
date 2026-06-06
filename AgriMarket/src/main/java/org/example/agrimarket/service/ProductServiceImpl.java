@@ -55,6 +55,27 @@ public class ProductServiceImpl implements ProductService {
                 .findFirstByProductIdAndIsThumbnailTrue(product.getId());
         String thumbnailUrl = thumbnailImage.map(ProductImage::getImgUrl).orElse("");
 
+        // Find all image URLs for this product
+        List<ProductImage> productImages = productImageRepository.findByProductId(product.getId());
+        List<String> imageUrls = productImages.stream()
+                .map(ProductImage::getImgUrl)
+                .collect(Collectors.toList());
+
+        String farmerName = "";
+        String farmLocation = "";
+        String farmDescription = "";
+        String farmerAvatarUrl = "";
+        if (product.getFarmer() != null) {
+            Farmer farmer = product.getFarmer();
+            farmerName = farmer.getFarmName() != null && !farmer.getFarmName().isEmpty() 
+                    ? farmer.getFarmName() : farmer.getFullName();
+            farmLocation = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isEmpty() 
+                    ? farmer.getFarmAddress() : "Chưa có địa chỉ";
+            farmDescription = farmer.getDescription() != null && !farmer.getDescription().isEmpty() 
+                    ? farmer.getDescription() : "Chưa có mô tả nông trại";
+            farmerAvatarUrl = farmer.getAvatarUrl();
+        }
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .farmerId(product.getFarmer() != null ? product.getFarmer().getId() : null)
@@ -73,6 +94,11 @@ public class ProductServiceImpl implements ProductService {
                 .isOrganic(product.getIsOrganic())
                 .certificateUrl(product.getCertificateUrl())
                 .thumbnailUrl(thumbnailUrl)
+                .images(imageUrls)
+                .farmerName(farmerName)
+                .farmLocation(farmLocation)
+                .farmDescription(farmDescription)
+                .farmerAvatarUrl(farmerAvatarUrl)
                 .build();
     }
 
@@ -241,5 +267,12 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getAllApprovedProducts() {
         List<Product> products = productRepository.findByStatusOrderByCreatedAtDesc("approved");
         return products.stream().map(this::convertToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public ProductResponse getProductById(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + id));
+        return convertToResponse(product);
     }
 }

@@ -83,4 +83,17 @@ public class ProductController {
                     .body("Đã xảy ra lỗi khi lấy danh sách sản phẩm: " + e.getMessage());
         }
     }
+
+    @GetMapping("/products/{id}")
+    public ResponseEntity<?> getProductById(@PathVariable Long id) {
+        try {
+            ProductResponse product = productService.getProductById(id);
+            return ResponseEntity.ok(product);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi lấy thông tin sản phẩm: " + e.getMessage());
+        }
+    }
 }

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -30,4 +31,9 @@ public class ProductResponse {
     private Boolean isOrganic;
     private String certificateUrl;
     private String thumbnailUrl;
+    private List<String> images;
+    private String farmerName;
+    private String farmLocation;
+    private String farmDescription;
+    private String farmerAvatarUrl;
 }

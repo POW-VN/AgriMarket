@@ -18,9 +18,19 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState("");
+  const [brokenImages, setBrokenImages] = useState({});
+  const [mainImageError, setMainImageError] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isSaved, setIsSaved] = useState(false);
   const [savedRelatedIds, setSavedRelatedIds] = useState(new Set());
+
+  // Lightbox Modal States
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  useEffect(() => {
+    setMainImageError(false);
+  }, [activeImage]);
   
   // Related Products
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -97,6 +107,46 @@ export default function ProductDetail() {
       };
     }
   }, [product, selectedCity, VIETNAM_CITIES]);
+
+  const getFileExtension = (url) => {
+    if (!url) return "";
+    return url.split('.').pop().split('?')[0].toLowerCase();
+  };
+
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const imgs = [];
+    if (product.images && product.images.length > 0) {
+      imgs.push(...product.images);
+    } else if (product.imageUrl) {
+      imgs.push(product.imageUrl);
+    }
+    // Append organic certificate URL if exists
+    if (product.isOrganic && product.certificateUrl && !imgs.includes(product.certificateUrl)) {
+      imgs.push(product.certificateUrl);
+    }
+    return imgs.filter(Boolean);
+  }, [product]);
+
+  // Lightbox keydown event listener
+  useEffect(() => {
+    if (!isLightboxOpen || allImages.length === 0) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsLightboxOpen(false);
+      } else if (e.key === "ArrowLeft") {
+        setLightboxIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+      } else if (e.key === "ArrowRight") {
+        setLightboxIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isLightboxOpen, allImages]);
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
@@ -699,58 +749,79 @@ export default function ProductDetail() {
       <main className="product-detail-container">
         {/* Left Column - Image Gallery */}
         <section className="product-image-section">
-          <div className="main-image-wrapper">
-            <img src={activeImage} alt={product.name} className="main-product-img" />
+          <div 
+            className="main-image-wrapper"
+            style={{ cursor: mainImageError || getFileExtension(activeImage) === "pdf" ? "default" : "zoom-in" }}
+            onClick={() => {
+              if (getFileExtension(activeImage) !== "pdf" && !mainImageError) {
+                const idx = allImages.indexOf(activeImage);
+                setLightboxIndex(idx >= 0 ? idx : 0);
+                setIsLightboxOpen(true);
+              }
+            }}
+          >
+            {mainImageError ? (
+              <div className="main-image-placeholder-broken">
+                {product.isOrganic && activeImage === product.certificateUrl ? "📜" : "🌾"}
+                <p style={{ fontSize: "14px", marginTop: "8px", color: "#6b7280" }}>Hình ảnh không khả dụng</p>
+              </div>
+            ) : getFileExtension(activeImage) === "pdf" ? (
+              <div className="main-image-placeholder-pdf">
+                <iframe src={activeImage} title="Certificate PDF" width="100%" height="100%" style={{ border: "none" }} />
+              </div>
+            ) : (
+              <img 
+                src={activeImage} 
+                alt={product.name} 
+                className="main-product-img" 
+                onError={() => setMainImageError(true)} 
+              />
+            )}
             <div className="badge-overlay">
               {product.isOrganic && <span className="badge-tag organic-tag">Hữu cơ</span>}
               {product.isLocal && <span className="badge-tag local-tag">Địa phương</span>}
             </div>
           </div>
 
-          <div className="thumbnail-gallery">
-            {/* Thumbnail 1: Main Product Image */}
-            <div 
-              className={`thumbnail-item ${activeImage === (product.images?.[0] || product.imageUrl) ? "active" : ""}`}
-              onClick={() => setActiveImage(product.images?.[0] || product.imageUrl)}
-            >
-              <img src={product.images?.[0] || product.imageUrl} alt="Thumbnail 1" />
+          {allImages.length > 1 && (
+            <div className="thumbnail-gallery">
+              {allImages.map((imgUrl, idx) => {
+                const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                const isPdf = getFileExtension(imgUrl) === "pdf";
+                const isBroken = brokenImages[idx];
+                
+                return (
+                  <div 
+                    key={idx}
+                    className={`thumbnail-item ${activeImage === imgUrl ? "active" : ""} ${isCertificate ? "organic-cert-thumbnail" : ""}`}
+                    onClick={() => setActiveImage(imgUrl)}
+                  >
+                    {isBroken ? (
+                      <div className="thumbnail-placeholder-broken">
+                        {isCertificate ? "📜" : "🌾"}
+                      </div>
+                    ) : isPdf ? (
+                      <div className="pdf-thumbnail-placeholder">
+                        <span className="pdf-icon">📄</span>
+                        <span className="pdf-text">PDF</span>
+                      </div>
+                    ) : (
+                      <img 
+                        src={imgUrl} 
+                        alt={`Thumbnail ${idx + 1}`} 
+                        onError={() => setBrokenImages(prev => ({ ...prev, [idx]: true }))} 
+                      />
+                    )}
+                    {isCertificate && (
+                      <div className="cert-mini-badge">
+                        🌱 Chứng nhận
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-
-            {/* Thumbnail 2: Second Product Image if exists, else custom placeholder */}
-            {product.images && product.images.length > 1 ? (
-              <div 
-                className={`thumbnail-item ${activeImage === product.images[1] ? "active" : ""}`}
-                onClick={() => setActiveImage(product.images[1])}
-              >
-                <img src={product.images[1]} alt="Thumbnail 2" />
-              </div>
-            ) : (
-              <div className="thumbnail-item">
-                <div className="thumbnail-placeholder">
-                  <span>📸</span>
-                </div>
-              </div>
-            )}
-
-            {/* Thumbnail 3: Add Photo placeholder */}
-            <div className="thumbnail-item">
-              <div className="thumbnail-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                  <circle cx="12" cy="13" r="4"></circle>
-                </svg>
-              </div>
-            </div>
-
-            {/* Thumbnail 4: Video player placeholder */}
-            <div className="thumbnail-item">
-              <div className="thumbnail-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* Right Column - Product details */}
@@ -915,10 +986,16 @@ export default function ProductDetail() {
           <div className="farmer-profile-card">
             <div className="farmer-header-info">
               <div className="farmer-avatar-wrapper">
-                <img 
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120" 
-                  alt={product.farmerName} 
-                />
+                {product.farmerAvatarUrl ? (
+                  <img 
+                    src={product.farmerAvatarUrl} 
+                    alt={product.farmerName} 
+                  />
+                ) : (
+                  <div className="farmer-avatar-fallback">
+                    {product.farmerName ? product.farmerName.charAt(0).toUpperCase() : "N"}
+                  </div>
+                )}
               </div>
               <div className="farmer-title-box">
                 <h4 className="farmer-name">{product.farmerName}</h4>
@@ -1324,6 +1401,118 @@ export default function ProductDetail() {
           </div>
         </div>
       </footer>
+
+      {/* Lightbox Modal overlay */}
+      {isLightboxOpen && allImages.length > 0 && (
+        <div 
+          className="lightbox-backdrop"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          {/* Close button */}
+          <button 
+            className="lightbox-close-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsLightboxOpen(false);
+            }}
+            aria-label="Đóng"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          {/* Previous Arrow */}
+          {allImages.length > 1 && (
+            <button 
+              className="lightbox-arrow-btn lightbox-arrow-left"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+              }}
+              aria-label="Ảnh trước"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+          )}
+
+          {/* Image Container */}
+          <div 
+            className="lightbox-image-container"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {getFileExtension(allImages[lightboxIndex]) === "pdf" ? (
+              <iframe 
+                src={allImages[lightboxIndex]} 
+                title="Certificate Full PDF" 
+                className="lightbox-pdf-view"
+              />
+            ) : (
+              <img 
+                src={allImages[lightboxIndex]} 
+                alt={`${product.name} Fullscreen`} 
+                className="lightbox-main-img" 
+              />
+            )}
+          </div>
+
+          {/* Next Arrow */}
+          {allImages.length > 1 && (
+            <button 
+              className="lightbox-arrow-btn lightbox-arrow-right"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+              }}
+              aria-label="Ảnh sau"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          )}
+
+          {/* Bottom Controls Panel */}
+          <div 
+            className="lightbox-bottom-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="lightbox-counter">
+              {product.isOrganic && allImages[lightboxIndex] === product.certificateUrl ? (
+                <span>🌱 Giấy chứng nhận hữu cơ ({lightboxIndex + 1} / {allImages.length})</span>
+              ) : (
+                <span>Hình ảnh sản phẩm ({lightboxIndex + 1} / {allImages.length})</span>
+              )}
+            </div>
+            
+            {allImages.length > 1 && (
+              <div className="lightbox-thumbnails-strip">
+                {allImages.map((imgUrl, idx) => {
+                  const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                  const isPdf = getFileExtension(imgUrl) === "pdf";
+                  
+                  return (
+                    <div 
+                      key={idx}
+                      className={`lightbox-thumbnail-item ${lightboxIndex === idx ? "active" : ""} ${isCertificate ? "cert-item" : ""}`}
+                      onClick={() => setLightboxIndex(idx)}
+                    >
+                      {isPdf ? (
+                        <div className="lightbox-thumbnail-pdf-placeholder">📄 PDF</div>
+                      ) : (
+                        <img src={imgUrl} alt={`Thumb ${idx + 1}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Global Action Toast Notification */}
       {showToast && (
