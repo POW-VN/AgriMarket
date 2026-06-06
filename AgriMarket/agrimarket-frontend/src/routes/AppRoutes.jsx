@@ -4,7 +4,6 @@ import authService from '../services/authService'
 import AuthLayout from '../layouts/AuthLayout'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
-import { RoleSelection } from '../pages/RoleCard/RoleCard'
 import ForgotPassword from '../pages/ForgotPassword/ForgotPassword'
 import ResetPassword from '../pages/ResetPassword/ResetPassword'
 import ResetSuccess from '../pages/ResetSuccess/ResetSuccess'
@@ -70,9 +69,6 @@ const AppRoutes = () => {
         <Route path="/farmer/orders/:id" element={<OrderDetail />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
-
-        {/* Route to test RoleSelection */}
-        <Route path="/role" element={<RoleSelection />} />
 
         {/* Privacy Policy and Terms of Service */}
         <Route path="/privacy" element={<PrivacyPolicy />} />

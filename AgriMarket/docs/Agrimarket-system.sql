@@ -149,6 +149,8 @@ CREATE TABLE product (
         DEFAULT 'draft',
 
     harvest_date DATE,
+    expiration_date DATE,
+    traceability_image_url NVARCHAR(1000),
 
     created_at DATETIME DEFAULT GETDATE(),
 

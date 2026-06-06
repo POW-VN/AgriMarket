@@ -31,7 +31,10 @@ public class AiController {
             String description = aiService.generateProductDescription(
                     request.getProductName(),
                     request.getCategory(),
-                    request.getIsOrganic()
+                    request.getIsOrganic(),
+                    request.getHarvestDate(),
+                    request.getExpirationDate(),
+                    principal.getName()
             );
             return ResponseEntity.ok(new AiDescriptionResponse(description));
         } catch (Exception e) {
@@ -50,7 +53,10 @@ public class AiController {
                     request.getProductName(),
                     request.getCategory(),
                     request.getIsOrganic(),
-                    request.getUnit()
+                    request.getUnit(),
+                    request.getHarvestDate(),
+                    request.getExpirationDate(),
+                    principal.getName()
             );
             return ResponseEntity.ok(priceResponse);
         } catch (Exception e) {

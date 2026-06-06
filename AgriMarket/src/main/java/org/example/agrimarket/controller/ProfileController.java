@@ -4,9 +4,13 @@ import org.example.agrimarket.dto.ChangePasswordRequest;
 import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
+import org.example.agrimarket.model.Product;
+import org.example.agrimarket.model.ProductImage;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
+import org.example.agrimarket.repository.ProductRepository;
+import org.example.agrimarket.repository.ProductImageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -33,6 +38,12 @@ public class ProfileController {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductImageRepository productImageRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -53,15 +64,15 @@ public class ProfileController {
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (isFarmer) {
-            Optional<Farmer> farmer = farmerRepository.findByEmail(email);
-            if (farmer.isPresent()) {
-                Farmer f = farmer.get();
-                f.setRole("farmer");
-                return ResponseEntity.ok(f);
-            }
+        // 1. Try Farmer (if registered as farmer, they are a farmer)
+        Optional<Farmer> farmer = farmerRepository.findByEmail(email);
+        if (farmer.isPresent()) {
+            Farmer f = farmer.get();
+            f.setRole("farmer");
+            return ResponseEntity.ok(f);
         }
 
+        // 2. Try Admin
         if (isAdmin) {
             Optional<Admin> admin = adminRepository.findByEmail(email);
             if (admin.isPresent()) {
@@ -71,7 +82,7 @@ public class ProfileController {
             }
         }
 
-        // Default or Customer
+        // 3. Try Customer
         Optional<Customer> customer = customerRepository.findByEmail(email);
         if (customer.isPresent()) {
             Customer c = customer.get();
@@ -79,13 +90,6 @@ public class ProfileController {
             return ResponseEntity.ok(c);
         }
 
-        // Fallback checks
-        Optional<Farmer> farmer = farmerRepository.findByEmail(email);
-        if (farmer.isPresent()) {
-            Farmer f = farmer.get();
-            f.setRole("farmer");
-            return ResponseEntity.ok(f);
-        }
 
         Optional<Admin> admin = adminRepository.findByEmail(email);
         if (admin.isPresent()) {
@@ -182,7 +186,37 @@ public class ProfileController {
 
         if (farmerOpt.isPresent()) {
             Farmer farmer = farmerOpt.get();
+            
+            // 1. Delete all products and their physical images/files
+            List<Product> products = productRepository.findByFarmerIdOrderByCreatedAtDesc(farmer.getId());
+            if (products != null) {
+                for (Product product : products) {
+                    // Delete product images physically
+                    List<ProductImage> images = productImageRepository.findByProductId(product.getId());
+                    if (images != null) {
+                        for (ProductImage img : images) {
+                            deletePhysicalFile(img.getImgUrl(), "products");
+                        }
+                        productImageRepository.deleteAll(images);
+                    }
+                    // Delete product certificate physically
+                    deletePhysicalFile(product.getCertificateUrl(), "certificates");
+                    // Delete product traceability image physically
+                    deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
+                    
+                    productRepository.delete(product);
+                }
+            }
+
+            // 2. Delete farmer document files physically
+            deletePhysicalFile(farmer.getBusinessRegistrationUrl(), "documents");
+            deletePhysicalFile(farmer.getVietgapUrl(), "documents");
+            deletePhysicalFile(farmer.getGlobalgapUrl(), "documents");
+            deletePhysicalFile(farmer.getOrganicUrl(), "documents");
+
+            // 3. Delete avatar physically
             deletePhysicalAvatarFile(farmer.getAvatarUrl());
+            
             farmerRepository.delete(farmer);
             deleted = true;
         }
@@ -208,6 +242,29 @@ public class ProfileController {
                 }
             } catch (Exception e) {
                 System.err.println("Failed to delete avatar file: " + e.getMessage());
+            }
+        }
+    }
+
+    private void deletePhysicalFile(String fileUrl, String subFolder) {
+        if (fileUrl == null) return;
+        String normalizedUrl = fileUrl.replace("\\", "/");
+        if (normalizedUrl.contains("/uploads/" + subFolder + "/")) {
+            try {
+                String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
+                java.io.File fileInParent = new java.io.File("uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+
+                boolean deleted = false;
+                if (fileInParent.exists()) {
+                    deleted = fileInParent.delete();
+                    System.out.println(">>> ProfileController: Deleted physical file in parent: " + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
+                } else if (fileInSub.exists()) {
+                    deleted = fileInSub.delete();
+                    System.out.println(">>> ProfileController: Deleted physical file in subfolder: " + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
+                }
+            } catch (Exception e) {
+                System.err.println(">>> ProfileController: Failed to delete physical file: " + fileUrl + ", error: " + e.getMessage());
             }
         }
     }

@@ -27,9 +27,11 @@ public class ProductResponse {
     private String unit;
     private String status;
     private LocalDate harvestDate;
+    private LocalDate expirationDate;
     private LocalDateTime createdAt;
     private Boolean isOrganic;
     private String certificateUrl;
+    private String traceabilityImageUrl;
     private String thumbnailUrl;
     private List<String> images;
     private String farmerName;

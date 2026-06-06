@@ -36,8 +36,8 @@ export const AddProduct = () => {
   const [category, setCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [harvestDate, setHarvestDate] = useState("");
+  const [expirationDate, setExpirationDate] = useState("");
   const [description, setDescription] = useState("");
-  const [isOrganic, setIsOrganic] = useState(false);
   const [basePrice, setBasePrice] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("kg");
   const [isCustomUnit, setIsCustomUnit] = useState(false);
@@ -51,9 +51,9 @@ export const AddProduct = () => {
   const multiImgRef = useRef(null);
   const [previewSlideIdx, setPreviewSlideIdx] = useState(0); // slider index
 
-  // Certificate upload state
-  const certInputRef = useRef(null);
-  const [certFile, setCertFile] = useState(null);   // { name, url }
+  // Traceability image upload state
+  const traceabilityInputRef = useRef(null);
+  const [traceabilityFile, setTraceabilityFile] = useState(null); // { name, url }
 
   const [loading, setLoading] = useState(false);
   const [previewToast, setPreviewToast] = useState(false);
@@ -86,7 +86,8 @@ export const AddProduct = () => {
       const response = await apiClient.post("/api/ai/generate-description", {
         productName: productName.trim(),
         category: category === "Khác" ? customCategory.trim() : category,
-        isOrganic: isOrganic
+        harvestDate: harvestDate || null,
+        expirationDate: expirationDate || null
       });
 
       if (response.data && response.data.description) {
@@ -118,8 +119,9 @@ export const AddProduct = () => {
       const response = await apiClient.post("/api/ai/suggest-price", {
         productName: productName.trim(),
         category: category === "Khác" ? customCategory.trim() : category,
-        isOrganic: isOrganic,
-        unit: selectedUnit
+        unit: selectedUnit,
+        harvestDate: harvestDate || null,
+        expirationDate: expirationDate || null
       });
 
       if (response.data && response.data.recommendedPrice) {
@@ -195,13 +197,15 @@ export const AddProduct = () => {
   const removeImage = (id) =>
     setProductImages((prev) => prev.filter((img) => img.id !== id));
 
-  // ── Certificate upload ────────────────────────────────
-  const handleCertChange = (e) => {
+
+
+  // ── Traceability image upload ──────────────────────────
+  const handleTraceabilityChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setCertFile({ name: file.name, url: reader.result });
+      setTraceabilityFile({ name: file.name, url: reader.result });
       setPreviewSlideIdx(productImages.length);
     };
     reader.readAsDataURL(file);
@@ -220,8 +224,8 @@ export const AddProduct = () => {
       newErrors.basePrice = "Vui lòng nhập giá hợp lệ.";
     if (!stockQty || isNaN(stockQty) || parseInt(stockQty) < 0)
       newErrors.stockQty = "Vui lòng nhập số lượng hợp lệ.";
-    if (isOrganic && !certFile) {
-      newErrors.certFile = "Vui lòng tải lên ảnh giấy chứng nhận.";
+    if (productImages.length === 0) {
+      newErrors.images = "Hình ảnh sản phẩm là bắt buộc. Vui lòng chọn ít nhất một hình ảnh.";
     }
     setErrors(newErrors);
 
@@ -246,9 +250,9 @@ export const AddProduct = () => {
         unit: selectedUnit,
         status: "pending",
         harvestDate: harvestDate || null,
-        isOrganic: isOrganic,
-        certificateFileBase64: isOrganic && certFile ? certFile.url : null,
-        certificateFileName: isOrganic && certFile ? certFile.name : null,
+        expirationDate: expirationDate || null,
+        traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
+        traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
       };
       await createFarmerProduct(payload);
@@ -275,9 +279,9 @@ export const AddProduct = () => {
         unit: selectedUnit,
         status: "draft",
         harvestDate: harvestDate || null,
-        isOrganic: isOrganic,
-        certificateFileBase64: isOrganic && certFile ? certFile.url : null,
-        certificateFileName: isOrganic && certFile ? certFile.name : null,
+        expirationDate: expirationDate || null,
+        traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
+        traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
       };
       await createFarmerProduct(payload);
@@ -300,10 +304,10 @@ export const AddProduct = () => {
     ? `${parseInt(basePrice).toLocaleString("vi-VN")} VNĐ`
     : "0 VNĐ";
   const displayName = productName || "Tên sản phẩm xem trước";
-  // All preview slides: product images + cert (if organic + uploaded)
+  // All preview slides: product images + traceability (if uploaded)
   const previewSlides = [
     ...productImages.map((img) => ({ url: img.url, type: "product" })),
-    ...(isOrganic && certFile ? [{ url: certFile.url, type: "cert" }] : []),
+    ...(traceabilityFile ? [{ url: traceabilityFile.url, type: "traceability" }] : []),
   ];
   const slideCount = previewSlides.length;
   const safeIdx = slideCount > 0 ? previewSlideIdx % slideCount : 0;
@@ -345,7 +349,7 @@ export const AddProduct = () => {
           <div className="ap-form-col">
             {/* Product Media - Multi-image */}
             <section className="ap-card">
-              <h2 className="ap-card-title">Hình ảnh sản phẩm</h2>
+              <h2 className="ap-card-title">Hình ảnh sản phẩm <span className="ap-required">*</span></h2>
               <p className="ap-card-subtitle">
                 Tải lên nhiều góc chụp khác nhau của nông sản — ảnh đầu tiên sẽ làm ảnh đại diện.
               </p>
@@ -369,7 +373,7 @@ export const AddProduct = () => {
 
               {/* Upload zone */}
               <div
-                className={`ap-upload-zone ${isDragging ? "ap-upload-dragging" : ""}`}
+                className={`ap-upload-zone ${isDragging ? "ap-upload-dragging" : ""} ${errors.images ? "ap-input-error" : ""}`}
                 onClick={() => multiImgRef.current?.click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -399,6 +403,7 @@ export const AddProduct = () => {
                   <p className="ap-upload-hint">PNG, JPG, GIF — tối đa 5 ảnh, mỗi ảnh &le; 5MB</p>
                 </div>
               </div>
+              {errors.images && <span className="ap-error-msg" style={{ display: "block", marginTop: "8px" }}>{errors.images}</span>}
             </section>
 
             {/* General Information */}
@@ -478,78 +483,79 @@ export const AddProduct = () => {
                   rows={6}
                 />
               </div>
+            </section>
 
-              {/* Organic toggle + cert upload */}
-              <div className={`ap-organic-toggle ${isOrganic ? "ap-organic-active" : ""}`}>
-                <div className="ap-toggle-info">
-                  <span className="ap-toggle-label">Giấy chứng nhận nguồn gốc & An toàn sản phẩm</span>
-                  <span className="ap-toggle-hint">Huy hiệu sẽ hiển thị trên thẻ sản phẩm</span>
+            {/* Additional Fields - Harvest, Expiration, Traceability */}
+            <section className="ap-card">
+              <h2 className="ap-card-title">Hạn dùng & Truy xuất nguồn gốc</h2>
+              <p className="ap-card-subtitle">
+                Cung cấp thời hạn của nông sản và ảnh chụp tài liệu truy xuất nguồn gốc.
+              </p>
+
+              <div className="ap-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <div className="ap-field-group" style={{ marginBottom: 0 }}>
+                  <label className="ap-label">Ngày thu hoạch/đóng gói</label>
+                  <input
+                    type="date"
+                    className="ap-input"
+                    value={harvestDate}
+                    onChange={(e) => setHarvestDate(e.target.value)}
+                  />
                 </div>
-                <button
-                  type="button"
-                  className={`ap-toggle-btn ${isOrganic ? "ap-toggle-on" : ""}`}
-                  onClick={() => {
-                    const nextOrganic = !isOrganic;
-                    setIsOrganic(nextOrganic);
-                    if (nextOrganic && certFile) {
-                      setPreviewSlideIdx(productImages.length);
-                    } else {
-                      setPreviewSlideIdx(0);
-                    }
-                  }}
-                  aria-label="Bật/tắt giấy chứng nhận nguồn gốc & an toàn sản phẩm"
-                >
-                  <span className="ap-toggle-thumb" />
-                </button>
+
+                <div className="ap-field-group" style={{ marginBottom: 0 }}>
+                  <label className="ap-label">Hạn sử dụng</label>
+                  <input
+                    type="date"
+                    className="ap-input"
+                    value={expirationDate}
+                    onChange={(e) => setExpirationDate(e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Certificate upload — shows when toggle is ON */}
-              {isOrganic && (
-                <div className="ap-cert-upload">
-                  <div className="ap-cert-header">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.8" width="16" height="16">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/>
-                      <line x1="16" y1="17" x2="8" y2="17"/>
-                      <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                    <span className="ap-cert-title">Tải ảnh giấy chứng nhận</span>
-                    <span className="ap-cert-badge">bắt buộc</span>
-                  </div>
-
-                  {certFile ? (
-                    <div className="ap-cert-preview">
-                      <img src={certFile.url} alt="Chứng nhận" className="ap-cert-img" />
-                      <div className="ap-cert-info">
-                        <span className="ap-cert-name">{certFile.name}</span>
-                        <button className="ap-cert-remove" onClick={() => setCertFile(null)}>Xóa</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className={`ap-cert-zone ${errors.certFile ? "ap-input-error" : ""}`}
-                      onClick={() => certInputRef.current?.click()}
-                    >
-                      <input
-                        type="file"
-                        ref={certInputRef}
-                        accept="image/*,application/pdf"
-                        style={{ display: "none" }}
-                        onChange={handleCertChange}
-                      />
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5" width="28" height="28">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                      </svg>
-                      <p className="ap-cert-zone-text">Nhấp để tải ảnh chứng nhận lên</p>
-                      <p className="ap-cert-zone-hint">JPG, PNG hoặc PDF — tối đa 10MB</p>
-                    </div>
-                  )}
-                  {errors.certFile && <span className="ap-error-msg" style={{ display: "block", marginTop: "6px" }}>{errors.certFile}</span>}
+              <div className="ap-cert-upload" style={{ borderTop: "1px solid rgba(229, 231, 235, 0.5)", paddingTop: "16px", marginTop: "8px" }}>
+                <div className="ap-cert-header" style={{ marginBottom: "10px" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.8" width="16" height="16">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <circle cx="10" cy="13" r="2"/>
+                    <path d="M12 15l3 3"/>
+                  </svg>
+                  <span className="ap-cert-title" style={{ color: "#0284c7" }}>Ảnh thông tin truy xuất nguồn gốc</span>
                 </div>
-              )}
+
+                {traceabilityFile ? (
+                  <div className="ap-cert-preview">
+                    <img src={traceabilityFile.url} alt="Truy xuất nguồn gốc" className="ap-cert-img" />
+                    <div className="ap-cert-info">
+                      <span className="ap-cert-name">{traceabilityFile.name}</span>
+                      <button className="ap-cert-remove" onClick={() => setTraceabilityFile(null)}>Xóa</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="ap-cert-zone"
+                    onClick={() => traceabilityInputRef.current?.click()}
+                    style={{ border: "2px dashed rgba(2, 132, 199, 0.2)" }}
+                  >
+                    <input
+                      type="file"
+                      ref={traceabilityInputRef}
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleTraceabilityChange}
+                    />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.5" width="28" height="28">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p className="ap-cert-zone-text" style={{ color: "#0284c7" }}>Nhấp để tải ảnh truy xuất lên</p>
+                    <p className="ap-cert-zone-hint">JPG, PNG — tối đa 10MB</p>
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* Bottom row: Pricing + Inventory */}
@@ -683,10 +689,6 @@ export const AddProduct = () => {
             <div className="ap-preview-card">
               <div className="ap-preview-label">XEM TRƯỚC GIAN HÀNG THỰC TẾ</div>
 
-              {isOrganic && (
-                <div className="ap-preview-badge">🌿 Đạt chứng nhận</div>
-              )}
-
               {/* Image slider */}
               <div className="ap-preview-image-wrap">
                 {slideCount > 0 ? (
@@ -696,12 +698,12 @@ export const AddProduct = () => {
                         src={previewSlides[safeIdx].url}
                         alt={`Slide ${safeIdx + 1}`}
                         className={`ap-preview-img ${
-                          previewSlides[safeIdx].type === "cert" ? "ap-preview-cert-img" : ""
+                          previewSlides[safeIdx].type === "cert" || previewSlides[safeIdx].type === "traceability" ? "ap-preview-cert-img" : ""
                         }`}
                       />
-                      {previewSlides[safeIdx].type === "cert" && (
-                        <div className="ap-slide-cert-badge">
-                          📜 Giấy chứng nhận nguồn gốc & An toàn sản phẩm
+                      {previewSlides[safeIdx].type === "traceability" && (
+                        <div className="ap-slide-cert-badge" style={{ backgroundColor: "#0284c7" }}>
+                          🔍 Ảnh thông tin truy xuất nguồn gốc
                         </div>
                       )}
                     </div>
@@ -719,7 +721,7 @@ export const AddProduct = () => {
                               key={i}
                               className={`ap-slider-dot ${
                                 i === safeIdx ? "ap-slider-dot-active" : ""
-                              } ${s.type === "cert" ? "ap-slider-dot-cert" : ""}`}
+                              }`}
                               onClick={() => setPreviewSlideIdx(i)}
                             />
                           ))}

@@ -133,6 +133,31 @@ const normalizeAuthUser = (user, fallbackRole) => {
 
     description: user.description || "",
 
+    identityCard:
+      user.identityCard ||
+      user.identity_card ||
+      "",
+
+    businessRegistrationUrl:
+      user.businessRegistrationUrl ||
+      user.business_registration_url ||
+      "",
+
+    vietgapUrl:
+      user.vietgapUrl ||
+      user.vietgap_url ||
+      "",
+
+    globalgapUrl:
+      user.globalgapUrl ||
+      user.globalgap_url ||
+      "",
+
+    organicUrl:
+      user.organicUrl ||
+      user.organic_url ||
+      "",
+
     verificationStatus:
       user.verificationStatus ||
       user.verification_status ||

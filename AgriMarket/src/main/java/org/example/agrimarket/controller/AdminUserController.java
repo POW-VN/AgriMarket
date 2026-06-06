@@ -4,10 +4,14 @@ import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.Partner;
+import org.example.agrimarket.model.Product;
+import org.example.agrimarket.model.ProductImage;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.PartnerRepository;
+import org.example.agrimarket.repository.ProductRepository;
+import org.example.agrimarket.repository.ProductImageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +38,12 @@ public class AdminUserController {
 
     @Autowired
     private PartnerRepository partnerRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductImageRepository productImageRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -217,16 +227,90 @@ public class AdminUserController {
             adminRepository.deleteById(id);
             return ResponseEntity.ok().build();
         } else if ("customer".equals(lowerRole)) {
-            customerRepository.deleteById(id);
+            Customer customer = customerRepository.findById(id).orElse(null);
+            if (customer != null) {
+                deletePhysicalAvatarFile(customer.getAvatarUrl());
+                customerRepository.delete(customer);
+            }
             return ResponseEntity.ok().build();
         } else if ("farmer".equals(lowerRole)) {
-            farmerRepository.deleteById(id);
+            Farmer farmer = farmerRepository.findById(id).orElse(null);
+            if (farmer != null) {
+                // 1. Delete all products and their physical images/files
+                List<Product> products = productRepository.findByFarmerIdOrderByCreatedAtDesc(farmer.getId());
+                if (products != null) {
+                    for (Product product : products) {
+                        List<ProductImage> images = productImageRepository.findByProductId(product.getId());
+                        if (images != null) {
+                            for (ProductImage img : images) {
+                                deletePhysicalFile(img.getImgUrl(), "products");
+                            }
+                            productImageRepository.deleteAll(images);
+                        }
+                        deletePhysicalFile(product.getCertificateUrl(), "certificates");
+                        deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
+                        productRepository.delete(product);
+                    }
+                }
+
+                // 2. Delete farmer document files physically
+                deletePhysicalFile(farmer.getBusinessRegistrationUrl(), "documents");
+                deletePhysicalFile(farmer.getVietgapUrl(), "documents");
+                deletePhysicalFile(farmer.getGlobalgapUrl(), "documents");
+                deletePhysicalFile(farmer.getOrganicUrl(), "documents");
+
+                // 3. Delete avatar physically
+                deletePhysicalAvatarFile(farmer.getAvatarUrl());
+
+                farmerRepository.delete(farmer);
+            }
             return ResponseEntity.ok().build();
         } else if ("partner".equals(lowerRole)) {
-            partnerRepository.deleteById(id);
+            Partner partner = partnerRepository.findById(id).orElse(null);
+            if (partner != null) {
+                deletePhysicalAvatarFile(partner.getAvatarUrl());
+                partnerRepository.delete(partner);
+            }
             return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
+        }
+    }
+
+    private void deletePhysicalAvatarFile(String avatarUrl) {
+        if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
+            try {
+                String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
+                java.io.File fileToDelete = new java.io.File("uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
+                if (fileToDelete.exists()) {
+                    fileToDelete.delete();
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to delete avatar file: " + e.getMessage());
+            }
+        }
+    }
+
+    private void deletePhysicalFile(String fileUrl, String subFolder) {
+        if (fileUrl == null) return;
+        String normalizedUrl = fileUrl.replace("\\", "/");
+        if (normalizedUrl.contains("/uploads/" + subFolder + "/")) {
+            try {
+                String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
+                java.io.File fileInParent = new java.io.File("uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+
+                boolean deleted = false;
+                if (fileInParent.exists()) {
+                    deleted = fileInParent.delete();
+                    System.out.println(">>> AdminUserController: Deleted physical file in parent: " + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
+                } else if (fileInSub.exists()) {
+                    deleted = fileInSub.delete();
+                    System.out.println(">>> AdminUserController: Deleted physical file in subfolder: " + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
+                }
+            } catch (Exception e) {
+                System.err.println(">>> AdminUserController: Failed to delete physical file: " + fileUrl + ", error: " + e.getMessage());
+            }
         }
     }
 }

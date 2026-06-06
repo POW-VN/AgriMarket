@@ -125,6 +125,10 @@ export default function ProductDetail() {
     if (product.isOrganic && product.certificateUrl && !imgs.includes(product.certificateUrl)) {
       imgs.push(product.certificateUrl);
     }
+    // Append traceability image URL if exists
+    if (product.traceabilityImageUrl && !imgs.includes(product.traceabilityImageUrl)) {
+      imgs.push(product.traceabilityImageUrl);
+    }
     return imgs.filter(Boolean);
   }, [product]);
 
@@ -787,18 +791,19 @@ export default function ProductDetail() {
             <div className="thumbnail-gallery">
               {allImages.map((imgUrl, idx) => {
                 const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                const isTraceability = product.traceabilityImageUrl && imgUrl === product.traceabilityImageUrl;
                 const isPdf = getFileExtension(imgUrl) === "pdf";
                 const isBroken = brokenImages[idx];
                 
                 return (
                   <div 
                     key={idx}
-                    className={`thumbnail-item ${activeImage === imgUrl ? "active" : ""} ${isCertificate ? "organic-cert-thumbnail" : ""}`}
+                    className={`thumbnail-item ${activeImage === imgUrl ? "active" : ""} ${isCertificate ? "organic-cert-thumbnail" : ""} ${isTraceability ? "traceability-thumbnail" : ""}`}
                     onClick={() => setActiveImage(imgUrl)}
                   >
                     {isBroken ? (
                       <div className="thumbnail-placeholder-broken">
-                        {isCertificate ? "📜" : "🌾"}
+                        {isCertificate ? "📜" : isTraceability ? "🔍" : "🌾"}
                       </div>
                     ) : isPdf ? (
                       <div className="pdf-thumbnail-placeholder">
@@ -815,6 +820,11 @@ export default function ProductDetail() {
                     {isCertificate && (
                       <div className="cert-mini-badge">
                         🌱 Chứng nhận
+                      </div>
+                    )}
+                    {isTraceability && (
+                      <div className="cert-mini-badge" style={{ backgroundColor: "#0284c7" }}>
+                        🔍 Truy xuất
                       </div>
                     )}
                   </div>
@@ -1045,9 +1055,32 @@ export default function ProductDetail() {
               <li>
                 <strong>Canh tác:</strong> <span>{extendedInfo.method}</span>
               </li>
-              <li>
-                <strong>Hạn bảo quản:</strong> <span>{extendedInfo.shelfLife}</span>
-              </li>
+              {product.harvestDate ? (
+                <li>
+                  <strong>Ngày thu hoạch/đóng gói:</strong> <span>{product.harvestDate}</span>
+                </li>
+              ) : (
+                <li>
+                  <strong>Ngày thu hoạch/đóng gói:</strong> <span>Chưa xác định</span>
+                </li>
+              )}
+              {product.expirationDate ? (
+                <li>
+                  <strong>Hạn sử dụng:</strong> <span>{product.expirationDate}</span>
+                </li>
+              ) : (
+                <li>
+                  <strong>Hạn bảo quản:</strong> <span>{extendedInfo.shelfLife}</span>
+                </li>
+              )}
+              {product.traceabilityImageUrl && (
+                <li>
+                  <strong>Truy xuất nguồn gốc:</strong>{" "}
+                  <a href={product.traceabilityImageUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary-color)", fontWeight: "600", textDecoration: "underline" }}>
+                    Xem ảnh truy xuất
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 

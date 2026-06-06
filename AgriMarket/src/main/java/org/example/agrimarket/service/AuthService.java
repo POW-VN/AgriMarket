@@ -192,7 +192,7 @@ public class AuthService {
         }
     }
 
-    public AuthResponse googleLogin(String googleAccessToken, String role) {
+    public AuthResponse googleLogin(String googleAccessToken, String role, String phone, Boolean isRegister) {
         org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Authorization", "Bearer " + googleAccessToken);
@@ -226,13 +226,30 @@ public class AuthService {
         Customer customer = customerRepository.findByEmail(email).orElse(null);
         Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
 
+        boolean userExists = (customer != null || farmer != null);
+        if (Boolean.TRUE.equals(isRegister) && userExists) {
+            throw new RuntimeException("Tài khoản email này đã được đăng ký trên hệ thống. Vui lòng chuyển sang trang Đăng nhập.");
+        }
+
         Object user = null;
         String resolvedRole = null;
 
         if (customer != null) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                customer.setPhone(phone.trim());
+                customer = customerRepository.save(customer);
+            }
             user = customer;
-            resolvedRole = "customer";
+            if (farmerRepository.findByEmail(email).isPresent()) {
+                resolvedRole = "farmer";
+            } else {
+                resolvedRole = "customer";
+            }
         } else if (farmer != null) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                farmer.setPhone(phone.trim());
+                farmer = farmerRepository.save(farmer);
+            }
             user = farmer;
             resolvedRole = "farmer";
         }
@@ -257,38 +274,25 @@ public class AuthService {
         // Auto-generate remaining attributes:
         customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
         customer.setPasswordSet(false);
-        customer.setPhone(generateUniquePhoneForCustomer());
+        if (phone != null && !phone.trim().isEmpty()) {
+            customer.setPhone(phone.trim());
+        }
         customer = customerRepository.save(customer);
 
         String token = jwtUtil.generateToken(email, "customer");
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setUser(customer);
-        response.setNewUser(false);
+        
+        // If role is not provided, it is the initial login check -> mark as newUser to force onboarding/role/phone selection
+        if (role == null || role.trim().isEmpty()) {
+            response.setNewUser(true);
+        } else {
+            response.setNewUser(false);
+        }
         return response;
     }
 
-    private String generateUniquePhoneForCustomer() {
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 100; i++) {
-            String phone = "0" + (300000000L + random.nextLong(700000000L));
-            if (!customerRepository.existsByPhone(phone)) {
-                return phone;
-            }
-        }
-        throw new RuntimeException("Tạo số điện thoại duy nhất thất bại");
-    }
-
-    private String generateUniquePhoneForFarmer() {
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 100; i++) {
-            String phone = "0" + (300000000L + random.nextLong(700000000L));
-            if (!farmerRepository.existsByPhone(phone)) {
-                return phone;
-            }
-        }
-        throw new RuntimeException("Tạo số điện thoại duy nhất thất bại");
-    }
 
     public void sendForgotPasswordOtp(String email) {
         if (email != null) {

@@ -120,6 +120,7 @@ public class DataInitializer implements CommandLineRunner {
                 p1.setUnit("kg");
                 p1.setStatus("approved");
                 p1.setHarvestDate(LocalDate.now().minusDays(1));
+                p1.setExpirationDate(LocalDate.now().plusDays(6));
                 productRepository.save(p1);
 
                 ProductImage img1 = new ProductImage();
@@ -140,6 +141,7 @@ public class DataInitializer implements CommandLineRunner {
                 p2.setUnit("hũ");
                 p2.setStatus("sold_out");
                 p2.setHarvestDate(LocalDate.now().minusDays(10));
+                p2.setExpirationDate(LocalDate.now().minusDays(3));
                 productRepository.save(p2);
 
                 ProductImage img2 = new ProductImage();
@@ -160,6 +162,7 @@ public class DataInitializer implements CommandLineRunner {
                 p3.setUnit("vỉ");
                 p3.setStatus("pending");
                 p3.setHarvestDate(LocalDate.now().minusDays(3));
+                p3.setExpirationDate(LocalDate.now().plusDays(4));
                 productRepository.save(p3);
 
                 // Product 4: Rau cải xanh
@@ -174,6 +177,7 @@ public class DataInitializer implements CommandLineRunner {
                 p4.setUnit("bó");
                 p4.setStatus("draft");
                 p4.setHarvestDate(LocalDate.now());
+                p4.setExpirationDate(LocalDate.now().plusDays(3));
                 productRepository.save(p4);
 
                 // Product 5: Dưa leo sạch
@@ -188,6 +192,7 @@ public class DataInitializer implements CommandLineRunner {
                 p5.setUnit("kg");
                 p5.setStatus("hidden");
                 p5.setHarvestDate(LocalDate.now().minusDays(2));
+                p5.setExpirationDate(LocalDate.now().plusDays(3));
                 productRepository.save(p5);
 
                 // Product 6: Bơ sáp Đắk Lắk
@@ -202,6 +207,7 @@ public class DataInitializer implements CommandLineRunner {
                 p6.setUnit("kg");
                 p6.setStatus("rejected");
                 p6.setHarvestDate(LocalDate.now().minusDays(5));
+                p6.setExpirationDate(LocalDate.now().plusDays(2));
                 productRepository.save(p6);
 
                 System.out.println(">>> DataInitializer: Đã thêm các Sản phẩm mẫu cho Farmer đầu tiên (" + testFarmer.getEmail() + ").");

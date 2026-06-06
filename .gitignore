@@ -1,0 +1,11 @@
+# Local uploads folder containing test images/documents
+uploads/
+
+# IDE settings
+.idea/
+.vscode/
+
+# Local node/npm
+node_modules/
+package-lock.json
+*.log
