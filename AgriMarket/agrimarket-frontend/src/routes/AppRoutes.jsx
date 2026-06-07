@@ -24,6 +24,8 @@ import { OrderHistory } from "../pages/Farmer/Orders/OrderHistory";
 import { OrderDetail } from "../pages/Farmer/Orders/OrderDetail";
 import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
+import CartPage from "../pages/Cart/CartPage";
+import PaymentPage from "../pages/Payment/PaymentPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
 
@@ -69,6 +71,9 @@ const AppRoutes = () => {
         <Route path="/farmer/orders/:id" element={<OrderDetail />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+
+        {/* Route to test RoleSelection */}
+        <Route path="/role" element={<RoleSelection />} />
 
         {/* Privacy Policy and Terms of Service */}
         <Route path="/privacy" element={<PrivacyPolicy />} />

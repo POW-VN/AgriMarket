@@ -162,7 +162,10 @@ const TABS = [
 export const MyOrders = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const [orders, setOrders] = useState(() => {
+    const stored = localStorage.getItem("agrimarket_orders");
+    return stored ? JSON.parse(stored) : INITIAL_ORDERS;
+  });
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,6 +182,11 @@ export const MyOrders = () => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
   }, []);
+
+  // Sync orders with localStorage
+  useEffect(() => {
+    localStorage.setItem("agrimarket_orders", JSON.stringify(orders));
+  }, [orders]);
 
   const handleLogout = () => {
     authService.logout();
@@ -340,8 +348,8 @@ export const MyOrders = () => {
             {/* Profile Dropdown */}
             {user ? (
               <div className="auth-profile-container" style={{ position: "relative" }}>
-                <div 
-                  className="profile-indicator" 
+                <div
+                  className="profile-indicator"
                   onClick={() => setShowProfileDropdown(v => !v)}
                   title="Tùy chọn tài khoản"
                 >
@@ -512,7 +520,7 @@ export const MyOrders = () => {
                       <button className="btn-outline">Liên hệ nhà vườn</button>
                       <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
                       {order.status === "pending" && (
-                        <button 
+                        <button
                           className="btn-danger-outline"
                           onClick={() => handleCancelClick(order.id)}
                         >
