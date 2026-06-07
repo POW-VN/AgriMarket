@@ -4,7 +4,6 @@ import authService from '../services/authService'
 import AuthLayout from '../layouts/AuthLayout'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
-import { RoleSelection } from '../pages/RoleCard/RoleCard'
 import ForgotPassword from '../pages/ForgotPassword/ForgotPassword'
 import ResetPassword from '../pages/ResetPassword/ResetPassword'
 import ResetSuccess from '../pages/ResetSuccess/ResetSuccess'
@@ -27,6 +26,8 @@ import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
 import PaymentPage from "../pages/Payment/PaymentPage";
+import UserAccounts from "../pages/Admin/UserAccounts";
+import CreateAccount from "../pages/Admin/CreateAccount";
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -70,8 +71,6 @@ const AppRoutes = () => {
         <Route path="/farmer/orders/:id" element={<OrderDetail />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/payment" element={<PaymentPage />} />
 
         {/* Route to test RoleSelection */}
         <Route path="/role" element={<RoleSelection />} />
@@ -79,6 +78,10 @@ const AppRoutes = () => {
         {/* Privacy Policy and Terms of Service */}
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/users" element={<UserAccounts />} />
+        <Route path="/admin/users/create" element={<CreateAccount />} />
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />

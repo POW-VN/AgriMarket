@@ -44,6 +44,11 @@ public class FarmerService {
         farmer.setFarmName(request.getFarmName());
         farmer.setFarmAddress(request.getFarmAddress());
         farmer.setDescription(request.getDescription());
+        farmer.setIdentityCard(request.getIdentityCard());
+        farmer.setBusinessRegistrationUrl(request.getBusinessRegistrationUrl());
+        farmer.setVietgapUrl(request.getVietgapUrl());
+        farmer.setGlobalgapUrl(request.getGlobalgapUrl());
+        farmer.setOrganicUrl(request.getOrganicUrl());
         farmer.setVerificationStatus("pending");
         farmer.setStatus("active");
         farmer.setCreatedAt(LocalDateTime.now());

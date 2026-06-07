@@ -57,6 +57,12 @@ const normalizeProduct = (item) => {
         // product.harvest_date
         harvestDate: item.harvest_date || item.harvestDate || null,
 
+        // product.expiration_date
+        expirationDate: item.expiration_date || item.expirationDate || null,
+
+        // product.traceability_image_url
+        traceabilityImageUrl: item.traceability_image_url || item.traceabilityImageUrl || "",
+
         // product.created_at
         createdAt: item.created_at || item.createdAt || null,
 

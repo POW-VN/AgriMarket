@@ -90,9 +90,11 @@ public class ProductServiceImpl implements ProductService {
                 .unit(product.getUnit())
                 .status(product.getStatus())
                 .harvestDate(product.getHarvestDate())
+                .expirationDate(product.getExpirationDate())
                 .createdAt(product.getCreatedAt())
                 .isOrganic(product.getIsOrganic())
                 .certificateUrl(product.getCertificateUrl())
+                .traceabilityImageUrl(product.getTraceabilityImageUrl())
                 .thumbnailUrl(thumbnailUrl)
                 .images(imageUrls)
                 .farmerName(farmerName)
@@ -124,6 +126,11 @@ public class ProductServiceImpl implements ProductService {
         // Delete certificate physically
         if (product.getCertificateUrl() != null && !product.getCertificateUrl().isEmpty()) {
             deletePhysicalFile(product.getCertificateUrl(), "certificates");
+        }
+
+        // Delete traceability image physically
+        if (product.getTraceabilityImageUrl() != null && !product.getTraceabilityImageUrl().isEmpty()) {
+            deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
         }
 
         // Delete product
@@ -182,12 +189,19 @@ public class ProductServiceImpl implements ProductService {
         product.setUnit(request.getUnit());
         product.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
         product.setHarvestDate(request.getHarvestDate());
+        product.setExpirationDate(request.getExpirationDate());
         product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
 
         // Handle certificate file Base64 if organic is enabled
         if (Boolean.TRUE.equals(request.getIsOrganic()) && request.getCertificateFileBase64() != null && !request.getCertificateFileBase64().isEmpty()) {
             String certUrl = saveBase64File(request.getCertificateFileBase64(), "certificates");
             product.setCertificateUrl(certUrl);
+        }
+
+        // Handle traceability image Base64 if uploaded
+        if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
+            String traceabilityUrl = saveBase64File(request.getTraceabilityImageBase64(), "traceability");
+            product.setTraceabilityImageUrl(traceabilityUrl);
         }
 
         product = productRepository.save(product);

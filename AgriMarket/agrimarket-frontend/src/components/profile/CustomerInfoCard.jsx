@@ -25,7 +25,9 @@ const CustomerInfoCard = ({ profile }) => {
 
         <div>
           <p>Số điện thoại</p>
-          <strong>{profile?.phone || "Chưa cập nhật"}</strong>
+          <strong style={!profile?.phone ? { color: "#d97706", fontStyle: "italic" } : {}}>
+            {profile?.phone || "Chưa cập nhật"}
+          </strong>
         </div>
 
         <div>

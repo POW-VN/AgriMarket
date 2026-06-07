@@ -123,6 +123,60 @@ const ViewProfile = () => {
           </div>
         )}
 
+        {/* Phone number update banner for Google users */}
+        {!profile.phone && (
+          <div className="password-alert-banner" style={{
+            backgroundColor: "#eff6ff",
+            border: "1px solid #dbeafe",
+            borderRadius: "12px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            boxShadow: "0 4px 12px rgba(59, 130, 246, 0.05)"
+          }}>
+            <div style={{
+              fontSize: "24px",
+              color: "#2563eb"
+            }}>📱</div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: "0 0 4px 0", color: "#1e3a8a", fontWeight: "700", fontSize: "15px" }}>
+                Số điện thoại chưa được cập nhật
+              </h4>
+              <p style={{ margin: 0, color: "#1d4ed8", fontSize: "13.5px", lineHeight: "1.5" }}>
+                Vui lòng{" "}
+                <span
+                  onClick={() => navigate("/profile/edit")}
+                  style={{ textDecoration: "underline", cursor: "pointer", fontWeight: "600", color: "#1d4ed8" }}
+                >
+                  cập nhật số điện thoại
+                </span>{" "}
+                để nhận thông báo đơn hàng và bảo mật tài khoản tốt hơn.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/profile/edit")}
+              style={{
+                backgroundColor: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "background-color 0.2s",
+                whiteSpace: "nowrap"
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = "#1d4ed8"}
+              onMouseOut={(e) => e.target.style.backgroundColor = "#2563eb"}
+            >
+              Cập nhật ngay
+            </button>
+          </div>
+        )}
+
         <ProfileOverviewCard
           profile={profile}
           onEdit={() => navigate("/profile/edit")}

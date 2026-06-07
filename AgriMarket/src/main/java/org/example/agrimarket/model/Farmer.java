@@ -43,6 +43,21 @@ public class Farmer {
     
     @Column(columnDefinition = "nvarchar(max)")
     private String description;
+
+    @Column(name = "identity_card")
+    private String identityCard;
+
+    @Column(name = "business_registration_url")
+    private String businessRegistrationUrl;
+
+    @Column(name = "vietgap_url")
+    private String vietgapUrl;
+
+    @Column(name = "globalgap_url")
+    private String globalgapUrl;
+
+    @Column(name = "organic_url")
+    private String organicUrl;
     
     @Column(name = "verification_status")
     private String verificationStatus; // pending, verified, rejected
@@ -58,4 +73,5 @@ public class Farmer {
     
     private String status; // active, banned, pending
 }
+
 

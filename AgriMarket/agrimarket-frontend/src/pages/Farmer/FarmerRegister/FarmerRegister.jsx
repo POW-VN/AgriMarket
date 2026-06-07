@@ -23,7 +23,57 @@ export const FarmerRegister = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // New states for legal documents & certifications
+    const [identityCard, setIdentityCard] = useState("");
+    const [businessRegistrationUrl, setBusinessRegistrationUrl] = useState("");
+    const [businessLoading, setBusinessLoading] = useState(false);
+
+    const [hasVietgap, setHasVietgap] = useState(false);
+    const [vietgapUrl, setVietgapUrl] = useState("");
+    const [vietgapLoading, setVietgapLoading] = useState(false);
+
+    const [hasGlobalgap, setHasGlobalgap] = useState(false);
+    const [globalgapUrl, setGlobalgapUrl] = useState("");
+    const [globalgapLoading, setGlobalgapLoading] = useState(false);
+
+    const [hasOrganic, setHasOrganic] = useState(false);
+    const [organicUrl, setOrganicUrl] = useState("");
+    const [organicLoading, setOrganicLoading] = useState(false);
+
+    const handleDocumentUpload = async (e, setUrl, setLoading) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await apiClient.post("/api/upload/file", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            if (response.data && response.data.fileUrl) {
+                setUrl(response.data.fileUrl);
+            }
+        } catch (err) {
+            console.error("Failed to upload document:", err);
+            setError("Tải tài liệu lên thất bại. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
+        if (currentUser && currentUser.role === "farmer") {
+            navigate("/farmer/products", { replace: true });
+            return;
+        }
+
         const fetchProvinces = async () => {
             try {
                 const data = await addressService.getProvinces();
@@ -33,7 +83,7 @@ export const FarmerRegister = () => {
             }
         };
         fetchProvinces();
-    }, []);
+    }, [currentUser, navigate]);
 
     const handleProvinceChange = async (e) => {
         const provinceCode = e.target.value;
@@ -134,6 +184,31 @@ export const FarmerRegister = () => {
             return;
         }
 
+        if (!description.trim()) {
+            setError("Vui lòng điền mô tả trang trại.");
+            return;
+        }
+
+        if (!identityCard.trim()) {
+            setError("Vui lòng nhập số CCCD/CMND.");
+            return;
+        }
+
+        if (hasVietgap && !vietgapUrl) {
+            setError("Bạn đã chọn chứng nhận VietGAP. Vui lòng tải lên hình ảnh chứng minh.");
+            return;
+        }
+
+        if (hasGlobalgap && !globalgapUrl) {
+            setError("Bạn đã chọn chứng nhận GlobalGAP. Vui lòng tải lên hình ảnh chứng minh.");
+            return;
+        }
+
+        if (hasOrganic && !organicUrl) {
+            setError("Bạn đã chọn chứng nhận Hữu cơ. Vui lòng tải lên hình ảnh chứng minh.");
+            return;
+        }
+
         setLoading(true);
         setError("");
 
@@ -149,7 +224,12 @@ export const FarmerRegister = () => {
             const response = await authService.registerAsFarmer({
                 farmName: farmName.trim(),
                 farmAddress,
-                description: description.trim()
+                description: description.trim(),
+                identityCard: identityCard.trim(),
+                businessRegistrationUrl: businessRegistrationUrl || null,
+                vietgapUrl: hasVietgap ? vietgapUrl : null,
+                globalgapUrl: hasGlobalgap ? globalgapUrl : null,
+                organicUrl: hasOrganic ? organicUrl : null
             });
 
             // If an avatar was uploaded/updated, update the farmer profile
@@ -167,7 +247,8 @@ export const FarmerRegister = () => {
             navigate("/farmer/products");
             window.location.reload();
         } catch (err) {
-            setError(err.message || "Đăng ký làm đối tác nhà vườn thất bại. Vui lòng thử lại.");
+            const errMsg = typeof err === "string" ? err : (err.message || "Đăng ký làm đối tác nhà vườn thất bại. Vui lòng thử lại.");
+            setError(errMsg);
         } finally {
             setLoading(false);
         }
@@ -231,7 +312,7 @@ export const FarmerRegister = () => {
 
                         <form onSubmit={handleSubmit}>
                             <div className="input-group">
-                                <label>Tên Trang trại</label>
+                                <label>Tên Trang trại <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input 
                                     type="text" 
                                     placeholder="Ví dụ: Nông trại Xanh Đà Lạt" 
@@ -241,9 +322,22 @@ export const FarmerRegister = () => {
                                 />
                             </div>
 
+                            <div className="input-group">
+                                <label>Số CCCD / CMND <span style={{ color: '#ef4444' }}>*</span></label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Nhập số CCCD hoặc CMND của bạn" 
+                                    value={identityCard}
+                                    onChange={(e) => setIdentityCard(e.target.value.replace(/[^0-9]/g, ''))}
+                                    required
+                                />
+                            </div>
+
+                            <div className="section-title-register" style={{ marginTop: "24px" }}>Địa chỉ trang trại</div>
+
                             <div className="input-row">
                                 <div className="input-group">
-                                    <label>Tỉnh / Thành phố</label>
+                                    <label>Tỉnh / Thành phố <span style={{ color: '#ef4444' }}>*</span></label>
                                     <select 
                                         value={selectedProvince.code}
                                         onChange={handleProvinceChange}
@@ -256,7 +350,7 @@ export const FarmerRegister = () => {
                                     </select>
                                 </div>
                                 <div className="input-group">
-                                    <label>Quận / Huyện</label>
+                                    <label>Quận / Huyện <span style={{ color: '#ef4444' }}>*</span></label>
                                     <select 
                                         value={selectedDistrict.code}
                                         onChange={handleDistrictChange}
@@ -273,7 +367,7 @@ export const FarmerRegister = () => {
 
                             <div className="input-row">
                                 <div className="input-group">
-                                    <label>Phường / Xã</label>
+                                    <label>Phường / Xã <span style={{ color: '#ef4444' }}>*</span></label>
                                     <select 
                                         value={selectedWard.code}
                                         onChange={handleWardChange}
@@ -287,7 +381,7 @@ export const FarmerRegister = () => {
                                     </select>
                                 </div>
                                 <div className="input-group">
-                                    <label>Số nhà / Tên đường</label>
+                                    <label>Số nhà / Tên đường <span style={{ color: '#ef4444' }}>*</span></label>
                                     <input 
                                         type="text" 
                                         placeholder="Số 123, đường..." 
@@ -299,12 +393,13 @@ export const FarmerRegister = () => {
                             </div>
 
                             <div className="input-group">
-                                <label>Mô tả Trang trại</label>
+                                <label>Mô tả Trang trại <span style={{ color: '#ef4444' }}>*</span></label>
                                 <textarea 
                                     placeholder="Giới thiệu về trang trại, các loại nông sản chủ lực và phương pháp canh tác bền vững của bạn..."
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     rows="4"
+                                    required
                                 ></textarea>
                             </div>
 
@@ -343,6 +438,195 @@ export const FarmerRegister = () => {
                                         </div>
                                     </>
                                 )}
+                            </div>
+
+                            <div className="section-title-register">Tài liệu pháp lý & Chứng nhận</div>
+
+                            {/* Giấy đăng ký kinh doanh */}
+                            <div className="document-upload-group">
+                                <label>Giấy đăng ký hộ kinh doanh / Hợp tác xã (Không bắt buộc)</label>
+                                <div className="doc-upload-card" onClick={() => document.getElementById("biz-reg-input").click()}>
+                                    <input 
+                                        type="file" 
+                                        id="biz-reg-input" 
+                                        accept="image/*" 
+                                        style={{ display: "none" }} 
+                                        onChange={(e) => handleDocumentUpload(e, setBusinessRegistrationUrl, setBusinessLoading)}
+                                    />
+                                    {businessLoading ? (
+                                        <div className="upload-loading">Đang tải tài liệu lên...</div>
+                                    ) : businessRegistrationUrl ? (
+                                        <div className="doc-preview-container">
+                                            <img src={businessRegistrationUrl} alt="Business Registration" className="doc-preview-img" />
+                                            <div className="doc-preview-overlay">
+                                                <span>Nhấn để thay đổi ảnh</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="doc-placeholder">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" width="24" height="24">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                                <polyline points="10 9 9 9 8 9" />
+                                            </svg>
+                                            <span className="upload-btn-text">Tải lên ảnh giấy phép kinh doanh</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Chứng nhận VietGAP/GlobalGAP/Organic */}
+                            <div className="certificates-section">
+                                <label>Chứng nhận chất lượng sản phẩm</label>
+                                <p className="cert-subtitle">Tích chọn các chứng nhận hiện có và bắt buộc tải lên hình ảnh minh chứng.</p>
+
+                                <div className="cert-list">
+                                    {/* VietGAP */}
+                                    <div className="cert-item-container">
+                                        <div className="cert-header-row">
+                                            <label className="checkbox-container">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={hasVietgap} 
+                                                    onChange={(e) => {
+                                                        setHasVietgap(e.target.checked);
+                                                        if(!e.target.checked) setVietgapUrl("");
+                                                    }} 
+                                                />
+                                                <span className="checkmark"></span>
+                                                <span className="cert-label-text">Chứng nhận VietGAP</span>
+                                            </label>
+                                        </div>
+                                        {hasVietgap && (
+                                            <div className="cert-upload-box" onClick={() => document.getElementById("vietgap-input").click()}>
+                                                <input 
+                                                    type="file" 
+                                                    id="vietgap-input" 
+                                                    accept="image/*" 
+                                                    style={{ display: "none" }} 
+                                                    onChange={(e) => handleDocumentUpload(e, setVietgapUrl, setVietgapLoading)}
+                                                />
+                                                {vietgapLoading ? (
+                                                    <div className="upload-loading">Đang tải ảnh...</div>
+                                                ) : vietgapUrl ? (
+                                                    <div className="doc-preview-container small-preview">
+                                                        <img src={vietgapUrl} alt="VietGAP Certificate" className="doc-preview-img" />
+                                                        <div className="doc-preview-overlay">
+                                                            <span>Thay đổi ảnh</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="doc-placeholder small-placeholder">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" width="20" height="20">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                            <polyline points="17 8 12 3 7 8" />
+                                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                                        </svg>
+                                                        <span className="upload-btn-text text-danger">Tải ảnh chứng nhận VietGAP *</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* GlobalGAP */}
+                                    <div className="cert-item-container">
+                                        <div className="cert-header-row">
+                                            <label className="checkbox-container">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={hasGlobalgap} 
+                                                    onChange={(e) => {
+                                                        setHasGlobalgap(e.target.checked);
+                                                        if(!e.target.checked) setGlobalgapUrl("");
+                                                    }} 
+                                                />
+                                                <span className="checkmark"></span>
+                                                <span className="cert-label-text">Chứng nhận GlobalGAP</span>
+                                            </label>
+                                        </div>
+                                        {hasGlobalgap && (
+                                            <div className="cert-upload-box" onClick={() => document.getElementById("globalgap-input").click()}>
+                                                <input 
+                                                    type="file" 
+                                                    id="globalgap-input" 
+                                                    accept="image/*" 
+                                                    style={{ display: "none" }} 
+                                                    onChange={(e) => handleDocumentUpload(e, setGlobalgapUrl, setGlobalgapLoading)}
+                                                />
+                                                {globalgapLoading ? (
+                                                    <div className="upload-loading">Đang tải ảnh...</div>
+                                                ) : globalgapUrl ? (
+                                                    <div className="doc-preview-container small-preview">
+                                                        <img src={globalgapUrl} alt="GlobalGAP Certificate" className="doc-preview-img" />
+                                                        <div className="doc-preview-overlay">
+                                                            <span>Thay đổi ảnh</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="doc-placeholder small-placeholder">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" width="20" height="20">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                            <polyline points="17 8 12 3 7 8" />
+                                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                                        </svg>
+                                                        <span className="upload-btn-text text-danger">Tải ảnh chứng nhận GlobalGAP *</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Organic */}
+                                    <div className="cert-item-container">
+                                        <div className="cert-header-row">
+                                            <label className="checkbox-container">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={hasOrganic} 
+                                                    onChange={(e) => {
+                                                        setHasOrganic(e.target.checked);
+                                                        if(!e.target.checked) setOrganicUrl("");
+                                                    }} 
+                                                />
+                                                <span className="checkmark"></span>
+                                                <span className="cert-label-text">Chứng nhận Hữu cơ</span>
+                                            </label>
+                                        </div>
+                                        {hasOrganic && (
+                                            <div className="cert-upload-box" onClick={() => document.getElementById("organic-input").click()}>
+                                                <input 
+                                                    type="file" 
+                                                    id="organic-input" 
+                                                    accept="image/*" 
+                                                    style={{ display: "none" }} 
+                                                    onChange={(e) => handleDocumentUpload(e, setOrganicUrl, setOrganicLoading)}
+                                                />
+                                                {organicLoading ? (
+                                                    <div className="upload-loading">Đang tải ảnh...</div>
+                                                ) : organicUrl ? (
+                                                    <div className="doc-preview-container small-preview">
+                                                        <img src={organicUrl} alt="Organic Certificate" className="doc-preview-img" />
+                                                        <div className="doc-preview-overlay">
+                                                            <span>Thay đổi ảnh</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="doc-placeholder small-placeholder">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" width="20" height="20">
+                                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                            <polyline points="17 8 12 3 7 8" />
+                                                            <line x1="12" y1="3" x2="12" y2="15" />
+                                                        </svg>
+                                                        <span className="upload-btn-text text-danger">Tải ảnh chứng nhận Hữu cơ *</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
                             {error && (
