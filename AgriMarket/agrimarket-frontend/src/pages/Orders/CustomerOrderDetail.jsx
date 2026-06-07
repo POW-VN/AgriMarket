@@ -200,10 +200,18 @@ export const CustomerOrderDetail = () => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
 
-    // Get order from DB
-    const fetchedOrder = ORDERS_DB[id];
-    if (fetchedOrder) {
-      setOrder(fetchedOrder);
+    // Get order from localStorage first, fallback to ORDERS_DB
+    const stored = localStorage.getItem("agrimarket_orders");
+    const storedOrders = stored ? JSON.parse(stored) : [];
+    const localOrder = storedOrders.find(o => o.id === id);
+
+    if (localOrder) {
+      setOrder(localOrder);
+    } else {
+      const fetchedOrder = ORDERS_DB[id];
+      if (fetchedOrder) {
+        setOrder(fetchedOrder);
+      }
     }
   }, [id]);
 
@@ -220,12 +228,23 @@ export const CustomerOrderDetail = () => {
       return;
     }
 
-    setOrder(prev => ({
-      ...prev,
+    const updatedOrder = {
+      ...order,
       status: "cancelled",
       statusLabel: "Đã hủy",
       cancelReason: finalReason || "Không có lý do cụ thể"
-    }));
+    };
+
+    setOrder(updatedOrder);
+
+    // Update in localStorage
+    const stored = localStorage.getItem("agrimarket_orders");
+    if (stored) {
+      const storedOrders = JSON.parse(stored);
+      const updatedOrders = storedOrders.map(o => o.id === id ? updatedOrder : o);
+      localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+    }
+
     setShowCancelModal(false);
     setToastMessage("Hủy đơn hàng thành công!");
     setTimeout(() => setToastMessage(""), 3000);

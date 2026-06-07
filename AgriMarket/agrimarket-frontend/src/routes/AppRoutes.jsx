@@ -25,6 +25,8 @@ import { OrderHistory } from "../pages/Farmer/Orders/OrderHistory";
 import { OrderDetail } from "../pages/Farmer/Orders/OrderDetail";
 import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
+import CartPage from "../pages/Cart/CartPage";
+import PaymentPage from "../pages/Payment/PaymentPage";
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -68,6 +70,8 @@ const AppRoutes = () => {
         <Route path="/farmer/orders/:id" element={<OrderDetail />} />
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
 
         {/* Route to test RoleSelection */}
         <Route path="/role" element={<RoleSelection />} />
