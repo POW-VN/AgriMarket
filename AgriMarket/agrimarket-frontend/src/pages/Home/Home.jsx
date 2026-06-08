@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import { getAllApprovedProducts } from "../../services/productService";
+import cartService from "../../services/cartService";
 import "./Home.css";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
 
@@ -29,6 +30,7 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Rau củ quả");
   const [loading, setLoading] = useState(true);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
 
   useEffect(() => {
     // Check login state
@@ -48,6 +50,28 @@ const Home = () => {
       }
     };
     fetchProducts();
+
+    // Fetch cart count
+    const fetchCartCount = async () => {
+      if (currentUser) {
+        try {
+          const cart = await cartService.getCart();
+          setCartItemsCount(cart.length);
+        } catch (err) {
+          console.error("Lỗi khi load giỏ hàng:", err);
+          loadLocalCartCount();
+        }
+      } else {
+        loadLocalCartCount();
+      }
+    };
+
+    const loadLocalCartCount = () => {
+      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      setCartItemsCount(savedCart.length);
+    };
+
+    fetchCartCount();
   }, []);
 
   const displayProducts = products.length > 0 ? products : [
@@ -233,7 +257,7 @@ const Home = () => {
             <p className="standard-card-price">
               {p.price.toLocaleString("vi-VN")} đ <span className="unit">/ {p.unit}</span>
             </p>
-            {(!user || user.role !== "farmer") && (
+            {(!user || user.role !== "admin") && (
               <button 
                 className="add-cart-btn-plus" 
                 aria-label="Thêm vào giỏ hàng"
@@ -324,8 +348,8 @@ const Home = () => {
             </button>
 
             {/* Cart Icon */}
-            {user && user.role !== "farmer" && (
-              <button className="icon-btn" aria-label="Giỏ hàng">
+            {(!user || user.role !== "admin") && (
+              <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -341,6 +365,9 @@ const Home = () => {
                   <circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
+                {cartItemsCount > 0 && (
+                  <span className="cart-badge">{cartItemsCount}</span>
+                )}
               </button>
             )}
 

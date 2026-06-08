@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
+import cartService from "../../services/cartService";
 import "./MyOrders.css";
 
 // Import local images from Home assets
@@ -175,12 +176,34 @@ export const MyOrders = () => {
   const [selectedReason, setSelectedReason] = useState("Thay đổi ý định mua hàng");
   const [customReason, setCustomReason] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+  const [cartItemsCount, setCartItemsCount] = useState(0);
   const itemsPerPage = 3;
 
   useEffect(() => {
     // Check login state
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
+
+    const fetchCartCount = async () => {
+      if (currentUser) {
+        try {
+          const cart = await cartService.getCart();
+          setCartItemsCount(cart.length);
+        } catch (err) {
+          console.error("Lỗi khi load giỏ hàng:", err);
+          loadLocalCartCount();
+        }
+      } else {
+        loadLocalCartCount();
+      }
+    };
+
+    const loadLocalCartCount = () => {
+      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      setCartItemsCount(savedCart.length);
+    };
+
+    fetchCartCount();
   }, []);
 
   // Sync orders with localStorage
@@ -334,14 +357,16 @@ export const MyOrders = () => {
             </button>
 
             {/* Cart Icon */}
-            {(!user || user.role !== "farmer") && (
-              <button className="icon-btn" aria-label="Giỏ hàng">
+            {(!user || user.role !== "admin") && (
+              <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
                   <circle cx="9" cy="21" r="1"></circle>
                   <circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
-                <span className="cart-badge">0</span>
+                {cartItemsCount > 0 && (
+                  <span className="cart-badge">{cartItemsCount}</span>
+                )}
               </button>
             )}
 

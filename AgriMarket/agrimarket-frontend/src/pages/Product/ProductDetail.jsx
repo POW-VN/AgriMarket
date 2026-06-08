@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
+import cartService from "../../services/cartService";
 import { getProductById, getAllApprovedProducts } from "../../services/productService";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
 import "./ProductDetail.css";
@@ -41,6 +42,7 @@ export default function ProductDetail() {
 
   // Shipping location state
   const [selectedCity, setSelectedCity] = useState("TP. Hồ Chí Minh");
+  const [cartItemsCount, setCartItemsCount] = useState(0);
 
   // Reviews and Rating states
   const [reviewsList, setReviewsList] = useState([]);
@@ -167,6 +169,27 @@ export default function ProductDetail() {
     if (currentUser && currentUser.fullName) {
       setNewAuthor(currentUser.fullName);
     }
+
+    const fetchCartCount = async () => {
+      if (currentUser) {
+        try {
+          const cart = await cartService.getCart();
+          setCartItemsCount(cart.length);
+        } catch (err) {
+          console.error("Lỗi khi load giỏ hàng:", err);
+          loadLocalCartCount();
+        }
+      } else {
+        loadLocalCartCount();
+      }
+    };
+
+    const loadLocalCartCount = () => {
+      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      setCartItemsCount(savedCart.length);
+    };
+
+    fetchCartCount();
   }, []);
 
   useEffect(() => {
@@ -279,32 +302,45 @@ export default function ProductDetail() {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
     const qtyToUse = parseInt(quantity, 10) || 1;
-    // Mock add to cart logic (could write to localStorage)
-    const cartKey = "agrimarket_cart";
-    const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
-    const existingIndex = currentCart.findIndex(item => item.id === product.id);
     
-    if (existingIndex > -1) {
-      currentCart[existingIndex].quantity += qtyToUse;
+    if (user) {
+      try {
+        const data = await cartService.addToCart(product.id, qtyToUse);
+        setCartItemsCount(data.length);
+        triggerToast(`Đã thêm ${qtyToUse} ${product.unit} "${product.name}" vào giỏ hàng!`);
+      } catch (err) {
+        console.error("Lỗi khi thêm vào giỏ hàng:", err);
+        triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!");
+      }
     } else {
-      currentCart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        unit: product.unit,
-        imageUrl: product.imageUrl,
-        quantity: qtyToUse
-      });
+      const cartKey = "agrimarket_cart";
+      const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
+      const existingIndex = currentCart.findIndex(item => String(item.id) === String(product.id));
+      
+      if (existingIndex > -1) {
+        currentCart[existingIndex].quantity += qtyToUse;
+      } else {
+        currentCart.push({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          unit: product.unit,
+          imageUrl: product.imageUrl,
+          quantity: qtyToUse,
+          checked: true
+        });
+      }
+      localStorage.setItem(cartKey, JSON.stringify(currentCart));
+      setCartItemsCount(currentCart.length);
+      triggerToast(`Đã thêm ${qtyToUse} ${product.unit} "${product.name}" vào giỏ hàng!`);
     }
-    localStorage.setItem(cartKey, JSON.stringify(currentCart));
-    triggerToast(`Đã thêm ${qtyToUse} ${product.unit} "${product.name}" vào giỏ hàng!`);
   };
 
-  const handleBuyNow = () => {
-    handleAddToCart();
+  const handleBuyNow = async () => {
+    await handleAddToCart();
     navigate("/cart");
   };
 
@@ -679,7 +715,7 @@ export default function ProductDetail() {
               </svg>
             </button>
 
-            {user && user.role !== "farmer" && (
+            {(!user || user.role !== "admin") && (
               <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -696,6 +732,9 @@ export default function ProductDetail() {
                   <circle cx="20" cy="21" r="1"></circle>
                   <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                 </svg>
+                {cartItemsCount > 0 && (
+                  <span className="cart-badge">{cartItemsCount}</span>
+                )}
               </button>
             )}
 

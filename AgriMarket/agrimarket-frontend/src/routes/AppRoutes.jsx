@@ -25,6 +25,7 @@ import { OrderDetail } from "../pages/Farmer/Orders/OrderDetail";
 import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
+import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
@@ -72,8 +73,9 @@ const AppRoutes = () => {
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
 
-        {/* Route to test RoleSelection */}
-        <Route path="/role" element={<RoleSelection />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
 
         {/* Privacy Policy and Terms of Service */}
         <Route path="/privacy" element={<PrivacyPolicy />} />

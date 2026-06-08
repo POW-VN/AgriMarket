@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
+import cartService from "../../services/cartService";
 import CartItem from "./CartItem";
 import Footer from "../../components/common/Footer/Footer";
 import "./CartPage.css";
@@ -18,49 +19,66 @@ export default function CartPage() {
         const currentUser = authService.getCurrentUser();
         setUser(currentUser);
 
-        // Load cart from localStorage
-        let savedCart = JSON.parse(localStorage.getItem("agrimarket_cart"));
-
-        if (!savedCart || savedCart.length === 0) {
-            savedCart = [
-                {
-                    id: "mock-1",
-                    name: "Cà chua Heirloom hữu cơ",
-                    price: 49900,
-                    unit: "kg",
-                    imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300",
-                    quantity: 2,
-                    checked: true
-                },
-                {
-                    id: "mock-2",
-                    name: "Cà rốt gia truyền hữu cơ",
-                    price: 112500,
-                    unit: "bó",
-                    imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=300",
-                    quantity: 1,
-                    checked: true
-                },
-                {
-                    id: "mock-3",
-                    name: "Táo Honeycrisp giòn ngọt",
-                    price: 69000,
-                    unit: "kg",
-                    imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300",
-                    quantity: 3,
-                    checked: true
+        const loadCart = async () => {
+            if (currentUser) {
+                try {
+                    const data = await cartService.getCart();
+                    setCartItems(data);
+                } catch (err) {
+                    console.error("Lỗi khi load giỏ hàng từ DB:", err);
+                    loadLocalCart();
                 }
-            ];
+            } else {
+                loadLocalCart();
+            }
+        };
 
-            localStorage.setItem("agrimarket_cart", JSON.stringify(savedCart));
-        }
+        const loadLocalCart = () => {
+            let savedCart = JSON.parse(localStorage.getItem("agrimarket_cart"));
 
-        savedCart = savedCart.map(item => ({
-            ...item,
-            checked: item.checked ?? true
-        }));
+            if (!savedCart || savedCart.length === 0) {
+                savedCart = [
+                    {
+                        id: "mock-1",
+                        name: "Cà chua Heirloom hữu cơ",
+                        price: 49900,
+                        unit: "kg",
+                        imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300",
+                        quantity: 2,
+                        checked: true
+                    },
+                    {
+                        id: "mock-2",
+                        name: "Cà rốt gia truyền hữu cơ",
+                        price: 112500,
+                        unit: "bó",
+                        imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=300",
+                        quantity: 1,
+                        checked: true
+                    },
+                    {
+                        id: "mock-3",
+                        name: "Táo Honeycrisp giòn ngọt",
+                        price: 69000,
+                        unit: "kg",
+                        imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300",
+                        quantity: 3,
+                        checked: true
+                    }
+                ];
 
-        setCartItems(savedCart);
+                localStorage.setItem("agrimarket_cart", JSON.stringify(savedCart));
+            }
+
+            savedCart = savedCart.map(item => ({
+                ...item,
+                checked: item.checked ?? true
+            }));
+
+            setCartItems(savedCart);
+        };
+
+        loadCart();
     }, []);
 
     const handleLogout = () => {
@@ -108,47 +126,99 @@ export default function CartPage() {
         localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
     };
 
-    const handleUpdateQuantity = (itemId, newQuantity) => {
-        const updatedCart = cartItems.map(item =>
-            item.id === itemId ? { ...item, quantity: newQuantity } : item
-        );
-
-        syncCart(updatedCart);
+    const handleUpdateQuantity = async (itemId, newQuantity) => {
+        if (user) {
+            try {
+                const data = await cartService.updateCartItem(itemId, newQuantity, null);
+                setCartItems(data);
+            } catch (err) {
+                console.error("Lỗi khi cập nhật số lượng:", err);
+            }
+        } else {
+            const updatedCart = cartItems.map(item =>
+                item.id === itemId ? { ...item, quantity: newQuantity } : item
+            );
+            syncCart(updatedCart);
+        }
     };
 
-    const handleRemoveItem = (itemId) => {
-        const updatedCart = cartItems.filter(item => item.id !== itemId);
-        syncCart(updatedCart);
-        triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
+    const handleRemoveItem = async (itemId) => {
+        if (user) {
+            try {
+                const data = await cartService.removeFromCart(itemId);
+                setCartItems(data);
+                triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
+            } catch (err) {
+                console.error("Lỗi khi xóa sản phẩm:", err);
+            }
+        } else {
+            const updatedCart = cartItems.filter(item => item.id !== itemId);
+            syncCart(updatedCart);
+            triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
+        }
     };
 
-    const handleSelectItem = (itemId) => {
-        const updatedCart = cartItems.map(item =>
-            item.id === itemId ? { ...item, checked: !item.checked } : item
-        );
+    const handleSelectItem = async (itemId) => {
+        const item = cartItems.find(i => i.id === itemId);
+        if (!item) return;
 
-        syncCart(updatedCart);
+        if (user) {
+            try {
+                const data = await cartService.updateCartItem(itemId, null, !item.checked);
+                setCartItems(data);
+            } catch (err) {
+                console.error("Lỗi khi chọn sản phẩm:", err);
+            }
+        } else {
+            const updatedCart = cartItems.map(item =>
+                item.id === itemId ? { ...item, checked: !item.checked } : item
+            );
+            syncCart(updatedCart);
+        }
     };
 
-    const handleSelectAllItems = () => {
+    const handleSelectAllItems = async () => {
         const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.checked);
+        const newCheckedVal = !isAllSelected;
 
-        const updatedCart = cartItems.map(item => ({
-            ...item,
-            checked: !isAllSelected
-        }));
-
-        syncCart(updatedCart);
+        if (user) {
+            try {
+                let lastData = cartItems;
+                for (const item of cartItems) {
+                    if (item.checked !== newCheckedVal) {
+                        lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
+                    }
+                }
+                setCartItems(lastData);
+            } catch (err) {
+                console.error("Lỗi khi chọn tất cả sản phẩm:", err);
+            }
+        } else {
+            const updatedCart = cartItems.map(item => ({
+                ...item,
+                checked: newCheckedVal
+            }));
+            syncCart(updatedCart);
+        }
     };
 
-    const handleClearCart = () => {
+    const handleClearCart = async () => {
         const confirmed = window.confirm("Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng không?");
-
         if (!confirmed) return;
 
-        setCartItems([]);
-        localStorage.removeItem("agrimarket_cart");
-        triggerToast("Giỏ hàng đã được làm trống!");
+        if (user) {
+            try {
+                const data = await cartService.clearCart();
+                setCartItems(data);
+                triggerToast("Giỏ hàng đã được làm trống!");
+            } catch (err) {
+                console.error("Lỗi khi làm trống giỏ hàng:", err);
+            }
+        } else {
+            setCartItems([]);
+            localStorage.removeItem("agrimarket_cart");
+            triggerToast("Giỏ hàng đã được làm trống!");
+        }
     };
 
     const handleProceedToPayment = () => {
@@ -172,7 +242,7 @@ export default function CartPage() {
         };
 
         localStorage.setItem("agrimarket_checkout", JSON.stringify(checkoutData));
-        navigate("/payment");
+        navigate("/checkout");
     };
 
     return (
@@ -218,15 +288,15 @@ export default function CartPage() {
                         </button>
 
                         {/* Cart Icon */}
-                        {(!user || user.role !== "farmer") && (
+                        {(!user || user.role !== "admin") && (
                             <button className="icon-btn active-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
                                     <circle cx="9" cy="21" r="1"></circle>
                                     <circle cx="20" cy="21" r="1"></circle>
                                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                                 </svg>
-                                {totalCartQty > 0 && (
-                                    <span className="cart-badge">{totalCartQty}</span>
+                                {cartItems.length > 0 && (
+                                    <span className="cart-badge">{cartItems.length}</span>
                                 )}
                             </button>
                         )}

@@ -47,3 +47,26 @@ input {
 }
 
 /* PASTE GLOBAL CSS OR DESIGN TOKENS FROM ANIMA HERE */
+
+/* Cart count badge styles */
+.icon-btn {
+  position: relative !important;
+}
+
+.cart-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: #d32f2f;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid white;
+  pointer-events: none;
+}
