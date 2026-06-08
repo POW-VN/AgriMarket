@@ -255,6 +255,16 @@ export const createFarmerProduct = async (productData) => {
     }
 };
 
+export const updateFarmerProduct = async (productId, productData) => {
+    try {
+        const response = await apiClient.put(`/api/farmer/products/${productId}`, productData);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi sửa sản phẩm:", error);
+        throw error;
+    }
+};
+
 export const getAllApprovedProducts = async () => {
     try {
         const response = await apiClient.get("/api/products");
@@ -263,7 +273,7 @@ export const getAllApprovedProducts = async () => {
         return productList.map(normalizeProduct);
     } catch (error) {
         console.error("Lỗi khi lấy danh sách sản phẩm công khai:", error);
-        return MOCK_PRODUCTS;
+        return [];
     }
 };
 

@@ -232,7 +232,50 @@ const ViewProfile = () => {
         )}
 
         {profile.role === USER_ROLES.FARMER && (
-          <FarmerInfoCard profile={profile} />
+          <>
+            {/* Farmer is also a customer — show full customer info card */}
+            <CustomerInfoCard profile={profile} />
+
+            {/* Banner to go to farm dashboard */}
+            <div style={{
+              background: "linear-gradient(135deg, #064e3b 0%, #065f46 100%)",
+              color: "#ffffff",
+              borderRadius: "16px",
+              padding: "24px",
+              marginTop: "24px",
+              boxShadow: "0 10px 15px -3px rgba(6, 78, 59, 0.25)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "16px"
+            }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "700", color: "#ffffff" }}>🏡 Quản lý trang trại của bạn</h3>
+                <p style={{ margin: 0, fontSize: "14px", opacity: 0.85, lineHeight: "1.5" }}>Cập nhật thông tin trang trại, chứng nhận chất lượng và hình ảnh trong Kênh nhà vườn.</p>
+              </div>
+              <button
+                onClick={() => navigate("/farmer/farm-profile")}
+                style={{
+                  backgroundColor: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px 24px",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
+                  transition: "all 0.2s",
+                  whiteSpace: "nowrap"
+                }}
+                onMouseOver={(e) => { e.target.style.transform = "translateY(-2px)"; e.target.style.backgroundColor = "#059669"; }}
+                onMouseOut={(e) => { e.target.style.transform = "none"; e.target.style.backgroundColor = "#10b981"; }}
+              >
+                Đi tới Kênh nhà vườn
+              </button>
+            </div>
+          </>
         )}
 
         {profile.role === USER_ROLES.ADMIN && (

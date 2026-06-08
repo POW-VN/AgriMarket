@@ -387,7 +387,7 @@ export default function CartPage() {
                         <button
                             type="button"
                             className="btn-back-to-shop"
-                            onClick={() => navigate("/products")}
+                            onClick={() => navigate("/")}
                         >
                             Khám phá cửa hàng ngay
                         </button>

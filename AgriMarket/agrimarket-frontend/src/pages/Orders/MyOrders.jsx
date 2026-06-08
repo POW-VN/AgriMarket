@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
+import orderService from "../../services/orderService";
 import "./MyOrders.css";
 
 // Import local images from Home assets
@@ -163,10 +164,7 @@ const TABS = [
 export const MyOrders = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [orders, setOrders] = useState(() => {
-    const stored = localStorage.getItem("agrimarket_orders");
-    return stored ? JSON.parse(stored) : INITIAL_ORDERS;
-  });
+  const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -183,6 +181,22 @@ export const MyOrders = () => {
     // Check login state
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
+
+    const loadOrders = async () => {
+      if (currentUser) {
+        try {
+          const fetched = await orderService.getCustomerOrders();
+          setOrders(fetched);
+        } catch (err) {
+          console.error("Lỗi khi load đơn hàng từ API:", err);
+          const stored = localStorage.getItem("agrimarket_orders");
+          setOrders(stored ? JSON.parse(stored) : INITIAL_ORDERS);
+        }
+      } else {
+        const stored = localStorage.getItem("agrimarket_orders");
+        setOrders(stored ? JSON.parse(stored) : INITIAL_ORDERS);
+      }
+    };
 
     const fetchCartCount = async () => {
       if (currentUser) {
@@ -203,13 +217,16 @@ export const MyOrders = () => {
       setCartItemsCount(savedCart.length);
     };
 
+    loadOrders();
     fetchCartCount();
   }, []);
 
-  // Sync orders with localStorage
+  // Sync orders with localStorage only when not logged in
   useEffect(() => {
-    localStorage.setItem("agrimarket_orders", JSON.stringify(orders));
-  }, [orders]);
+    if (!user) {
+      localStorage.setItem("agrimarket_orders", JSON.stringify(orders));
+    }
+  }, [orders, user]);
 
   const handleLogout = () => {
     authService.logout();
@@ -224,23 +241,38 @@ export const MyOrders = () => {
     setShowCancelModal(true);
   };
 
-  const handleCancelConfirm = () => {
+  const handleCancelConfirm = async () => {
     const finalReason = selectedReason === "Lý do khác" ? customReason.trim() : selectedReason;
     if (selectedReason === "Lý do khác" && !customReason.trim()) {
       alert("Vui lòng nhập lý do hủy đơn hàng của bạn.");
       return;
     }
 
-    setOrders(prevOrders =>
-      prevOrders.map(o =>
-        o.id === selectedOrderId
-          ? { ...o, status: "cancelled", statusLabel: "Đã hủy", cancelReason: finalReason || "Không có lý do cụ thể" }
-          : o
-      )
-    );
-    setShowCancelModal(false);
-    setToastMessage("Hủy đơn hàng thành công!");
-    setTimeout(() => setToastMessage(""), 3000);
+    if (user) {
+      try {
+        const updated = await orderService.cancelOrder(selectedOrderId, finalReason);
+        setOrders(prevOrders =>
+          prevOrders.map(o => o.id === selectedOrderId ? updated : o)
+        );
+        setShowCancelModal(false);
+        setToastMessage("Hủy đơn hàng thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+      } catch (err) {
+        console.error("Lỗi khi hủy đơn hàng:", err);
+        alert(err.response?.data || "Hủy đơn hàng thất bại. Vui lòng thử lại.");
+      }
+    } else {
+      setOrders(prevOrders =>
+        prevOrders.map(o =>
+          o.id === selectedOrderId
+            ? { ...o, status: "cancelled", statusLabel: "Đã hủy", cancelReason: finalReason || "Không có lý do cụ thể" }
+            : o
+        )
+      );
+      setShowCancelModal(false);
+      setToastMessage("Hủy đơn hàng thành công!");
+      setTimeout(() => setToastMessage(""), 3000);
+    }
   };
 
   // Filter logic

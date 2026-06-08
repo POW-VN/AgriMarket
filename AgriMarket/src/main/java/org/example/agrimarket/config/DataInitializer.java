@@ -32,9 +32,78 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private FarmerRepository farmerRepository;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // Clean up redundant legacy columns in orders table
+        String[] ordersCols = {"checkout_id", "total_price", "shipping_address"};
+        for (String col : ordersCols) {
+            try {
+                // Drop default constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @ConstraintName nvarchar(200)\n" +
+                    "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
+                    "WHERE parent_object_id = OBJECT_ID('orders') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('orders'), '" + col + "', 'ColumnId')\n" +
+                    "IF @ConstraintName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @ConstraintName);"
+                );
+                
+                // Drop foreign key constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @FKName nvarchar(200)\n" +
+                    "SELECT @FKName = f.name FROM sys.foreign_keys AS f\n" +
+                    "INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\n" +
+                    "WHERE fc.parent_object_id = OBJECT_ID('orders') AND fc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('orders'), '" + col + "', 'ColumnId')\n" +
+                    "IF @FKName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @FKName);"
+                );
+
+                jdbcTemplate.execute(
+                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('orders') AND name = '" + col + "')\n" +
+                    "    ALTER TABLE orders DROP COLUMN " + col + ";"
+                );
+                System.out.println(">>> DataInitializer: Dropped legacy column '" + col + "' from orders table.");
+            } catch (Exception e) {
+                System.err.println(">>> DataInitializer: Could not drop legacy column '" + col + "' from orders table: " + e.getMessage());
+            }
+        }
+
+        // Clean up redundant legacy columns in order_item table
+        String[] orderItemCols = {"product_thumbnail", "unit_price", "subtotal"};
+        for (String col : orderItemCols) {
+            try {
+                // Drop default constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @ConstraintName nvarchar(200)\n" +
+                    "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
+                    "WHERE parent_object_id = OBJECT_ID('order_item') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('order_item'), '" + col + "', 'ColumnId')\n" +
+                    "IF @ConstraintName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE order_item DROP CONSTRAINT ' + @ConstraintName);"
+                );
+
+                // Drop foreign key constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @FKName nvarchar(200)\n" +
+                    "SELECT @FKName = f.name FROM sys.foreign_keys AS f\n" +
+                    "INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\n" +
+                    "WHERE fc.parent_object_id = OBJECT_ID('order_item') AND fc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('order_item'), '" + col + "', 'ColumnId')\n" +
+                    "IF @FKName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE order_item DROP CONSTRAINT ' + @FKName);"
+                );
+
+                jdbcTemplate.execute(
+                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('order_item') AND name = '" + col + "')\n" +
+                    "    ALTER TABLE order_item DROP COLUMN " + col + ";"
+                );
+                System.out.println(">>> DataInitializer: Dropped legacy column '" + col + "' from order_item table.");
+            } catch (Exception e) {
+                System.err.println(">>> DataInitializer: Could not drop legacy column '" + col + "' from order_item table: " + e.getMessage());
+            }
+        }
+
         // 1. Ensure the 8 main categories exist
         String[] targetCategories = {
                 "Cây lương thực",

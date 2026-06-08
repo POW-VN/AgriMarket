@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
+import orderService from "../../services/orderService";
 import "./CustomerOrderDetail.css";
 
 // Import local images from Home assets
@@ -202,19 +203,34 @@ export const CustomerOrderDetail = () => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
 
-    // Get order from localStorage first, fallback to ORDERS_DB
-    const stored = localStorage.getItem("agrimarket_orders");
-    const storedOrders = stored ? JSON.parse(stored) : [];
-    const localOrder = storedOrders.find(o => o.id === id);
-
-    if (localOrder) {
-      setOrder(localOrder);
-    } else {
-      const fetchedOrder = ORDERS_DB[id];
-      if (fetchedOrder) {
-        setOrder(fetchedOrder);
+    const loadOrderDetail = async () => {
+      if (currentUser) {
+        try {
+          const fetched = await orderService.getOrderById(id);
+          setOrder(fetched);
+        } catch (err) {
+          console.error("Lỗi khi load chi tiết đơn hàng từ API:", err);
+          fallbackLoad();
+        }
+      } else {
+        fallbackLoad();
       }
-    }
+    };
+
+    const fallbackLoad = () => {
+      const stored = localStorage.getItem("agrimarket_orders");
+      const storedOrders = stored ? JSON.parse(stored) : [];
+      const localOrder = storedOrders.find(o => o.id === id);
+
+      if (localOrder) {
+        setOrder(localOrder);
+      } else {
+        const fetchedOrder = ORDERS_DB[id];
+        if (fetchedOrder) {
+          setOrder(fetchedOrder);
+        }
+      }
+    };
 
     const fetchCartCount = async () => {
       if (currentUser) {
@@ -235,6 +251,7 @@ export const CustomerOrderDetail = () => {
       setCartItemsCount(savedCart.length);
     };
 
+    loadOrderDetail();
     fetchCartCount();
   }, [id]);
 
@@ -244,33 +261,46 @@ export const CustomerOrderDetail = () => {
     navigate("/");
   };
 
-  const handleCancelOrder = () => {
+  const handleCancelOrder = async () => {
     const finalReason = selectedReason === "Lý do khác" ? customReason.trim() : selectedReason;
     if (selectedReason === "Lý do khác" && !customReason.trim()) {
       alert("Vui lòng nhập lý do hủy đơn hàng của bạn.");
       return;
     }
 
-    const updatedOrder = {
-      ...order,
-      status: "cancelled",
-      statusLabel: "Đã hủy",
-      cancelReason: finalReason || "Không có lý do cụ thể"
-    };
+    if (user) {
+      try {
+        const updated = await orderService.cancelOrder(id, finalReason);
+        setOrder(updated);
+        setShowCancelModal(false);
+        setToastMessage("Hủy đơn hàng thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+      } catch (err) {
+        console.error("Lỗi khi hủy đơn hàng:", err);
+        alert(err.response?.data || "Hủy đơn hàng thất bại. Vui lòng thử lại.");
+      }
+    } else {
+      const updatedOrder = {
+        ...order,
+        status: "cancelled",
+        statusLabel: "Đã hủy",
+        cancelReason: finalReason || "Không có lý do cụ thể"
+      };
 
-    setOrder(updatedOrder);
+      setOrder(updatedOrder);
 
-    // Update in localStorage
-    const stored = localStorage.getItem("agrimarket_orders");
-    if (stored) {
-      const storedOrders = JSON.parse(stored);
-      const updatedOrders = storedOrders.map(o => o.id === id ? updatedOrder : o);
-      localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+      // Update in localStorage
+      const stored = localStorage.getItem("agrimarket_orders");
+      if (stored) {
+        const storedOrders = JSON.parse(stored);
+        const updatedOrders = storedOrders.map(o => o.id === id ? updatedOrder : o);
+        localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+      }
+
+      setShowCancelModal(false);
+      setToastMessage("Hủy đơn hàng thành công!");
+      setTimeout(() => setToastMessage(""), 3000);
     }
-
-    setShowCancelModal(false);
-    setToastMessage("Hủy đơn hàng thành công!");
-    setTimeout(() => setToastMessage(""), 3000);
   };
 
   if (!order) {

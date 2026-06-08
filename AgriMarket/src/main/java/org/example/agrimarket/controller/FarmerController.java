@@ -1,6 +1,7 @@
 package org.example.agrimarket.controller;
 
 import org.example.agrimarket.dto.FarmerRegistrationRequest;
+import org.example.agrimarket.dto.UpdateFarmerProfileRequest;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.service.FarmerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ public class FarmerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Farmer> updateProfile(@PathVariable Long id, @RequestBody Farmer farmer) {
-        return ResponseEntity.ok(farmerService.updateProfile(id, farmer));
+    public ResponseEntity<Farmer> updateProfile(@PathVariable Long id, @RequestBody UpdateFarmerProfileRequest request) {
+        return ResponseEntity.ok(farmerService.updateProfile(id, request));
     }
 }

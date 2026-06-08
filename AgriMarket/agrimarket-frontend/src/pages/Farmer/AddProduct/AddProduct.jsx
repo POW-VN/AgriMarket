@@ -1,14 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { createFarmerProduct } from "../../../services/productService";
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import * as productService from "../../../services/productService";
 import apiClient from "../../../services/apiClient";
-import Footer from "../../../components/common/Footer/Footer";
-import ProfileSidebar from "../../../components/profile/ProfileSidebar";
-import useProfile from "../../../hooks/useProfile";
 import "./AddProduct.css";
-import "../../Product/ProductPage.css";
-
-// Nav constants removed in favor of ProfileSidebar component
 
 const CATEGORIES = [
   "Cây lương thực",
@@ -26,10 +20,8 @@ const UNITS = ["kg", "bó", "thùng", "cái", "lít"];
 
 export const AddProduct = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
-
-  const { profile, isProfileLoading } = useProfile();
-  const isFarmer = profile?.role?.toLowerCase() === "farmer";
+  const { id } = useParams();
+  const isEdit = !!id;
 
   // Form state
   const [productName, setProductName] = useState("");
@@ -56,9 +48,7 @@ export const AddProduct = () => {
   const [traceabilityFile, setTraceabilityFile] = useState(null); // { name, url }
 
   const [loading, setLoading] = useState(false);
-  const [previewToast, setPreviewToast] = useState(false);
   const [errors, setErrors] = useState({});
-
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   // AI description suggestion state
@@ -70,6 +60,71 @@ export const AddProduct = () => {
   const [isAiSuggestingPrice, setIsAiSuggestingPrice] = useState(false);
   const [showAiPriceModal, setShowAiPriceModal] = useState(false);
   const [aiPriceData, setAiPriceData] = useState({ recommendedPrice: 0, minPrice: 0, maxPrice: 0, explanation: "" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  // Load product info if in Edit mode
+  useEffect(() => {
+    if (isEdit) {
+      const loadProductDetails = async () => {
+        setLoading(true);
+        try {
+          const prod = await productService.getProductById(id);
+          if (prod) {
+            setProductName(prod.name || "");
+            if (CATEGORIES.includes(prod.categoryName)) {
+              setCategory(prod.categoryName);
+              setCustomCategory("");
+            } else {
+              setCategory("Khác");
+              setCustomCategory(prod.categoryName || "");
+            }
+            setHarvestDate(prod.harvestDate ? prod.harvestDate.substring(0, 10) : "");
+            setExpirationDate(prod.expirationDate ? prod.expirationDate.substring(0, 10) : "");
+            setDescription(prod.description || "");
+            setBasePrice(prod.price || "");
+            
+            if (UNITS.includes(prod.unit)) {
+              setSelectedUnit(prod.unit);
+              setIsCustomUnit(false);
+              setCustomUnitVal("");
+            } else {
+              setSelectedUnit(prod.unit || "kg");
+              setIsCustomUnit(true);
+              setCustomUnitVal(prod.unit || "");
+            }
+            setStockQty(prod.stockQuantity !== undefined ? prod.stockQuantity : prod.stock || 0);
+
+            // Load images
+            if (prod.images && prod.images.length > 0) {
+              setProductImages(prod.images.map((imgUrl, i) => ({ id: i, url: imgUrl })));
+            } else if (prod.imageUrl) {
+              setProductImages([{ id: 0, url: prod.imageUrl }]);
+            } else {
+              setProductImages([]);
+            }
+
+            if (prod.traceabilityImageUrl) {
+              setTraceabilityFile({ name: "traceability_image.jpg", url: prod.traceabilityImageUrl });
+            } else {
+              setTraceabilityFile(null);
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi khi tải chi tiết sản phẩm để chỉnh sửa:", err);
+          showToast("Không thể tải thông tin sản phẩm.", "error");
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadProductDetails();
+    }
+  }, [id, isEdit]);
 
   const handleAiGenerate = async () => {
     if (!productName.trim()) {
@@ -138,37 +193,7 @@ export const AddProduct = () => {
     }
   };
 
-  const showToast = (message, type = "success") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: "", type: "success" });
-    }, 3000);
-  };
-
-  if (isProfileLoading) {
-    return (
-      <div className="product-loading">
-        <div className="loading-spinner"></div>
-        <span>Đang tải hồ sơ...</span>
-      </div>
-    );
-  }
-
-  if (!isFarmer) {
-    return (
-      <div className="product-layout">
-        <ProfileSidebar profile={profile} />
-        <main className="product-main">
-          <div className="product-permission-box">
-            <h2>Không có quyền truy cập</h2>
-            <p>Chức năng thêm sản phẩm chỉ dành cho tài khoản nông dân.</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // ── Multi-image handlers ──────────────────────────────
+  // Multi-image handlers
   const readFiles = (files) => {
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith("image/")) return;
@@ -197,9 +222,7 @@ export const AddProduct = () => {
   const removeImage = (id) =>
     setProductImages((prev) => prev.filter((img) => img.id !== id));
 
-
-
-  // ── Traceability image upload ──────────────────────────
+  // Traceability image upload
   const handleTraceabilityChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -211,7 +234,6 @@ export const AddProduct = () => {
     reader.readAsDataURL(file);
   };
 
-  // Validation
   const validate = () => {
     const newErrors = {};
     if (!productName.trim()) newErrors.productName = "Vui lòng nhập tên sản phẩm.";
@@ -255,12 +277,18 @@ export const AddProduct = () => {
         traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
       };
-      await createFarmerProduct(payload);
-      sessionStorage.setItem("product_success_message", "Thêm sản phẩm thành công và đang chờ phê duyệt!");
-      navigate("/products");
+
+      if (isEdit) {
+        await productService.updateFarmerProduct(id, payload);
+        sessionStorage.setItem("product_success_message", "Cập nhật sản phẩm thành công, đang chờ quản trị viên phê duyệt!");
+      } else {
+        await productService.createFarmerProduct(payload);
+        sessionStorage.setItem("product_success_message", "Thêm sản phẩm thành công và đang chờ phê duyệt!");
+      }
+      navigate("/farmer/products");
     } catch (err) {
       console.error(err);
-      showToast("Đã xảy ra lỗi khi thêm sản phẩm: " + (err.response?.data || err.message), "error");
+      showToast("Đã xảy ra lỗi: " + (err.response?.data || err.message), "error");
     } finally {
       setLoading(false);
     }
@@ -284,9 +312,15 @@ export const AddProduct = () => {
         traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
       };
-      await createFarmerProduct(payload);
-      sessionStorage.setItem("product_success_message", "Đã lưu bản nháp thành công!");
-      navigate("/products");
+
+      if (isEdit) {
+        await productService.updateFarmerProduct(id, payload);
+        sessionStorage.setItem("product_success_message", "Đã cập nhật bản nháp thành công!");
+      } else {
+        await productService.createFarmerProduct(payload);
+        sessionStorage.setItem("product_success_message", "Đã lưu bản nháp thành công!");
+      }
+      navigate("/farmer/products");
     } catch (err) {
       console.error(err);
       showToast("Đã xảy ra lỗi khi lưu bản nháp: " + (err.response?.data || err.message), "error");
@@ -295,16 +329,10 @@ export const AddProduct = () => {
     }
   };
 
-  const handlePreviewCart = () => {
-    setPreviewToast(true);
-    setTimeout(() => setPreviewToast(false), 2500);
-  };
-
   const displayPrice = basePrice
     ? `${parseInt(basePrice).toLocaleString("vi-VN")} VNĐ`
     : "0 VNĐ";
   const displayName = productName || "Tên sản phẩm xem trước";
-  // All preview slides: product images + traceability (if uploaded)
   const previewSlides = [
     ...productImages.map((img) => ({ url: img.url, type: "product" })),
     ...(traceabilityFile ? [{ url: traceabilityFile.url, type: "traceability" }] : []),
@@ -318,16 +346,16 @@ export const AddProduct = () => {
     setPreviewSlideIdx((i) => (i + 1) % Math.max(slideCount, 1));
 
   return (
-    <div className="ap-page product-layout">
-      <ProfileSidebar profile={profile} />
-
+    <div className="ap-page" style={{ padding: "0 4px" }}>
       {/* MAIN CONTENT */}
       <div className="ap-main">
         {/* TOP BAR */}
         <header className="ap-topbar">
           <div className="ap-topbar-left">
-            <h1 className="ap-page-title">Tạo Sản phẩm</h1>
-            <p className="ap-page-subtitle">Thêm sản phẩm nông nghiệp mới vào gian hàng của bạn.</p>
+            <h1 className="ap-page-title">{isEdit ? "Chỉnh sửa Sản phẩm" : "Tạo Sản phẩm"}</h1>
+            <p className="ap-page-subtitle">
+              {isEdit ? "Cập nhật các thông số và thuộc tính của sản phẩm hiện tại." : "Thêm sản phẩm nông nghiệp mới vào gian hàng của bạn."}
+            </p>
           </div>
           <div className="ap-topbar-actions">
             <button className="ap-btn-draft" onClick={handleSaveDraft} disabled={loading}>
@@ -337,7 +365,7 @@ export const AddProduct = () => {
               {loading ? (
                 <span className="ap-spinner" />
               ) : (
-                "Gửi duyệt"
+                isEdit ? "Cập nhật sản phẩm" : "Gửi duyệt"
               )}
             </button>
           </div>
@@ -485,7 +513,7 @@ export const AddProduct = () => {
               </div>
             </section>
 
-            {/* Additional Fields - Harvest, Expiration, Traceability */}
+            {/* Hạn dùng & Truy xuất nguồn gốc */}
             <section className="ap-card">
               <h2 className="ap-card-title">Hạn dùng & Truy xuất nguồn gốc</h2>
               <p className="ap-card-subtitle">
@@ -757,15 +785,15 @@ export const AddProduct = () => {
                   {loading ? (
                     <span className="ap-spinner" />
                   ) : (
-                    "Đăng sản phẩm"
+                    isEdit ? "Cập nhật" : "Đăng sản phẩm"
                   )}
                 </button>
               </div>
             </div>
           </aside>
         </div>
-        <Footer />
       </div>
+
       {showAiModal && (
         <div className="custom-modal-overlay">
           <div className="custom-modal ai-modal" style={{ maxWidth: "600px", width: "90%" }}>
@@ -834,10 +862,7 @@ export const AddProduct = () => {
                 Dựa trên tên sản phẩm, danh mục và trạng thái hữu cơ của bạn, AI đề xuất giá bán sau (đơn vị: <strong>{selectedUnit}</strong>):
               </p>
 
-              {/* Price Options Grid */}
               <div className="ai-price-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                
-                {/* Min Price Card */}
                 <div 
                   className="ai-price-card"
                   onClick={() => {
@@ -862,7 +887,6 @@ export const AddProduct = () => {
                   <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
                 </div>
 
-                {/* Recommended Price Card */}
                 <div 
                   className="ai-price-card recommended"
                   onClick={() => {
@@ -901,7 +925,6 @@ export const AddProduct = () => {
                   <span style={{ fontSize: "11px", color: "#059669", display: "block", marginTop: "4px", fontWeight: "500" }}>Bấm để chọn</span>
                 </div>
 
-                {/* Max Price Card */}
                 <div 
                   className="ai-price-card"
                   onClick={() => {
@@ -925,10 +948,8 @@ export const AddProduct = () => {
                   </div>
                   <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
                 </div>
-
               </div>
 
-              {/* Explanation section */}
               {aiPriceData.explanation && (
                 <div style={{ 
                   backgroundColor: "#f3f4f6", 

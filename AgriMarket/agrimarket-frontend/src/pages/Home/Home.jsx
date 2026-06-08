@@ -8,9 +8,7 @@ import NotificationBell from "../../components/common/NotificationBell/Notificat
 
 // Import local images
 import heroBanner from "./assets/hero_banner.png";
-import heirloomTomatoes from "./assets/heirloom_tomatoes.png";
-import bunchedCarrots from "./assets/bunched_carrots.png";
-import honeycrispApples from "./assets/honeycrisp_apples.png";
+
 
 const MAIN_CATEGORIES = [
   { name: "Cây lương thực", icon: "🌾" },
@@ -74,118 +72,7 @@ const Home = () => {
     fetchCartCount();
   }, []);
 
-  const displayProducts = products.length > 0 ? products : [
-    {
-      id: "mock-1",
-      name: "Cà chua Heirloom hữu cơ",
-      category: "Rau củ quả",
-      price: 49900,
-      unit: "kg",
-      isOrganic: true,
-      imageUrl: heirloomTomatoes,
-      rating: 4.8,
-      sold: 120
-    },
-    {
-      id: "mock-2",
-      name: "Cà rốt gia truyền hữu cơ",
-      category: "Rau củ quả",
-      price: 112500,
-      unit: "bó",
-      isOrganic: true,
-      imageUrl: bunchedCarrots,
-      rating: 4.8,
-      sold: 85
-    },
-    {
-      id: "mock-3",
-      name: "Táo Honeycrisp giòn ngọt",
-      category: "Trái cây",
-      price: 69000,
-      unit: "kg",
-      isOrganic: false,
-      imageUrl: honeycrispApples,
-      rating: 4.9,
-      sold: 210
-    },
-    {
-      id: "mock-4",
-      name: "Gạo Tám Xoan Điện Biên",
-      category: "Cây lương thực",
-      price: 32000,
-      unit: "kg",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600",
-      rating: 4.7,
-      sold: 340
-    },
-    {
-      id: "mock-5",
-      name: "Dâu tây sạch loại A",
-      category: "Trái cây",
-      price: 150000,
-      unit: "hộp",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600",
-      rating: 4.9,
-      sold: 400
-    },
-    {
-      id: "mock-6",
-      name: "Mật ong hoa nhãn nguyên chất",
-      category: "Nông sản chế biến",
-      price: 180000,
-      unit: "chai",
-      isOrganic: false,
-      imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600",
-      rating: 4.6,
-      sold: 150
-    },
-    {
-      id: "mock-7",
-      name: "Hạt tiêu đen chín đỏ",
-      category: "Cây công nghiệp",
-      price: 95000,
-      unit: "hộp",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?w=600",
-      rating: 4.4,
-      sold: 95
-    },
-    {
-      id: "mock-8",
-      name: "Trà ô long thượng hạng",
-      category: "Nông sản hữu cơ",
-      price: 250000,
-      unit: "hộp",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=600",
-      rating: 4.8,
-      sold: 180
-    },
-    {
-      id: "mock-9",
-      name: "Thịt heo rừng lai hữu cơ",
-      category: "Chăn nuôi",
-      price: 160000,
-      unit: "kg",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1602491453977-63a5385166cf?w=600",
-      rating: 4.5,
-      sold: 70
-    },
-    {
-      id: "mock-10",
-      name: "Giống xoài cát Hòa Lộc",
-      category: "Giống cây trồng",
-      price: 45000,
-      unit: "cây",
-      isOrganic: false,
-      imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=600",
-      rating: 4.3,
-      sold: 50
-    }
-  ];
+  const displayProducts = products;
 
   const filteredProducts = displayProducts.filter((product) => {
     const mainNames = ["Cây lương thực", "Rau củ quả", "Trái cây", "Cây công nghiệp", "Nông sản hữu cơ", "Chăn nuôi", "Giống cây trồng", "Nông sản chế biến"];

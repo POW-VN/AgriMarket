@@ -224,6 +224,126 @@ public class ProductServiceImpl implements ProductService {
         return convertToResponse(product);
     }
 
+    @Override
+    @Transactional
+    public ProductResponse updateProduct(Long id, ProductRequest request, String farmerEmail) throws Exception {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        if (product.getFarmer() == null || !product.getFarmer().getEmail().equalsIgnoreCase(farmerEmail)) {
+            throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa sản phẩm này.");
+        }
+
+        // Basic fields
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+        product.setUnit(request.getUnit());
+        product.setHarvestDate(request.getHarvestDate());
+        product.setExpirationDate(request.getExpirationDate());
+        product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
+        product.setStatus("pending"); // Reset status to pending for admin approval
+
+        // Category
+        Category category = null;
+        if (request.getCategoryName() != null && !request.getCategoryName().isEmpty()) {
+            category = categoryRepository.findByName(request.getCategoryName())
+                    .orElseGet(() -> {
+                        Category newCat = new Category();
+                        newCat.setName(request.getCategoryName());
+                        newCat.setDescription("Danh mục nông sản " + request.getCategoryName());
+                        return categoryRepository.save(newCat);
+                    });
+        }
+        product.setCategory(category);
+
+        // Certificate file
+        if (Boolean.TRUE.equals(product.getIsOrganic())) {
+            if (request.getCertificateFileBase64() != null && !request.getCertificateFileBase64().isEmpty()) {
+                if (request.getCertificateFileBase64().startsWith("data:")) {
+                    if (product.getCertificateUrl() != null) {
+                        deletePhysicalFile(product.getCertificateUrl(), "certificates");
+                    }
+                    String certUrl = saveBase64File(request.getCertificateFileBase64(), "certificates");
+                    product.setCertificateUrl(certUrl);
+                }
+            }
+        } else {
+            if (product.getCertificateUrl() != null) {
+                deletePhysicalFile(product.getCertificateUrl(), "certificates");
+                product.setCertificateUrl(null);
+            }
+        }
+
+        // Traceability image
+        if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
+            if (request.getTraceabilityImageBase64().startsWith("data:")) {
+                if (product.getTraceabilityImageUrl() != null) {
+                    deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
+                }
+                String traceabilityUrl = saveBase64File(request.getTraceabilityImageBase64(), "traceability");
+                product.setTraceabilityImageUrl(traceabilityUrl);
+            }
+        } else {
+            if (request.getTraceabilityImageBase64() == null && product.getTraceabilityImageUrl() != null) {
+                deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
+                product.setTraceabilityImageUrl(null);
+            }
+        }
+
+        product = productRepository.save(product);
+
+        // Images handling
+        if (request.getImages() != null) {
+            List<ProductImage> dbImages = productImageRepository.findByProductId(id);
+            List<String> requestImages = request.getImages();
+
+            // Find images to delete
+            for (ProductImage dbImg : dbImages) {
+                boolean keep = false;
+                for (String reqImg : requestImages) {
+                    if (reqImg != null && reqImg.equalsIgnoreCase(dbImg.getImgUrl())) {
+                        keep = true;
+                        break;
+                    }
+                }
+                if (!keep) {
+                    deletePhysicalFile(dbImg.getImgUrl(), "products");
+                    productImageRepository.delete(dbImg);
+                }
+            }
+
+            productImageRepository.flush(); // Ensure deletes are synchronized
+
+            for (int i = 0; i < requestImages.size(); i++) {
+                String imgStr = requestImages.get(i);
+                if (imgStr != null && !imgStr.isEmpty()) {
+                    if (imgStr.startsWith("data:")) {
+                        String imgUrl = saveBase64File(imgStr, "products");
+                        ProductImage pImage = new ProductImage();
+                        pImage.setProduct(product);
+                        pImage.setImgUrl(imgUrl);
+                        pImage.setIsThumbnail(i == 0);
+                        productImageRepository.save(pImage);
+                    } else {
+                        final String url = imgStr;
+                        Optional<ProductImage> existingOpt = productImageRepository.findByProductId(id).stream()
+                                .filter(pImg -> pImg.getImgUrl().equalsIgnoreCase(url))
+                                .findFirst();
+                        if (existingOpt.isPresent()) {
+                            ProductImage pImage = existingOpt.get();
+                            pImage.setIsThumbnail(i == 0);
+                            productImageRepository.save(pImage);
+                        }
+                    }
+                }
+            }
+        }
+
+        return convertToResponse(product);
+    }
+
     private String saveBase64File(String base64Str, String subFolder) throws IOException {
         if (base64Str == null || base64Str.isEmpty()) {
             return null;
