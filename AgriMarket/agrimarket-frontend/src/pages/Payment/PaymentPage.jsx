@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
@@ -69,9 +69,9 @@ export default function PaymentPage() {
     // Initialise active tab from checkout method
     useEffect(() => {
         const method = location.state?.paymentMethod || pendingOrder?.paymentMethod;
-        if (method === "bank" || method === "Chuyển khoản") {
+        if (method === "bank" || method === "BANK_TRANSFER") {
             setActiveTab("bank");
-        } else if (method === "card" || method === "Thẻ Visa") {
+        } else if (method === "card" || method === "CARD") {
             setActiveTab("card");
         } else {
             setActiveTab("card");
@@ -161,7 +161,7 @@ export default function PaymentPage() {
             }
         }
 
-        const method = activeTab === "card" ? "Thẻ Visa" : activeTab === "bank" ? "Chuyển khoản" : "Ví điện tử";
+        const method = activeTab === "card" ? "CARD" : activeTab === "bank" ? "BANK_TRANSFER" : "WALLET";
 
         if (user) {
             try {
@@ -198,8 +198,8 @@ export default function PaymentPage() {
             // Finalise the order placement (Mock fallback)
             const confirmedOrder = {
                 ...pendingOrder,
-                status: "confirmed",
-                statusLabel: "Đã thanh toán",
+                status: "pending",
+                statusLabel: "Chờ xác nhận",
                 paymentStatus: "paid",
                 paymentMethod: method,
                 cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null

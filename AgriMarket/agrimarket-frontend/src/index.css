@@ -70,3 +70,79 @@ input {
   border: 1.5px solid white;
   pointer-events: none;
 }
+
+/* ── GLOBAL TOAST NOTIFICATIONS ──────────────────────── */
+.custom-toast {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  top: auto !important;
+  left: auto !important;
+  width: auto !important;
+  min-width: 300px !important;
+  max-width: 420px !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 14px 20px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+  z-index: 100000 !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-left: 5px solid #10b981 !important;
+  animation: slideInToastUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+.custom-toast.success {
+  background: #f0fdf4 !important;
+  border-color: #bbf7d0 !important;
+  border-left-color: #10b981 !important;
+}
+
+.custom-toast.error {
+  background: #fff5f5 !important;
+  border-color: #fca5a5 !important;
+  border-left-color: #ef4444 !important;
+}
+
+.custom-toast.warning {
+  background: #fefce8 !important;
+  border-color: #fde047 !important;
+  border-left-color: #f59e0b !important;
+}
+
+.custom-toast-icon {
+  font-size: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+.custom-toast-message {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  flex: 1 !important;
+  line-height: 1.4 !important;
+}
+
+.custom-toast-close {
+  background: transparent !important;
+  border: none !important;
+  font-size: 18px !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  margin-left: 12px !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  transition: color 0.15s !important;
+}
+
+.custom-toast-close:hover {
+  color: #475569 !important;
+}
+
+@keyframes slideInToastUp {
+  from { transform: translateY(80px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}

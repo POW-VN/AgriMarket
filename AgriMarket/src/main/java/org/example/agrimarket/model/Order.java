@@ -40,7 +40,7 @@ public class Order {
     @Column(name = "shipping_note", columnDefinition = "nvarchar(1000)")
     private String shippingNote;
 
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method", columnDefinition = "nvarchar(100)", nullable = false)
     private String paymentMethod;
 
     @Column(name = "payment_status", nullable = false)

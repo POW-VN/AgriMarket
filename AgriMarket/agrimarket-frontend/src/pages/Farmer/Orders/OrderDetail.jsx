@@ -4,10 +4,10 @@ import orderService from "../../../services/orderService";
 import "./OrderDetail.css";
 
 const ORDER_STATUS_CONFIG = {
-  pending:    { label: "Chờ xử lý",      cls: "oh-st-pending",    color: "#f59e0b" },
-  confirmed:  { label: "Đã xác nhận",    cls: "oh-st-confirmed",  color: "#3b82f6" },
+  pending:    { label: "Chờ xác nhận",   cls: "oh-st-pending",    color: "#f59e0b" },
   preparing:  { label: "Đang chuẩn bị",   cls: "oh-st-preparing",  color: "#8b5cf6" },
-  shipping:   { label: "Đang vận chuyển", cls: "oh-st-shipping",   color: "#06b6d4" },
+  confirmed:  { label: "Chờ lấy hàng",    cls: "oh-st-confirmed",  color: "#3b82f6" },
+  shipping:   { label: "Chờ giao hàng",   cls: "oh-st-shipping",   color: "#06b6d4" },
   delivered:  { label: "Đã giao",         cls: "oh-st-delivered",  color: "#10b981" },
   cancelled:  { label: "Đã hủy",         cls: "oh-st-cancelled",  color: "#ef4444" },
   rejected:   { label: "Đã từ chối",     cls: "oh-st-rejected",   color: "#7f1d1d" },
@@ -40,7 +40,7 @@ const getOrderTimeline = (order) => {
     done: true,
   });
 
-  const isConfirmedOrLater = ["confirmed", "preparing", "shipping", "delivered"].includes(order.status);
+  const isConfirmedOrLater = ["preparing", "confirmed", "shipping", "delivered"].includes(order.status);
   const isRejected = order.status === "rejected";
   const isCancelled = order.status === "cancelled";
 
@@ -75,24 +75,27 @@ const getOrderTimeline = (order) => {
   }
 
   if (!isRejected && !isCancelled) {
-    const isPreparingOrLater = ["preparing", "shipping", "delivered"].includes(order.status);
+    const isPreparing = order.status === "preparing";
+    const isPreparedOrLater = ["confirmed", "shipping", "delivered"].includes(order.status);
     steps.push({
       id: 4,
       title: "Chuẩn bị hàng hóa",
-      desc: isPreparingOrLater 
+      desc: isPreparedOrLater 
         ? "Nhà vườn đã chuẩn bị xong nông sản và đóng gói." 
-        : "Đang chờ chuẩn bị hàng.",
+        : isPreparing 
+          ? "Nhà vườn đang chuẩn bị hàng hóa."
+          : "Đang chờ chuẩn bị hàng.",
       time: "",
-      done: isPreparingOrLater,
+      done: isPreparedOrLater,
     });
 
     const isShippingOrLater = ["shipping", "delivered"].includes(order.status);
     steps.push({
       id: 5,
-      title: "Đang vận chuyển",
+      title: "Chờ giao hàng",
       desc: isShippingOrLater 
-        ? "Đơn hàng đã được giao cho đơn vị vận chuyển." 
-        : "Chờ vận chuyển.",
+        ? "Đơn hàng đang được vận chuyển tới khách hàng." 
+        : "Đang chờ đơn vị vận chuyển lấy hàng.",
       time: "",
       done: isShippingOrLater,
     });
@@ -178,7 +181,9 @@ export const OrderDetail = () => {
       setOrder(updated);
     } catch (err) {
       console.error(err);
-      showToast("Cập nhật trạng thái đơn hàng thất bại.", "error");
+      const serverMsg = err.response?.data;
+      const displayMsg = typeof serverMsg === "string" ? serverMsg : "Cập nhật trạng thái đơn hàng thất bại.";
+      showToast(displayMsg, "error");
     } finally {
       setIsUpdating(false);
     }
@@ -240,21 +245,21 @@ export const OrderDetail = () => {
               <button className="btn-secondary" onClick={() => setShowRejectModal(true)} disabled={isUpdating}>
                 Từ chối đơn
               </button>
-              <button className="btn-primary" onClick={() => handleUpdateStatus("confirmed")} disabled={isUpdating}>
+              <button className="btn-primary" onClick={() => handleUpdateStatus("preparing")} disabled={isUpdating}>
                 Xác nhận đơn
               </button>
             </>
           )}
 
-          {order.status === "confirmed" && (
-            <button className="btn-primary" onClick={() => handleUpdateStatus("preparing")} disabled={isUpdating}>
-              Bắt đầu chuẩn bị hàng
+          {order.status === "preparing" && (
+            <button className="btn-primary" onClick={() => handleUpdateStatus("confirmed")} disabled={isUpdating}>
+              Chuyển giao cho đơn vị vận chuyển
             </button>
           )}
 
-          {order.status === "preparing" && (
+          {order.status === "confirmed" && (
             <button className="btn-primary" onClick={() => handleUpdateStatus("shipping")} disabled={isUpdating}>
-              Giao cho đơn vị vận chuyển
+              Xác nhận shipper đã lấy hàng
             </button>
           )}
 

@@ -4,10 +4,10 @@ import orderService from "../../../services/orderService";
 import "./OrderHistory.css";
 
 const ORDER_STATUS_CONFIG = {
-  pending:    { label: "Chờ xử lý",      cls: "oh-st-pending",    color: "#f59e0b" },
-  confirmed:  { label: "Đã xác nhận",    cls: "oh-st-confirmed",  color: "#3b82f6" },
+  pending:    { label: "Chờ xác nhận",   cls: "oh-st-pending",    color: "#f59e0b" },
   preparing:  { label: "Đang chuẩn bị",   cls: "oh-st-preparing",  color: "#8b5cf6" },
-  shipping:   { label: "Đang vận chuyển", cls: "oh-st-shipping",   color: "#06b6d4" },
+  confirmed:  { label: "Chờ lấy hàng",   cls: "oh-st-confirmed",  color: "#3b82f6" },
+  shipping:   { label: "Chờ giao hàng",   cls: "oh-st-shipping",   color: "#06b6d4" },
   delivered:  { label: "Đã giao",         cls: "oh-st-delivered",  color: "#10b981" },
   cancelled:  { label: "Đã hủy",         cls: "oh-st-cancelled",  color: "#ef4444" },
   rejected:   { label: "Đã từ chối",     cls: "oh-st-rejected",   color: "#7f1d1d" },
@@ -15,10 +15,10 @@ const ORDER_STATUS_CONFIG = {
 
 const STATUS_FILTER_OPTIONS = [
   { value: "all",        label: "Tất cả đơn hàng",    dot: null },
-  { value: "pending",    label: "Chờ xử lý",          dot: "#f59e0b" },
-  { value: "confirmed",  label: "Đã xác nhận",        dot: "#3b82f6" },
+  { value: "pending",    label: "Chờ xác nhận",      dot: "#f59e0b" },
   { value: "preparing",  label: "Đang chuẩn bị",      dot: "#8b5cf6" },
-  { value: "shipping",   label: "Đang vận chuyển",    dot: "#06b6d4" },
+  { value: "confirmed",  label: "Chờ lấy hàng",        dot: "#3b82f6" },
+  { value: "shipping",   label: "Chờ giao hàng",      dot: "#06b6d4" },
   { value: "delivered",  label: "Đã giao",            dot: "#10b981" },
   { value: "cancelled",  label: "Đã hủy",            dot: "#ef4444" },
   { value: "rejected",   label: "Đã từ chối",        dot: "#7f1d1d" },
@@ -173,20 +173,7 @@ export const OrderHistory = () => {
   const activeOption = STATUS_FILTER_OPTIONS.find(opt => opt.value === orderStatusFilter) || STATUS_FILTER_OPTIONS[0];
 
   return (
-    <div className="fd-orders-tab" style={{ padding: "20px 24px" }}>
-      {/* Dynamic Header */}
-      <header className="fd-topbar-header" style={{ margin: "0 0 24px 0", padding: 0, border: "none" }}>
-        <div className="topbar-left">
-          <h1 className="viewport-title">Đơn hàng của tôi</h1>
-          <p className="viewport-subtitle">Nhận đơn hàng mới từ người tiêu dùng và cập nhật giao vận.</p>
-        </div>
-        <div className="topbar-right">
-          <div className="user-profile-badge" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
-            <span>Hồ sơ cá nhân</span>
-            <span className="arrow">→</span>
-          </div>
-        </div>
-      </header>
+    <div className="fd-orders-tab">
 
       {/* Overview stats cards */}
       <div className="oh-stats-grid">

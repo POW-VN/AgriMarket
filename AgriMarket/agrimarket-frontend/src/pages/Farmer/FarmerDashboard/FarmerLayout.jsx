@@ -63,7 +63,7 @@ export const FarmerLayout = () => {
     navigate(path);
   };
 
-  const isOrdersOrDetailPath = location.pathname.startsWith("/farmer/orders");
+  const isOrderDetailPath = location.pathname.startsWith("/farmer/orders/orderdetail");
 
   return (
     <div className="farmer-dashboard-root">
@@ -116,8 +116,7 @@ export const FarmerLayout = () => {
 
       {/* MAIN CONTENT AREA */}
       <main className="fd-main-viewport">
-        {/* Top Header info (Don't render for orders as it renders its own page-wide header) */}
-        {!isOrdersOrDetailPath && (
+        {!isOrderDetailPath && (
           <header className="fd-topbar-header">
             <div className="topbar-left">
               <h1 className="viewport-title">
@@ -126,6 +125,7 @@ export const FarmerLayout = () => {
               <p className="viewport-subtitle">
                 {currentTab === "overview" && "Chỉ số hoạt động nông trại và doanh số bán hàng."}
                 {currentTab === "products" && "Đăng bán sản phẩm, theo dõi phê duyệt và điều chỉnh giá."}
+                {currentTab === "orders" && "Nhận đơn hàng mới từ người tiêu dùng và cập nhật giao vận."}
                 {currentTab === "farm-profile" && "Hoàn thiện hồ sơ trang trại giúp tăng độ tin cậy."}
               </p>
             </div>
@@ -139,7 +139,7 @@ export const FarmerLayout = () => {
           </header>
         )}
 
-        <div className={isOrdersOrDetailPath ? "" : "fd-viewport-content"}>
+        <div className={isOrderDetailPath ? "" : "fd-viewport-content"}>
           <Outlet context={{ farmerProfile, currentUser }} />
         </div>
       </main>

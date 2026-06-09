@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
@@ -362,7 +362,7 @@ export default function CheckoutPage() {
             phone: recipientPhone,
             address: formattedAddress,
             shippingNote: shippingNote,
-            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "Chuyển khoản" : "Thẻ Visa",
+            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "BANK_TRANSFER" : "CARD",
             subtotal: subtotal,
             shippingFee: shippingFee,
             serviceFee: serviceFee,
@@ -413,7 +413,7 @@ export default function CheckoutPage() {
             const newOrder = {
                 id: orderId,
                 status: "pending",
-                statusLabel: "Chờ xử lý",
+                statusLabel: "Chờ xác nhận",
                 date: formattedDate,
                 time: formattedTime,
                 subtotal: subtotal,
@@ -425,7 +425,7 @@ export default function CheckoutPage() {
                 address: formattedAddress,
                 phone: recipientPhone,
                 trackingNumber: `FH-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
-                paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "Chuyển khoản" : "Thẻ Visa",
+            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "BANK_TRANSFER" : "CARD",
                 provider: {
                     name: selectedItems[0]?.farmer || "Hợp tác xã Nông nghiệp số",
                     location: "Cái Bè, Tiền Giang",

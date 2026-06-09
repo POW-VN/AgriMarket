@@ -196,7 +196,7 @@ public class OrderService {
             throw new RuntimeException("Bạn không có quyền thao tác trên đơn hàng này.");
         }
 
-        order.setStatus("confirmed");
+        order.setStatus("pending");
         order.setPaymentStatus("paid");
         if (paymentMethod != null && !paymentMethod.isBlank()) {
             order.setPaymentMethod(paymentMethod);
@@ -299,16 +299,16 @@ public class OrderService {
         String statusLabel = order.getStatus();
         switch (order.getStatus().toLowerCase()) {
             case "pending":
-                statusLabel = "Chờ xử lý";
-                break;
-            case "confirmed":
-                statusLabel = "Đã xác nhận";
+                statusLabel = "Chờ xác nhận";
                 break;
             case "preparing":
                 statusLabel = "Đang chuẩn bị";
                 break;
+            case "confirmed":
+                statusLabel = "Chờ lấy hàng";
+                break;
             case "shipping":
-                statusLabel = "Đang vận chuyển";
+                statusLabel = "Chờ giao hàng";
                 break;
             case "delivered":
                 statusLabel = "Đã giao";
@@ -343,6 +343,7 @@ public class OrderService {
                         .estYear(estYear)
                         .avatarText(avatarText)
                         .avatarBg(avatarBg)
+                        .avatarUrl(farmer.getAvatarUrl())
                         .build();
             }
         }
@@ -393,6 +394,8 @@ public class OrderService {
                 .thumbnails(thumbnails)
                 .itemCount(itemCount)
                 .hasMoreItems(hasMoreItems)
+                .paymentMethod(order.getPaymentMethod())
+                .paymentStatus(order.getPaymentStatus())
                 .build();
     }
 }

@@ -29,6 +29,8 @@ public class OrderResponse {
     private List<String> thumbnails;
     private Integer itemCount;
     private Integer hasMoreItems;
+    private String paymentMethod;
+    private String paymentStatus;
 
     @Data
     @Builder
@@ -38,5 +40,6 @@ public class OrderResponse {
         private Integer estYear;
         private String avatarText;
         private String avatarBg;
+        private String avatarUrl;
     }
 }

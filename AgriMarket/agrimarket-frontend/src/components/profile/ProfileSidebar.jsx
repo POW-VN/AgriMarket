@@ -101,7 +101,7 @@ const ProfileSidebar = ({ profile }) => {
           onClick={() => navigate("/profile/orders")}
         >
           <span>🕘</span>
-          Lịch sử giao dịch
+          Đơn hàng của tôi
         </button>
       </nav>
 

@@ -78,7 +78,7 @@ export const FarmerOverview = () => {
         <div className="stat-card">
           <div className="stat-icon-bg bg-orange">⏳</div>
           <div className="stat-details">
-            <p className="label">ĐƠN HÀNG CHỜ XỬ LÝ</p>
+            <p className="label">ĐƠN HÀNG CHỜ XÁC NHẬN</p>
             <p className="value">{loading ? "..." : overviewStats.pendingOrdersCount}</p>
             <button className="shortcut-btn" onClick={() => navigate("/farmer/orders")}>Xem đơn hàng</button>
           </div>
