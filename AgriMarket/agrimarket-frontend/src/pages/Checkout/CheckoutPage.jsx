@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
@@ -492,7 +492,11 @@ export default function CheckoutPage() {
                             <Link to="/" className="nav-link">Trang chủ</Link>
                             <Link to="/products" className="nav-link">Cửa hàng</Link>
                             <Link to="/farms" className="nav-link">Nông trại</Link>
-                            <Link to="/about" className="nav-link">Giới thiệu</Link>
+                            {user && user.role === "admin" ? (
+                                <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+                            ) : (
+                                <Link to="/about" className="nav-link">Giới thiệu</Link>
+                            )}
                         </nav>
                         <div className="header-actions">
                             <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
@@ -551,7 +555,11 @@ export default function CheckoutPage() {
                         <Link to="/" className="nav-link">Trang chủ</Link>
                         <Link to="/products" className="nav-link">Cửa hàng</Link>
                         <Link to="/farms" className="nav-link">Nông trại</Link>
-                        <Link to="/about" className="nav-link">Giới thiệu</Link>
+                        {user && user.role === "admin" ? (
+                            <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+                        ) : (
+                            <Link to="/about" className="nav-link">Giới thiệu</Link>
+                        )}
                     </nav>
 
                     <div className="header-actions">

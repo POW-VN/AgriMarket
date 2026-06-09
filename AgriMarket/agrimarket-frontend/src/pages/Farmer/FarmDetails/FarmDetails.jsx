@@ -335,11 +335,6 @@ export const FarmDetails = () => {
 
                 <div className="farm-form-container">
                     <div className="farm-form-panel">
-                        <div className="form-section-header">
-                            <h2>Thiết lập Trang trại</h2>
-                            <p className="intro">Cập nhật hồ sơ trang trại giúp người dùng tin tưởng hơn và nâng cao doanh số.</p>
-                        </div>
-
                         <div className="form-grid-section">
                             <h3 className="section-title">Thông tin cơ bản</h3>
                             

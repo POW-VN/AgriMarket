@@ -169,7 +169,7 @@ public class AuthService {
                 farmer.setPhone(request.getPhoneNumber());
                 farmer.setPassword(hashedPassword);
                 farmer.setVerificationStatus("pending");
-                farmer.setStatus("active");
+                farmer.setStatus("pending");
                 farmer.setCreatedAt(LocalDateTime.now());
                 farmer.setFarmName("Farm of " + (request.getFullName() != null ? request.getFullName() : "Farmer"));
                 farmer.setFarmAddress("Not updated");

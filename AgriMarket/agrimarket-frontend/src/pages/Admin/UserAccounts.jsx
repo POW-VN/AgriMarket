@@ -1,7 +1,7 @@
 // C:\Users\HUNG\.gemini\antigravity\AgriMarket\AgriMarket\agrimarket-frontend\src\pages\Admin\UserAccounts.jsx
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
@@ -26,6 +26,50 @@ const UserAccounts = () => {
   // User Details Dashboard view state
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
   const [detailActiveTab, setDetailActiveTab] = useState("history"); // "history" | "profile" | "security"
+  const [purchaseHistory, setPurchaseHistory] = useState([]);
+  const [salesHistory, setSalesHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const handleSelectUserForDetails = (user) => {
+    setSelectedUserForDetails(user);
+    if (user.role === "farmer") {
+      setDetailActiveTab("sales_history");
+    } else if (user.role === "customer") {
+      setDetailActiveTab("purchase_history");
+    } else {
+      setDetailActiveTab("history");
+    }
+  };
+
+  const fetchUserHistory = async (user) => {
+    if (!user || !user.email) return;
+    setHistoryLoading(true);
+    setPurchaseHistory([]);
+    setSalesHistory([]);
+    try {
+      if (user.role === "customer") {
+        const response = await apiClient.get(`/api/admin/users/orders/customer/${user.email}`);
+        setPurchaseHistory(response.data);
+      } else if (user.role === "farmer") {
+        const [salesRes, purchaseRes] = await Promise.all([
+          apiClient.get(`/api/admin/users/orders/farmer/${user.email}`),
+          apiClient.get(`/api/admin/users/orders/customer/${user.email}`)
+        ]);
+        setSalesHistory(salesRes.data);
+        setPurchaseHistory(purchaseRes.data);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải lịch sử giao dịch:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedUserForDetails) {
+      fetchUserHistory(selectedUserForDetails);
+    }
+  }, [selectedUserForDetails]);
 
   // Custom Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -158,7 +202,7 @@ const UserAccounts = () => {
         {/* Header Row */}
         <div className="details-header-row">
           <div className="details-header-info">
-            <h2>Chi tiết tài khoản SD-{user.id * 123 + 456}</h2>
+            <h2>Chi tiết tài khoản</h2>
           </div>
 
           <div className="details-action-buttons">
@@ -228,16 +272,24 @@ const UserAccounts = () => {
             <div className="details-fields-list">
               <div className="details-field-item">
                 <span className="details-field-label">Mã người dùng</span>
-                <span className="details-field-value">AG-{user.id * 123 + 456}</span>
+                <span className="details-field-value">
+                  {user.role === "customer" ? `AGC${user.id}` : user.role === "farmer" ? `AGF${user.id}` : `AG-${user.id}`}
+                </span>
               </div>
               <div className="details-field-item">
-                <span className="details-field-label">Địa chỉ Email</span>
+                <span className="details-field-label">Email</span>
                 <span className="details-field-value">{user.email}</span>
               </div>
               <div className="details-field-item">
                 <span className="details-field-label">Số điện thoại</span>
                 <span className="details-field-value">{user.phone || "Chưa cung cấp"}</span>
               </div>
+              {user.address && (
+                <div className="details-field-item" style={{ gridColumn: "span 2" }}>
+                  <span className="details-field-label">Địa chỉ</span>
+                  <span className="details-field-value" style={{ wordBreak: "break-word" }}>{user.address}</span>
+                </div>
+              )}
               <div className="details-field-item">
                 <span className="details-field-label">Ngày đăng ký</span>
                 <span className="details-field-value">{formatDate(user.createdAt)}</span>
@@ -259,20 +311,41 @@ const UserAccounts = () => {
           <div className="details-right-column">
             <div className="details-right-card">
               <div className="details-tabs-header">
-                <button 
-                  className={`details-tab-btn ${detailActiveTab === "history" ? "active" : ""}`}
-                  onClick={() => setDetailActiveTab("history")}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                  {user.role === "farmer" ? "Lịch sử bán hàng" : user.role === "customer" ? "Lịch sử mua hàng" : user.role === "partner" ? "Chuyến hàng vận chuyển" : "Nhật ký tác vụ"}
-                </button>
-                <button 
-                  className={`details-tab-btn ${detailActiveTab === "profile" ? "active" : ""}`}
-                  onClick={() => setDetailActiveTab("profile")}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  Hồ sơ chi tiết
-                </button>
+                {user.role === "farmer" ? (
+                  <>
+                    <button 
+                      className={`details-tab-btn ${detailActiveTab === "sales_history" ? "active" : ""}`}
+                      onClick={() => setDetailActiveTab("sales_history")}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                      Lịch sử bán hàng
+                    </button>
+                    <button 
+                      className={`details-tab-btn ${detailActiveTab === "purchase_history" ? "active" : ""}`}
+                      onClick={() => setDetailActiveTab("purchase_history")}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                      Lịch sử mua hàng
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className={`details-tab-btn ${detailActiveTab === "history" || detailActiveTab === "sales_history" || detailActiveTab === "purchase_history" ? "active" : ""}`}
+                    onClick={() => setDetailActiveTab(user.role === "customer" ? "purchase_history" : "history")}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                    {user.role === "customer" ? "Lịch sử mua hàng" : user.role === "partner" ? "Chuyến hàng vận chuyển" : "Nhật ký tác vụ"}
+                  </button>
+                )}
+                {(user.role === "farmer" || user.role === "partner" || user.role === "admin") && (
+                  <button 
+                    className={`details-tab-btn ${detailActiveTab === "profile" ? "active" : ""}`}
+                    onClick={() => setDetailActiveTab("profile")}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    Hồ sơ chi tiết
+                  </button>
+                )}
                 <button 
                   className={`details-tab-btn ${detailActiveTab === "security" ? "active" : ""}`}
                   onClick={() => setDetailActiveTab("security")}
@@ -283,10 +356,18 @@ const UserAccounts = () => {
               </div>
 
               <div className="details-tab-content">
-                {detailActiveTab === "history" && (
+                {(detailActiveTab === "history" || detailActiveTab === "sales_history" || detailActiveTab === "purchase_history") && (
                   <div>
                     <div className="recent-orders-header">
-                      <h3>{user.role === "farmer" ? "Đơn hàng bán gần đây" : user.role === "customer" ? "Đơn hàng đã mua gần đây" : user.role === "partner" ? "Các chuyến hàng gần đây" : "Các hoạt động hệ thống gần đây"}</h3>
+                      <h3>
+                        {detailActiveTab === "sales_history" 
+                          ? "Đơn hàng đã bán gần đây" 
+                          : detailActiveTab === "purchase_history" 
+                            ? "Đơn hàng đã mua gần đây" 
+                            : user.role === "partner" 
+                              ? "Các chuyến hàng gần đây" 
+                              : "Các hoạt động hệ thống gần đây"}
+                      </h3>
                       <div className="recent-orders-actions">
                         <button className="btn-orders-action" onClick={() => showToast("Bộ lọc lịch sử giao dịch đang tải...")}>Bộ lọc</button>
                         <button className="btn-orders-action" onClick={() => showToast("Đang xuất dữ liệu giao dịch...")}>Xuất file</button>
@@ -305,26 +386,82 @@ const UserAccounts = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {historyList.length === 0 ? (
+                          {historyLoading ? (
                             <tr>
                               <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "var(--admin-text-muted)" }}>
-                                Không có lịch sử hoạt động ghi nhận.
+                                Đang tải lịch sử giao dịch...
                               </td>
                             </tr>
                           ) : (
-                            historyList.map((item, idx) => (
-                              <tr key={idx}>
-                                <td className="order-id-cell">{item.id}</td>
-                                <td>{item.date}</td>
-                                <td>{item.details}</td>
-                                <td>{item.amount}</td>
-                                <td>
-                                  <span className={`order-status-badge ${item.status}`}>
-                                    {item.statusLabel}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
+                            (() => {
+                              let currentHistory = [];
+                              if (detailActiveTab === "sales_history") {
+                                currentHistory = salesHistory;
+                              } else if (detailActiveTab === "purchase_history") {
+                                currentHistory = purchaseHistory;
+                              } else {
+                                currentHistory = historyList;
+                              }
+
+                              if (currentHistory.length === 0) {
+                                return (
+                                  <tr>
+                                    <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "var(--admin-text-muted)" }}>
+                                      Không có lịch sử hoạt động ghi nhận.
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
+                              return currentHistory.map((item, idx) => {
+                                const isRealData = item.id && typeof item.id === 'string' && item.id.startsWith("FH-");
+                                const transactionId = isRealData ? item.id : item.id;
+                                const dateFormatted = isRealData ? `${item.date} ${item.time || ''}` : item.date;
+                                
+                                let detailsSummary = "";
+                                if (isRealData && item.items) {
+                                  detailsSummary = item.items.map(it => `${it.name} (${it.qty}${it.productUnit || 'kg'})`).join(" + ");
+                                } else {
+                                  detailsSummary = item.details;
+                                }
+
+                                const amountFormatted = isRealData 
+                                  ? (item.amount ? item.amount.toLocaleString("vi-VN") + " đ" : "0 đ")
+                                  : item.amount;
+
+                                const getStatusClass = (status) => {
+                                  switch (status?.toLowerCase()) {
+                                    case "delivered": return "delivered";
+                                    case "shipping": return "in-transit";
+                                    case "pending":
+                                    case "preparing":
+                                    case "confirmed":
+                                      return "processing";
+                                    case "cancelled":
+                                    case "rejected":
+                                    default:
+                                      return "in-transit";
+                                  }
+                                };
+                                  
+                                const statusText = isRealData ? item.statusLabel : item.statusLabel;
+                                const statusClass = isRealData ? getStatusClass(item.status) : item.status;
+
+                                return (
+                                  <tr key={idx}>
+                                    <td className="order-id-cell">{transactionId}</td>
+                                    <td>{dateFormatted}</td>
+                                    <td>{detailsSummary}</td>
+                                    <td>{amountFormatted}</td>
+                                    <td>
+                                      <span className={`order-status-badge ${statusClass}`}>
+                                        {statusText}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            })()
                           )}
                         </tbody>
                       </table>
@@ -338,29 +475,63 @@ const UserAccounts = () => {
                       <>
                         <div className="details-field-item">
                           <span className="details-field-label">Tên trang trại</span>
-                          <span className="details-field-value">{user.farmName || "Trang trại hữu cơ Sạch Đà Lạt"}</span>
+                          <span className="details-field-value">{user.farmName || "Chưa cung cấp"}</span>
                         </div>
                         <div className="details-field-item">
-                          <span className="details-field-label">Chứng nhận VietGAP</span>
-                          <span className="details-field-value" style={{ color: "#10b981", fontWeight: "700" }}>✓ Đã cấp (Mã số VG-8991-DL)</span>
+                          <span className="details-field-label">Số CCCD / CMND</span>
+                          <span className="details-field-value">{user.identityCard || "Chưa cung cấp"}</span>
                         </div>
                         <div className="details-field-item" style={{ gridColumn: "span 2" }}>
                           <span className="details-field-label">Địa chỉ trang trại</span>
-                          <span className="details-field-value">{user.farmAddress || "Đường Phù Đổng Thiên Vương, Phường 8, Đà Lạt, Lâm Đồng"}</span>
+                          <span className="details-field-value">{user.farmAddress || "Chưa cung cấp"}</span>
                         </div>
                         <div className="details-field-item" style={{ gridColumn: "span 2" }}>
-                          <span className="details-field-label">Mô tả hoạt động trang trại</span>
+                           <span className="details-field-label">Mô tả trang trại</span>
                           <span className="details-field-value" style={{ fontWeight: "normal", fontSize: "13.5px" }}>
-                            {user.description || "Chuyên trồng xà lách thủy canh, dâu tây New Zealand và các loại rau củ hữu cơ trong nhà màng đạt chuẩn nông nghiệp công nghệ cao."}
+                            {user.description || "Chưa cung cấp"}
                           </span>
                         </div>
-                        <div className="details-field-item" style={{ gridColumn: "span 2" }}>
-                          <span className="details-field-label">Danh mục sản phẩm cung ứng</span>
-                          <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
-                            {(user.categories || ["Rau hữu cơ", "Trái cây ôn đới"]).map((cat, idx) => (
-                              <span key={idx} className="badge-role farmer" style={{ fontSize: "11px", padding: "4px 8px" }}>{cat}</span>
-                            ))}
-                          </div>
+                        <div className="details-field-item">
+                          <span className="details-field-label">Chứng nhận VietGAP</span>
+                          {user.vietgapUrl ? (
+                            <a href={user.vietgapUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+                              ✓ Đã cấp (Xem chứng nhận)
+                            </a>
+                          ) : (
+                            <span className="details-field-value" style={{ color: "var(--admin-text-muted)" }}>Chưa tải lên</span>
+                          )}
+                        </div>
+                        <div className="details-field-item">
+                          <span className="details-field-label">Chứng nhận GlobalGAP</span>
+                          {user.globalgapUrl ? (
+                            <a href={user.globalgapUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+                              ✓ Đã cấp (Xem chứng nhận)
+                            </a>
+                          ) : (
+                            <span className="details-field-value" style={{ color: "var(--admin-text-muted)" }}>Chưa tải lên</span>
+                          )}
+                        </div>
+                        <div className="details-field-item">
+                          <span className="details-field-label">Chứng nhận Hữu cơ</span>
+                          {user.organicUrl ? (
+                            <a href={user.organicUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#10b981", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+                              ✓ Đã cấp (Xem chứng nhận)
+                            </a>
+                          ) : (
+                            <span className="details-field-value" style={{ color: "var(--admin-text-muted)" }}>Chưa tải lên</span>
+                          )}
+                        </div>
+                        <div className="details-field-item">
+                          <span className="details-field-label">Giấy phép Đăng ký kinh doanh / HTX</span>
+                          {user.businessRegistrationUrl ? (
+                            <div style={{ marginTop: "6px" }}>
+                              <a href={user.businessRegistrationUrl} target="_blank" rel="noopener noreferrer">
+                                <img src={user.businessRegistrationUrl} alt="Giấy đăng ký kinh doanh" style={{ maxWidth: "150px", maxHeight: "100px", objectFit: "cover", borderRadius: "4px", border: "1px solid var(--admin-border)" }} />
+                              </a>
+                            </div>
+                          ) : (
+                            <span className="details-field-value" style={{ color: "var(--admin-text-muted)" }}>Chưa tải lên</span>
+                          )}
                         </div>
                       </>
                     )}
@@ -919,26 +1090,27 @@ const UserAccounts = () => {
       {/* Sidebar - Matching Image 1 */}
       <aside className="admin-sidebar">
         <div className="admin-logo-section">
-          <h1>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="7" cy="18" r="2"></circle>
-              <circle cx="18" cy="18" r="2"></circle>
-              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-              <path d="M16 9h3l2 3v4"></path>
-            </svg>
-            AgriAdmin
-          </h1>
-          <p>Hệ thống Phát triển Nông nghiệp Hữu cơ</p>
+          <Link to="/" className="admin-logo-link">
+            <h1>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="7" cy="18" r="2"></circle>
+                <circle cx="18" cy="18" r="2"></circle>
+                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+                <path d="M16 9h3l2 3v4"></path>
+              </svg>
+              AgriAdmin
+            </h1>
+          </Link>
         </div>
 
         <nav className="admin-nav-menu">
@@ -1230,7 +1402,7 @@ const UserAccounts = () => {
                           <div 
                             className="user-cell-info clickable-avatar" 
                             style={{ cursor: "pointer" }}
-                            onClick={() => setSelectedUserForDetails(user)}
+                            onClick={() => handleSelectUserForDetails(user)}
                             title="Xem chi tiết tài khoản"
                           >
                             {user.avatarUrl ? (
@@ -1285,7 +1457,7 @@ const UserAccounts = () => {
                           <div className="action-buttons-cell">
                             {user.role !== "admin" ? (
                               <div className="direct-actions-wrapper" style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                                {/* Nút Mở khóa / Khóa */}
+                                {/* Nút Mở khóa (nếu tài khoản đang bị khóa) */}
                                 {isLocked ? (
                                   <button
                                     title="Mở khóa tài khoản"
@@ -1297,22 +1469,24 @@ const UserAccounts = () => {
                                       <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
                                     </svg>
                                   </button>
-                                ) : user.status === "pending" ? (
+                                ) : (
                                   <>
-                                    {/* Nút Duyệt (Tích xanh) */}
-                                    <button
-                                      title="Duyệt tài khoản"
-                                      className="btn-action-direct approve"
-                                      onClick={() => handleApproveUser(user)}
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                      </svg>
-                                    </button>
+                                    {/* Nút Duyệt (nếu ở trạng thái chờ duyệt) */}
+                                    {user.status === "pending" && (
+                                      <button
+                                        title="Duyệt tài khoản"
+                                        className="btn-action-direct approve"
+                                        onClick={() => handleApproveUser(user)}
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
+                                          <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                      </button>
+                                    )}
 
-                                    {/* Nút Tạm khóa */}
+                                    {/* Nút Khóa tài khoản (nếu đang hoạt động hoặc chờ duyệt) */}
                                     <button
-                                      title="Tạm khóa tài khoản"
+                                      title="Khóa tài khoản"
                                       className="btn-action-direct lock"
                                       onClick={() => triggerToggleStatusConfirm(user)}
                                     >
@@ -1322,21 +1496,7 @@ const UserAccounts = () => {
                                       </svg>
                                     </button>
                                   </>
-                                ) : null}
-
-                                {/* Nút Xóa (Luôn hiển thị cho non-admin) */}
-                                <button
-                                  title="Xóa tài khoản"
-                                  className="btn-action-direct delete"
-                                  onClick={() => triggerDeleteConfirm(user)}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#ef4444" }}>
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                  </svg>
-                                </button>
+                                )}
                               </div>
                             ) : (
                               <span style={{ fontSize: "12px", color: "var(--admin-text-muted)", fontStyle: "italic" }}>

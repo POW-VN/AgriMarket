@@ -3,6 +3,7 @@ package org.example.agrimarket.controller;
 import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
+import org.example.agrimarket.model.CustomerAddress;
 import org.example.agrimarket.model.Partner;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
@@ -12,6 +13,7 @@ import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.PartnerRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
+import org.example.agrimarket.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +50,27 @@ public class AdminUserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private OrderService orderService;
+
+    @GetMapping("/orders/customer/{email}")
+    public ResponseEntity<?> getCustomerOrdersForAdmin(@PathVariable String email) {
+        try {
+            return ResponseEntity.ok(orderService.getCustomerOrders(email));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/orders/farmer/{email}")
+    public ResponseEntity<?> getFarmerOrdersForAdmin(@PathVariable String email) {
+        try {
+            return ResponseEntity.ok(orderService.getFarmerOrders(email));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
         List<Map<String, Object>> userList = new ArrayList<>();
@@ -63,11 +86,15 @@ public class AdminUserController {
             map.put("status", "active");
             map.put("avatarUrl", a.getAvatarUrl());
             map.put("createdAt", a.getCreatedAt());
+            map.put("address", "");
             userList.add(map);
         }
 
         // Fetch customers
         for (Customer c : customerRepository.findAll()) {
+            if (farmerRepository.findByEmail(c.getEmail()).isPresent()) {
+                continue; // Skip customer record, display as farmer with role="farmer"
+            }
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
             map.put("fullName", c.getFullName());
@@ -77,6 +104,17 @@ public class AdminUserController {
             map.put("status", c.getStatus() != null ? c.getStatus() : "active");
             map.put("avatarUrl", c.getAvatarUrl());
             map.put("createdAt", c.getCreatedAt());
+
+            String address = "";
+            if (c.getAddresses() != null && !c.getAddresses().isEmpty()) {
+                address = c.getAddresses().stream()
+                        .filter(addr -> addr.getIsDefault() != null && addr.getIsDefault())
+                        .map(CustomerAddress::getAddress)
+                        .findFirst()
+                        .orElse(c.getAddresses().get(0).getAddress());
+            }
+            map.put("address", address);
+
             userList.add(map);
         }
 
@@ -94,6 +132,15 @@ public class AdminUserController {
             map.put("farmName", f.getFarmName());
             map.put("farmAddress", f.getFarmAddress());
             map.put("description", f.getDescription());
+            map.put("address", f.getFarmAddress() != null ? f.getFarmAddress() : "");
+            
+            // farm-profile fields matching farm/farm-profile page
+            map.put("identityCard", f.getIdentityCard());
+            map.put("businessRegistrationUrl", f.getBusinessRegistrationUrl());
+            map.put("vietgapUrl", f.getVietgapUrl());
+            map.put("globalgapUrl", f.getGlobalgapUrl());
+            map.put("organicUrl", f.getOrganicUrl());
+
             userList.add(map);
         }
 
@@ -108,6 +155,7 @@ public class AdminUserController {
             map.put("status", p.getStatus() != null ? p.getStatus() : "active");
             map.put("avatarUrl", p.getAvatarUrl());
             map.put("createdAt", p.getCreatedAt());
+            map.put("address", "");
             userList.add(map);
         }
 
@@ -124,10 +172,22 @@ public class AdminUserController {
 
         String fullName = (String) payload.get("fullName");
         String email = (String) payload.get("email");
+        if (email != null) {
+            email = email.trim().toLowerCase();
+        }
         String phone = (String) payload.get("phone");
         String password = (String) payload.get("password");
         String avatarUrl = (String) payload.get("avatarUrl");
         String status = (String) payload.getOrDefault("status", "active");
+
+        if (email != null) {
+            if (adminRepository.findByEmail(email).isPresent() ||
+                customerRepository.findByEmail(email).isPresent() ||
+                farmerRepository.findByEmail(email).isPresent() ||
+                partnerRepository.findByEmail(email).isPresent()) {
+                return ResponseEntity.badRequest().body("Email đã tồn tại trong hệ thống");
+            }
+        }
 
         String encodedPassword = passwordEncoder.encode(password != null ? password : "Password123");
 
@@ -171,6 +231,12 @@ public class AdminUserController {
             farmer.setRatingAverage(0.0);
             farmer.setTotalProducts(0);
 
+            farmer.setIdentityCard((String) payload.get("identityCard"));
+            farmer.setBusinessRegistrationUrl((String) payload.get("businessRegistrationUrl"));
+            farmer.setVietgapUrl((String) payload.get("vietgapUrl"));
+            farmer.setGlobalgapUrl((String) payload.get("globalgapUrl"));
+            farmer.setOrganicUrl((String) payload.get("organicUrl"));
+
             return ResponseEntity.ok(farmerRepository.save(farmer));
         } else if ("partner".equals(role)) {
             Partner partner = new Partner();
@@ -202,12 +268,24 @@ public class AdminUserController {
             if (c == null) return ResponseEntity.notFound().build();
             c.setStatus(newStatus);
             customerRepository.save(c);
+            
+            // Sync status to Farmer with same email (lock/unlock)
+            farmerRepository.findByEmail(c.getEmail()).ifPresent(f -> {
+                f.setStatus(newStatus);
+                farmerRepository.save(f);
+            });
             return ResponseEntity.ok().build();
         } else if ("farmer".equals(lowerRole)) {
             Farmer f = farmerRepository.findById(id).orElse(null);
             if (f == null) return ResponseEntity.notFound().build();
             f.setStatus(newStatus);
             farmerRepository.save(f);
+            
+            // Sync status to Customer with same email (lock/unlock)
+            customerRepository.findByEmail(f.getEmail()).ifPresent(c -> {
+                c.setStatus(newStatus);
+                customerRepository.save(c);
+            });
             return ResponseEntity.ok().build();
         } else if ("partner".equals(lowerRole)) {
             Partner p = partnerRepository.findById(id).orElse(null);

@@ -51,7 +51,7 @@ public class FarmerService {
         farmer.setGlobalgapUrl(request.getGlobalgapUrl());
         farmer.setOrganicUrl(request.getOrganicUrl());
         farmer.setVerificationStatus("pending");
-        farmer.setStatus("active");
+        farmer.setStatus("pending");
         farmer.setCreatedAt(LocalDateTime.now());
         farmer.setRatingAverage(0.0);
         farmer.setTotalProducts(0);

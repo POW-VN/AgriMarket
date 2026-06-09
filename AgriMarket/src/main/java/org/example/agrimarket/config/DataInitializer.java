@@ -1,19 +1,23 @@
 package org.example.agrimarket.config;
 
+import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Category;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
+import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CategoryRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,11 +37,35 @@ public class DataInitializer implements CommandLineRunner {
     private FarmerRepository farmerRepository;
 
     @Autowired
+    private AdminRepository adminRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // ========== Ensure default admin account exists ==========
+        String adminEmail = "admin@agrimarket.com";
+        if (adminRepository.findByEmail(adminEmail).isEmpty()) {
+            Admin admin = new Admin();
+            admin.setFullName("Administrator");
+            admin.setEmail(adminEmail);
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setCreatedAt(LocalDateTime.now());
+            adminRepository.save(admin);
+            System.out.println(">>> DataInitializer: Created default admin account: " + adminEmail);
+        } else {
+            // Always reset password to ensure it's correct
+            Admin admin = adminRepository.findByEmail(adminEmail).get();
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            adminRepository.save(admin);
+            System.out.println(">>> DataInitializer: Reset admin password for: " + adminEmail);
+        }
+
         // Clean up redundant legacy columns in orders table
         String[] ordersCols = {"checkout_id", "total_price", "shipping_address"};
         for (String col : ordersCols) {

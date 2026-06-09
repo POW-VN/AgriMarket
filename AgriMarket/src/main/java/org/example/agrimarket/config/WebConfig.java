@@ -11,6 +11,6 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Expose the "uploads" folder to public HTTP GET requests
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:uploads/");
+                .addResourceLocations("file:uploads/", "file:../uploads/", "file:AgriMarket/uploads/");
     }
 }
