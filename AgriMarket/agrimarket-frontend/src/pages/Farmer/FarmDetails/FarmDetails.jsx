@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import profileService from "../../../services/profileService";
 import authService from "../../../services/authService";
 import apiClient from "../../../services/apiClient";
@@ -8,7 +8,12 @@ import "./FarmDetails.css";
 
 export const FarmDetails = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const currentUser = authService.getCurrentUser();
+
+    // Check if we are on the onboarding page
+    const isOnboarding = location.pathname === "/farmer/farm-details";
+
     const [farmName, setFarmName] = useState("");
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
@@ -21,14 +26,123 @@ export const FarmDetails = () => {
     const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatarUrl || "");
     const [photoLoading, setPhotoLoading] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: string }
+    const [toastVisible, setToastVisible] = useState(false);
 
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setToastVisible(true);
+        setTimeout(() => {
+            setToastVisible(false);
+            setTimeout(() => setToast(null), 400);
+        }, 3500);
+    };
+
+    // Legal documents & certificates states
+    const [identityCard, setIdentityCard] = useState("");
+    const [businessRegistrationUrl, setBusinessRegistrationUrl] = useState("");
+    const [businessLoading, setBusinessLoading] = useState(false);
+
+    const [hasVietgap, setHasVietgap] = useState(false);
+    const [vietgapUrl, setVietgapUrl] = useState("");
+    const [vietgapLoading, setVietgapLoading] = useState(false);
+
+    const [hasGlobalgap, setHasGlobalgap] = useState(false);
+    const [globalgapUrl, setGlobalgapUrl] = useState("");
+    const [globalgapLoading, setGlobalgapLoading] = useState(false);
+
+    const [hasOrganic, setHasOrganic] = useState(false);
+    const [organicUrl, setOrganicUrl] = useState("");
+    const [organicLoading, setOrganicLoading] = useState(false);
+
+    const handleDocumentUpload = async (e, setUrl, setLoadingState) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setLoadingState(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await apiClient.post("/api/upload/file", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            if (response.data && response.data.fileUrl) {
+                setUrl(response.data.fileUrl);
+                showToast("success", "Đã tải tài liệu lên thành công!");
+            }
+        } catch (err) {
+            console.error("Failed to upload document:", err);
+            showToast("error", "Tải tài liệu lên thất bại. Vui lòng thử lại.");
+        } finally {
+            setLoadingState(false);
+        }
+    };
+
+    // Load initial data (provinces & profile details if exist)
     useEffect(() => {
-        const fetchProvinces = async () => {
-            const data = await addressService.getProvinces();
-            setProvinces(data);
+        const loadProfileAndProvinces = async () => {
+            setLoading(true);
+            try {
+                // Fetch provinces first
+                const provList = await addressService.getProvinces();
+                setProvinces(provList);
+
+                // Fetch current farm profile
+                const profileData = await profileService.getCurrentProfile();
+                if (profileData) {
+                    setFarmName(profileData.farmName || "");
+                    setDescription(profileData.description || "");
+                    setAvatarUrl(profileData.avatarUrl || "");
+                    setIdentityCard(profileData.identityCard || "");
+                    setBusinessRegistrationUrl(profileData.businessRegistrationUrl || "");
+                    setHasVietgap(!!profileData.vietgapUrl);
+                    setVietgapUrl(profileData.vietgapUrl || "");
+                    setHasGlobalgap(!!profileData.globalgapUrl);
+                    setGlobalgapUrl(profileData.globalgapUrl || "");
+                    setHasOrganic(!!profileData.organicUrl);
+                    setOrganicUrl(profileData.organicUrl || "");
+
+                    // Initialize address selects if address exists
+                    if (profileData.farmAddress) {
+                        const parsed = addressService.parseAddress(profileData.farmAddress);
+                        setStreet(parsed.street || "");
+
+                        const matchedProv = provList.find(p => addressService.normalizeName(p.name) === addressService.normalizeName(parsed.province));
+                        if (matchedProv) {
+                            setSelectedProvince({ code: matchedProv.code, name: matchedProv.name });
+                            
+                            const distList = await addressService.getDistricts(matchedProv.code);
+                            setDistricts(distList);
+                            
+                            const matchedDist = distList.find(d => addressService.normalizeName(d.name) === addressService.normalizeName(parsed.district));
+                            if (matchedDist) {
+                                setSelectedDistrict({ code: matchedDist.code, name: matchedDist.name });
+                                
+                                const wardList = await addressService.getWards(matchedDist.code);
+                                setWards(wardList);
+                                
+                                const matchedWard = wardList.find(w => addressService.normalizeName(w.name) === addressService.normalizeName(parsed.ward));
+                                if (matchedWard) {
+                                    setSelectedWard({ code: matchedWard.code, name: matchedWard.name });
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Lỗi khi tải thông tin trang trại:", err);
+                showToast("error", "Không thể tải thông tin trang trại.");
+            } finally {
+                setLoading(false);
+            }
         };
-        fetchProvinces();
+
+        loadProfileAndProvinces();
     }, []);
 
     const handleProvinceChange = async (e) => {
@@ -80,7 +194,6 @@ export const FarmDetails = () => {
         if (!file) return;
 
         setPhotoLoading(true);
-        setError("");
 
         try {
             const formData = new FormData();
@@ -95,39 +208,54 @@ export const FarmDetails = () => {
             if (response.data && response.data.avatarUrl) {
                 setAvatarUrl(response.data.avatarUrl);
                 
-                // Cập nhật local storage ngay lập tức
+                // Update local storage user representation
                 if (currentUser) {
                     const updatedUser = { ...currentUser, avatarUrl: response.data.avatarUrl };
                     localStorage.setItem("farmconnect_user", JSON.stringify(updatedUser));
                 }
+                showToast("success", "Đã tải ảnh trang trại lên thành công!");
             }
         } catch (err) {
             console.error("Failed to upload image:", err);
-            setError("Tải ảnh lên thất bại. Vui lòng thử lại.");
+            showToast("error", "Tải ảnh lên thất bại. Vui lòng thử lại.");
         } finally {
             setPhotoLoading(false);
         }
     };
 
-    const handleContinue = async () => {
+    const handleSave = async () => {
         if (!farmName.trim()) {
-            setError("Vui lòng điền tên trang trại.");
+            showToast("error", "Vui lòng điền tên trang trại.");
             return;
         }
 
         const currentLocalUser = authService.getCurrentUser();
         if (!currentLocalUser) {
-            setError("Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại.");
+            showToast("error", "Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập lại.");
             return;
         }
 
         if (!selectedProvince.name || !selectedDistrict.name || !selectedWard.name || !street.trim()) {
-            setError("Vui lòng điền đầy đủ địa chỉ trang trại (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà/Tên đường).");
+            showToast("error", "Vui lòng điền đầy đủ địa chỉ trang trại (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà/Tên đường).");
+            return;
+        }
+
+        if (hasVietgap && !vietgapUrl) {
+            showToast("error", "Bạn đã chọn chứng nhận VietGAP. Vui lòng tải lên hình ảnh chứng minh.");
+            return;
+        }
+
+        if (hasGlobalgap && !globalgapUrl) {
+            showToast("error", "Bạn đã chọn chứng nhận GlobalGAP. Vui lòng tải lên hình ảnh chứng minh.");
+            return;
+        }
+
+        if (hasOrganic && !organicUrl) {
+            showToast("error", "Bạn đã chọn chứng nhận Hữu cơ. Vui lòng tải lên hình ảnh chứng minh.");
             return;
         }
 
         setLoading(true);
-        setError("");
 
         const farmAddress = addressService.formatAddress({
             street: street.trim(),
@@ -141,16 +269,345 @@ export const FarmDetails = () => {
                 farmName: farmName.trim(),
                 farmAddress,
                 description: description.trim(),
-                avatarUrl: avatarUrl
+                avatarUrl: avatarUrl,
+                identityCard: identityCard.trim(),
+                businessRegistrationUrl: businessRegistrationUrl || null,
+                vietgapUrl: hasVietgap ? vietgapUrl : null,
+                globalgapUrl: hasGlobalgap ? globalgapUrl : null,
+                organicUrl: hasOrganic ? organicUrl : null
             });
-            navigate("/");
+
+            // Update local storage representation
+            const updatedUser = { 
+                ...currentLocalUser, 
+                avatarUrl, 
+                farmName: farmName.trim(),
+                farmAddress,
+                description: description.trim(),
+                identityCard: identityCard.trim(),
+                businessRegistrationUrl: businessRegistrationUrl || null,
+                vietgapUrl: hasVietgap ? vietgapUrl : null,
+                globalgapUrl: hasGlobalgap ? globalgapUrl : null,
+                organicUrl: hasOrganic ? organicUrl : null
+            };
+            localStorage.setItem("farmconnect_user", JSON.stringify(updatedUser));
+
+            if (isOnboarding) {
+                navigate("/");
+            } else {
+                showToast("success", "Đã lưu thông tin trang trại thành công!");
+            }
         } catch (err) {
-            setError(err.message || "Không thể lưu thông tin trang trại. Vui lòng thử lại.");
+            showToast("error", err.message || "Không thể lưu thông tin trang trại. Vui lòng thử lại.");
         } finally {
             setLoading(false);
         }
     };
 
+    // --- RENDER DASHBOARD TAB LAYOUT ---
+    if (!isOnboarding) {
+        return (
+            <div className="fd-farm-profile-tab">
+                {/* ── TOAST NOTIFICATION ── */}
+                {toast && (
+                    <div className={`fd-toast fd-toast--${toast.type} ${toastVisible ? 'fd-toast--in' : 'fd-toast--out'}`}>
+                        <div className="fd-toast__icon">
+                            {toast.type === 'success' ? (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            ) : (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                            )}
+                        </div>
+                        <div className="fd-toast__body">
+                            <p className="fd-toast__title">{toast.type === 'success' ? 'Thành công' : 'Có lỗi xảy ra'}</p>
+                            <p className="fd-toast__msg">{toast.message}</p>
+                        </div>
+                        <button className="fd-toast__close" onClick={() => { setToastVisible(false); setTimeout(() => setToast(null), 400); }}>✕</button>
+                        <div className="fd-toast__bar"></div>
+                    </div>
+                )}
+
+                <div className="farm-form-container">
+                    <div className="farm-form-panel">
+                        <div className="form-grid-section">
+                            <h3 className="section-title">Thông tin cơ bản</h3>
+                            
+                            <div className="field-group">
+                                <label>Tên Trang trại <span className="req">*</span></label>
+                                <input
+                                    type="text"
+                                    placeholder="Ví dụ: Hợp tác xã rau sạch Đà Lạt..."
+                                    value={farmName}
+                                    onChange={(e) => setFarmName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="field-row">
+                                <div className="field-group">
+                                    <label>Tỉnh / Thành phố <span className="req">*</span></label>
+                                    <select value={selectedProvince.code} onChange={handleProvinceChange}>
+                                        <option value="">Chọn Tỉnh / Thành phố</option>
+                                        {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="field-group">
+                                    <label>Quận / Huyện <span className="req">*</span></label>
+                                    <select value={selectedDistrict.code} onChange={handleDistrictChange} disabled={!selectedProvince.code}>
+                                        <option value="">Chọn Quận / Huyện</option>
+                                        {districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="field-row">
+                                <div className="field-group">
+                                    <label>Phường / Xã <span className="req">*</span></label>
+                                    <select value={selectedWard.code} onChange={handleWardChange} disabled={!selectedDistrict.code}>
+                                        <option value="">Chọn Phường / Xã</option>
+                                        {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className="field-group">
+                                    <label>Số nhà / Tên đường <span className="req">*</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="Số 45, ngõ..."
+                                        value={street}
+                                        onChange={(e) => setStreet(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="field-group">
+                                <label>Mô tả Trang trại</label>
+                                <textarea
+                                    placeholder="Hãy kể về lịch sử, phương pháp nuôi trồng, các loại giống cây đặc trưng của trang trại bạn..."
+                                    rows="4"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-section-divider"></div>
+
+                        <div className="form-grid-section">
+                            <h3 className="section-title">Thông tin pháp lý & Hồ sơ</h3>
+                            
+                            <div className="field-row">
+                                <div className="field-group">
+                                    <label>Số CCCD / CMND <span className="req">*</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nhập số CCCD hoặc CMND..."
+                                        value={identityCard}
+                                        onChange={(e) => setIdentityCard(e.target.value.replace(/[^0-9]/g, ''))}
+                                    />
+                                </div>
+
+                                <div className="field-group">
+                                    <label>Giấy đăng ký hộ kinh doanh / Hợp tác xã (Không bắt buộc)</label>
+                                    <div className="doc-upload-box" onClick={() => document.getElementById("tab-biz-reg-input").click()}>
+                                        <input 
+                                            type="file" 
+                                            id="tab-biz-reg-input" 
+                                            accept="image/*" 
+                                            style={{ display: "none" }} 
+                                            onChange={(e) => handleDocumentUpload(e, setBusinessRegistrationUrl, setBusinessLoading)}
+                                        />
+                                        {businessLoading ? (
+                                            <div className="upload-loading">Đang tải tài liệu...</div>
+                                        ) : businessRegistrationUrl ? (
+                                            <div className="doc-preview-wrap">
+                                                <img src={businessRegistrationUrl} alt="Business Registration" />
+                                                <div className="doc-preview-hover-overlay">Thay đổi tài liệu</div>
+                                            </div>
+                                        ) : (
+                                            <div className="doc-upload-trigger">
+                                                <span className="icon">📄</span>
+                                                <span className="text">Tải lên ảnh giấy phép kinh doanh</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="form-section-divider"></div>
+
+                        <div className="form-grid-section">
+                            <h3 className="section-title">Chứng nhận chất lượng sản phẩm</h3>
+                            <p className="section-subtitle">Tích chọn chứng nhận hiện có của trang trại và tải lên hình ảnh minh chứng:</p>
+                            
+                            <div className="certs-container-tab">
+                                {/* VietGAP */}
+                                <div className="cert-item-card">
+                                    <div className="cert-header-tab">
+                                        <label className="cert-checkbox-wrap">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={hasVietgap} 
+                                                onChange={(e) => {
+                                                    setHasVietgap(e.target.checked);
+                                                    if(!e.target.checked) setVietgapUrl("");
+                                                }} 
+                                            />
+                                            <span className="cert-title-text">Chứng nhận VietGAP</span>
+                                        </label>
+                                    </div>
+                                    {hasVietgap && (
+                                        <div className="cert-upload-box-tab" onClick={() => document.getElementById("tab-vietgap-input").click()}>
+                                            <input 
+                                                type="file" 
+                                                id="tab-vietgap-input" 
+                                                accept="image/*" 
+                                                style={{ display: "none" }} 
+                                                onChange={(e) => handleDocumentUpload(e, setVietgapUrl, setVietgapLoading)}
+                                            />
+                                            {vietgapLoading ? (
+                                                <div className="upload-loading">Đang tải ảnh...</div>
+                                            ) : vietgapUrl ? (
+                                                <div className="cert-preview-wrap">
+                                                    <img src={vietgapUrl} alt="VietGAP Certificate" />
+                                                    <div className="doc-preview-hover-overlay">Thay đổi</div>
+                                                </div>
+                                            ) : (
+                                                <div className="cert-upload-triggerdanger">
+                                                    <span className="icon">⚠️</span> Tải ảnh chứng nhận VietGAP *
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* GlobalGAP */}
+                                <div className="cert-item-card">
+                                    <div className="cert-header-tab">
+                                        <label className="cert-checkbox-wrap">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={hasGlobalgap} 
+                                                onChange={(e) => {
+                                                    setHasGlobalgap(e.target.checked);
+                                                    if(!e.target.checked) setGlobalgapUrl("");
+                                                }} 
+                                            />
+                                            <span className="cert-title-text">Chứng nhận GlobalGAP</span>
+                                        </label>
+                                    </div>
+                                    {hasGlobalgap && (
+                                        <div className="cert-upload-box-tab" onClick={() => document.getElementById("tab-globalgap-input").click()}>
+                                            <input 
+                                                type="file" 
+                                                id="tab-globalgap-input" 
+                                                accept="image/*" 
+                                                style={{ display: "none" }} 
+                                                onChange={(e) => handleDocumentUpload(e, setGlobalgapUrl, setGlobalgapLoading)}
+                                            />
+                                            {globalgapLoading ? (
+                                                <div className="upload-loading">Đang tải ảnh...</div>
+                                            ) : globalgapUrl ? (
+                                                <div className="cert-preview-wrap">
+                                                    <img src={globalgapUrl} alt="GlobalGAP Certificate" />
+                                                    <div className="doc-preview-hover-overlay">Thay đổi</div>
+                                                </div>
+                                            ) : (
+                                                <div className="cert-upload-triggerdanger">
+                                                    <span className="icon">⚠️</span> Tải ảnh chứng nhận GlobalGAP *
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Organic */}
+                                <div className="cert-item-card">
+                                    <div className="cert-header-tab">
+                                        <label className="cert-checkbox-wrap">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={hasOrganic} 
+                                                onChange={(e) => {
+                                                    setHasOrganic(e.target.checked);
+                                                    if(!e.target.checked) setOrganicUrl("");
+                                                }} 
+                                            />
+                                            <span className="cert-title-text">Chứng nhận Hữu cơ</span>
+                                        </label>
+                                    </div>
+                                    {hasOrganic && (
+                                        <div className="cert-upload-box-tab" onClick={() => document.getElementById("tab-organic-input").click()}>
+                                            <input 
+                                                type="file" 
+                                                id="tab-organic-input" 
+                                                accept="image/*" 
+                                                style={{ display: "none" }} 
+                                                onChange={(e) => handleDocumentUpload(e, setOrganicUrl, setOrganicLoading)}
+                                            />
+                                            {organicLoading ? (
+                                                <div className="upload-loading">Đang tải ảnh...</div>
+                                            ) : organicUrl ? (
+                                                <div className="cert-preview-wrap">
+                                                    <img src={organicUrl} alt="Organic Certificate" />
+                                                    <div className="doc-preview-hover-overlay">Thay đổi</div>
+                                                </div>
+                                            ) : (
+                                                <div className="cert-upload-triggerdanger">
+                                                    <span className="icon">⚠️</span> Tải ảnh chứng nhận Hữu cơ *
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="form-actions-bar">
+                            <button className="btn-primary" onClick={handleSave} disabled={loading}>
+                                {loading ? "Đang lưu..." : "Lưu thay đổi"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="farm-avatar-panel">
+                        <h3>Hình ảnh Trang trại</h3>
+                        <p>Sử dụng logo hoặc hình ảnh cổng trang trại của bạn.</p>
+
+                        <div className="avatar-preview-box">
+                            {photoLoading ? (
+                                <div className="loading" style={{ color: 'var(--green-primary)', fontWeight: 600 }}>Đang tải...</div>
+                            ) : avatarUrl ? (
+                                <img src={avatarUrl} alt="Farm profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <div className="fallback" style={{ fontSize: '60px' }}>🏡</div>
+                            )}
+                        </div>
+
+                        <button className="btn-secondary btn-upload" onClick={() => document.getElementById("farm-avatar-file-input").click()}>
+                            Tải ảnh lên
+                        </button>
+                        <input
+                            type="file"
+                            id="farm-avatar-file-input"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={handlePhotoChange}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- RENDER ONBOARDING REGISTRATION LAYOUT ---
     return (
         <div className="farm-details-page">
             <header className="onboarding-header">
@@ -206,6 +663,17 @@ export const FarmDetails = () => {
                     <div className="form-wrapper">
                         <h1>Thông tin Trang trại</h1>
                         <p className="subtitle">Chia sẻ thêm về trang trại của bạn. Thông tin này sẽ được hiển thị công khai tới khách hàng.</p>
+
+                        {success && (
+                            <div className="success-message" style={{ color: '#2e7d32', backgroundColor: '#e8f5e9', padding: '10px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #c8e6c9', fontSize: '14px' }}>
+                                {success}
+                            </div>
+                        )}
+                        {error && (
+                            <div className="error-message" style={{ color: '#d32f2f', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #ffcdd2', fontSize: '14px' }}>
+                                {error}
+                            </div>
+                        )}
 
                         <div className="input-group">
                             <label>Tên Trang trại</label>
@@ -316,15 +784,9 @@ export const FarmDetails = () => {
                             )}
                         </div>
 
-                        {error && (
-                            <div className="error-message" style={{ color: '#d32f2f', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #ffcdd2', fontSize: '14px' }}>
-                                {error}
-                            </div>
-                        )}
- 
                         <button 
                             className="btn-continue-farm" 
-                            onClick={handleContinue}
+                            onClick={handleSave}
                             disabled={loading}
                         >
                             {loading ? "Đang lưu..." : "Tiếp tục"} <span>→</span>

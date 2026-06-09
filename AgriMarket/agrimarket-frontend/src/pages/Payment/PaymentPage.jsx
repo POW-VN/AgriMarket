@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
+import orderService from "../../services/orderService";
 import Footer from "../../components/common/Footer/Footer";
 import "./PaymentPage.css";
 
@@ -68,9 +69,9 @@ export default function PaymentPage() {
     // Initialise active tab from checkout method
     useEffect(() => {
         const method = location.state?.paymentMethod || pendingOrder?.paymentMethod;
-        if (method === "bank" || method === "Chuyển khoản") {
+        if (method === "bank" || method === "BANK_TRANSFER") {
             setActiveTab("bank");
-        } else if (method === "card" || method === "Thẻ Visa") {
+        } else if (method === "card" || method === "CARD") {
             setActiveTab("card");
         } else {
             setActiveTab("card");
@@ -151,7 +152,7 @@ export default function PaymentPage() {
         return Object.keys(formErrors).length === 0;
     };
 
-    const handleConfirmPayment = (e) => {
+    const handleConfirmPayment = async (e) => {
         e.preventDefault();
 
         if (activeTab === "card") {
@@ -160,29 +161,64 @@ export default function PaymentPage() {
             }
         }
 
-        // Finalise the order placement
-        const confirmedOrder = {
-            ...pendingOrder,
-            status: "confirmed",
-            statusLabel: "Đã thanh toán",
-            paymentStatus: "paid",
-            paymentMethod: activeTab === "card" ? "Thẻ Visa" : activeTab === "bank" ? "Chuyển khoản" : "Ví điện tử",
-            cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null
-        };
+        const method = activeTab === "card" ? "CARD" : activeTab === "bank" ? "BANK_TRANSFER" : "WALLET";
 
-        // Write to local storage under orders database
-        const stored = localStorage.getItem("agrimarket_orders");
-        const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
-        const updatedOrders = [confirmedOrder, ...existingOrders];
-        localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+        if (user) {
+            try {
+                const backendOrder = await orderService.confirmPayment(pendingOrder.id, method);
+                
+                // Clear pending session
+                localStorage.removeItem("agrimarket_pending_order");
+                localStorage.removeItem("agrimarket_checkout");
 
-        // Clear pending session
-        localStorage.removeItem("agrimarket_pending_order");
-        localStorage.removeItem("agrimarket_checkout");
+                // Clear checked items from local cart if any
+                if (pendingOrder.items) {
+                    const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+                    const remainingCart = savedCart.filter(item => !pendingOrder.items.some(poi => poi.productId === item.id || poi.name === item.name));
+                    localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
+                }
 
-        setReceiptOrder(confirmedOrder);
-        setIsSuccess(true);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+                // If backend returned order items, use them, otherwise map cardEnding if card active tab
+                const receipt = {
+                    ...backendOrder,
+                    cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null
+                };
+
+                setReceiptOrder(receipt);
+                setIsSuccess(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            } catch (err) {
+                console.error("Lỗi khi xác nhận thanh toán:", err);
+                const errMsg = err.response?.data
+                    ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
+                    : "Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.";
+                alert(errMsg);
+            }
+        } else {
+            // Finalise the order placement (Mock fallback)
+            const confirmedOrder = {
+                ...pendingOrder,
+                status: "pending",
+                statusLabel: "Chờ xác nhận",
+                paymentStatus: "paid",
+                paymentMethod: method,
+                cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null
+            };
+
+            // Write to local storage under orders database
+            const stored = localStorage.getItem("agrimarket_orders");
+            const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
+            const updatedOrders = [confirmedOrder, ...existingOrders];
+            localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+
+            // Clear pending session
+            localStorage.removeItem("agrimarket_pending_order");
+            localStorage.removeItem("agrimarket_checkout");
+
+            setReceiptOrder(confirmedOrder);
+            setIsSuccess(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }
     };
 
     const handleCancelPayment = () => {
@@ -216,7 +252,11 @@ export default function PaymentPage() {
                             <Link to="/" className="nav-link">Trang chủ</Link>
                             <Link to="/products" className="nav-link">Cửa hàng</Link>
                             <Link to="/farms" className="nav-link">Nông trại</Link>
-                            <Link to="/about" className="nav-link">Giới thiệu</Link>
+                            {user && user.role === "admin" ? (
+                                <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+                            ) : (
+                                <Link to="/about" className="nav-link">Giới thiệu</Link>
+                            )}
                         </nav>
                         <div className="header-actions">
                             <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
@@ -275,7 +315,11 @@ export default function PaymentPage() {
                         <Link to="/" className="nav-link">Trang chủ</Link>
                         <Link to="/products" className="nav-link">Cửa hàng</Link>
                         <Link to="/farms" className="nav-link">Nông trại</Link>
-                        <Link to="/about" className="nav-link">Giới thiệu</Link>
+                        {user && user.role === "admin" ? (
+                            <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+                        ) : (
+                            <Link to="/about" className="nav-link">Giới thiệu</Link>
+                        )}
                     </nav>
 
                     <div className="header-actions">

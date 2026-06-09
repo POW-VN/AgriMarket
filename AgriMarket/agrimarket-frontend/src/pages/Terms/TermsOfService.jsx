@@ -51,7 +51,11 @@ const TermsOfService = () => {
             <Link to="/" className="nav-link">Trang chủ</Link>
             <Link to="/shop" className="nav-link">Cửa hàng</Link>
             <Link to="/farms" className="nav-link">Nông trại</Link>
-            <Link to="/about" className="nav-link">Giới thiệu</Link>
+            {user && user.role === "admin" ? (
+              <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+            ) : (
+              <Link to="/about" className="nav-link">Giới thiệu</Link>
+            )}
           </nav>
 
           <div className="header-actions">

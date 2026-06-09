@@ -1,19 +1,23 @@
 package org.example.agrimarket.config;
 
+import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Category;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
+import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CategoryRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,9 +36,102 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private FarmerRepository farmerRepository;
 
+    @Autowired
+    private AdminRepository adminRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // ========== Ensure default admin account exists ==========
+        String adminEmail = "admin@agrimarket.com";
+        if (adminRepository.findByEmail(adminEmail).isEmpty()) {
+            Admin admin = new Admin();
+            admin.setFullName("Administrator");
+            admin.setEmail(adminEmail);
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setCreatedAt(LocalDateTime.now());
+            adminRepository.save(admin);
+            System.out.println(">>> DataInitializer: Created default admin account: " + adminEmail);
+        } else {
+            // Always reset password to ensure it's correct
+            Admin admin = adminRepository.findByEmail(adminEmail).get();
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            adminRepository.save(admin);
+            System.out.println(">>> DataInitializer: Reset admin password for: " + adminEmail);
+        }
+
+        // Clean up redundant legacy columns in orders table
+        String[] ordersCols = {"checkout_id", "total_price", "shipping_address"};
+        for (String col : ordersCols) {
+            try {
+                // Drop default constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @ConstraintName nvarchar(200)\n" +
+                    "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
+                    "WHERE parent_object_id = OBJECT_ID('orders') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('orders'), '" + col + "', 'ColumnId')\n" +
+                    "IF @ConstraintName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @ConstraintName);"
+                );
+                
+                // Drop foreign key constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @FKName nvarchar(200)\n" +
+                    "SELECT @FKName = f.name FROM sys.foreign_keys AS f\n" +
+                    "INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\n" +
+                    "WHERE fc.parent_object_id = OBJECT_ID('orders') AND fc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('orders'), '" + col + "', 'ColumnId')\n" +
+                    "IF @FKName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @FKName);"
+                );
+
+                jdbcTemplate.execute(
+                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('orders') AND name = '" + col + "')\n" +
+                    "    ALTER TABLE orders DROP COLUMN " + col + ";"
+                );
+                System.out.println(">>> DataInitializer: Dropped legacy column '" + col + "' from orders table.");
+            } catch (Exception e) {
+                System.err.println(">>> DataInitializer: Could not drop legacy column '" + col + "' from orders table: " + e.getMessage());
+            }
+        }
+
+        // Clean up redundant legacy columns in order_item table
+        String[] orderItemCols = {"product_thumbnail", "unit_price", "subtotal"};
+        for (String col : orderItemCols) {
+            try {
+                // Drop default constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @ConstraintName nvarchar(200)\n" +
+                    "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
+                    "WHERE parent_object_id = OBJECT_ID('order_item') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('order_item'), '" + col + "', 'ColumnId')\n" +
+                    "IF @ConstraintName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE order_item DROP CONSTRAINT ' + @ConstraintName);"
+                );
+
+                // Drop foreign key constraints if any
+                jdbcTemplate.execute(
+                    "DECLARE @FKName nvarchar(200)\n" +
+                    "SELECT @FKName = f.name FROM sys.foreign_keys AS f\n" +
+                    "INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\n" +
+                    "WHERE fc.parent_object_id = OBJECT_ID('order_item') AND fc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('order_item'), '" + col + "', 'ColumnId')\n" +
+                    "IF @FKName IS NOT NULL\n" +
+                    "    EXEC('ALTER TABLE order_item DROP CONSTRAINT ' + @FKName);"
+                );
+
+                jdbcTemplate.execute(
+                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('order_item') AND name = '" + col + "')\n" +
+                    "    ALTER TABLE order_item DROP COLUMN " + col + ";"
+                );
+                System.out.println(">>> DataInitializer: Dropped legacy column '" + col + "' from order_item table.");
+            } catch (Exception e) {
+                System.err.println(">>> DataInitializer: Could not drop legacy column '" + col + "' from order_item table: " + e.getMessage());
+            }
+        }
+
         // 1. Ensure the 8 main categories exist
         String[] targetCategories = {
                 "Cây lương thực",

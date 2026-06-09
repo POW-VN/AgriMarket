@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
+import orderService from "../../services/orderService";
+import useProfile from "../../hooks/useProfile";
+import ProfileLayout from "../../components/profile/ProfileLayout";
 import "./CustomerOrderDetail.css";
+import "../Profile/Profile.css";
 
 // Import local images from Home assets
 import bunchedCarrots from "../Home/assets/bunched_carrots.png";
@@ -46,7 +50,7 @@ const ORDERS_DB = {
   "FH-2024-9104": {
     id: "FH-2024-9104",
     status: "shipping",
-    statusLabel: "Đang vận chuyển",
+    statusLabel: "Chờ giao hàng",
     date: "14 thg 10, 2024",
     time: "03:15 CH",
     subtotal: 2100000,
@@ -103,7 +107,7 @@ const ORDERS_DB = {
   "FH-2026-1011": {
     id: "FH-2026-1011",
     status: "pending",
-    statusLabel: "Chờ xử lý",
+    statusLabel: "Chờ xác nhận",
     date: "06 thg 06, 2026",
     time: "16:30 CH",
     subtotal: 215000,
@@ -130,7 +134,7 @@ const ORDERS_DB = {
   "FH-2026-1012": {
     id: "FH-2026-1012",
     status: "confirmed",
-    statusLabel: "Đã xác nhận",
+    statusLabel: "Chờ lấy hàng",
     date: "05 thg 06, 2026",
     time: "08:20 SA",
     subtotal: 1150000,
@@ -185,258 +189,302 @@ const ORDERS_DB = {
   }
 };
 
+const TIMELINE_STEPS = [
+  { key: "placed",    label: "Chờ xác nhận",  icon: "✓" },
+  { key: "preparing", label: "Đang chuẩn bị", icon: "📦" },
+  { key: "confirmed", label: "Chờ lấy hàng",  icon: "✓" },
+  { key: "shipping",  label: "Chờ giao hàng", icon: "🚚" },
+  { key: "delivered", label: "Đã giao",       icon: "🏠" },
+];
+
+const getActiveStepIndex = (status) => {
+  if (status === "pending")   return 0;
+  if (status === "preparing") return 1;
+  if (status === "confirmed") return 2;
+  if (status === "shipping")  return 3;
+  if (status === "delivered") return 4;
+  return -1;
+};
+
 export const CustomerOrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { profile } = useProfile();
   const [user, setUser] = useState(null);
   const [order, setOrder] = useState(null);
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [selectedReason, setSelectedReason] = useState("Thay đổi ý định mua hàng");
   const [customReason, setCustomReason] = useState("");
-  const [cartItemsCount, setCartItemsCount] = useState(0);
 
   useEffect(() => {
-    // Check login
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
 
-    // Get order from localStorage first, fallback to ORDERS_DB
-    const stored = localStorage.getItem("agrimarket_orders");
-    const storedOrders = stored ? JSON.parse(stored) : [];
-    const localOrder = storedOrders.find(o => o.id === id);
-
-    if (localOrder) {
-      setOrder(localOrder);
-    } else {
-      const fetchedOrder = ORDERS_DB[id];
-      if (fetchedOrder) {
-        setOrder(fetchedOrder);
-      }
-    }
-
-    const fetchCartCount = async () => {
+    const loadOrderDetail = async () => {
       if (currentUser) {
         try {
-          const cart = await cartService.getCart();
-          setCartItemsCount(cart.length);
+          const fetched = await orderService.getOrderById(id);
+          console.log("[OrderDetail] Fetched order:", fetched);
+          console.log("[OrderDetail] paymentMethod:", fetched?.paymentMethod);
+          console.log("[OrderDetail] provider:", fetched?.provider);
+          setOrder(fetched);
         } catch (err) {
-          console.error("Lỗi khi load giỏ hàng:", err);
-          loadLocalCartCount();
+          console.error("Lỗi khi load chi tiết đơn hàng từ API:", err);
+          fallbackLoad();
         }
       } else {
-        loadLocalCartCount();
+        fallbackLoad();
       }
     };
 
-    const loadLocalCartCount = () => {
-      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-      setCartItemsCount(savedCart.length);
+    const fallbackLoad = () => {
+      const stored = localStorage.getItem("agrimarket_orders");
+      const storedOrders = stored ? JSON.parse(stored) : [];
+      const localOrder = storedOrders.find(o => o.id === id);
+      if (localOrder) {
+        setOrder(localOrder);
+      } else {
+        const fetchedOrder = ORDERS_DB[id];
+        if (fetchedOrder) setOrder(fetchedOrder);
+      }
     };
 
-    fetchCartCount();
+    loadOrderDetail();
   }, [id]);
 
-  const handleLogout = () => {
-    authService.logout();
-    setUser(null);
-    navigate("/");
-  };
-
-  const handleCancelOrder = () => {
+  const handleCancelOrder = async () => {
     const finalReason = selectedReason === "Lý do khác" ? customReason.trim() : selectedReason;
     if (selectedReason === "Lý do khác" && !customReason.trim()) {
       alert("Vui lòng nhập lý do hủy đơn hàng của bạn.");
       return;
     }
 
-    const updatedOrder = {
-      ...order,
-      status: "cancelled",
-      statusLabel: "Đã hủy",
-      cancelReason: finalReason || "Không có lý do cụ thể"
-    };
-
-    setOrder(updatedOrder);
-
-    // Update in localStorage
-    const stored = localStorage.getItem("agrimarket_orders");
-    if (stored) {
-      const storedOrders = JSON.parse(stored);
-      const updatedOrders = storedOrders.map(o => o.id === id ? updatedOrder : o);
-      localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+    if (user) {
+      try {
+        const updated = await orderService.cancelOrder(id, finalReason);
+        setOrder(updated);
+        setShowCancelModal(false);
+        setToastMessage("Hủy đơn hàng thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+      } catch (err) {
+        console.error("Lỗi khi hủy đơn hàng:", err);
+        alert(err.response?.data || "Hủy đơn hàng thất bại. Vui lòng thử lại.");
+      }
+    } else {
+      const updatedOrder = {
+        ...order,
+        status: "cancelled",
+        statusLabel: "Đã hủy",
+        cancelReason: finalReason || "Không có lý do cụ thể"
+      };
+      setOrder(updatedOrder);
+      const stored = localStorage.getItem("agrimarket_orders");
+      if (stored) {
+        const storedOrders = JSON.parse(stored);
+        const updatedOrders = storedOrders.map(o => o.id === id ? updatedOrder : o);
+        localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+      }
+      setShowCancelModal(false);
+      setToastMessage("Hủy đơn hàng thành công!");
+      setTimeout(() => setToastMessage(""), 3000);
     }
-
-    setShowCancelModal(false);
-    setToastMessage("Hủy đơn hàng thành công!");
-    setTimeout(() => setToastMessage(""), 3000);
   };
 
   if (!order) {
     return (
-      <div className="order-detail-loading">
-        <h3>Đang tải thông tin chi tiết đơn hàng...</h3>
-        <p>Nếu quá lâu, hãy quay lại <Link to="/profile/orders">lịch sử đơn hàng</Link>.</p>
+      <div className="od-loading">
+        <div className="od-loading-spinner">⏳</div>
+        <h3>Đang tải thông tin đơn hàng...</h3>
+        <p>Nếu quá lâu, hãy <Link to="/profile/orders">quay lại danh sách đơn hàng</Link>.</p>
       </div>
     );
   }
 
-  const formatVND = (value) => {
-    return value.toLocaleString("vi-VN") + " ₫";
-  };
-
-  // Timeline points definition
-  const TIMELINE_STEPS = [
-    { key: "placed", label: "Đã đặt hàng", icon: "✓" },
-    { key: "confirmed", label: "Đã xác nhận", icon: "✓" },
-    { key: "preparing", label: "Đang chuẩn bị", icon: "✓" },
-    { key: "shipping", label: "Đang giao", icon: "🚚" },
-    { key: "delivered", label: "Đã giao", icon: "🏠" }
-  ];
-
-  // Get active step index based on order status
-  const getActiveStepIndex = (status) => {
-    if (status === "pending") return 0;
-    if (status === "confirmed") return 1;
-    if (status === "preparing") return 2;
-    if (status === "shipping") return 3;
-    if (status === "delivered") return 4;
-    return -1; // For cancelled or other
-  };
-
+  const formatVND = (value) => value.toLocaleString("vi-VN") + " ₫";
   const activeIndex = getActiveStepIndex(order.status);
 
-  return (
-    <div className="orderdetail-page">
-      {/* Custom Toast Alert */}
-      {toastMessage && (
-        <div className="toast-notification">
-          <span className="toast-icon">✅</span>
-          <span className="toast-text">{toastMessage}</span>
-        </div>
-      )}
+  // Fallback farmer details default profile photo
+  const defaultFarmerPhoto = "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=120&auto=format&fit=crop&q=80";
 
-      {/* ── HEADER ── */}
-      <header className="home-header">
-        <div className="header-container">
-          <div className="header-logo" onClick={() => navigate("/")}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="logo-tractor"
-            >
-              <circle cx="7" cy="18" r="2"></circle>
-              <circle cx="18" cy="18" r="2"></circle>
-              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-              <path d="M16 9h3l2 3v4"></path>
-            </svg>
-            <span className="logo-text">AgriMarket</span>
-          </div>
+  // Helper to render timeline step icons as SVGs
+  const renderStepIcon = (key, isCompleted, isCurrent) => {
+    if (isCompleted && key !== "shipping" && key !== "delivered") {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      );
+    }
 
-          <nav className="header-nav">
-            <Link to="/" className="nav-link">Trang chủ</Link>
-            <Link to="/products" className="nav-link">Cửa hàng</Link>
-            <Link to="/farms" className="nav-link">Nông trại</Link>
-            <Link to="/about" className="nav-link">Giới thiệu</Link>
-          </nav>
+    switch (key) {
+      case "placed":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        );
+      case "confirmed":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+        );
+      case "preparing":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        );
+      case "shipping":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+            <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
+            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+            <circle cx="5.5" cy="18.5" r="2.5" />
+            <circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+        );
+      case "delivered":
+        return (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+        );
+      default:
+        return null;
+    }
+  };
 
-          <div className="header-actions">
-            {/* Search Icon */}
-            <button className="icon-btn" aria-label="Tìm kiếm">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
+  // Helper to determine simulated steps date/time
+  const getStepDateTime = (idx, stepKey, order, isCompleted, isCurrent) => {
+    if (!isCompleted && !isCurrent) {
+      if (stepKey === "delivered") return "Dự kiến 2 ngày";
+      return "";
+    }
+    const baseDate = order.date || "12 thg 10, 2024";
+    const baseTime = order.time || "10:24 SA";
+    
+    // Simulating logical dates/times for realistic display
+    if (stepKey === "placed") return `${baseDate}, ${baseTime}`;
+    if (stepKey === "confirmed") return `${baseDate}, 11:20 SA`;
+    if (stepKey === "preparing") return `${baseDate}, 06:15 CH`;
+    if (stepKey === "shipping") return `${baseDate}, 14:30 CH`;
+    if (stepKey === "delivered") return `${baseDate}`;
+    return "";
+  };
 
-            {/* Cart Icon */}
-            {(!user || user.role !== "admin") && (
-              <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                {cartItemsCount > 0 && (
-                  <span className="cart-badge">{cartItemsCount}</span>
-                )}
-              </button>
-            )}
+  // Helper to get payment method details dynamically
+  const getPaymentMethodDetails = (method, status) => {
+    const isPaid = (status || "").toLowerCase() === "paid";
+    // Normalize to ASCII for robust Vietnamese string matching
+    const raw = (method || "");
+    const normalizedMethod = raw.toLowerCase();
+    const asciiMethod = normalizedMethod
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\x00-\x7F]/g, "");
 
-            {/* Profile Dropdown */}
-            {user ? (
-              <div className="auth-profile-container" style={{ position: "relative" }}>
-                <div 
-                  className="profile-indicator" 
-                  onClick={() => setShowProfileDropdown(v => !v)}
-                  title="Tùy chọn tài khoản"
-                >
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.fullName} className="avatar-img" />
-                  ) : (
-                    <div className="avatar-fallback">
-                      {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                    </div>
-                  )}
-                  <span className="profile-name">{user.fullName}</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12" style={{ marginLeft: "4px" }}>
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </div>
+    // Match COD: cash on delivery
+    const isCod = asciiMethod.includes("cod")
+      || asciiMethod.includes("tien mat")
+      || asciiMethod.includes("nhan hang");
 
-                {showProfileDropdown && (
-                  <div className="header-dropdown-menu">
-                    <button onClick={() => { navigate("/profile"); setShowProfileDropdown(false); }}>Hồ sơ của tôi</button>
-                    <button onClick={() => { navigate("/profile/orders"); setShowProfileDropdown(false); }}>Lịch sử đơn hàng</button>
-                    <button onClick={() => { navigate("/security"); setShowProfileDropdown(false); }}>Bảo mật</button>
-                    <hr />
-                    <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button className="btn-auth btn-login" onClick={() => navigate("/login")}>
-                Đăng nhập
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+    // Match bank transfer
+    const isBank = asciiMethod.includes("chuyen khoan")
+      || asciiMethod.includes("ngan hang")
+      || asciiMethod.includes("bank_transfer")
+      || asciiMethod.includes("transfer")
+      || asciiMethod.includes("vnpay");
 
-      {/* ── BREADCRUMBS & TOP BAR ── */}
-      <div className="order-detail-container">
-        <nav className="breadcrumbs" aria-label="Breadcrumb">
-          <Link to="/">Trang chủ</Link>
-          <span className="breadcrumb-separator">›</span>
-          <Link to="/profile/orders">Đơn hàng của tôi</Link>
-          <span className="breadcrumb-separator">›</span>
-          <span className="breadcrumb-current">Chi tiết đơn hàng</span>
-        </nav>
+    const isCard = asciiMethod.includes("card")
+      || asciiMethod.includes("visa")
+      || asciiMethod.includes("mastercard")
+      || asciiMethod.includes("credit")
+      || asciiMethod.includes("wallet");
 
-        <div className="detail-header-row">
-          <div className="header-left-col">
-            <h1 className="detail-page-title">Chi tiết đơn hàng</h1>
-            <div className="order-meta-info">
-              <span className="order-id-txt">ĐƠN HÀNG #{order.id}</span>
-              <span className="bullet-sep">•</span>
-              <span className="order-time-txt">Đặt ngày {order.date} lúc {order.time}</span>
-              <span className="bullet-sep">•</span>
-              <span className={`status-badge status-${order.status}`}>
-                {order.statusLabel}
-              </span>
+    if (isCod) {
+      return {
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <circle cx="12" cy="12" r="3" />
+            <line x1="6" y1="12" x2="6.01" y2="12" />
+            <line x1="18" y1="12" x2="18.01" y2="12" />
+          </svg>
+        ),
+        name: "Thanh to\u00e1n khi nh\u1eadn h\u00e0ng (COD)",
+        statusText: order.status === "delivered"
+          ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng"
+          : "Thanh to\u00e1n b\u1eb1ng ti\u1ec1n m\u1eb7t khi nh\u1eadn h\u00e0ng"
+      };
+    } else if (isBank) {
+      return {
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <line x1="9" y1="22" x2="9" y2="12" />
+            <line x1="15" y1="22" x2="15" y2="12" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+          </svg>
+        ),
+        name: asciiMethod.includes("vnpay")
+          ? "C\u1ed5ng thanh to\u00e1n VNPAY"
+          : "Chuy\u1ec3n kho\u1ea3n ng\u00e2n h\u00e0ng",
+        statusText: isPaid
+          ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng"
+          : "Ch\u1edd chuy\u1ec3n kho\u1ea3n thanh to\u00e1n"
+      };
+    } else if (isCard) {
+      return {
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+            <line x1="6" y1="13" x2="10" y2="13" />
+          </svg>
+        ),
+        name: "Thanh to\u00e1n b\u1eb1ng th\u1ebb Visa",
+        statusText: isPaid ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng" : "Ch\u1edd thanh to\u00e1n"
+      };
+    } else {
+      return {
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+          </svg>
+        ),
+        name: raw || "Ch\u01b0a x\u00e1c \u0111\u1ecbnh",
+        statusText: isPaid ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng" : "Ch\u1edd thanh to\u00e1n"
+      };
+    }
+  };
+
+    return (
+    <ProfileLayout profile={profile}>
+      <div className="cod-content">
+        
+        {/* ── PAGE HEADER ── */}
+        <div className="cod-page-header">
+          <div className="cod-header-left">
+            <h1 className="cod-page-title">Chi tiết đơn hàng</h1>
+            <div className="cod-meta-row">
+              <span className="cod-meta-id">Đơn hàng #{order.id}</span>
+              <span className="cod-meta-sep">•</span>
+              <span className="cod-meta-date">Đặt ngày {order.date} lúc {order.time}</span>
+              <span className="cod-meta-sep">•</span>
+              <span className={`cod-status-badge status-${order.status}`}>{order.statusLabel}</span>
             </div>
           </div>
-          <div className="header-right-col">
-            <button className="btn-outline btn-invoice">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{ marginRight: "6px" }}>
+          <div className="cod-header-actions">
+            <button className="cod-invoice-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -444,8 +492,8 @@ export const CustomerOrderDetail = () => {
               Tải hóa đơn
             </button>
             {order.status === "delivered" && (
-              <button className="btn-solid">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{ marginRight: "6px" }}>
+              <button className="cod-rebuy-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
                 </svg>
                 Mua lại
@@ -455,125 +503,144 @@ export const CustomerOrderDetail = () => {
         </div>
 
         {/* ── TIMELINE TRACKER ── */}
-        {order.status !== "cancelled" ? (
-          <div className="tracker-card">
-            <div className="timeline-container">
-              {TIMELINE_STEPS.map((step, idx) => {
-                const isCompleted = idx <= activeIndex;
-                const isCurrent = idx === activeIndex;
-
-                return (
-                  <div 
-                    key={step.key} 
-                    className={`timeline-step ${isCompleted ? "completed" : ""} ${isCurrent ? "current" : ""}`}
-                  >
-                    <div className="step-circle-wrapper">
-                      <div className="step-circle">
-                        {isCompleted && step.key !== "shipping" && step.key !== "delivered" ? "✓" : step.icon}
+        {order.status !== "cancelled" && order.status !== "rejected" ? (
+          <div className="cod-tracker-card">
+            <div className="cod-timeline-wrapper">
+              <div className="cod-timeline">
+                {TIMELINE_STEPS.map((step, idx) => {
+                  const isCompleted = idx < activeIndex;
+                  const isCurrent   = idx === activeIndex;
+                  const isPending   = idx > activeIndex;
+                  const stepClass   = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
+                  return (
+                    <React.Fragment key={step.key}>
+                      <div className={stepClass}>
+                        <div className="cod-step-circle">
+                          {renderStepIcon(step.key, isCompleted, isCurrent)}
+                        </div>
+                        <span className="cod-step-name">{step.label}</span>
+                        <span className="cod-step-sub">
+                          {getStepDateTime(idx, step.key, order, isCompleted, isCurrent)}
+                        </span>
                       </div>
                       {idx < TIMELINE_STEPS.length - 1 && (
-                        <div className={`step-line-connector ${idx < activeIndex ? "active" : ""}`} />
+                        <div className={`cod-connector${idx < activeIndex ? " done" : ""}`} />
                       )}
-                    </div>
-                    <div className="step-labels">
-                      <span className="step-name">{step.label}</span>
-                      {isCompleted && (
-                        <span className="step-date">
-                          {idx === 0 && order.date}
-                          {idx === 1 && order.date}
-                          {idx === 2 && "Đã xong"}
-                          {idx === 3 && "Đang đi"}
-                          {idx === 4 && "Đã nhận"}
-                        </span>
-                      )}
-                      {!isCompleted && idx === 4 && (
-                        <span className="step-date estimated">Dự kiến 2 ngày</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
           </div>
         ) : (
-          <div className="tracker-card cancelled-tracker">
-            <div className="cancelled-banner">
-              <div className="cancelled-icon">⚠️</div>
-              <div className="cancelled-text">
-                <h3>Đơn hàng đã bị hủy</h3>
-                <p>Đơn hàng này không còn được xử lý. Bạn có thể liên hệ bộ phận hỗ trợ khách hàng nếu có thắc mắc.</p>
-                {order.cancelReason && (
-                  <p className="cancel-reason-line">
-                    <strong>Lý do hủy:</strong> "{order.cancelReason}"
-                  </p>
-                )}
-              </div>
+          <div className="cod-cancelled-card">
+            <div className="cod-cancelled-icon" style={order.status === "rejected" ? { backgroundColor: "#fef2f2", color: "#b91c1c" } : {}}>
+              {order.status === "rejected" ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              )}
+            </div>
+            <div className="cod-cancelled-body">
+              <h3>{order.status === "rejected" ? "Đơn hàng đã bị từ chối" : "Đơn hàng đã bị hủy"}</h3>
+              <p>{order.status === "rejected" ? "Nhà vườn đã từ chối đơn hàng của bạn." : "Đơn hàng này không còn được xử lý. Liên hệ bộ phận hỗ trợ nếu cần giúp đỡ."}</p>
+              {order.cancelReason && (
+                <p className="cod-cancel-reason-line">
+                  <strong>Lý do:</strong> "{order.cancelReason}"
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {/* ── MAIN GRID (2 COLUMNS) ── */}
-        <div className="detail-layout-grid">
+        {/* ── 2-COLUMN CONTENT GRID ── */}
+        <div className="cod-grid">
+
           {/* LEFT COLUMN */}
-          <div className="main-content-column">
-            {/* Order Items Card */}
-            <div className="items-card">
-              <h2 className="card-section-title">Sản phẩm đã mua ({order.items.length})</h2>
-              <div className="items-list-wrap">
-                {order.items.map((item, index) => (
-                  <div className="order-item-row" key={index}>
-                    <div className="item-details-left">
-                      <div className="item-thumb-box">
+          <div className="cod-main-col">
+
+            {/* Items Card */}
+            <div className="cod-card">
+              <h2 className="cod-card-title">Sản phẩm đã mua ({order.items ? order.items.length : 0})</h2>
+              <div className="cod-items-list">
+                {order.items && order.items.map((item, index) => (
+                  <div className="cod-item-row" key={index}>
+                    <div className="cod-item-left">
+                      <div className="cod-item-img">
                         <img src={item.img} alt={item.name} />
                       </div>
-                      <div className="item-name-block">
-                        <span className="item-title-name">{item.name}</span>
-                        <span className="item-farmer-name">Nhà vườn: {item.farmer}</span>
+                      <div className="cod-item-details">
+                        <span className="cod-item-name">{item.name}</span>
+                        <span className="cod-item-farmer">Nhà vườn: <span className="cod-farmer-link">{item.farmer}</span></span>
+                        <div className="cod-item-price-qty">
+                          <span className="cod-item-unit-price">{formatVND(item.price)}</span>
+                          <span className="cod-item-qty">Số lượng: {item.qty}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="item-qty-center">
-                      <span className="item-price-each">{formatVND(item.price)}</span>
-                      <span className="item-qty-lbl">x {item.qty}</span>
-                    </div>
-                    <div className="item-total-right">
-                      <span className="item-row-total">{formatVND(item.price * item.qty)}</span>
+                    <div className="cod-item-total">
+                      {formatVND(item.price * item.qty)}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Provider/Farmer Card */}
-            <div className="farmer-profile-card">
-              <div className="farmer-avatar-circle" style={{ background: order.provider.avatarBg }}>
-                {order.provider.avatarText}
-              </div>
-              <div className="farmer-profile-info">
-                <div className="farmer-title-row">
-                  <h3 className="farmer-name-txt">{order.provider.name}</h3>
-                  <span className="verified-badge" title="Đã xác minh">✓</span>
+            {/* Farmer Card */}
+            <div className="cod-card cod-farmer-card">
+              {order.provider?.avatarUrl ? (
+                <div className="cod-farmer-avatar-img-wrapper">
+                  <img 
+                    className="cod-farmer-avatar-img" 
+                    src={order.provider.avatarUrl} 
+                    alt={order.provider.name} 
+                  />
                 </div>
-                <p className="farmer-location">
-                  Địa điểm: {order.provider.location} • Thành lập: {order.provider.estYear}
+              ) : (
+                <div 
+                  className="cod-farmer-avatar" 
+                  style={{ backgroundColor: order.provider?.avatarBg || "#00412f" }}
+                >
+                  {order.provider?.avatarText || (order.provider?.name ? order.provider.name.charAt(0).toUpperCase() : "VM")}
+                </div>
+              )}
+              <div className="cod-farmer-info">
+                <div className="cod-farmer-name-row">
+                  <span className="cod-farmer-name">{order.provider?.name}</span>
+                  <span className="cod-verified-badge" title="Đã xác minh">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                  </span>
+                </div>
+                <p className="cod-farmer-location">
+                  {order.provider?.location} &nbsp;•&nbsp; Thành lập: {order.provider?.estYear}
                 </p>
-                <div className="farmer-badges">
-                  <span className="badge-pill">Chứng nhận hữu cơ</span>
-                  <span className="badge-pill">Không thuốc trừ sâu</span>
-                  <span className="badge-pill">Thu hoạch sạch</span>
+                <div className="cod-farmer-badges">
+                  <span className="cod-badge">Chứng nhận hữu cơ</span>
+                  <span className="cod-badge">Không thuốc trừ sâu</span>
+                  <span className="cod-badge">Nông sản địa phương</span>
                 </div>
               </div>
-              <div className="farmer-action-btn-wrap">
-                <button className="btn-outline">Nhắn tin cho nhà vườn</button>
-              </div>
+              <button className="cod-btn-outline cod-farmer-msg-btn">Nhắn tin nhà vườn</button>
             </div>
           </div>
 
           {/* RIGHT COLUMN */}
-          <div className="sidebar-column">
-            {/* Delivery Details Card */}
-            <div className="sidebar-card">
-              <h2 className="sidebar-card-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" style={{ marginRight: "6px", verticalAlign: "middle" }}>
+          <div className="cod-side-col">
+
+            {/* Delivery Card */}
+            <div className="cod-card">
+              <h2 className="cod-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="18" height="18" style={{ marginRight: "8px", verticalAlign: "middle" }}>
                   <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
                   <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
                   <circle cx="5.5" cy="18.5" r="2.5" />
@@ -581,97 +648,105 @@ export const CustomerOrderDetail = () => {
                 </svg>
                 Thông tin nhận hàng
               </h2>
-              
-              <div className="shipping-address-block">
-                <span className="sidebar-section-subtitle">ĐỊA CHỈ NHẬN HÀNG</span>
-                <p className="recipient-name">{order.recipient}</p>
-                <p className="recipient-address">{order.address}</p>
+              <div className="cod-info-section">
+                <span className="cod-info-label">Địa chỉ nhận hàng</span>
+                <p className="cod-info-value bold">{order.recipient}</p>
+                <p className="cod-info-value">{order.address}</p>
               </div>
-
-              <div className="shipping-phone-block">
-                <span className="sidebar-section-subtitle">SỐ ĐIỆN THOẠI LIÊN HỆ</span>
-                <p className="recipient-phone">{order.phone}</p>
+              <div className="cod-info-section">
+                <span className="cod-info-label">Số điện thoại</span>
+                <p className="cod-info-value bold">{order.phone}</p>
               </div>
-
-              <div className="shipping-tracking-block">
-                <span className="sidebar-section-subtitle">MÃ VẬN ĐƠN</span>
-                <div className="tracking-number-box">
-                  <span className="track-number">{order.trackingNumber}</span>
+              <div className="cod-info-section last">
+                <span className="cod-info-label">Mã vận đơn</span>
+                <div className="cod-tracking-box">
+                  <span className="cod-tracking-number">{order.trackingNumber || "FH-TRACK-889212"}</span>
+                  <a href="#" className="cod-track-link" onClick={(e) => e.preventDefault()}>Theo dõi đơn hàng</a>
                 </div>
               </div>
             </div>
 
-            {/* Payment Summary Card */}
-            <div className="sidebar-card">
-              <h2 className="sidebar-card-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" style={{ marginRight: "6px", verticalAlign: "middle" }}>
+            {/* Payment Card */}
+            <div className="cod-card">
+              <h2 className="cod-card-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="18" height="18" style={{ marginRight: "8px", verticalAlign: "middle" }}>
                   <rect x="2" y="4" width="20" height="16" rx="2" />
                   <line x1="2" y1="10" x2="22" y2="10" />
                 </svg>
                 Tóm tắt thanh toán
               </h2>
-
-              <div className="payment-breakdown">
-                <div className="payment-row">
-                  <span>Tạm tính ({order.items.length} mặt hàng)</span>
-                  <span>{formatVND(order.subtotal)}</span>
+              <div className="cod-payment-rows">
+                <div className="cod-pay-row">
+                  <span>Tạm tính ({order.items ? order.items.length : 0} sản phẩm)</span>
+                  <span>{formatVND(order.subtotal || 0)}</span>
                 </div>
-                <div className="payment-row">
+                <div className="cod-pay-row">
                   <span>Phí vận chuyển</span>
-                  <span>{formatVND(order.shippingFee)}</span>
+                  <span>{formatVND(order.shippingFee || 0)}</span>
                 </div>
-                <div className="payment-row">
+                <div className="cod-pay-row">
                   <span>Phí dịch vụ</span>
-                  <span>{formatVND(order.serviceFee)}</span>
+                  <span>{formatVND(order.serviceFee || 0)}</span>
                 </div>
-                <div className="payment-row discount-row">
+                <div className="cod-pay-row cod-discount-row">
                   <span>Khuyến mãi</span>
-                  <span>-{formatVND(order.discount)}</span>
+                  <span>-{formatVND(order.discount || 0)}</span>
                 </div>
-                <hr className="payment-divider" />
-                <div className="payment-row total-row">
+                <hr className="cod-divider" />
+                <div className="cod-pay-row cod-total-row">
                   <span>Tổng thanh toán</span>
-                  <span className="total-value">{formatVND(order.amount)}</span>
+                  <span className="cod-total-value">{formatVND(order.amount || 0)}</span>
                 </div>
               </div>
-
-              <div className="payment-method-box">
-                <div className="card-icon-svg">💳</div>
-                <div className="card-details">
-                  <span className="card-name-txt">Thẻ tín dụng Visa **** {order.cardEnding}</span>
-                  <span className="card-status-txt">Thanh toán thành công</span>
+              <div className="cod-payment-method-box">
+                <div className="cod-card-icon">
+                  {getPaymentMethodDetails(order.paymentMethod, order.paymentStatus).icon}
+                </div>
+                <div>
+                  <div className="cod-card-name">
+                    {getPaymentMethodDetails(order.paymentMethod, order.paymentStatus).name}
+                  </div>
+                  <div className="cod-card-status">
+                    {getPaymentMethodDetails(order.paymentMethod, order.paymentStatus).statusText}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Cancel Order Action */}
-            {order.status !== "delivered" && order.status !== "shipping" && order.status !== "cancelled" && (
-              <button 
-                className="btn-cancel-order-sidebar"
-                onClick={() => setShowCancelModal(true)}
-              >
+            {/* Cancel button */}
+            {order.status === "pending" && (
+              <button className="cod-cancel-btn" onClick={() => setShowCancelModal(true)}>
                 Hủy đơn hàng
               </button>
             )}
 
-            <div className="need-help-link-wrap">
+            <div className="cod-help-row">
               <span>Bạn cần trợ giúp? </span>
-              <Link to="/help" className="help-link">Liên hệ hỗ trợ AgriMarket</Link>
+              <Link to="/help" className="cod-help-link">Liên hệ hỗ trợ AgriMarket</Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── CANCEL ORDER MODAL ── */}
-      {showCancelModal && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h3 className="modal-title">Xác nhận hủy đơn hàng</h3>
-            <p className="modal-message" style={{ marginBottom: "16px" }}>
-              Vui lòng chọn lý do hủy đơn hàng #{order.id}:
-            </p>
+      {/* ── TOAST ── */}
+      {toastMessage && (
+        <div className="cod-toast">
+          <span className="cod-toast-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="16" height="16">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
-            <div className="cancel-reasons-list">
+      {/* ── CANCEL MODAL ── */}
+      {showCancelModal && (
+        <div className="cod-modal-overlay">
+          <div className="cod-modal-box">
+            <h3 className="cod-modal-title">Xác nhận hủy đơn hàng</h3>
+            <p className="cod-modal-msg">Vui lòng chọn lý do hủy đơn hàng #{order.id}:</p>
+            <div className="cod-reasons-list">
               {[
                 "Thay đổi ý định mua hàng",
                 "Tìm thấy nơi khác có giá tốt hơn",
@@ -679,7 +754,7 @@ export const CustomerOrderDetail = () => {
                 "Thời gian giao hàng dự kiến quá lâu",
                 "Lý do khác"
               ].map((r) => (
-                <label key={r} className="reason-label-item">
+                <label key={r} className="cod-reason-item">
                   <input
                     type="radio"
                     name="cancelReason"
@@ -691,66 +766,27 @@ export const CustomerOrderDetail = () => {
                 </label>
               ))}
             </div>
-
             {selectedReason === "Lý do khác" && (
               <textarea
-                className="custom-reason-textarea"
+                className="cod-reason-textarea"
                 placeholder="Nhập lý do chi tiết của bạn tại đây..."
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 rows={3}
               />
             )}
-
-            <div className="modal-actions" style={{ marginTop: "24px" }}>
-              <button className="modal-btn-cancel" onClick={() => setShowCancelModal(false)}>
+            <div className="cod-modal-actions">
+              <button className="cod-modal-cancel" onClick={() => setShowCancelModal(false)}>
                 Không, quay lại
               </button>
-              <button className="modal-btn-confirm" onClick={handleCancelOrder}>
+              <button className="cod-modal-confirm" onClick={handleCancelOrder}>
                 Xác nhận hủy đơn
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ── FOOTER ── */}
-      <footer className="home-footer">
-        <div className="footer-container">
-          <div className="footer-left">
-            <div className="footer-logo">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="logo-tractor"
-              >
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              <span className="logo-text">AgriMarket</span>
-            </div>
-            <p className="footer-copy-text">
-              Kết nối các gia đình địa phương với các nông trại xanh, sạch, phát triển bền vững bằng sự minh bạch kỹ thuật số.
-            </p>
-            <p className="footer-copy">© 2026 AgriMarket. Kết nối Nông nghiệp số.</p>
-          </div>
-          <div className="footer-right">
-            <Link to="/help" className="footer-link">Trung tâm trợ giúp</Link>
-            <Link to="/privacy" className="footer-link">Chính sách bảo mật</Link>
-            <Link to="/terms" className="footer-link">Điều khoản dịch vụ</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </ProfileLayout>
   );
 };
 

@@ -5,6 +5,7 @@ import cartService from "../../services/cartService";
 import profileService from "../../services/profileService";
 import * as addressService from "../../services/addressService";
 import { buildProfileUpdatePayload } from "../../utils/profileMapper";
+import orderService from "../../services/orderService";
 import Footer from "../../components/common/Footer/Footer";
 import "./CheckoutPage.css";
 
@@ -356,59 +357,113 @@ export default function CheckoutPage() {
         const totalAmount = checkoutData.totalAmount;
         const selectedItems = checkoutData.selectedItems;
 
-        const newOrder = {
-            id: orderId,
-            status: "pending",
-            statusLabel: "Chờ xử lý",
-            date: formattedDate,
-            time: formattedTime,
+        const orderPayload = {
+            recipient: recipientName,
+            phone: recipientPhone,
+            address: formattedAddress,
+            shippingNote: shippingNote,
+            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "BANK_TRANSFER" : "CARD",
             subtotal: subtotal,
             shippingFee: shippingFee,
             serviceFee: serviceFee,
             discount: discountAmount,
             amount: totalAmount,
-            recipient: recipientName,
-            address: formattedAddress,
-            phone: recipientPhone,
-            trackingNumber: `FH-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
-            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "Chuyển khoản" : "Thẻ Visa",
-            provider: {
-                name: selectedItems[0]?.farmer || "Hợp tác xã Nông nghiệp số",
-                location: "Cái Bè, Tiền Giang",
-                estYear: 2018,
-                avatarText: selectedItems[0]?.name ? selectedItems[0].name.charAt(0).toUpperCase() : "AG",
-                avatarBg: "#1b5e20",
-            },
             items: selectedItems.map(item => ({
-                name: item.name,
-                farmer: item.farmer || "Nhà vườn địa phương",
-                price: item.price,
-                qty: item.quantity,
-                img: item.imageUrl
-            })),
-            thumbnails: selectedItems.slice(0, 3).map(item => item.imageUrl),
-            itemCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
-            hasMoreItems: selectedItems.length > 3 ? selectedItems.length - 3 : 0
+                productId: item.id,
+                quantity: item.quantity
+            }))
         };
 
-        if (paymentMethod === "cod") {
-            // Write to local storage under orders database
-            const stored = localStorage.getItem("agrimarket_orders");
-            const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
-            const updatedOrders = [newOrder, ...existingOrders];
-            localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+        if (user) {
+            try {
+                const backendOrder = await orderService.createOrder(orderPayload);
+                
+                // Clear checked items from local cart
+                const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+                const remainingCart = savedCart.filter(item => !selectedItems.some(sel => sel.id === item.id));
+                localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
 
-            // Clear checkout data
-            localStorage.removeItem("agrimarket_checkout");
+                // Clear checkout data
+                localStorage.removeItem("agrimarket_checkout");
 
-            // Keep order reference for confirmation screen
-            setPlacedOrder(newOrder);
-            setIsSuccess(true);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+                if (paymentMethod === "cod") {
+                    setPlacedOrder(backendOrder);
+                    setIsSuccess(true);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                } else {
+                    localStorage.setItem("agrimarket_pending_order", JSON.stringify(backendOrder));
+                    navigate("/payment", { state: { pendingOrder: backendOrder, paymentMethod } });
+                }
+            } catch (err) {
+                console.error("Lỗi khi đặt hàng:", err);
+                const errMsg = err.response?.data
+                    ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
+                    : "Có lỗi xảy ra khi xử lý đặt hàng. Vui lòng thử lại.";
+                alert(errMsg);
+            }
         } else {
-            // Store pending order details and redirect to new payment page
-            localStorage.setItem("agrimarket_pending_order", JSON.stringify(newOrder));
-            navigate("/payment", { state: { pendingOrder: newOrder, paymentMethod } });
+            const now = new Date();
+            const formattedDate = `${now.getDate()} thg ${now.getMonth() + 1}, ${now.getFullYear()}`;
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'CH' : 'SA';
+            const displayHours = hours % 12 || 12;
+            const formattedTime = `${displayHours}:${minutes} ${ampm}`;
+
+            const newOrder = {
+                id: orderId,
+                status: "pending",
+                statusLabel: "Chờ xác nhận",
+                date: formattedDate,
+                time: formattedTime,
+                subtotal: subtotal,
+                shippingFee: shippingFee,
+                serviceFee: serviceFee,
+                discount: discountAmount,
+                amount: totalAmount,
+                recipient: recipientName,
+                address: formattedAddress,
+                phone: recipientPhone,
+                trackingNumber: `FH-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
+            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "BANK_TRANSFER" : "CARD",
+                provider: {
+                    name: selectedItems[0]?.farmer || "Hợp tác xã Nông nghiệp số",
+                    location: "Cái Bè, Tiền Giang",
+                    estYear: 2018,
+                    avatarText: selectedItems[0]?.name ? selectedItems[0].name.charAt(0).toUpperCase() : "AG",
+                    avatarBg: "#1b5e20",
+                },
+                items: selectedItems.map(item => ({
+                    name: item.name,
+                    farmer: item.farmer || "Nhà vườn địa phương",
+                    price: item.price,
+                    qty: item.quantity,
+                    img: item.imageUrl
+                })),
+                thumbnails: selectedItems.slice(0, 3).map(item => item.imageUrl),
+                itemCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
+                hasMoreItems: selectedItems.length > 3 ? selectedItems.length - 3 : 0
+            };
+
+            if (paymentMethod === "cod") {
+                // Write to local storage under orders database
+                const stored = localStorage.getItem("agrimarket_orders");
+                const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
+                const updatedOrders = [newOrder, ...existingOrders];
+                localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+
+                // Clear checkout data
+                localStorage.removeItem("agrimarket_checkout");
+
+                // Keep order reference for confirmation screen
+                setPlacedOrder(newOrder);
+                setIsSuccess(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            } else {
+                // Store pending order details and redirect to new payment page
+                localStorage.setItem("agrimarket_pending_order", JSON.stringify(newOrder));
+                navigate("/payment", { state: { pendingOrder: newOrder, paymentMethod } });
+            }
         }
     };
 
@@ -437,7 +492,11 @@ export default function CheckoutPage() {
                             <Link to="/" className="nav-link">Trang chủ</Link>
                             <Link to="/products" className="nav-link">Cửa hàng</Link>
                             <Link to="/farms" className="nav-link">Nông trại</Link>
-                            <Link to="/about" className="nav-link">Giới thiệu</Link>
+                            {user && user.role === "admin" ? (
+                                <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+                            ) : (
+                                <Link to="/about" className="nav-link">Giới thiệu</Link>
+                            )}
                         </nav>
                         <div className="header-actions">
                             <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
@@ -496,7 +555,11 @@ export default function CheckoutPage() {
                         <Link to="/" className="nav-link">Trang chủ</Link>
                         <Link to="/products" className="nav-link">Cửa hàng</Link>
                         <Link to="/farms" className="nav-link">Nông trại</Link>
-                        <Link to="/about" className="nav-link">Giới thiệu</Link>
+                        {user && user.role === "admin" ? (
+                            <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
+                        ) : (
+                            <Link to="/about" className="nav-link">Giới thiệu</Link>
+                        )}
                     </nav>
 
                     <div className="header-actions">

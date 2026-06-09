@@ -78,12 +78,12 @@ const ProfileSidebar = ({ profile }) => {
         {isFarmer && (
           <button
             className={`sidebar-menu-item ${
-              (location.pathname.startsWith("/products") || location.pathname.startsWith("/farmer/products")) ? "active" : ""
+              location.pathname.startsWith("/farmer") ? "active" : ""
             }`}
-            onClick={() => navigate("/products")}
+            onClick={() => navigate("/farmer/dashboard")}
           >
-            <span>📦</span>
-            Sản phẩm
+            <span>🚜</span>
+            Kênh nhà vườn
           </button>
         )}
 
@@ -101,7 +101,7 @@ const ProfileSidebar = ({ profile }) => {
           onClick={() => navigate("/profile/orders")}
         >
           <span>🕘</span>
-          Lịch sử giao dịch
+          Đơn hàng của tôi
         </button>
       </nav>
 

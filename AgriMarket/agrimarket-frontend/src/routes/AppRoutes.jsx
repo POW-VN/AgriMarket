@@ -15,6 +15,8 @@ import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
 import { AddProduct } from "../pages/Farmer/AddProduct/AddProduct";
 import { ProductList } from "../pages/Farmer/ProductList/ProductList";
 import { FarmerRegister } from "../pages/Farmer/FarmerRegister/FarmerRegister";
+import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
+import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -36,7 +38,7 @@ const FarmsRoute = () => {
     return <Navigate to="/login" replace />;
   }
   if (user.role === 'farmer') {
-    return <Navigate to="/farmer/products" replace />;
+    return <Navigate to="/farmer/dashboard" replace />;
   }
   return <Navigate to="/farmer/register" replace />;
 };
@@ -64,12 +66,18 @@ const AppRoutes = () => {
         <Route path="/profile/orders" element={<MyOrders />} />
         <Route path="/profile/orders/:id" element={<CustomerOrderDetail />} />
         <Route path="/security" element={<ChangePassword />} />
-        <Route path="/farmer/farm-details" element={<FarmDetails />} />
         <Route path="/farmer/register" element={<FarmerRegister />} />
-        <Route path="/farmer/products/add" element={<AddProduct />} />
-        <Route path="/farmer/products" element={<ProductList />} />
-        <Route path="/farmer/orders" element={<OrderHistory />} />
-        <Route path="/farmer/orders/:id" element={<OrderDetail />} />
+        <Route path="/farmer/farm-details" element={<FarmDetails />} />
+        <Route path="/farmer" element={<FarmerLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<FarmerOverview />} />
+          <Route path="products" element={<ProductList />} />
+          <Route path="products/add" element={<AddProduct />} />
+          <Route path="products/edit/:id" element={<AddProduct />} />
+          <Route path="orders" element={<OrderHistory />} />
+          <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
+          <Route path="farm-profile" element={<FarmDetails />} />
+        </Route>
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
 
