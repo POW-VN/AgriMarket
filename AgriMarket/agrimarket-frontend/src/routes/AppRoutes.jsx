@@ -31,6 +31,8 @@ import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
+import ShipperDashboard from "../pages/Shipper/ShipperDashboard";
+
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -92,6 +94,9 @@ const AppRoutes = () => {
         {/* Admin Routes */}
         <Route path="/admin/users" element={<UserAccounts />} />
         <Route path="/admin/users/create" element={<CreateAccount />} />
+
+        {/* Shipper Dashboard Route */}
+        <Route path="/shipper/dashboard" element={<ShipperDashboard />} />
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />
