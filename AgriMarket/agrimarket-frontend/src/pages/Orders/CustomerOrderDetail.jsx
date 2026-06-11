@@ -190,18 +190,18 @@ const ORDERS_DB = {
 };
 
 const TIMELINE_STEPS = [
-  { key: "placed",    label: "Chờ xác nhận",  icon: "✓" },
+  { key: "placed", label: "Chờ xác nhận", icon: "✓" },
   { key: "preparing", label: "Đang chuẩn bị", icon: "📦" },
-  { key: "confirmed", label: "Chờ lấy hàng",  icon: "✓" },
-  { key: "shipping",  label: "Chờ giao hàng", icon: "🚚" },
-  { key: "delivered", label: "Đã giao",       icon: "🏠" },
+  { key: "confirmed", label: "Chờ lấy hàng", icon: "✓" },
+  { key: "shipping", label: "Chờ giao hàng", icon: "🚚" },
+  { key: "delivered", label: "Đã giao", icon: "🏠" },
 ];
 
 const getActiveStepIndex = (status) => {
-  if (status === "pending")   return 0;
+  if (status === "pending") return 0;
   if (status === "preparing") return 1;
   if (status === "confirmed") return 2;
-  if (status === "shipping")  return 3;
+  if (status === "shipping") return 3;
   if (status === "delivered") return 4;
   return -1;
 };
@@ -302,6 +302,7 @@ export const CustomerOrderDetail = () => {
   }
 
   const formatVND = (value) => value.toLocaleString("vi-VN") + " ₫";
+  const orderItems = Array.isArray(order.items) ? order.items : [];
   const activeIndex = getActiveStepIndex(order.status);
 
   // Fallback farmer details default profile photo
@@ -369,7 +370,7 @@ export const CustomerOrderDetail = () => {
     }
     const baseDate = order.date || "12 thg 10, 2024";
     const baseTime = order.time || "10:24 SA";
-    
+
     // Simulating logical dates/times for realistic display
     if (stepKey === "placed") return `${baseDate}, ${baseTime}`;
     if (stepKey === "confirmed") return `${baseDate}, 11:20 SA`;
@@ -466,10 +467,10 @@ export const CustomerOrderDetail = () => {
     }
   };
 
-    return (
+  return (
     <ProfileLayout profile={profile}>
       <div className="cod-content">
-        
+
         {/* ── PAGE HEADER ── */}
         <div className="cod-page-header">
           <div className="cod-header-left">
@@ -509,9 +510,9 @@ export const CustomerOrderDetail = () => {
               <div className="cod-timeline">
                 {TIMELINE_STEPS.map((step, idx) => {
                   const isCompleted = idx < activeIndex;
-                  const isCurrent   = idx === activeIndex;
-                  const isPending   = idx > activeIndex;
-                  const stepClass   = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
+                  const isCurrent = idx === activeIndex;
+                  const isPending = idx > activeIndex;
+                  const stepClass = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
                   return (
                     <React.Fragment key={step.key}>
                       <div className={stepClass}>
@@ -569,9 +570,9 @@ export const CustomerOrderDetail = () => {
 
             {/* Items Card */}
             <div className="cod-card">
-              <h2 className="cod-card-title">Sản phẩm đã mua ({order.items ? order.items.length : 0})</h2>
+              <h2 className="cod-card-title">Sản phẩm đã mua ({orderItems.length})</h2>
               <div className="cod-items-list">
-                {order.items && order.items.map((item, index) => (
+                {orderItems.map((item, index) => (
                   <div className="cod-item-row" key={index}>
                     <div className="cod-item-left">
                       <div className="cod-item-img">
@@ -587,7 +588,29 @@ export const CustomerOrderDetail = () => {
                       </div>
                     </div>
                     <div className="cod-item-total">
-                      {formatVND(item.price * item.qty)}
+                      <span>{formatVND(item.price * item.qty)}</span>
+
+                      {order.status === "delivered" && (
+                        <div className="item-review-action">
+                          <button
+                            className="btn-review-product"
+                            onClick={() =>
+                              navigate(`/profile/orders/${order.id}/review/${index}`, {
+                                state: {
+                                  order: {
+                                    ...order,
+                                    items: orderItems,
+                                  },
+                                  item,
+                                  itemIndex: index,
+                                },
+                              })
+                            }
+                          >
+                            Đánh giá
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -598,15 +621,15 @@ export const CustomerOrderDetail = () => {
             <div className="cod-card cod-farmer-card">
               {order.provider?.avatarUrl ? (
                 <div className="cod-farmer-avatar-img-wrapper">
-                  <img 
-                    className="cod-farmer-avatar-img" 
-                    src={order.provider.avatarUrl} 
-                    alt={order.provider.name} 
+                  <img
+                    className="cod-farmer-avatar-img"
+                    src={order.provider.avatarUrl}
+                    alt={order.provider.name}
                   />
                 </div>
               ) : (
-                <div 
-                  className="cod-farmer-avatar" 
+                <div
+                  className="cod-farmer-avatar"
                   style={{ backgroundColor: order.provider?.avatarBg || "#00412f" }}
                 >
                   {order.provider?.avatarText || (order.provider?.name ? order.provider.name.charAt(0).toUpperCase() : "VM")}
@@ -617,7 +640,7 @@ export const CustomerOrderDetail = () => {
                   <span className="cod-farmer-name">{order.provider?.name}</span>
                   <span className="cod-verified-badge" title="Đã xác minh">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                     </svg>
                   </span>
                 </div>
@@ -677,7 +700,7 @@ export const CustomerOrderDetail = () => {
               </h2>
               <div className="cod-payment-rows">
                 <div className="cod-pay-row">
-                  <span>Tạm tính ({order.items ? order.items.length : 0} sản phẩm)</span>
+                  <span>Tạm tính ({orderItems.length} sản phẩm)</span>
                   <span>{formatVND(order.subtotal || 0)}</span>
                 </div>
                 <div className="cod-pay-row">

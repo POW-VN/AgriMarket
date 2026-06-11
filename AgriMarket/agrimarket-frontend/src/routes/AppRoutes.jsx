@@ -31,6 +31,8 @@ import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
+import ProductReview from "../pages/Orders/ProductReview";
+import ProductReviewsView from "../pages/Product/ProductReviewsView";
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -64,10 +66,12 @@ const AppRoutes = () => {
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/profile/orders" element={<MyOrders />} />
+        <Route path="/profile/orders/:orderId/review/:itemIndex" element={<ProductReview />} />
         <Route path="/profile/orders/:id" element={<CustomerOrderDetail />} />
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/register" element={<FarmerRegister />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
+
         <Route path="/farmer" element={<FarmerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<FarmerOverview />} />
@@ -78,8 +82,10 @@ const AppRoutes = () => {
           <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
           <Route path="farm-profile" element={<FarmDetails />} />
         </Route>
+
         <Route path="/products" element={<ProductPage />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/products/:id/reviews" element={<ProductReviewsView />} />
 
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />

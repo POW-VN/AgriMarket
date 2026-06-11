@@ -11,10 +11,10 @@ import "./ProductDetail.css";
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // Header / Auth States
   const [user, setUser] = useState(null);
-  
+
   // Product Detail States
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,10 +32,10 @@ export default function ProductDetail() {
   useEffect(() => {
     setMainImageError(false);
   }, [activeImage]);
-  
+
   // Related Products
   const [relatedProducts, setRelatedProducts] = useState([]);
-  
+
   // Toast notifications
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -70,11 +70,11 @@ export default function ProductDetail() {
   const shippingInfo = useMemo(() => {
     if (!product) return null;
     const origin = product.farmLocation || "Lâm Đồng";
-    
+
     // Normalize location checking
-    const isLocal = origin.toLowerCase().includes(selectedCity.toLowerCase()) || 
-                    (selectedCity === "Lâm Đồng" && origin.toLowerCase().includes("đà lạt"));
-                    
+    const isLocal = origin.toLowerCase().includes(selectedCity.toLowerCase()) ||
+      (selectedCity === "Lâm Đồng" && origin.toLowerCase().includes("đà lạt"));
+
     if (isLocal) {
       return {
         method: "Vận chuyển hỏa tốc",
@@ -82,19 +82,19 @@ export default function ProductDetail() {
         fee: 15000
       };
     }
-    
+
     // Check zones
-    const originRegion = origin.toLowerCase().includes("lâm đồng") || 
-                         origin.toLowerCase().includes("đà lạt") ||
-                         origin.toLowerCase().includes("gia lai") ||
-                         origin.toLowerCase().includes("khánh hòa") ? "Central" :
-                         origin.toLowerCase().includes("hưng yên") ||
-                         origin.toLowerCase().includes("điện biên") ||
-                         origin.toLowerCase().includes("hà nội") ||
-                         origin.toLowerCase().includes("hải phòng") ? "North" : "South";
-                         
+    const originRegion = origin.toLowerCase().includes("lâm đồng") ||
+      origin.toLowerCase().includes("đà lạt") ||
+      origin.toLowerCase().includes("gia lai") ||
+      origin.toLowerCase().includes("khánh hòa") ? "Central" :
+      origin.toLowerCase().includes("hưng yên") ||
+        origin.toLowerCase().includes("điện biên") ||
+        origin.toLowerCase().includes("hà nội") ||
+        origin.toLowerCase().includes("hải phòng") ? "North" : "South";
+
     const targetRegion = VIETNAM_CITIES.find(c => c.name === selectedCity)?.region || "South";
-    
+
     if (originRegion === targetRegion) {
       return {
         method: "Vận chuyển nội vùng",
@@ -267,7 +267,7 @@ export default function ProductDetail() {
           const filtered = all
             .filter((p) => String(p.id) !== String(id) && p.category === data.category)
             .slice(0, 4);
-            
+
           if (filtered.length < 4) {
             // Fill with other categories
             const others = all.filter((p) => String(p.id) !== String(id) && p.category !== data.category);
@@ -305,7 +305,7 @@ export default function ProductDetail() {
   const handleAddToCart = async () => {
     if (!product) return;
     const qtyToUse = parseInt(quantity, 10) || 1;
-    
+
     if (user) {
       try {
         const data = await cartService.addToCart(product.id, qtyToUse);
@@ -319,7 +319,7 @@ export default function ProductDetail() {
       const cartKey = "agrimarket_cart";
       const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
       const existingIndex = currentCart.findIndex(item => String(item.id) === String(product.id));
-      
+
       if (existingIndex > -1) {
         currentCart[existingIndex].quantity += qtyToUse;
       } else {
@@ -796,7 +796,7 @@ export default function ProductDetail() {
       <main className="product-detail-container">
         {/* Left Column - Image Gallery */}
         <section className="product-image-section">
-          <div 
+          <div
             className="main-image-wrapper"
             style={{ cursor: mainImageError || getFileExtension(activeImage) === "pdf" ? "default" : "zoom-in" }}
             onClick={() => {
@@ -817,11 +817,11 @@ export default function ProductDetail() {
                 <iframe src={activeImage} title="Certificate PDF" width="100%" height="100%" style={{ border: "none" }} />
               </div>
             ) : (
-              <img 
-                src={activeImage} 
-                alt={product.name} 
-                className="main-product-img" 
-                onError={() => setMainImageError(true)} 
+              <img
+                src={activeImage}
+                alt={product.name}
+                className="main-product-img"
+                onError={() => setMainImageError(true)}
               />
             )}
             <div className="badge-overlay">
@@ -837,9 +837,9 @@ export default function ProductDetail() {
                 const isTraceability = product.traceabilityImageUrl && imgUrl === product.traceabilityImageUrl;
                 const isPdf = getFileExtension(imgUrl) === "pdf";
                 const isBroken = brokenImages[idx];
-                
+
                 return (
-                  <div 
+                  <div
                     key={idx}
                     className={`thumbnail-item ${activeImage === imgUrl ? "active" : ""} ${isCertificate ? "organic-cert-thumbnail" : ""} ${isTraceability ? "traceability-thumbnail" : ""}`}
                     onClick={() => setActiveImage(imgUrl)}
@@ -854,10 +854,10 @@ export default function ProductDetail() {
                         <span className="pdf-text">PDF</span>
                       </div>
                     ) : (
-                      <img 
-                        src={imgUrl} 
-                        alt={`Thumbnail ${idx + 1}`} 
-                        onError={() => setBrokenImages(prev => ({ ...prev, [idx]: true }))} 
+                      <img
+                        src={imgUrl}
+                        alt={`Thumbnail ${idx + 1}`}
+                        onError={() => setBrokenImages(prev => ({ ...prev, [idx]: true }))}
                       />
                     )}
                     {isCertificate && (
@@ -880,22 +880,35 @@ export default function ProductDetail() {
         {/* Right Column - Product details */}
         <section className="product-info-section">
           <h1 className="product-title">{product.name}</h1>
-          
+
           <div className="rating-reviews-row">
             <div className="rating-stars">
               {[1, 2, 3, 4, 5].map((star) => (
-                <span 
-                  key={star} 
+                <span
+                  key={star}
                   className={`rating-star-icon ${star <= Math.round(product.rating || 4.5) ? "filled" : ""}`}
                 >
                   ★
                 </span>
               ))}
             </div>
-            <span className="rating-value-reviews">
+            <span
+              className="rating-value-reviews"
+              onClick={() => navigate(`/products/${product.id}/reviews`)}
+              title="Xem tất cả đánh giá"
+              style={{ cursor: "pointer" }}
+            >
               {product.rating || "4.8"} ({product.reviewsCount || 124} đánh giá)
             </span>
           </div>
+
+          <button
+            type="button"
+            className="btn-view-all-reviews"
+            onClick={() => navigate(`/products/${product.id}/reviews`)}
+          >
+            Xem tất cả đánh giá
+          </button>
 
           <div className="price-display">
             <span className="price-amount">{formatPrice(product.price)}</span>
@@ -909,11 +922,11 @@ export default function ProductDetail() {
           {/* Purchase Option Box */}
           <div className="purchase-options-card">
             <h3 className="purchase-label">Tùy chọn mua hàng</h3>
-            
+
             <div className="purchase-controls-row">
               <div className="qty-selector">
-                <button 
-                  className="qty-btn" 
+                <button
+                  className="qty-btn"
                   onClick={() => handleQuantityChange(-1)}
                   disabled={(parseInt(quantity, 10) || 1) <= 1}
                   aria-label="Decrease quantity"
@@ -951,8 +964,8 @@ export default function ProductDetail() {
                   min="1"
                   max={product.stock || 45}
                 />
-                <button 
-                  className="qty-btn" 
+                <button
+                  className="qty-btn"
                   onClick={() => handleQuantityChange(1)}
                   disabled={(parseInt(quantity, 10) || 1) >= (product.stock || 45)}
                   aria-label="Increase quantity"
@@ -977,7 +990,7 @@ export default function ProductDetail() {
                 <span className="shipping-calc-title">Địa điểm giao hàng:</span>
               </div>
               <div className="shipping-calc-select-row">
-                <select 
+                <select
                   className="shipping-city-select"
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
@@ -1023,8 +1036,8 @@ export default function ProductDetail() {
                 Thêm vào giỏ hàng
               </button>
 
-              <button 
-                className={`btn-save-later ${isSaved ? "saved" : ""}`} 
+              <button
+                className={`btn-save-later ${isSaved ? "saved" : ""}`}
                 onClick={handleSaveProduct}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1040,9 +1053,9 @@ export default function ProductDetail() {
             <div className="farmer-header-info">
               <div className="farmer-avatar-wrapper">
                 {product.farmerAvatarUrl ? (
-                  <img 
-                    src={product.farmerAvatarUrl} 
-                    alt={product.farmerName} 
+                  <img
+                    src={product.farmerAvatarUrl}
+                    alt={product.farmerName}
                   />
                 ) : (
                   <div className="farmer-avatar-fallback">
@@ -1061,9 +1074,9 @@ export default function ProductDetail() {
                 </div>
               </div>
             </div>
-            
+
             <p className="farmer-desc-text">{product.farmDescription}</p>
-            
+
             <button className="btn-view-farm-profile">
               Xem hồ sơ nông trại →
             </button>
@@ -1074,7 +1087,7 @@ export default function ProductDetail() {
       {/* Detailed Product Info Section */}
       <section className="product-extended-details-section">
         <h2 className="extended-section-title">Thông tin chi tiết nông sản</h2>
-        
+
         <div className="extended-details-grid">
           {/* Card 1: Vì sao săn tìm */}
           <div className="extended-card-item highlight-green">
@@ -1168,7 +1181,7 @@ export default function ProductDetail() {
       {/* Reviews Section */}
       <section className="product-reviews-section">
         <h2 className="reviews-section-title">Đánh giá từ khách hàng</h2>
-        
+
         <div className="reviews-layout-grid">
           {/* Left Column: Overall stats & Review list */}
           <div className="reviews-list-column">
@@ -1180,8 +1193,8 @@ export default function ProductDetail() {
               <div className="reviews-summary-info">
                 <div className="rating-stars">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <span 
-                      key={star} 
+                    <span
+                      key={star}
                       className={`rating-star-icon ${star <= Math.round(product.rating || 4.5) ? "filled" : ""}`}
                     >
                       ★
@@ -1207,8 +1220,8 @@ export default function ProductDetail() {
                         <div className="review-item-subline">
                           <div className="rating-stars mini">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <span 
-                                key={star} 
+                              <span
+                                key={star}
                                 className={`rating-star-icon ${star <= rev.rating ? "filled" : ""}`}
                               >
                                 ★
@@ -1220,7 +1233,7 @@ export default function ProductDetail() {
                       </div>
                     </div>
                     <p className="review-item-comment">{rev.comment}</p>
-                    
+
                     {/* Hiển thị hình ảnh đính kèm */}
                     {rev.images && rev.images.length > 0 && (
                       <div className="review-attached-gallery">
@@ -1248,7 +1261,7 @@ export default function ProductDetail() {
           <div className="reviews-form-column">
             <div className="submit-review-card">
               <h3 className="submit-review-title">Viết đánh giá của bạn</h3>
-              
+
               <form onSubmit={handleSubmitReview} className="submit-review-form">
                 <div className="form-group">
                   <label className="form-label">Đánh giá của bạn về sản phẩm:</label>
@@ -1296,7 +1309,7 @@ export default function ProductDetail() {
 
                 <div className="form-group">
                   <label className="form-label">Đính kèm ảnh & video (không bắt buộc):</label>
-                  
+
                   <div className="media-upload-triggers">
                     <label className={`btn-media-trigger-upload ${attachedImages.length >= 3 ? "disabled" : ""}`}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="media-upload-icon">
@@ -1304,12 +1317,12 @@ export default function ProductDetail() {
                         <circle cx="12" cy="13" r="4"></circle>
                       </svg>
                       Ảnh ({attachedImages.length}/3)
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        multiple 
-                        onChange={handleImageUpload} 
-                        disabled={attachedImages.length >= 3} 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        disabled={attachedImages.length >= 3}
                         style={{ display: "none" }}
                       />
                     </label>
@@ -1320,11 +1333,11 @@ export default function ProductDetail() {
                         <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                       </svg>
                       Video ({attachedVideo ? 1 : 0}/1)
-                      <input 
-                        type="file" 
-                        accept="video/*" 
-                        onChange={handleVideoUpload} 
-                        disabled={!!attachedVideo} 
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                        disabled={!!attachedVideo}
                         style={{ display: "none" }}
                       />
                     </label>
@@ -1336,8 +1349,8 @@ export default function ProductDetail() {
                       {attachedImages.map((imgUrl, idx) => (
                         <div key={idx} className="preview-media-item-box">
                           <img src={imgUrl} alt="Preview đính kèm" />
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="btn-remove-preview-media"
                             onClick={() => removeAttachedImage(idx)}
                             aria-label="Xóa ảnh"
@@ -1346,13 +1359,13 @@ export default function ProductDetail() {
                           </button>
                         </div>
                       ))}
-                      
+
                       {attachedVideo && (
                         <div className="preview-media-item-box video-box">
                           <video src={attachedVideo} preload="metadata" />
                           <div className="play-overlay-icon">▶</div>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="btn-remove-preview-media"
                             onClick={removeAttachedVideo}
                             aria-label="Xóa video"
@@ -1377,7 +1390,7 @@ export default function ProductDetail() {
       {/* Related Products Section */}
       <section className="related-products-section">
         <h2 className="related-section-title">Sản phẩm khác từ nông trại này</h2>
-        
+
         <div className="related-grid">
           {relatedProducts.map((p) => {
             const isRelatedSaved = savedRelatedIds.has(p.id);
@@ -1386,8 +1399,8 @@ export default function ProductDetail() {
                 <div className="related-card-img-wrapper" onClick={() => navigate(`/products/${p.id}`)} style={{ cursor: "pointer" }}>
                   <img src={p.imageUrl} alt={p.name} className="related-card-img" />
                 </div>
-                
-                <button 
+
+                <button
                   className={`related-save-btn ${isRelatedSaved ? "saved" : ""}`}
                   onClick={() => handleToggleSaveRelated(p.id, p.name)}
                   aria-label="Save for later"
@@ -1401,15 +1414,15 @@ export default function ProductDetail() {
                   <h3 className="related-card-title" onClick={() => navigate(`/products/${p.id}`)} style={{ cursor: "pointer" }}>
                     {p.name}
                   </h3>
-                  
+
                   <div className="related-card-price-row">
                     <div className="related-card-price-box">
                       <span className="related-card-price">{formatPrice(p.price)}</span>
                       <span className="related-card-unit">/ {p.unit === "bunch" ? "bó" : p.unit === "bag" ? "túi" : p.unit === "3lbs" ? "túi" : p.unit || "bó"}</span>
                     </div>
 
-                    <button 
-                      className="related-add-cart-btn" 
+                    <button
+                      className="related-add-cart-btn"
                       onClick={() => {
                         const cartKey = "agrimarket_cart";
                         const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
@@ -1480,12 +1493,12 @@ export default function ProductDetail() {
 
       {/* Lightbox Modal overlay */}
       {isLightboxOpen && allImages.length > 0 && (
-        <div 
+        <div
           className="lightbox-backdrop"
           onClick={() => setIsLightboxOpen(false)}
         >
           {/* Close button */}
-          <button 
+          <button
             className="lightbox-close-btn"
             onClick={(e) => {
               e.stopPropagation();
@@ -1501,7 +1514,7 @@ export default function ProductDetail() {
 
           {/* Previous Arrow */}
           {allImages.length > 1 && (
-            <button 
+            <button
               className="lightbox-arrow-btn lightbox-arrow-left"
               onClick={(e) => {
                 e.stopPropagation();
@@ -1516,28 +1529,28 @@ export default function ProductDetail() {
           )}
 
           {/* Image Container */}
-          <div 
+          <div
             className="lightbox-image-container"
             onClick={(e) => e.stopPropagation()}
           >
             {getFileExtension(allImages[lightboxIndex]) === "pdf" ? (
-              <iframe 
-                src={allImages[lightboxIndex]} 
-                title="Certificate Full PDF" 
+              <iframe
+                src={allImages[lightboxIndex]}
+                title="Certificate Full PDF"
                 className="lightbox-pdf-view"
               />
             ) : (
-              <img 
-                src={allImages[lightboxIndex]} 
-                alt={`${product.name} Fullscreen`} 
-                className="lightbox-main-img" 
+              <img
+                src={allImages[lightboxIndex]}
+                alt={`${product.name} Fullscreen`}
+                className="lightbox-main-img"
               />
             )}
           </div>
 
           {/* Next Arrow */}
           {allImages.length > 1 && (
-            <button 
+            <button
               className="lightbox-arrow-btn lightbox-arrow-right"
               onClick={(e) => {
                 e.stopPropagation();
@@ -1552,7 +1565,7 @@ export default function ProductDetail() {
           )}
 
           {/* Bottom Controls Panel */}
-          <div 
+          <div
             className="lightbox-bottom-panel"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1563,15 +1576,15 @@ export default function ProductDetail() {
                 <span>Hình ảnh sản phẩm ({lightboxIndex + 1} / {allImages.length})</span>
               )}
             </div>
-            
+
             {allImages.length > 1 && (
               <div className="lightbox-thumbnails-strip">
                 {allImages.map((imgUrl, idx) => {
                   const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
                   const isPdf = getFileExtension(imgUrl) === "pdf";
-                  
+
                   return (
-                    <div 
+                    <div
                       key={idx}
                       className={`lightbox-thumbnail-item ${lightboxIndex === idx ? "active" : ""} ${isCertificate ? "cert-item" : ""}`}
                       onClick={() => setLightboxIndex(idx)}
