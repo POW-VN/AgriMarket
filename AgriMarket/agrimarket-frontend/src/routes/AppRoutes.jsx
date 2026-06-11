@@ -33,6 +33,8 @@ import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
 import ShipmentRequests from "../pages/Admin/ShipmentRequests";
 import ShipmentTracking from "../pages/Admin/ShipmentTracking";
+import ShipperDashboard from "../pages/Shipper/ShipperDashboard";
+
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -94,8 +96,6 @@ const AppRoutes = () => {
         {/* Admin Routes */}
         <Route path="/admin/users" element={<UserAccounts />} />
         <Route path="/admin/users/create" element={<CreateAccount />} />
-        <Route path="/admin/shipment-requests" element={<ShipmentRequests />} />
-        <Route path="/admin/shipment-tracking" element={<ShipmentTracking />} />
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />

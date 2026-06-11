@@ -468,264 +468,285 @@ export const CustomerOrderDetail = () => {
 
     return (
     <ProfileLayout profile={profile}>
-      <div className="cod-content">
+      <div className="cod-content tracker-theme">
         
         {/* ── PAGE HEADER ── */}
         <div className="cod-page-header">
           <div className="cod-header-left">
-            <h1 className="cod-page-title">Chi tiết đơn hàng</h1>
+            <h1 className="cod-page-title">
+              Theo dõi Vận đơn #{order.trackingNumber || `AG-${order.id || "99824"}`}
+            </h1>
             <div className="cod-meta-row">
-              <span className="cod-meta-id">Đơn hàng #{order.id}</span>
+              <span className="cod-meta-id">Đơn hàng #{order.id || order.orderCode}</span>
               <span className="cod-meta-sep">•</span>
-              <span className="cod-meta-date">Đặt ngày {order.date} lúc {order.time}</span>
+              <span className="cod-meta-date">Đặt ngày {order.date || "11 thg 06, 2026"} lúc {order.time || "08:20 SA"}</span>
               <span className="cod-meta-sep">•</span>
-              <span className={`cod-status-badge status-${order.status}`}>{order.statusLabel}</span>
+              <span className={`cod-status-badge status-${order.status}`}>{order.statusLabel || "Đang xử lý"}</span>
             </div>
           </div>
           <div className="cod-header-actions">
-            <button className="cod-invoice-btn">
+            <button className="cod-invoice-btn" onClick={() => window.print()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Tải hóa đơn
+              In Manifest đơn hàng
             </button>
             {order.status === "delivered" && (
-              <button className="cod-rebuy-btn">
+              <button className="cod-rebuy-btn" onClick={() => alert("Đã thêm các sản phẩm vào giỏ hàng!")}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
                   <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
                 </svg>
-                Mua lại
+                Mua lại đơn hàng
               </button>
             )}
           </div>
         </div>
 
-        {/* ── TIMELINE TRACKER ── */}
-        {order.status !== "cancelled" && order.status !== "rejected" ? (
-          <div className="cod-tracker-card">
-            <div className="cod-timeline-wrapper">
-              <div className="cod-timeline">
-                {TIMELINE_STEPS.map((step, idx) => {
-                  const isCompleted = idx < activeIndex;
-                  const isCurrent   = idx === activeIndex;
-                  const isPending   = idx > activeIndex;
-                  const stepClass   = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
-                  return (
-                    <React.Fragment key={step.key}>
-                      <div className={stepClass}>
-                        <div className="cod-step-circle">
-                          {renderStepIcon(step.key, isCompleted, isCurrent)}
-                        </div>
-                        <span className="cod-step-name">{step.label}</span>
-                        <span className="cod-step-sub">
-                          {getStepDateTime(idx, step.key, order, isCompleted, isCurrent)}
-                        </span>
-                      </div>
-                      {idx < TIMELINE_STEPS.length - 1 && (
-                        <div className={`cod-connector${idx < activeIndex ? " done" : ""}`} />
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="cod-cancelled-card">
-            <div className="cod-cancelled-icon" style={order.status === "rejected" ? { backgroundColor: "#fef2f2", color: "#b91c1c" } : {}}>
-              {order.status === "rejected" ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-              )}
-            </div>
-            <div className="cod-cancelled-body">
-              <h3>{order.status === "rejected" ? "Đơn hàng đã bị từ chối" : "Đơn hàng đã bị hủy"}</h3>
-              <p>{order.status === "rejected" ? "Nhà vườn đã từ chối đơn hàng của bạn." : "Đơn hàng này không còn được xử lý. Liên hệ bộ phận hỗ trợ nếu cần giúp đỡ."}</p>
-              {order.cancelReason && (
-                <p className="cod-cancel-reason-line">
-                  <strong>Lý do:</strong> "{order.cancelReason}"
-                </p>
-              )}
-            </div>
-          </div>
-        )}
+        {/* ── 2-COLUMN PREMIUM CONTENT TRACKING GRID (No Map) ── */}
+        <div className="cod-grid tracker-layout">
 
-        {/* ── 2-COLUMN CONTENT GRID ── */}
-        <div className="cod-grid">
-
-          {/* LEFT COLUMN */}
+          {/* LEFT COLUMN: Status Timeline, Product Manifest, and Proof of Delivery */}
           <div className="cod-main-col">
+            
+            {/* 1. Status Timeline Tracker */}
+            {order.status !== "cancelled" && order.status !== "rejected" ? (
+              <div className="cod-card tracking-timeline-card">
+                <h2 className="cod-card-title border-bottom">Trạng thái vận chuyển</h2>
+                <div className="cod-timeline-wrapper tracker-timeline">
+                  <div className="cod-timeline">
+                    {TIMELINE_STEPS.map((step, idx) => {
+                      const isCompleted = idx < activeIndex;
+                      const isCurrent   = idx === activeIndex;
+                      const isPending   = idx > activeIndex;
+                      const stepClass   = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
+                      return (
+                        <React.Fragment key={step.key}>
+                          <div className={stepClass}>
+                            <div className="cod-step-circle">
+                              {renderStepIcon(step.key, isCompleted, isCurrent)}
+                            </div>
+                            <span className="cod-step-name">{step.label}</span>
+                            <span className="cod-step-sub">
+                              {getStepDateTime(idx, step.key, order, isCompleted, isCurrent)}
+                            </span>
+                          </div>
+                          {idx < TIMELINE_STEPS.length - 1 && (
+                            <div className={`cod-connector${idx < activeIndex ? " done" : ""}`} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="cod-cancelled-card">
+                <div className="cod-cancelled-icon" style={order.status === "rejected" ? { backgroundColor: "#fef2f2", color: "#b91c1c" } : {}}>
+                  {order.status === "rejected" ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                  )}
+                </div>
+                <div className="cod-cancelled-body">
+                  <h3>{order.status === "rejected" ? "Đơn hàng đã bị từ chối" : "Đơn hàng đã bị hủy"}</h3>
+                  <p>{order.status === "rejected" ? "Nhà vườn đã từ chối đơn hàng của bạn." : "Đơn hàng này không còn được xử lý. Liên hệ bộ phận hỗ trợ nếu cần giúp đỡ."}</p>
+                  {order.cancelReason && (
+                    <p className="cod-cancel-reason-line">
+                      <strong>Lý do:</strong> "{order.cancelReason}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-            {/* Items Card */}
-            <div className="cod-card">
-              <h2 className="cod-card-title">Sản phẩm đã mua ({order.items ? order.items.length : 0})</h2>
-              <div className="cod-items-list">
+            {/* 2. Product Manifest Item Cards (styled premium like Manifest in Image 1) */}
+            <div className="cod-card tracking-manifest-card">
+              <div className="manifest-card-title-row">
+                <h2 className="cod-card-title">Hàng hóa đóng gói (Manifest)</h2>
+                {order.status === "shipping" && <span className="manifest-priority-badge">Khẩn Cấp</span>}
+              </div>
+              
+              <div className="tracker-manifest-list">
                 {order.items && order.items.map((item, index) => (
-                  <div className="cod-item-row" key={index}>
-                    <div className="cod-item-left">
-                      <div className="cod-item-img">
-                        <img src={item.img} alt={item.name} />
-                      </div>
-                      <div className="cod-item-details">
-                        <span className="cod-item-name">{item.name}</span>
-                        <span className="cod-item-farmer">Nhà vườn: <span className="cod-farmer-link">{item.farmer}</span></span>
-                        <div className="cod-item-price-qty">
-                          <span className="cod-item-unit-price">{formatVND(item.price)}</span>
-                          <span className="cod-item-qty">Số lượng: {item.qty}</span>
-                        </div>
-                      </div>
+                  <div className="tracker-manifest-row" key={index}>
+                    <img src={item.img} alt={item.name} className="tracker-manifest-img" />
+                    <div className="tracker-manifest-info">
+                      <span className="tracker-item-name">{item.name}</span>
+                      <span className="tracker-item-farmer">Nhà vườn: {item.farmer}</span>
+                      <span className="tracker-item-qty">Số lượng: {item.qty} đ.vị</span>
                     </div>
-                    <div className="cod-item-total">
-                      {formatVND(item.price * item.qty)}
+                    <div className="tracker-manifest-tags">
+                      {index % 2 === 0 ? (
+                        <span className="m-tag fragile">Dễ vỡ</span>
+                      ) : (
+                        <span className="m-tag cold">Lạnh</span>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Farmer Card */}
-            <div className="cod-card cod-farmer-card">
-              {order.provider?.avatarUrl ? (
-                <div className="cod-farmer-avatar-img-wrapper">
-                  <img 
-                    className="cod-farmer-avatar-img" 
-                    src={order.provider.avatarUrl} 
-                    alt={order.provider.name} 
-                  />
-                </div>
-              ) : (
-                <div 
-                  className="cod-farmer-avatar" 
-                  style={{ backgroundColor: order.provider?.avatarBg || "#00412f" }}
-                >
-                  {order.provider?.avatarText || (order.provider?.name ? order.provider.name.charAt(0).toUpperCase() : "VM")}
-                </div>
-              )}
-              <div className="cod-farmer-info">
-                <div className="cod-farmer-name-row">
-                  <span className="cod-farmer-name">{order.provider?.name}</span>
-                  <span className="cod-verified-badge" title="Đã xác minh">
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    </svg>
-                  </span>
-                </div>
-                <p className="cod-farmer-location">
-                  {order.provider?.location} &nbsp;•&nbsp; Thành lập: {order.provider?.estYear}
-                </p>
-                <div className="cod-farmer-badges">
-                  <span className="cod-badge">Chứng nhận hữu cơ</span>
-                  <span className="cod-badge">Không thuốc trừ sâu</span>
-                  <span className="cod-badge">Nông sản địa phương</span>
-                </div>
+            {/* 3. Proof of Delivery block (Image 1 style) */}
+            {order.status !== "cancelled" && order.status !== "rejected" && (
+              <div className="cod-card proof-of-delivery-card">
+                <h2 className="cod-card-title border-bottom">Bằng chứng giao hàng (POD)</h2>
+                {order.status === "delivered" ? (
+                  <div className="pod-completed-content">
+                    <p className="pod-success-lbl">🎉 Đơn hàng đã được giao nhận thành công!</p>
+                    <div className="pod-visuals-grid">
+                      <div className="pod-visual-box">
+                        <span className="visual-lbl">Chữ ký số người nhận:</span>
+                        <div className="signature-box">
+                          {order.podSignature ? (
+                            <img src={order.podSignature} alt="Chữ ký nhận hàng" />
+                          ) : (
+                            <div className="fallback-sig"><i>Đã ký nhận trực tiếp</i></div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="pod-visual-box">
+                        <span className="visual-lbl">Ảnh chụp drop-off:</span>
+                        {order.podPhoto ? (
+                          <img src={order.podPhoto} alt="Ảnh giao nhận hàng" className="dropoff-photo" />
+                        ) : (
+                          <div className="fallback-photo">📷 Đã chụp ảnh lưu trữ trên hệ thống</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pod-pending-content">
+                    <div className="pod-pending-icon">📝</div>
+                    <span className="pod-pending-title">Đang chờ giao hàng</span>
+                    <p className="pod-pending-desc">
+                      Chữ ký người nhận và ảnh chụp drop-off tại cửa hàng sẽ tự động hiển thị ở đây sau khi tài xế giao hàng thành công.
+                    </p>
+                  </div>
+                )}
               </div>
-              <button className="cod-btn-outline cod-farmer-msg-btn">Nhắn tin nhà vườn</button>
-            </div>
+            )}
+
           </div>
 
-          {/* RIGHT COLUMN */}
+          {/* RIGHT COLUMN: Assigned Driver, Pickup Origin, Destination details */}
           <div className="cod-side-col">
+            
+            {/* 1. Assigned Driver Card (Marcus Johnson info) */}
+            {(order.status === "shipping" || order.status === "delivered" || order.status === "confirmed" || order.status === "preparing") && (
+              <div className="cod-card assigned-driver-card">
+                <h3 className="sidebar-sec-title">Tài xế vận chuyển</h3>
+                <div className="driver-profile-row">
+                  <div className="driver-avatar-box">
+                    <img 
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" 
+                      alt="Marcus Johnson" 
+                      className="driver-avatar-img"
+                    />
+                  </div>
+                  <div className="driver-meta">
+                    <span className="driver-name-text">Marcus Johnson</span>
+                    <span className="driver-id-text">ID: D-4092 &nbsp;•&nbsp; ⭐ 4.9</span>
+                  </div>
+                </div>
 
-            {/* Delivery Card */}
-            <div className="cod-card">
-              <h2 className="cod-card-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="18" height="18" style={{ marginRight: "8px", verticalAlign: "middle" }}>
-                  <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                  <circle cx="5.5" cy="18.5" r="2.5" />
-                  <circle cx="18.5" cy="18.5" r="2.5" />
-                </svg>
-                Thông tin nhận hàng
-              </h2>
-              <div className="cod-info-section">
-                <span className="cod-info-label">Địa chỉ nhận hàng</span>
-                <p className="cod-info-value bold">{order.recipient}</p>
-                <p className="cod-info-value">{order.address}</p>
+                <div className="driver-vehicle-box">
+                  <span className="vehicle-icon">🚚</span>
+                  <div className="vehicle-meta">
+                    <span className="vehicle-type">Xe tải lạnh Sprinter Van</span>
+                    <span className="vehicle-plate">Biển số: XYZ-789</span>
+                  </div>
+                </div>
+
+                <div className="driver-actions-row">
+                  <a href="tel:+84909333444" className="driver-action-btn call">
+                    📞 Gọi điện
+                  </a>
+                  <a href="sms:+84909333444" className="driver-action-btn message">
+                    💬 Nhắn tin
+                  </a>
+                </div>
               </div>
-              <div className="cod-info-section">
-                <span className="cod-info-label">Số điện thoại</span>
-                <p className="cod-info-value bold">{order.phone}</p>
+            )}
+
+            {/* 2. Pickup Origin Card (Sunrise Valley Farms info) */}
+            <div className="cod-card location-card origin">
+              <h3 className="sidebar-sec-title">Điểm lấy hàng (Pickup Origin)</h3>
+              <div className="location-header-row">
+                <span className="loc-icon">🚜</span>
+                <div className="loc-meta">
+                  <span className="loc-name">{order.provider?.name || "Nông trại hữu cơ Sông Hồng"}</span>
+                  <span className="loc-address">{order.provider?.location || "Gia Lâm, Hà Nội"}</span>
+                </div>
               </div>
-              <div className="cod-info-section last">
-                <span className="cod-info-label">Mã vận đơn</span>
-                <div className="cod-tracking-box">
-                  <span className="cod-tracking-number">{order.trackingNumber || "FH-TRACK-889212"}</span>
-                  <a href="#" className="cod-track-link" onClick={(e) => e.preventDefault()}>Theo dõi đơn hàng</a>
+              <div className="location-footer-row">
+                <a href="#" className="loc-link" onClick={(e) => e.preventDefault()}>Liên hệ Quản lý Nhà vườn</a>
+              </div>
+            </div>
+
+            {/* 3. Destination Card (Customer Address info) */}
+            <div className="cod-card location-card destination">
+              <h3 className="sidebar-sec-title">Điểm giao hàng (Destination)</h3>
+              <div className="location-header-row">
+                <span className="loc-icon">🛒</span>
+                <div className="loc-meta">
+                  <span className="loc-name">{order.recipient || "Cửa hàng bán lẻ"}</span>
+                  <span className="loc-address">{order.address || "Chưa có địa chỉ"}</span>
+                  <span className="loc-phone">☎️ {order.phone}</span>
                 </div>
               </div>
             </div>
 
-            {/* Payment Card */}
-            <div className="cod-card">
-              <h2 className="cod-card-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="18" height="18" style={{ marginRight: "8px", verticalAlign: "middle" }}>
-                  <rect x="2" y="4" width="20" height="16" rx="2" />
-                  <line x1="2" y1="10" x2="22" y2="10" />
-                </svg>
-                Tóm tắt thanh toán
-              </h2>
-              <div className="cod-payment-rows">
-                <div className="cod-pay-row">
-                  <span>Tạm tính ({order.items ? order.items.length : 0} sản phẩm)</span>
+            {/* 4. Payment summary box */}
+            <div className="cod-card payment-summary-tracker-card">
+              <h3 className="sidebar-sec-title">Tóm tắt thanh toán</h3>
+              <div className="tracker-payment-rows">
+                <div className="t-pay-row">
+                  <span>Tổng tiền hàng:</span>
                   <span>{formatVND(order.subtotal || 0)}</span>
                 </div>
-                <div className="cod-pay-row">
-                  <span>Phí vận chuyển</span>
+                <div className="t-pay-row">
+                  <span>Phí vận chuyển:</span>
                   <span>{formatVND(order.shippingFee || 0)}</span>
                 </div>
-                <div className="cod-pay-row">
-                  <span>Phí dịch vụ</span>
-                  <span>{formatVND(order.serviceFee || 0)}</span>
-                </div>
-                <div className="cod-pay-row cod-discount-row">
-                  <span>Khuyến mãi</span>
-                  <span>-{formatVND(order.discount || 0)}</span>
-                </div>
-                <hr className="cod-divider" />
-                <div className="cod-pay-row cod-total-row">
-                  <span>Tổng thanh toán</span>
-                  <span className="cod-total-value">{formatVND(order.amount || 0)}</span>
+                <hr className="t-divider" />
+                <div className="t-pay-row total">
+                  <span>Tổng thanh toán:</span>
+                  <span className="t-total-value">{formatVND(order.amount || 0)}</span>
                 </div>
               </div>
-              <div className="cod-payment-method-box">
-                <div className="cod-card-icon">
-                  {getPaymentMethodDetails(order.paymentMethod, order.paymentStatus).icon}
-                </div>
-                <div>
-                  <div className="cod-card-name">
-                    {getPaymentMethodDetails(order.paymentMethod, order.paymentStatus).name}
-                  </div>
-                  <div className="cod-card-status">
-                    {getPaymentMethodDetails(order.paymentMethod, order.paymentStatus).statusText}
-                  </div>
-                </div>
+              <div className="tracker-pay-method">
+                <span>Phương thức: <strong>{order.paymentMethod || "Tiền mặt (COD)"}</strong></span>
               </div>
             </div>
 
-            {/* Cancel button */}
+            {/* Cancel Order (Only if pending) */}
             {order.status === "pending" && (
-              <button className="cod-cancel-btn" onClick={() => setShowCancelModal(true)}>
-                Hủy đơn hàng
+              <button className="cod-cancel-btn tracking-cancel" onClick={() => setShowCancelModal(true)}>
+                Hủy đơn hàng này
               </button>
             )}
 
-            <div className="cod-help-row">
-              <span>Bạn cần trợ giúp? </span>
-              <Link to="/help" className="cod-help-link">Liên hệ hỗ trợ AgriMarket</Link>
+            <div className="cod-help-row tracking-help">
+              <span>Cần hỗ trợ gấp? </span>
+              <Link to="/help" className="cod-help-link">Liên hệ AgriMarket Support</Link>
             </div>
+
           </div>
+
         </div>
+
       </div>
 
       {/* ── TOAST ── */}
