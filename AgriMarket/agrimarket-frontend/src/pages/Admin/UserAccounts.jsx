@@ -1120,7 +1120,7 @@ const UserAccounts = () => {
             </span>
             Bảng điều khiển
           </button>
-          <button className="admin-nav-item active">
+          <button className="admin-nav-item active" onClick={() => navigate("/admin/users")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </span>
@@ -1136,7 +1136,7 @@ const UserAccounts = () => {
             </span>
             Nông dân
           </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng duyệt sản phẩm đang phát triển.")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
             </span>
@@ -1148,7 +1148,7 @@ const UserAccounts = () => {
             </span>
             Danh mục
           </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng đơn hàng đang phát triển.")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
             </span>
