@@ -1401,3 +1401,60 @@
   border-color: #047857 !important;
 }
 
+/* =============================================
+   ADMIN CHANGE REQUESTS / REJECTION BANNERS
+   ============================================= */
+.ap-changes-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 24px;
+  margin: 24px 32px 0 32px;
+  background-color: #fff7ed;
+  border: 1.5px solid #ffedd5;
+  border-left: 5px solid #f97316;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.05);
+  animation: fadeIn 0.3s ease;
+}
+
+.ap-changes-banner-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ap-changes-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ap-changes-banner-content strong {
+  font-size: 15px;
+  color: #c2410c;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+}
+
+.ap-changes-banner-content p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #7c2d12;
+  line-height: 1.6;
+}
+
+.ap-changes-banner.rejected {
+  background-color: #fef2f2;
+  border-color: #fee2e2;
+  border-left-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.05);
+}
+
+.ap-changes-banner.rejected strong {
+  color: #991b1b;
+}
+
+.ap-changes-banner.rejected p {
+  color: #7f1d1d;
+}
+

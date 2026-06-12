@@ -2844,8 +2844,8 @@
 /* Stats Cards Grid Layout */
 .order-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
   margin-bottom: 32px;
 }
 
@@ -2853,12 +2853,32 @@
   background-color: #ffffff !important;
   border-radius: 16px !important;
   border: 1px solid var(--admin-border) !important;
-  padding: 24px !important;
+  padding: 16px 12px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
   position: relative !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+}
+
+@media (min-width: 1200px) {
+  .order-stats-grid {
+    grid-template-columns: repeat(8, 1fr) !important;
+    gap: 16px !important;
+  }
+  .order-stat-card {
+    padding: 20px 16px !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .order-stats-grid {
+    grid-template-columns: repeat(8, 1fr) !important;
+    gap: 10px !important;
+  }
+  .order-stat-card {
+    padding: 16px 8px !important;
+  }
 }
 
 .order-stat-card.cancelled {

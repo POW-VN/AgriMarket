@@ -23,7 +23,7 @@ public class Customer {
     @Transient
     private String role = "customer";
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", columnDefinition = "nvarchar(255)")
     private String fullName;
     
     @Column(name = "email", unique = true, nullable = false)

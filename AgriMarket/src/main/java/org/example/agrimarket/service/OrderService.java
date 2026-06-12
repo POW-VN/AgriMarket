@@ -398,4 +398,46 @@ public class OrderService {
                 .paymentStatus(order.getPaymentStatus())
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
+        orders.sort((o1, o2) -> {
+            if (o1.getCreatedAt() == null && o2.getCreatedAt() == null) return 0;
+            if (o1.getCreatedAt() == null) return 1;
+            if (o2.getCreatedAt() == null) return -1;
+            return o2.getCreatedAt().compareTo(o1.getCreatedAt());
+        });
+        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public OrderResponse updateOrderStatusByAdmin(String orderCode, String newStatus, String paymentStatus) {
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+
+        String oldStatus = order.getStatus();
+        String statusLower = newStatus.toLowerCase();
+        order.setStatus(statusLower);
+
+        if (paymentStatus != null) {
+            order.setPaymentStatus(paymentStatus);
+        }
+
+        // Restore stock if transitioning to cancelled or rejected
+        if (("cancelled".equals(statusLower) || "rejected".equals(statusLower)) &&
+            !("cancelled".equalsIgnoreCase(oldStatus) || "rejected".equalsIgnoreCase(oldStatus))) {
+            for (OrderItem item : order.getItems()) {
+                Optional<Product> productOpt = productRepository.findById(item.getProductId());
+                if (productOpt.isPresent()) {
+                    Product product = productOpt.get();
+                    product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                    productRepository.save(product);
+                }
+            }
+        }
+
+        Order updatedOrder = orderRepository.save(order);
+        return mapToResponse(updatedOrder);
+    }
 }

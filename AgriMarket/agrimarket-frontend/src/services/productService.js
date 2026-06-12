@@ -10,7 +10,66 @@ const API_BASE_URL =
 ...
 */
 
+const getFullImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("/uploads/")) {
+        const host = API_BASE_URL.endsWith("/api") 
+            ? API_BASE_URL.substring(0, API_BASE_URL.length - 4) 
+            : API_BASE_URL;
+        return `${host}${url}`;
+    }
+    return url;
+};
+
+const getDefaultImage = (category, name) => {
+    const cat = (category || "").toLowerCase();
+    const n = (name || "").toLowerCase();
+    
+    if (cat.includes("trái cây") || cat.includes("fruit") || n.includes("táo") || n.includes("dâu") || n.includes("xoài")) {
+        return "https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=600"; // Generic mixed fruits
+    }
+    if (cat.includes("rau") || cat.includes("củ") || cat.includes("quả") || cat.includes("vegetable") || n.includes("cà chua") || n.includes("cà rốt") || n.includes("dưa")) {
+        return "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600"; // Carrot/vegetables
+    }
+    if (cat.includes("lương thực") || cat.includes("gạo") || cat.includes("nếp") || n.includes("gạo")) {
+        return "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600"; // Rice
+    }
+    if (cat.includes("chăn nuôi") || cat.includes("thịt") || n.includes("thịt") || n.includes("heo") || n.includes("bò") || n.includes("gà")) {
+        return "https://images.unsplash.com/photo-1602491453977-63a5385166cf?w=600"; // Meat / Livestock
+    }
+    if (cat.includes("chế biến") || cat.includes("mật ong") || n.includes("mật ong")) {
+        return "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600"; // Honey
+    }
+    if (cat.includes("trứng") || cat.includes("sữa") || n.includes("trứng") || n.includes("sữa")) {
+        return "https://images.unsplash.com/photo-1516448424440-5dbf97e69009?w=600"; // Eggs
+    }
+    return "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600"; // General fallback (carrot)
+};
+
 const normalizeProduct = (item) => {
+    const categoryName =
+        item.category_name ||
+        item.categoryName ||
+        item.category?.name ||
+        `Danh mục #${item.category_id || item.categoryId || "N/A"}`;
+
+    const defaultImg = getDefaultImage(categoryName, item.name);
+
+    const primaryImageUrl =
+        item.thumbnail_url ||
+        item.thumbnailUrl ||
+        item.image_url ||
+        item.imageUrl ||
+        item.img_url ||
+        item.productImage ||
+        "";
+
+    const resolvedImageUrl = primaryImageUrl ? getFullImageUrl(primaryImageUrl) : defaultImg;
+
+    const resolvedImages = (item.images && item.images.length > 0)
+        ? item.images.map(getFullImageUrl)
+        : [resolvedImageUrl];
+
     return {
         // product.id
         id: item.id,
@@ -32,11 +91,7 @@ const normalizeProduct = (item) => {
 
         // categories.name
         // Backend nên join categories và trả về category_name
-        category:
-            item.category_name ||
-            item.categoryName ||
-            item.category?.name ||
-            `Danh mục #${item.category_id || item.categoryId || "N/A"}`,
+        category: categoryName,
 
         // product.price
         price: Number(item.price ?? 0),
@@ -61,24 +116,16 @@ const normalizeProduct = (item) => {
         expirationDate: item.expiration_date || item.expirationDate || null,
 
         // product.traceability_image_url
-        traceabilityImageUrl: item.traceability_image_url || item.traceabilityImageUrl || "",
+        traceabilityImageUrl: getFullImageUrl(item.traceability_image_url || item.traceabilityImageUrl || ""),
 
         // product.created_at
         createdAt: item.created_at || item.createdAt || null,
 
         // organic fields
         isOrganic: !!(item.isOrganic || item.is_organic),
-        certificateUrl: item.certificateUrl || item.certificate_url || "",
+        certificateUrl: getFullImageUrl(item.certificateUrl || item.certificate_url || ""),
         isLocal: true,
-        images: item.images || [
-            item.thumbnail_url ||
-            item.thumbnailUrl ||
-            item.image_url ||
-            item.imageUrl ||
-            item.img_url ||
-            item.productImage ||
-            "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600"
-        ],
+        images: resolvedImages,
         reviewsCount: Number(item.reviewsCount || item.reviews_count || (10 + (Number(item.id || 0) * 7) % 150)),
 
         // rating and sales (sold)
@@ -87,17 +134,13 @@ const normalizeProduct = (item) => {
 
         // product_image.img_url
         // Backend nên trả ảnh thumbnail là thumbnail_url
-        imageUrl:
-            item.thumbnail_url ||
-            item.thumbnailUrl ||
-            item.image_url ||
-            item.imageUrl ||
-            item.img_url ||
-            item.productImage ||
-            "",
+        imageUrl: resolvedImageUrl,
         farmerName: item.farmerName || item.farmer_name || item.farmer?.farmName || "Nông trại Green Valley",
         farmLocation: item.farmLocation || item.farm_location || item.farmer?.farmAddress || "Đà Lạt, Lâm Đồng (cách 12 km)",
         farmDescription: item.farmDescription || item.farm_description || item.farmer?.description || "Nông trại gia đình chuyên canh các loại rau củ hữu cơ chất lượng cao.",
+        farmerAvatarUrl: getFullImageUrl(item.farmerAvatarUrl || item.farmer_avatar_url || item.farmer?.avatarUrl || ""),
+        adminNotes: item.adminNotes || item.admin_notes || "",
+        rejectionReason: item.rejectionReason || item.rejection_reason || "",
     };
 };
 

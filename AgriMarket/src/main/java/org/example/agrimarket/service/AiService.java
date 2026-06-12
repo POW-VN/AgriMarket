@@ -114,7 +114,7 @@ public class AiService {
                     .append("2. Đặc điểm nổi bật (Phương pháp canh tác, các chứng nhận chất lượng nếu có, sự an toàn từ nguồn gốc trang trại ở ").append(farmAddress).append(")\n")
                     .append("3. Ngày thu hoạch và Hạn sử dụng (Thời điểm thu hoạch để đảm bảo chất lượng, hạn dùng an toàn)\n")
                     .append("4. Hướng dẫn bảo quản & chế biến/sử dụng tốt nhất\n\n")
-                    .append("Không hiển thị các phần hướng dẫn hay các lời chào thừa của AI. Tuyệt đối không bao gồm bất kỳ hashtag nào (không dùng kí tự #). Viết trực tiếp nội dung mô tả bằng markdown.");
+                    .append("Không hiển thị các phần hướng dẫn hay các lời chào thừa của AI. Thêm một số biểu tượng cảm xúc (emoji) sinh động, gần gũi với nông sản và thiên nhiên (như 🌿, 🍎, 🥦, 🥬, 🍊, ✨, 🍀, 📅, 📦, 🛡️) vào các mục và đầu dòng để bài viết thêm trực quan, đẹp mắt và thu hút khách hàng. Tuyệt đối không bao gồm bất kỳ hashtag nào (không dùng kí tự #). Viết trực tiếp nội dung mô tả bằng markdown.");
 
             String prompt = promptBuilder.toString();
             // Google Gemini API URL

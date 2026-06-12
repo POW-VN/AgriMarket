@@ -22,7 +22,7 @@ public class Farmer {
     @Transient
     private String role = "farmer";
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", columnDefinition = "nvarchar(255)")
     private String fullName;
     
     private String email;
@@ -35,7 +35,7 @@ public class Farmer {
     @Column(name = "avatar_url")
     private String avatarUrl;
     
-    @Column(name = "farm_name")
+    @Column(name = "farm_name", columnDefinition = "nvarchar(255)")
     private String farmName;
     
     @Column(name = "farm_address", columnDefinition = "nvarchar(1000)")

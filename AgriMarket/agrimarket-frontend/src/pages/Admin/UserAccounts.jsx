@@ -8,6 +8,15 @@ import "./AdminStyles.css";
 
 const UserAccounts = () => {
   const navigate = useNavigate();
+  const getFullImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
+    return `${API_BASE_URL}/${cleanUrl}`;
+  };
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -253,7 +262,15 @@ const UserAccounts = () => {
           <div className="details-left-card">
             <div className="details-avatar-container">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.fullName} className="details-avatar-large" />
+                <img 
+                  src={getFullImageUrl(user.avatarUrl)} 
+                  alt={user.fullName} 
+                  className="details-avatar-large" 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+                  }}
+                />
               ) : (
                 <div className="details-avatar-large fallback">
                   {user.fullName ? user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "U"}
@@ -1126,13 +1143,16 @@ const UserAccounts = () => {
             </span>
             Quản lý tài khoản
           </button>
+
           <button className="admin-nav-item" onClick={() => navigate("/admin/shipment-requests")}>
-            <span className="admin-nav-icon">🚚</span>
+            <span className="admin-nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
+            </span>
             Yêu cầu vận chuyển
           </button>
           <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
             <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
             </span>
             Nông dân
           </button>
@@ -1201,9 +1221,13 @@ const UserAccounts = () => {
         {/* Sidebar Footer */}
         <div className="admin-sidebar-footer">
           <img
-            src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
+            src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
             alt="Avatar admin"
             className="admin-footer-avatar"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
+            }}
           />
           <div className="admin-footer-info">
             <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
@@ -1410,7 +1434,15 @@ const UserAccounts = () => {
                             title="Xem chi tiết tài khoản"
                           >
                             {user.avatarUrl ? (
-                              <img src={user.avatarUrl} alt={user.fullName} className="user-cell-avatar" />
+                              <img 
+                                src={getFullImageUrl(user.avatarUrl)} 
+                                alt={user.fullName} 
+                                className="user-cell-avatar" 
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+                                }}
+                              />
                             ) : (
                               <div className="user-cell-avatar" style={{ backgroundColor: "#e2e8f0" }}>
                                 {userInitial}

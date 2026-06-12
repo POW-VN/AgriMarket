@@ -4,6 +4,13 @@ import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
+const InfoCard = ({ label, value, highlight }) => (
+  <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", padding: "14px 16px", backgroundColor: "#fff" }}>
+    <p style={{ margin: "0 0 5px 0", fontSize: "11px", fontWeight: "700", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+    <p style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: highlight ? "#064e3b" : "#111827" }}>{value}</p>
+  </div>
+);
+
 const ProductApproval = () => {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -41,6 +48,16 @@ const ProductApproval = () => {
 
   // Toast
   const [toastMessage, setToastMessage] = useState("");
+
+  const getFullImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
+    return `${API_BASE_URL}/${cleanUrl}`;
+  };
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -122,7 +139,7 @@ const ProductApproval = () => {
     setActiveTab(tab);
     setCurrentPage(1);
     setSelectedProductIds([]);
-    const map = { "Tất cả": "All", "Chờ duyệt": "pending", "Đã duyệt": "approved", "Từ chối": "rejected", "Yêu cầu sửa đổi": "request_changes" };
+    const map = { "Tất cả": "All", "Chờ duyệt": "pending", "Đã duyệt": "approved", "Từ chối": "rejected", "Yêu cầu sửa đổi": "request_changes", "Đã ẩn": "hidden" };
     setFilterStatus(map[tab] ?? "All");
   };
 
@@ -173,6 +190,20 @@ const ProductApproval = () => {
       actionType: "request_changes", reason: "", feedback: adminNotes || "",
     });
 
+  const triggerHide = () =>
+    setConfirmModal({
+      isOpen: true, title: "Xác nhận ẩn sản phẩm",
+      message: `Nhập lý do ẩn sản phẩm "${selectedProduct.name}". Sản phẩm sẽ bị gỡ khỏi thị trường công khai.`,
+      actionType: "hide", reason: "", feedback: "",
+    });
+
+  const triggerUnhide = () =>
+    setConfirmModal({
+      isOpen: true, title: "Xác nhận hiển thị lại sản phẩm",
+      message: `Bạn có chắc chắn muốn hiển thị lại sản phẩm "${selectedProduct.name}"? Sản phẩm sẽ hiển thị công khai trên AgriMarket.`,
+      actionType: "unhide", reason: "", feedback: "",
+    });
+
   const executeAction = async () => {
     const { actionType, reason, feedback } = confirmModal;
     const prodId = selectedProduct.id;
@@ -183,10 +214,17 @@ const ProductApproval = () => {
       if (actionType === "approve") {
         res = await apiClient.post(`/api/admin/products/${prodId}/approve`);
         showToast(`✅ Đã phê duyệt "${selectedProduct.name}" thành công.`);
+      } else if (actionType === "unhide") {
+        res = await apiClient.post(`/api/admin/products/${prodId}/unhide`);
+        showToast(`✅ Đã hiển thị lại sản phẩm "${selectedProduct.name}".`);
       } else if (actionType === "reject") {
         if (!reason.trim()) { showToast("⚠️ Cần nhập lý do từ chối."); return; }
         res = await apiClient.post(`/api/admin/products/${prodId}/reject`, { reason });
         showToast(`✅ Đã từ chối sản phẩm "${selectedProduct.name}".`);
+      } else if (actionType === "hide") {
+        if (!reason.trim()) { showToast("⚠️ Cần nhập lý do ẩn sản phẩm."); return; }
+        res = await apiClient.post(`/api/admin/products/${prodId}/hide`, { reason });
+        showToast(`✅ Đã ẩn sản phẩm "${selectedProduct.name}".`);
       } else {
         if (!feedback.trim()) { showToast("⚠️ Cần nhập nội dung hướng dẫn."); return; }
         res = await apiClient.post(`/api/admin/products/${prodId}/request-changes`, { feedback });
@@ -196,17 +234,17 @@ const ProductApproval = () => {
       fetchProducts();
       fetchProductAuditLogs(prodId);
     } catch (err) {
-      const updatedStatus = actionType === "approve" ? "approved" : actionType === "reject" ? "rejected" : "request_changes";
-      const newProd = { ...selectedProduct, status: updatedStatus, adminNotes: actionType === "request_changes" ? feedback : "", rejectionReason: actionType === "reject" ? reason : "" };
+      const updatedStatus = actionType === "approve" ? "approved" : actionType === "unhide" ? "approved" : actionType === "reject" ? "rejected" : actionType === "hide" ? "hidden" : "request_changes";
+      const newProd = { ...selectedProduct, status: updatedStatus, adminNotes: actionType === "request_changes" ? feedback : "", rejectionReason: (actionType === "reject" || actionType === "hide") ? reason : "" };
       setProducts((prev) => prev.map((p) => (p.id === prodId ? newProd : p)));
       setSelectedProduct(newProd);
       showToast("✅ Cập nhật trạng thái thành công (Chế độ mô phỏng).");
       const mockLog = {
         id: Date.now(),
-        actionType: actionType === "approve" ? "PRODUCT_APPROVED" : actionType === "reject" ? "PRODUCT_REJECTED" : "PRODUCT_CHANGES_REQUESTED",
+        actionType: actionType === "approve" ? "PRODUCT_APPROVED" : actionType === "unhide" ? "PRODUCT_UNHIDDEN" : actionType === "reject" ? "PRODUCT_REJECTED" : actionType === "hide" ? "PRODUCT_HIDDEN" : "PRODUCT_CHANGES_REQUESTED",
         actorName: currentUser?.fullName || "Administrator",
         createdAt: new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-        remarks: actionType === "approve" ? "Sản phẩm được phê duyệt." : actionType === "reject" ? `Lý do từ chối: ${reason}` : `Yêu cầu sửa đổi: ${feedback}`,
+        remarks: actionType === "approve" ? "Sản phẩm được phê duyệt." : actionType === "unhide" ? "Sản phẩm hiển thị lại." : actionType === "reject" ? `Lý do từ chối: ${reason}` : actionType === "hide" ? `Lý do ẩn: ${reason}` : `Yêu cầu sửa đổi: ${feedback}`,
       };
       setProductAuditLogs((prev) => [mockLog, ...prev]);
     }
@@ -313,33 +351,111 @@ const ProductApproval = () => {
         <Link to="/" className="admin-logo-link">
           <h1>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z" /><path d="M12 8v4l3 3" />
+              <circle cx="7" cy="18" r="2"></circle>
+              <circle cx="18" cy="18" r="2"></circle>
+              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+              <path d="M16 9h3l2 3v4"></path>
             </svg>
             AgriAdmin
           </h1>
         </Link>
       </div>
       <nav className="admin-nav-menu">
-        {[
-          { label: "Bảng điều khiển", icon: <><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></>, onClick: () => navigate("/admin/dashboard") },
-          { label: "Quản lý tài khoản", icon: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>, onClick: () => navigate("/admin/users") },
-          { label: "Nông dân", icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>, onClick: () => showToast("Chức năng đang phát triển.") },
-          { label: "Duyệt sản phẩm", icon: <><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></>, active: true, onClick: () => { setSelectedProduct(null); setAiInsights(null); } },
-          { label: "Danh mục", icon: <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>, onClick: () => showToast("Chức năng đang phát triển.") },
-          { label: "Đơn hàng", icon: <><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></>, onClick: () => navigate("/admin/orders") },
-          { label: "Giao dịch", icon: <><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></>, onClick: () => showToast("Chức năng đang phát triển.") },
-          { label: "Khiếu nại", icon: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>, onClick: () => showToast("Chức năng đang phát triển.") },
-          { label: "Báo cáo", icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>, onClick: () => showToast("Chức năng đang phát triển.") },
-          { label: "Giám sát AI", icon: <><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></>, onClick: () => showToast("Chức năng đang phát triển.") },
-        ].map(({ label, icon, active, onClick }) => (
-          <button key={label} className={`admin-nav-item${active ? " active" : ""}`} onClick={onClick}>
-            <span className="admin-nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{icon}</svg></span>
-            {label}
-          </button>
-        ))}
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng Bảng điều khiển đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          </span>
+          Bảng điều khiển
+        </button>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </span>
+          Quản lý tài khoản
+        </button>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/shipment-requests")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
+          </span>
+          Yêu cầu vận chuyển
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
+          </span>
+          Nông dân
+        </button>
+        <button className="admin-nav-item active" onClick={() => { setSelectedProduct(null); setAiInsights(null); }}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          </span>
+          Duyệt sản phẩm
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý danh mục đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          </span>
+          Danh mục
+        </button>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+          </span>
+          Đơn hàng
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng giao dịch đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          </span>
+          Giao dịch
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng khiếu nại đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </span>
+          Khiếu nại
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng báo cáo đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </span>
+          Báo cáo
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng AI Monitoring đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
+          </span>
+          Giám sát AI
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng thông báo đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </span>
+          Thông báo
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng thống kê hệ thống đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </span>
+          Thống kê hệ thống
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Chức năng cài đặt đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </span>
+          Cài đặt
+        </button>
       </nav>
       <div className="admin-sidebar-footer">
-        <img src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"} alt="Avatar admin" className="admin-footer-avatar" />
+        <img
+          src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
+          alt="Avatar admin"
+          className="admin-footer-avatar"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
+          }}
+        />
         <div className="admin-footer-info">
           <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
           <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
@@ -357,15 +473,11 @@ const ProductApproval = () => {
       approved:         { bg: "#ecfdf5", text: "#065f46", border: "#6ee7b7" },
       rejected:         { bg: "#fef2f2", text: "#991b1b", border: "#fca5a5" },
       request_changes:  { bg: "#fffbeb", text: "#92400e", border: "#fcd34d" },
+      hidden:           { bg: "#fffbeb", text: "#b45309", border: "#fcd34d" },
     };
     const sc = statusColors[prod.status] ?? { bg: "#f3f4f6", text: "#374151", border: "#e5e7eb" };
 
-    const InfoCard = ({ label, value, highlight }) => (
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", padding: "14px 16px", backgroundColor: "#fff" }}>
-        <p style={{ margin: "0 0 5px 0", fontSize: "11px", fontWeight: "700", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
-        <p style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: highlight ? "#064e3b" : "#111827" }}>{value}</p>
-      </div>
-    );
+
 
     return (
       <div className="account-details-container">
@@ -404,6 +516,23 @@ const ProductApproval = () => {
                 </button>
               </>
             )}
+            {prod.status === "approved" && (
+              <button onClick={triggerHide} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "10px", border: "1.5px solid #fca5a5", backgroundColor: "#fff5f5", color: "#dc2626", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+                Ẩn sản phẩm
+              </button>
+            )}
+            {prod.status === "hidden" && (
+              <button onClick={triggerUnhide} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 20px", borderRadius: "10px", border: "none", backgroundColor: "#064e3b", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: "pointer", boxShadow: "0 2px 8px rgba(6,78,59,0.25)" }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                Hiện sản phẩm
+              </button>
+            )}
             <button onClick={() => { setSelectedProduct(null); setAiInsights(null); }} style={{ padding: "10px 18px", borderRadius: "10px", border: "1.5px solid #e5e7eb", backgroundColor: "#fff", color: "#374151", fontWeight: "600", fontSize: "14px", cursor: "pointer" }}>
               ← Quay lại danh sách
             </button>
@@ -413,11 +542,12 @@ const ProductApproval = () => {
         {/* ── Status banner (if already processed) ── */}
         {prod.status !== "pending" && (
           <div style={{ padding: "14px 20px", borderRadius: "12px", marginBottom: "24px", border: `1.5px solid ${sc.border}`, backgroundColor: sc.bg, display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "18px" }}>{prod.status === "approved" ? "✅" : prod.status === "rejected" ? "❌" : "✏️"}</span>
+            <span style={{ fontSize: "18px" }}>{prod.status === "approved" ? "✅" : prod.status === "rejected" ? "❌" : prod.status === "hidden" ? "👁️‍🗨️" : "✏️"}</span>
             <span style={{ fontWeight: "600", color: sc.text, fontSize: "14px" }}>
               {prod.status === "approved" && "Sản phẩm đã được phê duyệt và đang hiển thị công khai trên AgriMarket."}
               {prod.status === "rejected" && `Sản phẩm đã bị từ chối kiểm duyệt.${prod.rejectionReason ? ` Lý do: ${prod.rejectionReason}` : ""}`}
               {prod.status === "request_changes" && "Đã gửi yêu cầu chỉnh sửa đến nông dân. Đang chờ nông dân cập nhật."}
+              {prod.status === "hidden" && `Sản phẩm đã bị ẩn khỏi thị trường công khai.${prod.rejectionReason ? ` Lý do ẩn: ${prod.rejectionReason}` : ""}`}
             </span>
             <span style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", backgroundColor: sc.border, color: sc.text }}>
               {getStatusLabel(prod.status)}
@@ -688,7 +818,7 @@ const ProductApproval = () => {
 
       {/* Tabs */}
       <div className="admin-tabs-row">
-        {["Tất cả", "Chờ duyệt", "Đã duyệt", "Từ chối", "Yêu cầu sửa đổi"].map((tab) => (
+        {["Tất cả", "Chờ duyệt", "Đã duyệt", "Từ chối", "Yêu cầu sửa đổi", "Đã ẩn"].map((tab) => (
           <button key={tab} className={`admin-tab ${activeTab === tab ? "active" : ""}`} onClick={() => handleTabClick(tab)}>
             {tab}
           </button>
@@ -725,7 +855,7 @@ const ProductApproval = () => {
               <th>Tên sản phẩm</th>
               <th>Nhà vườn / Nông hộ</th>
               <th>Giá bán / Đơn vị</th>
-              <th>Loại nông sản</th>
+              <th>Danh mục</th>
               <th>Trạng thái</th>
               <th style={{ textAlign: "right" }}>Thao tác</th>
             </tr>
@@ -763,8 +893,17 @@ const ProductApproval = () => {
                       <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>mỗi {prod.unit}</span>
                     </td>
                     <td>
-                      <span className={`badge-role ${prod.isOrganic ? "farmer" : "customer"}`}>
-                        {prod.isOrganic ? "🌿 Hữu cơ" : "Canh tác thường"}
+                      <span style={{ 
+                        display: "inline-block", 
+                        padding: "4px 10px", 
+                        borderRadius: "20px", 
+                        fontSize: "12px", 
+                        fontWeight: "600",
+                        backgroundColor: "#f3f4f6",
+                        color: "#4b5563",
+                        border: "1px solid #e5e7eb"
+                      }}>
+                        {prod.categoryName || "Nông sản"}
                       </span>
                     </td>
                     <td>
@@ -790,6 +929,25 @@ const ProductApproval = () => {
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                             </button>
                           </>
+                        )}
+                        {prod.status === "approved" && (
+                          <button title="Ẩn sản phẩm" className="btn-action-direct"
+                            style={{ backgroundColor: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
+                            onClick={() => { handleSelectProduct(prod); setTimeout(triggerHide, 100); }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                              <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                          </button>
+                        )}
+                        {prod.status === "hidden" && (
+                          <button title="Hiện sản phẩm" className="btn-action-direct"
+                            style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
+                            onClick={() => { handleSelectProduct(prod); setTimeout(triggerUnhide, 100); }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -861,13 +1019,13 @@ const ProductApproval = () => {
         <div className="confirm-modal-overlay" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
           <div className="confirm-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="confirm-modal-header">
-              <span className="confirm-modal-icon">{confirmModal.actionType === "approve" ? "✅" : confirmModal.actionType === "reject" ? "❌" : "✏️"}</span>
+              <span className="confirm-modal-icon">{confirmModal.actionType === "approve" ? "✅" : (confirmModal.actionType === "reject" || confirmModal.actionType === "hide") ? "❌" : "✏️"}</span>
               <h3>{confirmModal.title}</h3>
             </div>
             <div className="confirm-modal-body">
               <p>{confirmModal.message}</p>
-              {confirmModal.actionType === "reject" && (
-                <textarea className="form-control" rows="4" placeholder="Nhập lý do từ chối (bắt buộc)..."
+              {(confirmModal.actionType === "reject" || confirmModal.actionType === "hide") && (
+                <textarea className="form-control" rows="4" placeholder={confirmModal.actionType === "reject" ? "Nhập lý do từ chối (bắt buộc)..." : "Nhập lý do ẩn sản phẩm (bắt buộc)..."}
                   value={confirmModal.reason} onChange={(e) => setConfirmModal({ ...confirmModal, reason: e.target.value })}
                   style={{ width: "100%", fontSize: "13px", marginTop: "12px", resize: "none" }} />
               )}
@@ -880,9 +1038,9 @@ const ProductApproval = () => {
             <div className="confirm-modal-footer">
               <button className="btn-modal-cancel" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>Hủy bỏ</button>
               <button
-                className={`btn-modal-confirm ${confirmModal.actionType === "reject" ? "delete" : confirmModal.actionType === "request_changes" ? "reset" : "toggle"}`}
+                className={`btn-modal-confirm ${(confirmModal.actionType === "reject" || confirmModal.actionType === "hide") ? "delete" : confirmModal.actionType === "request_changes" ? "reset" : "toggle"}`}
                 onClick={executeAction}
-                disabled={(confirmModal.actionType === "reject" && !confirmModal.reason.trim()) || (confirmModal.actionType === "request_changes" && !confirmModal.feedback.trim())}
+                disabled={((confirmModal.actionType === "reject" || confirmModal.actionType === "hide") && !confirmModal.reason.trim()) || (confirmModal.actionType === "request_changes" && !confirmModal.feedback.trim())}
               >
                 Xác nhận
               </button>

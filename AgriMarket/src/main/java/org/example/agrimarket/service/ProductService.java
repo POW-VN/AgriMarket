@@ -13,5 +13,6 @@ public interface ProductService {
     ProductResponse createProduct(ProductRequest request, String farmerEmail) throws Exception;
     ProductResponse updateProduct(Long id, ProductRequest request, String farmerEmail) throws Exception;
     List<ProductResponse> getAllApprovedProducts();
+    List<ProductResponse> getAllProducts();
     ProductResponse getProductById(Long id);
 }

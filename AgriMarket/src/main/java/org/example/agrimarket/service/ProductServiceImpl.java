@@ -101,6 +101,8 @@ public class ProductServiceImpl implements ProductService {
                 .farmLocation(farmLocation)
                 .farmDescription(farmDescription)
                 .farmerAvatarUrl(farmerAvatarUrl)
+                .rejectionReason(product.getRejectionReason())
+                .adminNotes(product.getAdminNotes())
                 .build();
     }
 
@@ -408,5 +410,17 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + id));
         return convertToResponse(product);
+    }
+
+    @Override
+    public List<ProductResponse> getAllProducts() {
+        List<Product> products = productRepository.findAll();
+        products.sort((p1, p2) -> {
+            if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
+            if (p1.getCreatedAt() == null) return 1;
+            if (p2.getCreatedAt() == null) return -1;
+            return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+        });
+        return products.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 }

@@ -23,6 +23,7 @@ public class Notification {
     @Column(name = "receiver_id")
     private Long receiverId;
 
+    @Column(columnDefinition = "nvarchar(255)")
     private String title;
 
     @Column(columnDefinition = "NVARCHAR(MAX)")

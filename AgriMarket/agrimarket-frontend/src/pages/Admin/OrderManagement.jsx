@@ -6,6 +6,15 @@ import "./AdminStyles.css";
 
 const OrderManagement = () => {
   const navigate = useNavigate();
+  const getFullImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
+    return `${API_BASE_URL}/${cleanUrl}`;
+  };
   const [currentUser, setCurrentUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +54,7 @@ const OrderManagement = () => {
 
   // Notification Toast state
   const [toastMessage, setToastMessage] = useState("");
+  const [providerAvatarError, setProviderAvatarError] = useState(false);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -420,6 +430,7 @@ const OrderManagement = () => {
     else if (statusVal === "shipping") setActiveTab("Đang giao");
     else if (statusVal === "delivered") setActiveTab("Đã giao");
     else if (statusVal === "cancelled") setActiveTab("Đã hủy");
+    else if (statusVal === "rejected") setActiveTab("Đã từ chối");
     else if (statusVal === "refunded") setActiveTab("Hoàn tiền");
     
     setCurrentPage(1);
@@ -436,19 +447,21 @@ const OrderManagement = () => {
     else if (tabName === "Đang giao") setFilterStatus("shipping");
     else if (tabName === "Đã giao") setFilterStatus("delivered");
     else if (tabName === "Đã hủy") setFilterStatus("cancelled");
+    else if (tabName === "Đã từ chối") setFilterStatus("rejected");
     else if (tabName === "Hoàn tiền") setFilterStatus("refunded");
   };
 
   // Dynamic metrics calculation from full orders dataset
   const getStats = () => {
-    const s = { total: orders.length, pending: 0, confirmed: 0, shipping: 0, delivered: 0, cancelled: 0, refunded: 0 };
+    const s = { total: orders.length, pending: 0, confirmed: 0, shipping: 0, delivered: 0, cancelled: 0, rejected: 0, refunded: 0 };
     orders.forEach(o => {
       const status = o.status?.toLowerCase();
       if (status === "pending") s.pending++;
       else if (status === "confirmed" || status === "preparing") s.confirmed++;
       else if (status === "shipping") s.shipping++;
       else if (status === "delivered") s.delivered++;
-      else if (status === "cancelled" || status === "rejected") s.cancelled++;
+      else if (status === "cancelled") s.cancelled++;
+      else if (status === "rejected") s.rejected++;
       else if (status === "refunded" || status === "refund_requested") s.refunded++;
     });
     return s;
@@ -478,7 +491,8 @@ const OrderManagement = () => {
         if (filterStatus === "confirmed" && current !== "confirmed" && current !== "preparing") return false;
         if (filterStatus === "shipping" && current !== "shipping") return false;
         if (filterStatus === "delivered" && current !== "delivered") return false;
-        if (filterStatus === "cancelled" && current !== "cancelled" && current !== "rejected") return false;
+        if (filterStatus === "cancelled" && current !== "cancelled") return false;
+        if (filterStatus === "rejected" && current !== "rejected") return false;
         if (filterStatus === "refunded" && current !== "refunded" && current !== "refund_requested") return false;
       }
 
@@ -532,6 +546,7 @@ const OrderManagement = () => {
   const handleSelectOrder = (order) => {
     setSelectedOrder(order);
     setRemarksInput("");
+    setProviderAvatarError(false);
     fetchOrderAuditLogs(order.id);
   };
 
@@ -588,6 +603,7 @@ const OrderManagement = () => {
       
       // Update selected order in state and reload list
       setSelectedOrder(res.data);
+      setProviderAvatarError(false);
       fetchOrders();
       fetchOrderAuditLogs(res.data.id);
     } catch (err) {
@@ -609,6 +625,7 @@ const OrderManagement = () => {
       const updatedOrders = orders.map(o => o.id === selectedOrder.id ? newOrder : o);
       setOrders(updatedOrders);
       setSelectedOrder(newOrder);
+      setProviderAvatarError(false);
       showToast(`Đã cập nhật trạng thái đơn hàng (Mô phỏng).`);
 
       const mockLog = {
@@ -792,14 +809,24 @@ const OrderManagement = () => {
       <aside className="admin-sidebar">
         <div className="admin-logo-section">
           <Link to="/" className="admin-logo-link">
-            <h1 style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "32px", height: "32px", borderRadius: "8px", backgroundColor: "#064e3b", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800", fontSize: "18px" }}>
-                A
-              </div>
-              <div>
-                <span style={{ display: "block", fontSize: "20px", fontWeight: "800", color: "#064e3b", lineHeight: "1.1" }}>AgriAdmin</span>
-                <span style={{ display: "block", fontSize: "11px", color: "var(--admin-text-muted)", fontWeight: "500", textTransform: "none", letterSpacing: "normal", marginTop: "2px" }}>Hệ thống quản trị</span>
-              </div>
+            <h1>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="7" cy="18" r="2"></circle>
+                <circle cx="18" cy="18" r="2"></circle>
+                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+                <path d="M16 9h3l2 3v4"></path>
+              </svg>
+              AgriAdmin
             </h1>
           </Link>
         </div>
@@ -815,11 +842,17 @@ const OrderManagement = () => {
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </span>
-            Tài khoản người dùng
+            Quản lý tài khoản
+          </button>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/shipment-requests")}>
+            <span className="admin-nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
+            </span>
+            Yêu cầu vận chuyển
           </button>
           <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
             <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
             </span>
             Nông dân
           </button>
@@ -886,10 +919,18 @@ const OrderManagement = () => {
         </nav>
 
         <div className="admin-sidebar-footer">
-          <img src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} alt="Avatar admin" className="admin-footer-avatar" />
+          <img
+            src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
+            alt="Avatar admin"
+            className="admin-footer-avatar"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
+            }}
+          />
           <div className="admin-footer-info">
-            <p className="admin-footer-name">{currentUser?.fullName || "Trần Minh Đức"}</p>
-            <p className="admin-footer-email">{currentUser?.email || "farmer@gmail.com"}</p>
+            <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
+            <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
           </div>
         </div>
       </aside>
@@ -919,9 +960,13 @@ const OrderManagement = () => {
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#374151" }}><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
             </button>
             <img 
-              src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} 
+              src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} 
               alt="Ảnh quản trị viên" 
               style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
+              }}
             />
           </div>
         </header>
@@ -1015,9 +1060,13 @@ const OrderManagement = () => {
                     </h4>
                     <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
                       <img 
-                        src={selectedOrder.customerAvatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
+                        src={getFullImageUrl(selectedOrder.customerAvatarUrl) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
                         alt="Khách hàng" 
                         style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+                        }}
                       />
                       <div>
                         <p style={{ margin: 0, fontWeight: "700", fontSize: "15px", color: "var(--admin-text-main)" }}>{selectedOrder.recipient}</p>
@@ -1041,9 +1090,18 @@ const OrderManagement = () => {
                       Thông tin nhà vườn
                     </h4>
                     <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <div style={{ width: "48px", height: "48px", borderRadius: "12px", backgroundColor: "var(--admin-primary)", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800", fontSize: "18px" }}>
-                        {selectedOrder.provider?.avatarText || "N"}
-                      </div>
+                      {selectedOrder.provider?.avatarUrl && !providerAvatarError ? (
+                        <img 
+                          src={getFullImageUrl(selectedOrder.provider.avatarUrl)} 
+                          alt="Avatar nhà vườn" 
+                          style={{ width: "48px", height: "48px", borderRadius: "12px", objectFit: "cover" }}
+                          onError={() => setProviderAvatarError(true)}
+                        />
+                      ) : (
+                        <div style={{ width: "48px", height: "48px", borderRadius: "12px", backgroundColor: selectedOrder.provider?.avatarBg || "var(--admin-primary)", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "800", fontSize: "18px" }}>
+                          {selectedOrder.provider?.avatarText || "N"}
+                        </div>
+                      )}
                       <div>
                         <p style={{ margin: 0, fontWeight: "700", fontSize: "15px", color: "var(--admin-text-main)" }}>
                           {selectedOrder.provider?.name || (selectedOrder.items && selectedOrder.items.length > 0 ? selectedOrder.items[0].farmer : "Nhà vườn liên kết")}
@@ -1069,9 +1127,13 @@ const OrderManagement = () => {
                       {selectedOrder.items && selectedOrder.items.map((item, idx) => (
                         <div key={idx} style={{ display: "flex", gap: "16px", alignItems: "center", borderBottom: idx < selectedOrder.items.length - 1 ? "1px solid #f3f4f6" : "none", paddingBottom: idx < selectedOrder.items.length - 1 ? "16px" : 0 }}>
                           <img 
-                            src={item.img || "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=100"} 
+                            src={getFullImageUrl(item.img) || "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=100"} 
                             alt={item.name} 
                             style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=100";
+                            }}
                           />
                           <div style={{ flexGrow: 1 }}>
                             <p style={{ margin: 0, fontWeight: "600", fontSize: "15px", color: "var(--admin-text-main)" }}>{item.name}</p>
@@ -1357,7 +1419,23 @@ const OrderManagement = () => {
                   </div>
                 </div>
 
-                {/* Card 7: Refunded */}
+                {/* Card 7: Rejected */}
+                <div className={`order-stat-card cancelled ${filterStatus === "rejected" ? "active" : ""}`} onClick={() => selectStatusFilter("rejected")} style={{ cursor: "pointer" }}>
+                  <div className="stat-card-header">
+                    <span className="stat-card-label">Đã từ chối</span>
+                    <span className="stat-icon-circle red">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    </span>
+                  </div>
+                  <span className="stat-card-value">
+                    {stats.rejected}
+                  </span>
+                  <div className="stat-card-footer red" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <span>Đơn hàng từ chối</span>
+                  </div>
+                </div>
+
+                {/* Card 8: Refunded */}
                 <div className={`order-stat-card ${filterStatus === "refunded" ? "active" : ""}`} onClick={() => selectStatusFilter("refunded")} style={{ cursor: "pointer" }}>
                   <div className="stat-card-header">
                     <span className="stat-card-label">Hoàn tiền</span>
@@ -1379,7 +1457,7 @@ const OrderManagement = () => {
                 {/* Tabs and More Filters Action Row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid var(--admin-border)", flexWrap: "wrap", gap: "16px" }}>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {["Tất cả đơn hàng", "Chờ xử lý", "Đã xác nhận", "Đang giao", "Đã giao", "Đã hủy", "Hoàn tiền"].map((tab) => {
+                    {["Tất cả đơn hàng", "Chờ xử lý", "Đã xác nhận", "Đang giao", "Đã giao", "Đã hủy", "Đã từ chối", "Hoàn tiền"].map((tab) => {
                       const isActive = activeTab === tab;
                       return (
                         <button
@@ -1469,14 +1547,14 @@ const OrderManagement = () => {
 
                     {/* Amount range min */}
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: "12px", fontWeight: "700" }}>Tổng tiền tối thiểu (USD)</label>
-                      <input type="number" className="form-control" placeholder="Min USD" value={filterAmountMin} onChange={e => { setFilterAmountMin(e.target.value); setCurrentPage(1); }} />
+                      <label style={{ fontSize: "12px", fontWeight: "700" }}>Tổng tiền tối thiểu (VND)</label>
+                      <input type="number" className="form-control" placeholder="Min VND" value={filterAmountMin} onChange={e => { setFilterAmountMin(e.target.value); setCurrentPage(1); }} />
                     </div>
 
                     {/* Amount range max */}
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: "12px", fontWeight: "700" }}>Tổng tiền tối đa (USD)</label>
-                      <input type="number" className="form-control" placeholder="Max USD" value={filterAmountMax} onChange={e => { setFilterAmountMax(e.target.value); setCurrentPage(1); }} />
+                      <label style={{ fontSize: "12px", fontWeight: "700" }}>Tổng tiền tối đa (VND)</label>
+                      <input type="number" className="form-control" placeholder="Max VND" value={filterAmountMax} onChange={e => { setFilterAmountMax(e.target.value); setCurrentPage(1); }} />
                     </div>
 
                     {/* Reset Filters button */}
@@ -1543,10 +1621,14 @@ const OrderManagement = () => {
                             <td>
                               <div className="user-cell-info">
                                 <img 
-                                  src={order.customerAvatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
+                                  src={getFullImageUrl(order.customerAvatarUrl) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
                                   alt={order.recipient} 
                                   className="user-cell-avatar" 
                                   style={{ borderRadius: "50%", width: "40px", height: "40px" }}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+                                  }}
                                 />
                                 <div>
                                   <p className="user-cell-name" style={{ fontSize: "14.5px" }}>{order.recipient}</p>

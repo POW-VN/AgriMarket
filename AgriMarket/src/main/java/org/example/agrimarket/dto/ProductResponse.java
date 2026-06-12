@@ -38,4 +38,6 @@ public class ProductResponse {
     private String farmLocation;
     private String farmDescription;
     private String farmerAvatarUrl;
+    private String rejectionReason;
+    private String adminNotes;
 }

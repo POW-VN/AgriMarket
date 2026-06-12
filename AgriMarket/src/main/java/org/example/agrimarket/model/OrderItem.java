@@ -26,13 +26,13 @@ public class OrderItem {
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
-    @Column(name = "product_name", nullable = false)
+    @Column(name = "product_name", nullable = false, columnDefinition = "nvarchar(255)")
     private String productName;
 
     @Column(name = "product_price", nullable = false)
     private Double productPrice;
 
-    @Column(name = "product_unit")
+    @Column(name = "product_unit", columnDefinition = "nvarchar(255)")
     private String productUnit;
 
     @Column(name = "image_url", length = 1000)

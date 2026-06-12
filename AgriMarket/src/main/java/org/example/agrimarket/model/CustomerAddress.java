@@ -18,7 +18,7 @@ public class CustomerAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "receiver_name")
+    @Column(name = "receiver_name", columnDefinition = "nvarchar(255)")
     private String receiverName;
     
     private String phone;

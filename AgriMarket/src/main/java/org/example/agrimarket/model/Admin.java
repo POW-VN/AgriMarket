@@ -22,7 +22,7 @@ public class Admin {
     @Transient
     private String role = "admin";
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", columnDefinition = "nvarchar(255)")
     private String fullName;
     
     private String email;

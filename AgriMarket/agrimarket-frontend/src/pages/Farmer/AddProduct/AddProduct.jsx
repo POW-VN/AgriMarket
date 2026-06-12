@@ -22,6 +22,7 @@ export const AddProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const descriptionRef = useRef(null);
 
   // Form state
   const [productName, setProductName] = useState("");
@@ -36,6 +37,9 @@ export const AddProduct = () => {
   const [customUnitVal, setCustomUnitVal] = useState("");
   const [stockQty, setStockQty] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("");
+  const [productStatus, setProductStatus] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Multi-image state
   const [productImages, setProductImages] = useState([]);  // [{ id, url }]
@@ -55,6 +59,25 @@ export const AddProduct = () => {
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiGeneratedText, setAiGeneratedText] = useState("");
+
+  const cleanMarkdown = (text) => {
+    if (!text) return "";
+    return text
+      .replace(/###\s+/g, "") // Remove H3 headers
+      .replace(/##\s+/g, "")  // Remove H2 headers
+      .replace(/#\s+/g, "")   // Remove H1 headers
+      .replace(/\*\*/g, "")   // Remove bold markdown
+      .replace(/\*/g, "")     // Remove italic markdown
+      .replace(/`/g, "")      // Remove backticks
+      .trim();
+  };
+
+  useEffect(() => {
+    if (descriptionRef.current) {
+      descriptionRef.current.style.height = "auto";
+      descriptionRef.current.style.height = `${descriptionRef.current.scrollHeight}px`;
+    }
+  }, [description]);
 
   // AI price suggestion state
   const [isAiSuggestingPrice, setIsAiSuggestingPrice] = useState(false);
@@ -114,6 +137,9 @@ export const AddProduct = () => {
             } else {
               setTraceabilityFile(null);
             }
+            setProductStatus(prod.status || "");
+            setAdminNotes(prod.adminNotes || "");
+            setRejectionReason(prod.rejectionReason || "");
           }
         } catch (err) {
           console.error("Lỗi khi tải chi tiết sản phẩm để chỉnh sửa:", err);
@@ -146,7 +172,8 @@ export const AddProduct = () => {
       });
 
       if (response.data && response.data.description) {
-        setAiGeneratedText(response.data.description);
+        const cleaned = cleanMarkdown(response.data.description);
+        setAiGeneratedText(cleaned);
         setShowAiModal(true);
       } else {
         showToast("Không thể sinh mô tả tự động lúc này. Vui lòng thử lại.", "error");
@@ -371,6 +398,37 @@ export const AddProduct = () => {
           </div>
         </header>
 
+        {/* BANNER FOR CHANGES REQUESTED OR REJECTED */}
+        {isEdit && productStatus === "request_changes" && adminNotes && (
+          <div className="ap-changes-banner">
+            <div className="ap-changes-banner-icon">⚠️</div>
+            <div className="ap-changes-banner-content">
+              <strong>Yêu cầu sửa đổi từ Quản trị viên:</strong>
+              <p>{adminNotes}</p>
+            </div>
+          </div>
+        )}
+
+        {isEdit && productStatus === "rejected" && rejectionReason && (
+          <div className="ap-changes-banner rejected">
+            <div className="ap-changes-banner-icon">❌</div>
+            <div className="ap-changes-banner-content">
+              <strong>Sản phẩm bị từ chối phê duyệt:</strong>
+              <p>{rejectionReason}</p>
+            </div>
+          </div>
+        )}
+
+        {isEdit && productStatus === "hidden" && rejectionReason && (
+          <div className="ap-changes-banner rejected">
+            <div className="ap-changes-banner-icon">🚫</div>
+            <div className="ap-changes-banner-content">
+              <strong>Sản phẩm bị ẩn khỏi thị trường công khai:</strong>
+              <p>{rejectionReason}</p>
+            </div>
+          </div>
+        )}
+
         {/* FORM + PREVIEW LAYOUT */}
         <div className="ap-content-grid">
           {/* LEFT: FORM */}
@@ -504,11 +562,13 @@ export const AddProduct = () => {
                   </button>
                 </div>
                 <textarea
+                  ref={descriptionRef}
                   className="ap-textarea"
                   placeholder="Mô tả hương vị, hình thức và phương pháp canh tác..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={6}
+                  style={{ overflow: "hidden", resize: "none" }}
                 />
               </div>
             </section>

@@ -916,7 +916,7 @@ export default function ProductDetail() {
           </div>
 
           <div className="product-desc-box">
-            <p>{product.description || "Được canh tác trong lòng đất giàu dinh dưỡng hoàn toàn tự nhiên, không sử dụng thuốc trừ sâu hóa học. Nông sản hữu cơ mang hương vị ngọt thanh đặc trưng, thích hợp cho bữa ăn lành mạnh hàng ngày."}</p>
+            <p style={{ whiteSpace: "pre-line" }}>{product.description || "Được canh tác trong lòng đất giàu dinh dưỡng hoàn toàn tự nhiên, không sử dụng thuốc trừ sâu hóa học. Nông sản hữu cơ mang hương vị ngọt thanh đặc trưng, thích hợp cho bữa ăn lành mạnh hàng ngày."}</p>
           </div>
 
           {/* Purchase Option Box */}

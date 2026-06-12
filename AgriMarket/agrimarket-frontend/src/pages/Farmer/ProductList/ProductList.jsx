@@ -10,6 +10,7 @@ const PRODUCT_STATUS_CONFIG = {
   out_of_stock: { label: "Hết hàng",   cls: "st-out" },
   hidden:       { label: "Đã ẩn",      cls: "st-hidden" },
   rejected:     { label: "Bị từ chối", cls: "st-rejected" },
+  request_changes: { label: "Cần sửa đổi", cls: "st-changes" },
 };
 
 export const ProductList = () => {
@@ -110,7 +111,7 @@ export const ProductList = () => {
 
       {/* Filter Status Pills */}
       <div className="fd-tabs-filter">
-        {["all", "approved", "pending", "draft", "out_of_stock", "hidden"].map(statusKey => {
+        {["all", "approved", "pending", "request_changes", "rejected", "draft", "out_of_stock", "hidden"].map(statusKey => {
           const count = statusKey === "all" ? products.length : products.filter(p => p.status === statusKey).length;
           const label = statusKey === "all" ? "Tất cả" : PRODUCT_STATUS_CONFIG[statusKey]?.label;
           return (
@@ -157,6 +158,33 @@ export const ProductList = () => {
                     <td>
                       <strong>{p.name}</strong>
                       <span className="p-id">ID: {p.id}</span>
+                      {p.status === "request_changes" && p.adminNotes && (
+                        <div className="admin-feedback-note" style={{ color: "#c2410c", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fff7ed", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ffedd5" }}>
+                          <span style={{ fontSize: "14px", lineHeight: "1" }}>⚠️</span>
+                          <div>
+                            <strong style={{ display: "block", fontSize: "11px", color: "#9a3412", marginBottom: "2px" }}>Yêu cầu sửa đổi:</strong>
+                            <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.adminNotes}</span>
+                          </div>
+                        </div>
+                      )}
+                      {p.status === "rejected" && p.rejectionReason && (
+                        <div className="admin-feedback-note" style={{ color: "#991b1b", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fef2f2", padding: "6px 10px", borderRadius: "6px", border: "1px solid #fee2e2" }}>
+                          <span style={{ fontSize: "14px", lineHeight: "1" }}>❌</span>
+                          <div>
+                            <strong style={{ display: "block", fontSize: "11px", color: "#991b1b", marginBottom: "2px" }}>Lý do từ chối:</strong>
+                            <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.rejectionReason}</span>
+                          </div>
+                        </div>
+                      )}
+                      {p.status === "hidden" && p.rejectionReason && (
+                        <div className="admin-feedback-note" style={{ color: "#c2410c", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fff7ed", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ffedd5" }}>
+                          <span style={{ fontSize: "14px", lineHeight: "1" }}>🚫</span>
+                          <div>
+                            <strong style={{ display: "block", fontSize: "11px", color: "#9a3412", marginBottom: "2px" }}>Lý do ẩn:</strong>
+                            <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.rejectionReason}</span>
+                          </div>
+                        </div>
+                      )}
                     </td>
                     <td>{p.category}</td>
                     <td>{p.price.toLocaleString("vi-VN")} đ / {p.unit}</td>

@@ -149,6 +149,7 @@
 .badge-status.st-out      { background: #fee2e2; color: #991b1b; }
 .badge-status.st-hidden   { background: #e5e7eb; color: #4b5563; }
 .badge-status.st-rejected { background: #fee2e2; color: #991b1b; }
+.badge-status.st-changes  { background: #ffedd5; color: #c2410c; }
 
 .badge-status-dot {
   width: 8px;

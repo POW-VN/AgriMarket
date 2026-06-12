@@ -28,7 +28,7 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "nvarchar(255)")
     private String name;
 
     @Column(columnDefinition = "nvarchar(max)")
@@ -46,6 +46,7 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity = 0;
 
+    @Column(columnDefinition = "nvarchar(255)")
     private String unit;
 
     private String status; // draft, pending, approved, rejected, hidden, sold_out
@@ -67,6 +68,12 @@ public class Product {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "rejection_reason", columnDefinition = "nvarchar(max)")
+    private String rejectionReason;
+
+    @Column(name = "admin_notes", columnDefinition = "nvarchar(max)")
+    private String adminNotes;
 
     @PrePersist
     protected void onCreate() {
