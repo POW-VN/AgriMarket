@@ -85,7 +85,7 @@
   background-color: #f2f5f1;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
   border: 1px solid #e8ede7;
 }
 
@@ -206,9 +206,11 @@
   border: 1px solid #fee2e2;
   border-radius: 12px;
 }
+
 .pdf-thumbnail-placeholder .pdf-icon {
   font-size: 22px;
 }
+
 .pdf-thumbnail-placeholder .pdf-text {
   font-size: 9px;
   font-weight: 700;
@@ -292,7 +294,8 @@
 }
 
 .rating-star-icon.filled {
-  color: #f59e0b; /* Warm gold star */
+  color: #f59e0b;
+  /* Warm gold star */
 }
 
 .rating-value-reviews {
@@ -672,7 +675,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   cursor: pointer;
   z-index: 5;
   color: #9ca3af;
@@ -763,7 +766,7 @@
   border-radius: 30px;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -776,6 +779,7 @@
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -803,7 +807,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive Styles */
@@ -812,11 +818,11 @@
     grid-template-columns: 1fr;
     gap: 32px;
   }
-  
+
   .related-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .product-title {
     font-size: 32px;
   }
@@ -827,22 +833,22 @@
     margin-top: 16px;
     padding: 0 16px;
   }
-  
+
   .product-detail-container {
     padding: 0 16px;
     margin-bottom: 32px;
   }
-  
+
   .related-products-section {
     padding: 0 16px;
     margin-bottom: 40px;
   }
-  
+
   .related-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .thumbnail-gallery {
     gap: 8px;
   }
@@ -930,7 +936,7 @@
   border-radius: 16px;
   border: 1px solid #e6ecdf;
   padding: 24px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.01);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1002,6 +1008,7 @@
   .product-extended-details-section {
     padding: 0 16px;
   }
+
   .extended-details-grid {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -1198,7 +1205,7 @@
   border-radius: 16px;
   border: 1px solid #e6ecdf;
   padding: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.01);
   transition: transform 0.2s ease;
 }
 
@@ -1325,7 +1332,8 @@
   color: #f59e0b;
 }
 
-.form-input, .form-textarea {
+.form-input,
+.form-textarea {
   width: 100%;
   border-radius: 8px;
   border: 1px solid #cdd7c8;
@@ -1338,7 +1346,8 @@
   font-family: inherit;
 }
 
-.form-input:focus, .form-textarea:focus {
+.form-input:focus,
+.form-textarea:focus {
   border-color: #1b5e20;
   box-shadow: 0 0 0 3px rgba(27, 94, 32, 0.1);
 }
@@ -1385,6 +1394,7 @@
     grid-template-columns: 1fr;
     gap: 32px;
   }
+
   .submit-review-card {
     position: static;
   }
@@ -1394,6 +1404,7 @@
   .product-reviews-section {
     padding: 0 16px;
   }
+
   .reviews-summary-card {
     flex-direction: column;
     align-items: flex-start;
@@ -1599,7 +1610,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(10, 18, 14, 0.9); /* Dark green-tinted charcoal overlay */
+  background-color: rgba(10, 18, 14, 0.9);
+  /* Dark green-tinted charcoal overlay */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 9999;
@@ -1610,8 +1622,13 @@
 }
 
 @keyframes lightboxFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Close Button styling */
@@ -1700,6 +1717,7 @@
     transform: scale(0.92);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -1822,13 +1840,39 @@
     width: 48px;
     height: 48px;
   }
+
   .lightbox-arrow-left {
     left: 12px;
   }
+
   .lightbox-arrow-right {
     right: 12px;
   }
+
   .lightbox-image-container {
     max-width: 90vw;
   }
+}
+
+
+.btn-view-all-reviews {
+  margin-top: 10px;
+  border: none;
+  background: transparent;
+  color: #064e3b;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+  transition: 0.2s ease;
+}
+
+.btn-view-all-reviews:hover {
+  color: #047857;
+  text-decoration: underline;
+}
+
+.rating-value-reviews:hover {
+  color: #047857;
+  text-decoration: underline;
 }

@@ -190,18 +190,18 @@ const ORDERS_DB = {
 };
 
 const TIMELINE_STEPS = [
-  { key: "placed",    label: "Chờ xác nhận",  icon: "✓" },
+  { key: "placed", label: "Chờ xác nhận", icon: "✓" },
   { key: "preparing", label: "Đang chuẩn bị", icon: "📦" },
-  { key: "confirmed", label: "Chờ lấy hàng",  icon: "✓" },
-  { key: "shipping",  label: "Chờ giao hàng", icon: "🚚" },
-  { key: "delivered", label: "Đã giao",       icon: "🏠" },
+  { key: "confirmed", label: "Chờ lấy hàng", icon: "✓" },
+  { key: "shipping", label: "Chờ giao hàng", icon: "🚚" },
+  { key: "delivered", label: "Đã giao", icon: "🏠" },
 ];
 
 const getActiveStepIndex = (status) => {
-  if (status === "pending")   return 0;
+  if (status === "pending") return 0;
   if (status === "preparing") return 1;
   if (status === "confirmed") return 2;
-  if (status === "shipping")  return 3;
+  if (status === "shipping") return 3;
   if (status === "delivered") return 4;
   return -1;
 };
@@ -302,6 +302,7 @@ export const CustomerOrderDetail = () => {
   }
 
   const formatVND = (value) => value.toLocaleString("vi-VN") + " ₫";
+  const orderItems = Array.isArray(order.items) ? order.items : [];
   const activeIndex = getActiveStepIndex(order.status);
 
   // Fallback farmer details default profile photo
@@ -369,7 +370,7 @@ export const CustomerOrderDetail = () => {
     }
     const baseDate = order.date || "12 thg 10, 2024";
     const baseTime = order.time || "10:24 SA";
-    
+
     // Simulating logical dates/times for realistic display
     if (stepKey === "placed") return `${baseDate}, ${baseTime}`;
     if (stepKey === "confirmed") return `${baseDate}, 11:20 SA`;
@@ -466,10 +467,10 @@ export const CustomerOrderDetail = () => {
     }
   };
 
-    return (
+  return (
     <ProfileLayout profile={profile}>
       <div className="cod-content tracker-theme">
-        
+
         {/* ── PAGE HEADER ── */}
         <div className="cod-page-header">
           <div className="cod-header-left">
@@ -509,7 +510,7 @@ export const CustomerOrderDetail = () => {
 
           {/* LEFT COLUMN: Status Timeline, Product Manifest, and Proof of Delivery */}
           <div className="cod-main-col">
-            
+
             {/* 1. Status Timeline Tracker */}
             {order.status !== "cancelled" && order.status !== "rejected" ? (
               <div className="cod-card tracking-timeline-card">
@@ -518,9 +519,9 @@ export const CustomerOrderDetail = () => {
                   <div className="cod-timeline">
                     {TIMELINE_STEPS.map((step, idx) => {
                       const isCompleted = idx < activeIndex;
-                      const isCurrent   = idx === activeIndex;
-                      const isPending   = idx > activeIndex;
-                      const stepClass   = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
+                      const isCurrent = idx === activeIndex;
+                      const isPending = idx > activeIndex;
+                      const stepClass = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
                       return (
                         <React.Fragment key={step.key}>
                           <div className={stepClass}>
@@ -576,7 +577,7 @@ export const CustomerOrderDetail = () => {
                 <h2 className="cod-card-title">Hàng hóa đóng gói (Manifest)</h2>
                 {order.status === "shipping" && <span className="manifest-priority-badge">Khẩn Cấp</span>}
               </div>
-              
+
               <div className="tracker-manifest-list">
                 {order.items && order.items.map((item, index) => (
                   <div className="tracker-manifest-row" key={index}>
@@ -586,11 +587,29 @@ export const CustomerOrderDetail = () => {
                       <span className="tracker-item-farmer">Nhà vườn: {item.farmer}</span>
                       <span className="tracker-item-qty">Số lượng: {item.qty} đ.vị</span>
                     </div>
-                    <div className="tracker-manifest-tags">
-                      {index % 2 === 0 ? (
-                        <span className="m-tag fragile">Dễ vỡ</span>
-                      ) : (
-                        <span className="m-tag cold">Lạnh</span>
+                    <div className="cod-item-total">
+                      <span>{formatVND(item.price * item.qty)}</span>
+
+                      {order.status === "delivered" && (
+                        <div className="item-review-action">
+                          <button
+                            className="btn-review-product"
+                            onClick={() =>
+                              navigate(`/profile/orders/${order.id}/review/${index}`, {
+                                state: {
+                                  order: {
+                                    ...order,
+                                    items: orderItems,
+                                  },
+                                  item,
+                                  itemIndex: index,
+                                },
+                              })
+                            }
+                          >
+                            Đánh giá
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -642,16 +661,16 @@ export const CustomerOrderDetail = () => {
 
           {/* RIGHT COLUMN: Assigned Driver, Pickup Origin, Destination details */}
           <div className="cod-side-col">
-            
+
             {/* 1. Assigned Driver Card (Marcus Johnson info) */}
             {(order.status === "shipping" || order.status === "delivered" || order.status === "confirmed" || order.status === "preparing") && (
               <div className="cod-card assigned-driver-card">
                 <h3 className="sidebar-sec-title">Tài xế vận chuyển</h3>
                 <div className="driver-profile-row">
                   <div className="driver-avatar-box">
-                    <img 
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" 
-                      alt="Marcus Johnson" 
+                    <img
+                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
+                      alt="Marcus Johnson"
                       className="driver-avatar-img"
                     />
                   </div>

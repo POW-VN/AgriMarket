@@ -434,6 +434,10 @@ export const MyOrders = () => {
                     <>
                       <button className="btn-outline">Liên hệ nhà vườn</button>
                       <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
+                      <button className="btn-review-main"
+                        onClick={() => navigate(`/profile/orders/${order.id}`, { state: { openReviewSection: true } })}>
+                        Đánh giá sản phẩm
+                      </button>
                       <button className="btn-solid btn-buy-again">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="15" height="15" style={{ marginRight: "6px" }}>
                           <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
