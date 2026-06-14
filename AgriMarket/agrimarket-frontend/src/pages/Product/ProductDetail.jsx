@@ -5,8 +5,10 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import { getProductById, getAllApprovedProducts } from "../../services/productService";
+import reviewService from "../../services/reviewService";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
 import "./ProductDetail.css";
+import Header from "../../components/common/Header/Header";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -205,28 +207,14 @@ export default function ProductDetail() {
         }
         setQuantity(1);
 
-        // Khởi tạo danh sách nhận xét mẫu
-        const defaultReviews = [
-          {
-            id: 1,
-            author: "Phan Văn Minh",
-            rating: 5,
-            date: "2026-06-04",
-            comment: `Nông sản tươi ngon tuyệt vời! Đóng gói rất kỹ càng bằng bao bì bảo vệ môi trường, sản phẩm nhận được cân nặng chính xác như mô tả. Vận chuyển nhanh chóng, nhân viên rất lịch sự.`,
-            images: [
-              "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300"
-            ]
-          },
-          {
-            id: 2,
-            author: "Lê Thị Hồng",
-            rating: 4,
-            date: "2026-06-02",
-            comment: `Hương vị ngọt thanh tự nhiên rất thích hợp để chế biến bữa ăn dinh dưỡng cho gia đình hoặc làm nước ép. Phí vận chuyển hợp lý.`,
-            video: "https://www.w3schools.com/html/mov_bbb.mp4"
-          }
-        ];
-        setReviewsList(defaultReviews);
+        // Fetch reviews from backend
+        try {
+          const dbReviews = await reviewService.getReviewsByProductId(id);
+          setReviewsList(dbReviews || []);
+        } catch (err) {
+          console.error("Lỗi khi tải đánh giá từ backend:", err);
+          setReviewsList([]);
+        }
 
         // Fetch related products
         // Let's create related products matching the mockup if it's the carrot product
@@ -615,19 +603,7 @@ export default function ProductDetail() {
   if (loading) {
     return (
       <div className="product-detail-page">
-        <header className="home-header">
-          <div className="header-container">
-            <div className="header-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="logo-tractor">
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              <span className="logo-text">AgriMarket</span>
-            </div>
-          </div>
-        </header>
+        <Header />
         <div className="product-detail-loading">
           <div className="detail-spinner"></div>
           <p>Đang tải chi tiết nông sản...</p>
@@ -639,19 +615,7 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="product-detail-page">
-        <header className="home-header">
-          <div className="header-container">
-            <div className="header-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="logo-tractor">
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              <span className="logo-text">AgriMarket</span>
-            </div>
-          </div>
-        </header>
+        <Header />
         <div className="product-detail-loading">
           <h2>Không tìm thấy sản phẩm</h2>
           <p>Sản phẩm này không tồn tại hoặc đã bị ẩn.</p>
@@ -666,110 +630,7 @@ export default function ProductDetail() {
 
   return (
     <div className="product-detail-page">
-      {/* Header Sync from Home */}
-      <header className="home-header">
-        <div className="header-container">
-          <div className="header-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="logo-tractor"
-            >
-              <circle cx="7" cy="18" r="2"></circle>
-              <circle cx="18" cy="18" r="2"></circle>
-              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-              <path d="M16 9h3l2 3v4"></path>
-            </svg>
-            <span className="logo-text">AgriMarket</span>
-          </div>
-
-          <nav className="header-nav">
-            <Link to="/" className="nav-link">Trang chủ</Link>
-            <Link to="/shop" className="nav-link active">Cửa hàng</Link>
-            <Link to="/farms" className="nav-link">Nông trại</Link>
-            {user && user.role === "admin" ? (
-              <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
-            ) : (
-              <Link to="/about" className="nav-link">Giới thiệu</Link>
-            )}
-          </nav>
-
-          <div className="header-actions">
-            <button className="icon-btn" aria-label="Tìm kiếm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
-
-            {(!user || user.role !== "admin") && (
-              <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                {cartItemsCount > 0 && (
-                  <span className="cart-badge">{cartItemsCount}</span>
-                )}
-              </button>
-            )}
-
-            {user && <NotificationBell user={user} />}
-
-            {user ? (
-              <div className="auth-profile-container">
-                <div className="profile-indicator" onClick={() => navigate("/profile")} title="Xem hồ sơ">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.fullName} className="avatar-img" />
-                  ) : (
-                    <div className="avatar-fallback">
-                      {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                    </div>
-                  )}
-                  <span className="profile-name">{user.fullName}</span>
-                </div>
-                <button className="btn-auth btn-logout" onClick={handleLogout}>
-                  Đăng xuất
-                </button>
-              </div>
-            ) : (
-              <div className="auth-profile-container">
-                <button className="btn-auth btn-login" onClick={() => navigate("/login")}>
-                  Đăng nhập
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Breadcrumbs */}
       <div className="breadcrumb-container">
@@ -825,7 +686,6 @@ export default function ProductDetail() {
               />
             )}
             <div className="badge-overlay">
-              {product.isOrganic && <span className="badge-tag organic-tag">Hữu cơ</span>}
               {product.isLocal && <span className="badge-tag local-tag">Địa phương</span>}
             </div>
           </div>
@@ -880,13 +740,57 @@ export default function ProductDetail() {
         {/* Right Column - Product details */}
         <section className="product-info-section">
           <h1 className="product-title">{product.name}</h1>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px", marginBottom: "12px" }}>
+            {(product.isOrganic || product.farmerOrganicUrl) && (
+              <span className="tag-pill tag-organic" style={{ 
+                backgroundColor: "#e8f5e9", 
+                color: "#2e7d32", 
+                fontSize: "12px", 
+                fontWeight: "700", 
+                padding: "4px 10px", 
+                borderRadius: "4px",
+                border: "1px solid #c8e6c9",
+                display: "inline-block"
+              }}>
+                Hữu cơ
+              </span>
+            )}
+            {product.farmerVietgapUrl && (
+              <span className="tag-pill tag-vietgap" style={{ 
+                backgroundColor: "#e0f2fe", 
+                color: "#0369a1", 
+                fontSize: "12px", 
+                fontWeight: "700", 
+                padding: "4px 10px", 
+                borderRadius: "4px",
+                border: "1px solid #bae6fd",
+                display: "inline-block"
+              }}>
+                VietGAP
+              </span>
+            )}
+            {product.farmerGlobalgapUrl && (
+              <span className="tag-pill tag-globalgap" style={{ 
+                backgroundColor: "#fee2e2", 
+                color: "#b91c1c", 
+                fontSize: "12px", 
+                fontWeight: "700", 
+                padding: "4px 10px", 
+                borderRadius: "4px",
+                border: "1px solid #fecaca",
+                display: "inline-block"
+              }}>
+                GlobalGAP
+              </span>
+            )}
+          </div>
 
           <div className="rating-reviews-row">
             <div className="rating-stars">
               {[1, 2, 3, 4, 5].map((star) => (
                 <span
                   key={star}
-                  className={`rating-star-icon ${star <= Math.round(product.rating || 4.5) ? "filled" : ""}`}
+                  className={`rating-star-icon ${star <= Math.round(product.rating || 0) ? "filled" : ""}`}
                 >
                   ★
                 </span>
@@ -898,17 +802,9 @@ export default function ProductDetail() {
               title="Xem tất cả đánh giá"
               style={{ cursor: "pointer" }}
             >
-              {product.rating || "4.8"} ({product.reviewsCount || 124} đánh giá)
+              {product.rating !== undefined && product.rating !== null ? product.rating.toFixed(1) : "0.0"} ({product.reviewsCount !== undefined && product.reviewsCount !== null ? product.reviewsCount : 0} đánh giá)
             </span>
           </div>
-
-          <button
-            type="button"
-            className="btn-view-all-reviews"
-            onClick={() => navigate(`/products/${product.id}/reviews`)}
-          >
-            Xem tất cả đánh giá
-          </button>
 
           <div className="price-display">
             <span className="price-amount">{formatPrice(product.price)}</span>
@@ -1187,7 +1083,7 @@ export default function ProductDetail() {
           <div className="reviews-list-column">
             <div className="reviews-summary-card">
               <div className="reviews-average-rating-box">
-                <span className="reviews-average-score">{product.rating ? product.rating.toFixed(1) : "4.8"}</span>
+                <span className="reviews-average-score">{product.rating !== undefined && product.rating !== null ? product.rating.toFixed(1) : "0.0"}</span>
                 <span className="reviews-average-max">/ 5</span>
               </div>
               <div className="reviews-summary-info">
@@ -1195,13 +1091,13 @@ export default function ProductDetail() {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <span
                       key={star}
-                      className={`rating-star-icon ${star <= Math.round(product.rating || 4.5) ? "filled" : ""}`}
+                      className={`rating-star-icon ${star <= Math.round(product.rating || 0) ? "filled" : ""}`}
                     >
                       ★
                     </span>
                   ))}
                 </div>
-                <span className="reviews-total-count">({product.reviewsCount || 0} nhận xét từ khách mua hàng)</span>
+                <span className="reviews-total-count">({product.reviewsCount !== undefined && product.reviewsCount !== null ? product.reviewsCount : 0} nhận xét từ khách mua hàng)</span>
               </div>
             </div>
 
@@ -1209,7 +1105,7 @@ export default function ProductDetail() {
               {reviewsList.length === 0 ? (
                 <p className="no-reviews-text">Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên đánh giá!</p>
               ) : (
-                reviewsList.map((rev) => (
+                reviewsList.slice(0, 3).map((rev) => (
                   <div key={rev.id} className="review-item-card">
                     <div className="review-item-header">
                       <div className="review-author-avatar">
@@ -1255,134 +1151,17 @@ export default function ProductDetail() {
                 ))
               )}
             </div>
-          </div>
 
-          {/* Right Column: Submit review form */}
-          <div className="reviews-form-column">
-            <div className="submit-review-card">
-              <h3 className="submit-review-title">Viết đánh giá của bạn</h3>
-
-              <form onSubmit={handleSubmitReview} className="submit-review-form">
-                <div className="form-group">
-                  <label className="form-label">Đánh giá của bạn về sản phẩm:</label>
-                  <div className="star-rating-selector">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span
-                        key={star}
-                        className={`star-select-icon ${star <= (hoverRating || newRating) ? "filled" : ""}`}
-                        onClick={() => setNewRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        title={`Đánh giá ${star} sao`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="review-author-name" className="form-label">Tên của bạn:</label>
-                  <input
-                    type="text"
-                    id="review-author-name"
-                    className="form-input"
-                    placeholder="Nhập tên hiển thị (mặc định: Khách hàng)"
-                    value={newAuthor}
-                    onChange={(e) => setNewAuthor(e.target.value)}
-                    disabled={!!user}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="review-comment-text" className="form-label">Nội dung đánh giá:</label>
-                  <textarea
-                    id="review-comment-text"
-                    className="form-textarea"
-                    placeholder="Chia sẻ trải nghiệm thực tế của bạn về chất lượng nông sản, cách đóng gói và giao nhận..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    rows="4"
-                    required
-                  ></textarea>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Đính kèm ảnh & video (không bắt buộc):</label>
-
-                  <div className="media-upload-triggers">
-                    <label className={`btn-media-trigger-upload ${attachedImages.length >= 3 ? "disabled" : ""}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="media-upload-icon">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                      </svg>
-                      Ảnh ({attachedImages.length}/3)
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        disabled={attachedImages.length >= 3}
-                        style={{ display: "none" }}
-                      />
-                    </label>
-
-                    <label className={`btn-media-trigger-upload ${attachedVideo ? "disabled" : ""}`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="media-upload-icon">
-                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                      </svg>
-                      Video ({attachedVideo ? 1 : 0}/1)
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleVideoUpload}
-                        disabled={!!attachedVideo}
-                        style={{ display: "none" }}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Hiển thị preview các tệp đang đính kèm */}
-                  {(attachedImages.length > 0 || attachedVideo) && (
-                    <div className="form-media-previews-container">
-                      {attachedImages.map((imgUrl, idx) => (
-                        <div key={idx} className="preview-media-item-box">
-                          <img src={imgUrl} alt="Preview đính kèm" />
-                          <button
-                            type="button"
-                            className="btn-remove-preview-media"
-                            onClick={() => removeAttachedImage(idx)}
-                            aria-label="Xóa ảnh"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-
-                      {attachedVideo && (
-                        <div className="preview-media-item-box video-box">
-                          <video src={attachedVideo} preload="metadata" />
-                          <div className="play-overlay-icon">▶</div>
-                          <button
-                            type="button"
-                            className="btn-remove-preview-media"
-                            onClick={removeAttachedVideo}
-                            aria-label="Xóa video"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <button type="submit" className="btn-submit-review">
-                  Gửi nhận xét đánh giá
-                </button>
-              </form>
-            </div>
+            {reviewsList.length > 0 && (
+              <button
+                type="button"
+                className="btn-view-all-reviews"
+                onClick={() => navigate(`/products/${product.id}/reviews`)}
+                style={{ marginTop: "20px", display: "block" }}
+              >
+                Xem tất cả đánh giá →
+              </button>
+            )}
           </div>
         </div>
       </section>

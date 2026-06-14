@@ -10,6 +10,8 @@ import org.example.agrimarket.repository.CategoryRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.repository.ProductRepository;
+import org.example.agrimarket.repository.ProductReviewRepository;
+import org.example.agrimarket.repository.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,12 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private FarmerRepository farmerRepository;
 
+    @Autowired
+    private ProductReviewRepository productReviewRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
     @Override
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
         List<Product> products = productRepository.findByFarmerEmailOrderByCreatedAtDesc(email);
@@ -65,6 +73,9 @@ public class ProductServiceImpl implements ProductService {
         String farmLocation = "";
         String farmDescription = "";
         String farmerAvatarUrl = "";
+        String farmerVietgapUrl = "";
+        String farmerGlobalgapUrl = "";
+        String farmerOrganicUrl = "";
         if (product.getFarmer() != null) {
             Farmer farmer = product.getFarmer();
             farmerName = farmer.getFarmName() != null && !farmer.getFarmName().isEmpty() 
@@ -74,7 +85,17 @@ public class ProductServiceImpl implements ProductService {
             farmDescription = farmer.getDescription() != null && !farmer.getDescription().isEmpty() 
                     ? farmer.getDescription() : "Chưa có mô tả nông trại";
             farmerAvatarUrl = farmer.getAvatarUrl();
+            farmerVietgapUrl = farmer.getVietgapUrl() != null ? farmer.getVietgapUrl() : "";
+            farmerGlobalgapUrl = farmer.getGlobalgapUrl() != null ? farmer.getGlobalgapUrl() : "";
+            farmerOrganicUrl = farmer.getOrganicUrl() != null ? farmer.getOrganicUrl() : "";
         }
+
+        Double avgRating = productReviewRepository.getAverageRatingByProductId(product.getId());
+        if (avgRating == null) {
+            avgRating = 0.0;
+        }
+        Long count = productReviewRepository.countByProductId(product.getId());
+        Integer soldCount = orderItemRepository.sumQuantityByProductIdAndOrderStatus(product.getId());
 
         return ProductResponse.builder()
                 .id(product.getId())
@@ -103,6 +124,12 @@ public class ProductServiceImpl implements ProductService {
                 .farmerAvatarUrl(farmerAvatarUrl)
                 .rejectionReason(product.getRejectionReason())
                 .adminNotes(product.getAdminNotes())
+                .rating(avgRating)
+                .reviewsCount(count.intValue())
+                .sold(soldCount)
+                .farmerVietgapUrl(farmerVietgapUrl)
+                .farmerGlobalgapUrl(farmerGlobalgapUrl)
+                .farmerOrganicUrl(farmerOrganicUrl)
                 .build();
     }
 

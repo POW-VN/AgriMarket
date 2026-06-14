@@ -30,6 +30,7 @@ const ProductApproval = () => {
   const [adminNotes, setAdminNotes] = useState("");
   const [checklist, setChecklist] = useState({
     vietgapVerified: false,
+    globalgapVerified: false,
     traceabilityVerified: false,
     organicVerified: false,
   });
@@ -119,9 +120,10 @@ const ProductApproval = () => {
     setSelectedProduct(product);
     setAdminNotes(product.adminNotes || "");
     setChecklist({
-      vietgapVerified: !!product.certificateUrl,
+      vietgapVerified: !!product.certificateUrl || !!product.farmerVietgapUrl,
+      globalgapVerified: !!product.farmerGlobalgapUrl,
+      organicVerified: !!product.isOrganic || !!product.farmerOrganicUrl,
       traceabilityVerified: !!product.traceabilityImageUrl,
-      organicVerified: !!(product.isOrganic && product.certificateUrl),
     });
     setProductAuditLogs([]);
     // Pass the full product object so AI mock always has data
@@ -345,7 +347,7 @@ const ProductApproval = () => {
   };
 
   // ─── Sidebar nav ─────────────────────────────────────────────────────────────
-  const SidebarNav = () => (
+  const renderSidebarNav = () => (
     <aside className="admin-sidebar">
       <div className="admin-logo-section">
         <Link to="/" className="admin-logo-link">
@@ -372,12 +374,6 @@ const ProductApproval = () => {
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           </span>
           Quản lý tài khoản
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/shipment-requests")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
-          </span>
-          Yêu cầu vận chuyển
         </button>
         <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
           <span className="admin-nav-icon">
@@ -465,7 +461,7 @@ const ProductApproval = () => {
   );
 
   // ─── DETAIL VIEW ─────────────────────────────────────────────────────────────
-  const DetailView = () => {
+  const renderDetailView = () => {
     const prod = selectedProduct;
 
     const statusColors = {
@@ -589,16 +585,6 @@ const ProductApproval = () => {
               <InfoCard label="Hạn sử dụng" value={prod.expirationDate || "—"} />
             </div>
 
-            {/* Description */}
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
-              <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                📝 Mô tả sản phẩm
-              </h4>
-              <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.7", whiteSpace: "pre-line" }}>
-                {prod.description || "Chưa có mô tả."}
-              </p>
-            </div>
-
             {/* Farmer Info */}
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
               <h4 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -663,106 +649,53 @@ const ProductApproval = () => {
               </h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {[
-                  { key: "vietgapVerified", label: "Chứng nhận VietGAP / Giấy phép chất lượng nông sản hợp lệ", link: prod.certificateUrl, linkText: "Xem ảnh tài liệu", disabled: false },
+                  { key: "vietgapVerified", label: "Chứng nhận VietGAP / Giấy phép chất lượng nông sản hợp lệ", link: prod.certificateUrl || prod.farmerVietgapUrl, linkText: "Xem ảnh tài liệu", disabled: false },
+                  { key: "globalgapVerified", label: "Chứng nhận GlobalGAP", link: prod.farmerGlobalgapUrl, linkText: "Xem ảnh tài liệu", disabled: false },
+                  { key: "organicVerified", label: "Chứng nhận hữu cơ (Organic Certificate)", link: prod.farmerOrganicUrl, linkText: "Xem ảnh tài liệu", disabled: !prod.isOrganic && !prod.farmerOrganicUrl },
                   { key: "traceabilityVerified", label: "Bản đồ vùng trồng / Hình ảnh truy xuất nguồn gốc (Traceability Map)", link: prod.traceabilityImageUrl, linkText: "Xem ảnh bản đồ", disabled: false },
-                  { key: "organicVerified", label: `Chứng nhận hữu cơ (Organic Certificate)${!prod.isOrganic ? " — Không áp dụng" : ""}`, link: null, linkText: null, disabled: !prod.isOrganic },
-                ].map(({ key, label, link, linkText, disabled }) => (
-                  <label key={key} style={{
-                    display: "flex", alignItems: "center", gap: "10px",
-                    cursor: disabled ? "default" : "pointer",
-                    padding: "12px 14px",
-                    borderRadius: "8px",
-                    minHeight: "48px",
-                    backgroundColor: checklist[key] ? "#f0fdf4" : "#fafafa",
-                    border: `1px solid ${checklist[key] ? "#bbf7d0" : "#e5e7eb"}`,
-                    transitionProperty: "background-color, border-color",
-                    transitionDuration: "0.15s",
-                    transitionTimingFunction: "ease",
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={checklist[key]}
-                      onChange={(e) => !disabled && setChecklist({ ...checklist, [key]: e.target.checked })}
-                      disabled={disabled}
-                      style={{ accentColor: "#064e3b", width: "16px", height: "16px", flexShrink: 0 }}
-                    />
-                    <span style={{ flexGrow: 1, fontSize: "13.5px", color: disabled ? "#9ca3af" : "#374151", lineHeight: "1.4" }}>{label}</span>
-                    {link && (
-                      <a href={link} target="_blank" rel="noreferrer" style={{ fontSize: "12px", color: "#064e3b", fontWeight: "700", textDecoration: "underline", flexShrink: 0, whiteSpace: "nowrap" }}>
-                        {linkText}
-                      </a>
-                    )}
-                  </label>
-                ))}
+                ].map(({ key, label, link, linkText, disabled }) => {
+                  const isChecked = checklist[key];
+                  return (
+                    <div
+                      key={key}
+                      className={`checklist-item${isChecked && !disabled ? " checklist-item-checked" : ""}${disabled ? " checklist-item-disabled" : ""}`}
+                      onClick={() => !disabled && setChecklist({ ...checklist, [key]: !isChecked })}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => !disabled && setChecklist({ ...checklist, [key]: e.target.checked })}
+                        disabled={disabled}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ accentColor: "#064e3b", width: "16px", height: "16px", flexShrink: 0, cursor: disabled ? "not-allowed" : "pointer" }}
+                      />
+                      <span style={{ flexGrow: 1, fontSize: "13.5px", color: "#374151", lineHeight: "1.4" }}>
+                        {label}
+                      </span>
+                      {disabled && (
+                        <span style={{ fontSize: "11px", color: "#9ca3af", fontStyle: "italic", backgroundColor: "#f3f4f6", borderRadius: "4px", padding: "2px 7px", flexShrink: 0 }}>Không áp dụng</span>
+                      )}
+                      {!disabled && link && (
+                        <a href={link} target="_blank" rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ fontSize: "12px", color: "#064e3b", fontWeight: "700", textDecoration: "underline", flexShrink: 0, whiteSpace: "nowrap" }}>
+                          {linkText}
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* AI Content Moderation */}
+            {/* Description */}
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
-              <h4 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                🤖 AI Content Moderation Insights (Phân tích từ AI)
+              <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                📝 Mô tả sản phẩm
               </h4>
-
-              {aiLoading ? (
-                <div style={{ textAlign: "center", padding: "20px", color: "#9ca3af", fontSize: "13px" }}>
-                  <div style={{ marginBottom: "8px", fontSize: "20px" }}>⏳</div>
-                  Đang phân tích chất lượng nội dung...
-                </div>
-              ) : aiInsights ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  {/* Điểm chất lượng */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13.5px", marginBottom: "8px" }}>
-                      <span style={{ color: "#374151", fontWeight: "500" }}>Điểm chất lượng mô tả sản phẩm:</span>
-                      <strong style={{ fontSize: "15px", color: aiInsights.score > 80 ? "#065f46" : aiInsights.score > 60 ? "#92400e" : "#991b1b" }}>{aiInsights.score}%</strong>
-                    </div>
-                    <div style={{ height: "8px", backgroundColor: "#e5e7eb", borderRadius: "6px", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${aiInsights.score}%`, backgroundColor: aiInsights.score > 80 ? "#10b981" : aiInsights.score > 60 ? "#f97316" : "#ef4444", borderRadius: "6px", transition: "width 0.6s ease" }} />
-                    </div>
-                  </div>
-
-                  {/* Risk score */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px", backgroundColor: aiInsights.riskScore > 70 ? "#fef2f2" : aiInsights.riskScore > 40 ? "#fff7ed" : "#f0fdf4", borderRadius: "8px", border: `1px solid ${aiInsights.riskScore > 70 ? "#fca5a5" : aiInsights.riskScore > 40 ? "#fcd34d" : "#bbf7d0"}` }}>
-                    <div style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: aiInsights.riskScore > 70 ? "#ef4444" : aiInsights.riskScore > 40 ? "#f97316" : "#10b981", flexShrink: 0 }} />
-                    <span style={{ fontSize: "13px", color: "#374151" }}>Điểm rủi ro nội dung:</span>
-                    <strong style={{ marginLeft: "auto", fontSize: "13px", color: aiInsights.riskScore > 70 ? "#dc2626" : aiInsights.riskScore > 40 ? "#d97706" : "#059669" }}>
-                      {aiInsights.riskScore > 70 ? "Cao" : aiInsights.riskScore > 40 ? "Trung bình" : "Thấp"} ({aiInsights.riskScore}/100)
-                    </strong>
-                  </div>
-
-                  {/* Safe / Flagged */}
-                  {aiInsights.flagged ? (
-                    <div style={{ backgroundColor: "#fee2e2", color: "#991b1b", padding: "12px 14px", borderRadius: "8px", fontSize: "13.5px", fontWeight: "600" }}>
-                      ⚠️ Cảnh báo: {aiInsights.flaggedReason}
-                    </div>
-                  ) : (
-                    <div style={{ backgroundColor: "#ecfdf5", color: "#047857", padding: "12px 14px", borderRadius: "8px", fontSize: "13.5px", fontWeight: "500" }}>
-                      ✓ Không phát hiện nội dung rác hay từ khóa cấm. Nội dung an toàn.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p style={{ color: "#9ca3af", fontSize: "13px", textAlign: "center", padding: "16px 0" }}>Không thể tải dữ liệu AI.</p>
-              )}
-            </div>
-
-
-
-            {/* Admin Feedback Notes */}
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
-              <label style={{ display: "block", fontSize: "13px", fontWeight: "700", color: "#374151", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                🗒️ Ý kiến phản hồi của Admin
-                <span style={{ fontWeight: "400", color: "#9ca3af", textTransform: "none", fontSize: "12px", marginLeft: "8px" }}>(Checklist lỗi cần sửa / Lý do từ chối)</span>
-              </label>
-              <textarea
-                rows={5}
-                placeholder="Nhập ghi chú kiểm duyệt hoặc nội dung phản hồi cụ thể cho nông dân ở đây..."
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                style={{ width: "100%", fontSize: "13.5px", padding: "12px 14px", borderRadius: "8px", border: "1px solid #d1d5db", resize: "vertical", lineHeight: "1.6", outline: "none", boxSizing: "border-box", fontFamily: "inherit", color: "#374151" }}
-                onFocus={(e) => { e.target.style.borderColor = "#064e3b"; e.target.style.boxShadow = "0 0 0 3px rgba(6,78,59,0.1)"; }}
-                onBlur={(e) => { e.target.style.borderColor = "#d1d5db"; e.target.style.boxShadow = "none"; }}
-              />
+              <p style={{ margin: 0, fontSize: "14px", color: "#374151", lineHeight: "1.7", whiteSpace: "pre-line" }}>
+                {prod.description || "Chưa có mô tả."}
+              </p>
             </div>
 
             {/* Audit Logs */}
@@ -799,7 +732,7 @@ const ProductApproval = () => {
   };
 
   // ─── LIST VIEW ───────────────────────────────────────────────────────────────
-  const ListView = () => (
+  const renderListView = () => (
     <>
       <div className="admin-page-title-row">
         <div className="admin-page-title-info">
@@ -984,7 +917,7 @@ const ProductApproval = () => {
   // ─── MAIN RENDER ─────────────────────────────────────────────────────────────
   return (
     <div className="admin-layout">
-      <SidebarNav />
+      {renderSidebarNav()}
 
       <div className="admin-main-container">
         <header className="admin-header">
@@ -1010,7 +943,7 @@ const ProductApproval = () => {
             </div>
           )}
 
-          {selectedProduct ? <DetailView /> : <ListView />}
+          {selectedProduct ? renderDetailView() : renderListView()}
         </main>
       </div>
 

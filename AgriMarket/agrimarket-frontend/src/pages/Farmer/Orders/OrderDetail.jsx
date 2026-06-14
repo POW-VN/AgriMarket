@@ -257,17 +257,7 @@ export const OrderDetail = () => {
             </button>
           )}
 
-          {order.status === "confirmed" && (
-            <button className="btn-primary" onClick={() => handleUpdateStatus("shipping")} disabled={isUpdating}>
-              Xác nhận shipper đã lấy hàng
-            </button>
-          )}
-
-          {order.status === "shipping" && (
-            <button className="btn-primary" onClick={() => handleUpdateStatus("delivered")} disabled={isUpdating}>
-              Xác nhận đã giao hàng
-            </button>
-          )}
+          {/* No buttons for confirmed or shipping status since farmer cannot update order status after transferring to shipper */}
         </div>
       </header>
 

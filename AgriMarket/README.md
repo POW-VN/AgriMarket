@@ -1,4 +1,3 @@
-Tác nhân - Use case:
 Chức năng chung: 
 Đăng ký tài khoản
 Đăng nhập
@@ -84,6 +83,7 @@ Xem lịch sử vận chuyển
 Xác nhận lấy hàng 
 Xác nhận giao hàng thành công
 Liên hệ khách hàng
+
 
 
 1. Bảng admin:

@@ -88,29 +88,7 @@ const ProfileSidebar = ({ profile }) => {
           </button>
         )}
 
-        {isShipper && (
-          <button
-            className={`sidebar-menu-item ${
-              location.pathname.startsWith("/shipper") ? "active" : ""
-            }`}
-            onClick={() => navigate("/shipper/dashboard")}
-          >
-            <span>🚚</span>
-            Kênh Shipper
-          </button>
-        )}
 
-        {/* Support any user accessing the Shipper Channel easily for convenience of testing */}
-        {!isShipper && !isFarmer && (
-          <button
-            className="sidebar-menu-item"
-            style={{ opacity: 0.8, fontSize: '13px' }}
-            onClick={() => navigate("/shipper/dashboard")}
-          >
-            <span>🚚</span>
-            Kênh Shipper (Demo)
-          </button>
-        )}
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/security" ? "active" : ""

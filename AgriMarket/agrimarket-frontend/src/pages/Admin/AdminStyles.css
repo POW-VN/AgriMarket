@@ -1783,7 +1783,34 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Checklist rows in ProductApproval verification table */
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  min-height: 48px;
+  border: 1px solid #e5e7eb;
+  background-color: #fafafa;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+}
+.checklist-item:hover:not(.checklist-item-disabled) {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+.checklist-item.checklist-item-checked {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.checklist-item.checklist-item-disabled {
+  opacity: 0.5;
+  cursor: default;
+  background-color: #f9fafb;
 }
 
 .details-breadcrumbs {

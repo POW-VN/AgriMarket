@@ -70,6 +70,35 @@ public class Order {
     @Column(name = "cancel_reason", columnDefinition = "nvarchar(1000)")
     private String cancelReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "partner_id")
+    private Partner partner;
+
+    @Column(name = "shipper_notes", columnDefinition = "nvarchar(1000)")
+    private String shipperNotes;
+
+    @Lob
+    @Column(name = "pod_photo", columnDefinition = "nvarchar(max)")
+    private String podPhoto;
+
+    @Column(name = "detailed_status")
+    private String detailedStatus;
+
+    @Column(name = "driver_name", columnDefinition = "nvarchar(255)")
+    private String driverName;
+
+    @Column(name = "driver_code", columnDefinition = "nvarchar(100)")
+    private String driverCode;
+
+    @Column(name = "driver_phone", columnDefinition = "nvarchar(50)")
+    private String driverPhone;
+
+    @Column(name = "vehicle_type", columnDefinition = "nvarchar(100)")
+    private String vehicleType;
+
+    @Column(name = "license_plate", columnDefinition = "nvarchar(50)")
+    private String licensePlate;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

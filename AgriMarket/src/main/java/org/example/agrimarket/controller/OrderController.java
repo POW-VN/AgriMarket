@@ -120,4 +120,69 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @GetMapping("/shipper/requests")
+    public ResponseEntity<?> getShipperRequests(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            return ResponseEntity.ok(orderService.getShipperRequests(principal.getName()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/shipper/accepted")
+    public ResponseEntity<?> getShipperAccepted(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            return ResponseEntity.ok(orderService.getShipperAccepted(principal.getName()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/shipper/{orderCode}/accept")
+    public ResponseEntity<?> acceptShipperRequest(Principal principal, @PathVariable String orderCode,
+                                                   @RequestBody(required = false) Map<String, String> body) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            return ResponseEntity.ok(orderService.acceptShipperRequest(principal.getName(), orderCode, body));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/shipper/{orderCode}/reject")
+    public ResponseEntity<?> rejectShipperRequest(Principal principal, @PathVariable String orderCode, @RequestBody(required = false) Map<String, String> body) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        String reason = body != null ? body.get("reason") : "";
+        try {
+            return ResponseEntity.ok(orderService.rejectShipperRequest(principal.getName(), orderCode, reason));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/shipper/{orderCode}/status")
+    public ResponseEntity<?> updateShipperOrderStatus(Principal principal, @PathVariable String orderCode, @RequestBody Map<String, String> body) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        String status = body.get("status");
+        String notes = body.get("notes");
+        String podPhoto = body.get("podPhoto");
+        try {
+            return ResponseEntity.ok(orderService.updateShipperOrderStatus(principal.getName(), orderCode, status, notes, podPhoto));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

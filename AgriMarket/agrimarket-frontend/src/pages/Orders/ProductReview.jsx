@@ -1,24 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import authService from "../../services/authService";
+import orderService from "../../services/orderService";
+import reviewService from "../../services/reviewService";
 import "./ProductReview.css";
-import bunchedCarrots from "../Home/assets/bunched_carrots.png";
-import heirloomTomatoes from "../Home/assets/heirloom_tomatoes.png";
-import honeycrispApples from "../Home/assets/honeycrisp_apples.png";
-
-/* Mock data dùng tạm khi refresh trang */
-const REVIEW_ORDERS_DB = {
-    "FH-2024-8892": {
-        id: "FH-2024-8892",
-        status: "delivered",
-        provider: { name: "Nông trại hữu cơ Thung lũng Xanh" },
-        items: [
-            { productId: 1, name: "Cà rốt hữu cơ", price: 112500, qty: 10, img: bunchedCarrots },
-            { productId: 2, name: "Cà chua Heirloom", price: 49900, qty: 15, img: heirloomTomatoes },
-            { productId: 3, name: "Táo giòn ngọt", price: 69000, qty: 8, img: honeycrispApples },
-        ],
-    },
-};
 
 const reviewSuggestions = [
     "Sản phẩm tươi",
@@ -61,6 +46,9 @@ const ProductReview = () => {
     const [photoPreviews, setPhotoPreviews] = useState([]);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [existingImages, setExistingImages] = useState([]);
 
     useEffect(() => {
         setUser(authService.getCurrentUser());
@@ -71,12 +59,47 @@ const ProductReview = () => {
             return;
         }
 
-        const mockOrder = REVIEW_ORDERS_DB[orderId];
-        if (mockOrder) {
-            setOrder(mockOrder);
-            setItem(mockOrder.items[Number(itemIndex)] || null);
+        const fetchOrder = async () => {
+            try {
+                const fetchedOrder = await orderService.getOrderById(orderId);
+                setOrder(fetchedOrder);
+                if (fetchedOrder && fetchedOrder.items) {
+                    setItem(fetchedOrder.items[Number(itemIndex)] || null);
+                }
+            } catch (err) {
+                console.error("Lỗi khi tải chi tiết đơn hàng:", err);
+            }
+        };
+
+        if (orderId) {
+            fetchOrder();
         }
     }, [orderId, itemIndex, location.state]);
+
+    useEffect(() => {
+        if (!orderId || !item || !item.productId) return;
+
+        const checkExistingReview = async () => {
+            try {
+                const reviewDetail = await reviewService.getReviewDetail(orderId, item.productId);
+                if (reviewDetail) {
+                    setIsEditMode(true);
+                    setOverallRating(reviewDetail.rating || 0);
+                    setSpecificRatings(reviewDetail.specificRatings || { quality: 0, freshness: 0, packaging: 0, delivery: 0 });
+                    setSelectedTags(reviewDetail.tags || []);
+                    setReviewText(reviewDetail.comment || "");
+                    setAnonymous(reviewDetail.anonymous || false);
+                    setExistingImages(reviewDetail.images || []);
+                }
+            } catch (err) {
+                if (err.response?.status !== 404) {
+                    console.error("Lỗi khi kiểm tra đánh giá cũ:", err);
+                }
+            }
+        };
+
+        checkExistingReview();
+    }, [orderId, item]);
 
     const formatVND = (value) => Number(value || 0).toLocaleString("vi-VN") + " ₫";
 
@@ -89,14 +112,33 @@ const ProductReview = () => {
     };
 
     const handlePhotoChange = (e) => {
-        const files = Array.from(e.target.files || []).filter(f => f.size <= 5 * 1024 * 1024);
-        setPhotoFiles(files);
-        setPhotoPreviews(files.map(f => URL.createObjectURL(f)));
+        const remainingSlots = 5 - (existingImages.length + photoFiles.length);
+        if (remainingSlots <= 0) {
+            setErrorMessage("Bạn chỉ được tải lên tối đa 5 hình ảnh.");
+            return;
+        }
+
+        const files = Array.from(e.target.files || [])
+            .filter(f => f.size <= 5 * 1024 * 1024)
+            .slice(0, remainingSlots);
+
+        if (files.length < (e.target.files || []).length) {
+            setErrorMessage("Một số ảnh bị bỏ qua do vượt quá giới hạn tối đa 5 ảnh.");
+        } else {
+            setErrorMessage("");
+        }
+
+        setPhotoFiles(prev => [...prev, ...files]);
+        setPhotoPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
     };
 
     const removePhoto = (index) => {
         setPhotoFiles(prev => prev.filter((_, i) => i !== index));
         setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const removeExistingPhoto = (index) => {
+        setExistingImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const validateForm = () => {
@@ -107,12 +149,50 @@ const ProductReview = () => {
         return "";
     };
 
-    const handleSubmit = () => {
+    const fileToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
+    };
+
+    const handleSubmit = async () => {
         const error = validateForm();
         if (error) { setErrorMessage(error); return; }
-        // TODO: Backend API submit review
-        setSuccessMessage("Gửi đánh giá sản phẩm thành công!");
-        setTimeout(() => navigate(`/profile/orders/${orderId}`), 1200);
+
+        try {
+            setSubmitting(true);
+            setErrorMessage("");
+            
+            // Convert photo files to base64
+            const base64Images = await Promise.all(
+                photoFiles.map(file => fileToBase64(file))
+            );
+
+            const reviewData = {
+                orderCode: orderId,
+                productId: item.productId,
+                rating: overallRating,
+                comment: reviewText,
+                anonymous: anonymous,
+                images: [...existingImages, ...base64Images],
+                specificRatings: specificRatings,
+                selectedTags: selectedTags
+            };
+
+            await reviewService.submitProductReview(reviewData);
+
+            const msg = isEditMode ? "Cập nhật đánh giá thành công!" : "Gửi đánh giá sản phẩm thành công!";
+            setSuccessMessage(msg);
+            setTimeout(() => navigate(`/profile/orders/${orderId}`), 1200);
+        } catch (err) {
+            console.error("Lỗi khi gửi đánh giá:", err);
+            setErrorMessage(err.response?.data || "Không thể gửi đánh giá. Vui lòng thử lại.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     if (!order || !item) {
@@ -139,7 +219,15 @@ const ProductReview = () => {
         <div className="product-review-page">
             <header className="review-header">
                 <button className="review-back-btn" onClick={() => navigate(`/profile/orders/${orderId}`)}>←</button>
-                <div className="review-logo" onClick={() => navigate("/")}>🚜 AgriMarket</div>
+                <div className="review-logo" onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: 700, fontSize: "17px", color: "#1f2937" }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="7" cy="18" r="2"></circle>
+                        <circle cx="18" cy="18" r="2"></circle>
+                        <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+                        <path d="M16 9h3l2 3v4"></path>
+                    </svg>
+                    <span style={{ color: "#1f2937" }}>AgriMarket</span>
+                </div>
                 <Link to="/help" className="review-help-link">Trợ giúp</Link>
             </header>
 
@@ -147,7 +235,7 @@ const ProductReview = () => {
 
             <main className="review-main">
                 <section className="review-left-panel">
-                    <h1>Đánh giá sản phẩm</h1>
+                    <h1>{isEditMode ? "Sửa đánh giá sản phẩm" : "Đánh giá sản phẩm"}</h1>
                     <div className="review-product-card">
                         <div className="review-product-image">
                             {item.img ? <img src={item.img} alt={item.name} /> : <div className="review-no-image">Ảnh sản phẩm</div>}
@@ -202,17 +290,25 @@ const ProductReview = () => {
                     <div className="photo-upload-block">
                         <h3>Thêm hình ảnh</h3>
                         <p>Tối đa 5 ảnh. Định dạng JPG, PNG, WEBP.</p>
-                        <label className="photo-upload-box">
-                            <input type="file" accept="image/*" multiple onChange={handlePhotoChange} />
-                            <span className="upload-icon">📷</span>
-                            <strong>Bấm để tải ảnh lên</strong>
-                            <small>hoặc kéo thả ảnh vào đây</small>
-                        </label>
-                        {photoPreviews.length > 0 && (
+                        {(existingImages.length + photoFiles.length) < 5 && (
+                            <label className="photo-upload-box">
+                                <input type="file" accept="image/*" multiple onChange={handlePhotoChange} />
+                                <span className="upload-icon">📷</span>
+                                <strong>Bấm để tải ảnh lên</strong>
+                                <small>hoặc kéo thả ảnh vào đây</small>
+                            </label>
+                        )}
+                        {(existingImages.length > 0 || photoPreviews.length > 0) && (
                             <div className="photo-preview-grid">
+                                {existingImages.map((src, i) => (
+                                    <div key={`existing-${i}`} className="photo-preview-item">
+                                        <img src={src} alt={`Ảnh cũ ${i + 1}`} />
+                                        <button type="button" onClick={() => removeExistingPhoto(i)}>×</button>
+                                    </div>
+                                ))}
                                 {photoPreviews.map((src, i) => (
-                                    <div key={i} className="photo-preview-item">
-                                        <img src={src} alt={`Ảnh ${i + 1}`} />
+                                    <div key={`new-${i}`} className="photo-preview-item">
+                                        <img src={src} alt={`Ảnh mới ${i + 1}`} />
                                         <button type="button" onClick={() => removePhoto(i)}>×</button>
                                     </div>
                                 ))}
@@ -228,8 +324,10 @@ const ProductReview = () => {
                     {errorMessage && <div className="review-error">{errorMessage}</div>}
 
                     <div className="review-actions">
-                        <button className="review-cancel-btn" onClick={() => navigate(`/profile/orders/${orderId}`)}>Hủy</button>
-                        <button className="review-submit-btn" onClick={handleSubmit}>Gửi đánh giá →</button>
+                        <button className="review-cancel-btn" onClick={() => navigate(`/profile/orders/${orderId}`)} disabled={submitting}>Hủy</button>
+                        <button className="review-submit-btn" onClick={handleSubmit} disabled={submitting}>
+                            {submitting ? "Đang gửi..." : (isEditMode ? "Cập nhật đánh giá" : "Gửi đánh giá →")}
+                        </button>
                     </div>
                 </section>
             </main>

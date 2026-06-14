@@ -6,10 +6,12 @@ import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.OtpVerification;
+import org.example.agrimarket.model.Partner;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.OtpVerificationRepository;
+import org.example.agrimarket.repository.PartnerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,9 @@ public class AuthService {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private PartnerRepository partnerRepository;
 
     @Autowired
     private OtpVerificationRepository otpVerificationRepository;
@@ -80,6 +85,15 @@ public class AuthService {
             }
         }
 
+        // 4. Try logging in as Partner/Shipper
+        if (user == null) {
+            Optional<Partner> partnerOpt = partnerRepository.findByEmail(email);
+            if (partnerOpt.isPresent()) {
+                user = partnerOpt.get();
+                resolvedRole = "partner";
+            }
+        }
+
         if (user == null) {
             throw new RuntimeException("Không tìm thấy tài khoản với email này");
         }
@@ -89,6 +103,8 @@ public class AuthService {
             hashedPassword = ((Admin) user).getPassword();
         } else if (user instanceof Farmer) {
             hashedPassword = ((Farmer) user).getPassword();
+        } else if (user instanceof Partner) {
+            hashedPassword = ((Partner) user).getPassword();
         } else {
             hashedPassword = ((Customer) user).getPassword();
         }
@@ -225,8 +241,9 @@ public class AuthService {
         // Check if the user already exists in the database
         Customer customer = customerRepository.findByEmail(email).orElse(null);
         Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
+        Partner partner = partnerRepository.findByEmail(email).orElse(null);
 
-        boolean userExists = (customer != null || farmer != null);
+        boolean userExists = (customer != null || farmer != null || partner != null);
         if (Boolean.TRUE.equals(isRegister) && userExists) {
             throw new RuntimeException("Tài khoản email này đã được đăng ký trên hệ thống. Vui lòng chuyển sang trang Đăng nhập.");
         }
@@ -252,6 +269,13 @@ public class AuthService {
             }
             user = farmer;
             resolvedRole = "farmer";
+        } else if (partner != null) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                partner.setPhone(phone.trim());
+                partner = partnerRepository.save(partner);
+            }
+            user = partner;
+            resolvedRole = "partner";
         }
 
         if (user != null) {
@@ -305,6 +329,8 @@ public class AuthService {
             userType = "farmer";
         } else if (adminRepository.findByEmail(email).isPresent()) {
             userType = "admin";
+        } else if (partnerRepository.findByEmail(email).isPresent()) {
+            userType = "partner";
         }
 
         if (userType == null) {
@@ -336,12 +362,14 @@ public class AuthService {
         }
         if (customerRepository.findByEmail(email).isPresent() ||
             farmerRepository.findByEmail(email).isPresent() ||
-            adminRepository.findByEmail(email).isPresent()) {
+            adminRepository.findByEmail(email).isPresent() ||
+            partnerRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Địa chỉ email đã được đăng ký.");
         }
 
         if (customerRepository.existsByPhone(request.getPhoneNumber()) ||
-            farmerRepository.existsByPhone(request.getPhoneNumber())) {
+            farmerRepository.existsByPhone(request.getPhoneNumber()) ||
+            partnerRepository.findByPhone(request.getPhoneNumber()).isPresent()) {
             throw new RuntimeException("Số điện thoại đã được đăng ký.");
         }
 
@@ -399,6 +427,11 @@ public class AuthService {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản quản trị viên"));
             admin.setPassword(hashedPassword);
             adminRepository.save(admin);
+        } else if ("partner".equals(otp.getUserType())) {
+            Partner partner = partnerRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản đối tác/shipper"));
+            partner.setPassword(hashedPassword);
+            partnerRepository.save(partner);
         }
     }
 }

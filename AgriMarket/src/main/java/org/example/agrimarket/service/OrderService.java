@@ -39,6 +39,12 @@ public class OrderService {
     @Autowired
     private CartItemRepository cartItemRepository;
 
+    @Autowired
+    private PartnerRepository partnerRepository;
+
+    @Autowired
+    private ProductReviewRepository productReviewRepository;
+
     @Transactional
     public OrderResponse createOrder(String email, OrderCreateRequest request) {
         Customer customer = customerRepository.findByEmail(email)
@@ -58,10 +64,10 @@ public class OrderService {
         order.setPhone(request.getPhone());
         order.setAddress(request.getAddress());
         order.setShippingNote(request.getShippingNote());
-        
+
         String method = request.getPaymentMethod();
         order.setPaymentMethod(method);
-        
+
         // Default statuses
         order.setStatus("pending");
         order.setPaymentStatus("unpaid");
@@ -80,7 +86,8 @@ public class OrderService {
 
         for (OrderItemRequest itemReq : request.getItems()) {
             Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm có ID: " + itemReq.getProductId()));
+                    .orElseThrow(
+                            () -> new RuntimeException("Không tìm thấy sản phẩm có ID: " + itemReq.getProductId()));
 
             if (product.getStockQuantity() < itemReq.getQuantity()) {
                 throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho.");
@@ -147,8 +154,10 @@ public class OrderService {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 
-        // Verify customer owns the order
-        if (!order.getCustomer().getEmail().equalsIgnoreCase(email)) {
+        // Verify customer owns the order OR partner is assigned
+        boolean isCustomer = order.getCustomer().getEmail().equalsIgnoreCase(email);
+        boolean isPartner = order.getPartner() != null && order.getPartner().getEmail().equalsIgnoreCase(email);
+        if (!isCustomer && !isPartner) {
             throw new RuntimeException("Bạn không có quyền xem đơn hàng này.");
         }
 
@@ -165,8 +174,8 @@ public class OrderService {
             throw new RuntimeException("Bạn không có quyền hủy đơn hàng này.");
         }
 
-        if (!"pending".equalsIgnoreCase(order.getStatus()) && !"confirmed".equalsIgnoreCase(order.getStatus())) {
-            throw new RuntimeException("Đơn hàng đã được xử lý, không thể hủy.");
+        if (!"pending".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Đơn hàng đã được xử lý (hoặc đang chuẩn bị), không thể hủy.");
         }
 
         order.setStatus("cancelled");
@@ -215,25 +224,40 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateFarmerOrderStatus(String farmerEmail, String orderCode, String newStatus, String reason) {
+    public OrderResponse updateFarmerOrderStatus(String farmerEmail, String orderCode, String newStatus,
+            String reason) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 
         // Verify at least one item belongs to this farmer
         boolean belongsToFarmer = order.getItems().stream()
-                .anyMatch(item -> item.getFarmer() != null && item.getFarmer().getEmail().equalsIgnoreCase(farmerEmail));
+                .anyMatch(
+                        item -> item.getFarmer() != null && item.getFarmer().getEmail().equalsIgnoreCase(farmerEmail));
         if (!belongsToFarmer) {
             throw new RuntimeException("Bạn không có quyền cập nhật trạng thái đơn hàng này.");
         }
 
+        String currentStatus = order.getStatus().toLowerCase();
+        if (!"pending".equals(currentStatus) && !"preparing".equals(currentStatus)) {
+            throw new RuntimeException("Đơn hàng đã ở trạng thái '" + order.getStatus() + "', nhà vườn không thể thao tác nữa.");
+        }
+
         String statusLower = newStatus.toLowerCase();
-        if (!Arrays.asList("confirmed", "preparing", "shipping", "delivered", "rejected", "cancelled").contains(statusLower)) {
-            throw new RuntimeException("Trạng thái không hợp lệ: " + newStatus);
+        if ("pending".equals(currentStatus)) {
+            if (!"preparing".equals(statusLower) && !"rejected".equals(statusLower)) {
+                throw new RuntimeException("Chờ xác nhận: Nhà vườn chỉ có thể xác nhận đơn (Đang chuẩn bị) hoặc từ chối đơn.");
+            }
+        } else if ("preparing".equals(currentStatus)) {
+            if (!"confirmed".equals(statusLower) && !"rejected".equals(statusLower)) {
+                throw new RuntimeException("Đang chuẩn bị: Nhà vườn chỉ có thể hoàn thành chuẩn bị (Chờ lấy hàng) hoặc từ chối đơn.");
+            }
         }
 
         order.setStatus(statusLower);
 
-        // If status is rejected or cancelled, and it wasn't already, restore stock for the farmer's items (or all items in the order, depending on the system design - restoring all is simpler since it's a single order)
+        // If status is rejected or cancelled, and it wasn't already, restore stock for
+        // the farmer's items (or all items in the order, depending on the system design
+        // - restoring all is simpler since it's a single order)
         if ("rejected".equals(statusLower) || "cancelled".equals(statusLower)) {
             order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Nhà vườn từ chối");
             for (OrderItem item : order.getItems()) {
@@ -252,19 +276,26 @@ public class OrderService {
 
     private OrderResponse mapToFarmerResponse(Order order, String farmerEmail) {
         OrderResponse base = mapToResponse(order);
-        
+
         // Filter items only sold by this farmer
         List<OrderItemResponseDTO> filteredItems = order.getItems().stream()
                 .filter(item -> item.getFarmer() != null && item.getFarmer().getEmail().equalsIgnoreCase(farmerEmail))
-                .map(item -> OrderItemResponseDTO.builder()
-                        .name(item.getProductName())
-                        .farmer(item.getFarmer() != null ? item.getFarmer().getFullName() : "Nhà vườn địa phương")
-                        .price(item.getProductPrice())
-                        .qty(item.getQuantity())
-                        .img(item.getImageUrl())
-                        .build()
-                ).collect(Collectors.toList());
-        
+                .map(item -> {
+                    boolean isReviewed = productReviewRepository.findByOrderIdAndProductIdAndCustomerId(
+                            order.getId(), item.getProductId(), order.getCustomer().getId()).isPresent();
+                    return OrderItemResponseDTO.builder()
+                            .productId(item.getProductId())
+                            .farmerId(item.getFarmer() != null ? item.getFarmer().getId() : null)
+                            .name(item.getProductName())
+                            .farmer(item.getFarmer() != null ? item.getFarmer().getFullName() : "Nhà vườn địa phương")
+                            .price(item.getProductPrice())
+                            .qty(item.getQuantity())
+                            .img(item.getImageUrl())
+                            .isReviewed(isReviewed)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
         base.setItems(filteredItems);
 
         // Re-calculate subtotal & total amount specific to the farmer
@@ -327,19 +358,22 @@ public class OrderService {
             Farmer farmer = order.getItems().get(0).getFarmer();
             if (farmer != null) {
                 String name = farmer.getFarmName() != null && !farmer.getFarmName().isBlank()
-                        ? farmer.getFarmName() : farmer.getFullName();
+                        ? farmer.getFarmName()
+                        : farmer.getFullName();
                 String location = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isBlank()
-                        ? farmer.getFarmAddress() : "Tiền Giang";
+                        ? farmer.getFarmAddress()
+                        : "Tiền Giang";
                 int estYear = farmer.getCreatedAt() != null ? farmer.getCreatedAt().getYear() : 2018;
                 String avatarText = name.substring(0, Math.min(name.length(), 2)).toUpperCase();
-                
+
                 // Color choices based on name length
-                String[] colors = {"#1b5e20", "#0d47a1", "#e65100", "#004d40", "#3e2723", "#33691e"};
+                String[] colors = { "#1b5e20", "#0d47a1", "#e65100", "#004d40", "#3e2723", "#33691e" };
                 String avatarBg = colors[Math.abs(name.hashCode()) % colors.length];
 
                 providerInfo = OrderResponse.ProviderInfo.builder()
                         .name(name)
                         .location(location)
+                        .phone(farmer.getPhone())
                         .estYear(estYear)
                         .avatarText(avatarText)
                         .avatarBg(avatarBg)
@@ -351,14 +385,20 @@ public class OrderService {
         // Map items
         List<OrderItemResponseDTO> itemsMapped = new ArrayList<>();
         if (order.getItems() != null) {
-            itemsMapped = order.getItems().stream().map(item -> OrderItemResponseDTO.builder()
-                    .name(item.getProductName())
-                    .farmer(item.getFarmer() != null ? item.getFarmer().getFullName() : "Nhà vườn địa phương")
-                    .price(item.getProductPrice())
-                    .qty(item.getQuantity())
-                    .img(item.getImageUrl())
-                    .build()
-            ).collect(Collectors.toList());
+            itemsMapped = order.getItems().stream().map(item -> {
+                boolean isReviewed = productReviewRepository.findByOrderIdAndProductIdAndCustomerId(
+                        order.getId(), item.getProductId(), order.getCustomer().getId()).isPresent();
+                return OrderItemResponseDTO.builder()
+                        .productId(item.getProductId())
+                        .farmerId(item.getFarmer() != null ? item.getFarmer().getId() : null)
+                        .name(item.getProductName())
+                        .farmer(item.getFarmer() != null ? item.getFarmer().getFullName() : "Nhà vườn địa phương")
+                        .price(item.getProductPrice())
+                        .qty(item.getQuantity())
+                        .img(item.getImageUrl())
+                        .isReviewed(isReviewed)
+                        .build();
+            }).collect(Collectors.toList());
         }
 
         // Thumbnails
@@ -370,6 +410,18 @@ public class OrderService {
 
         int itemCount = order.getItems() != null ? order.getItems().stream().mapToInt(OrderItem::getQuantity).sum() : 0;
         int hasMoreItems = order.getItems() != null ? Math.max(0, order.getItems().size() - 3) : 0;
+
+        // Build driverInfo if driver has been assigned
+        OrderResponse.DriverInfo driverInfo = null;
+        if (order.getDriverName() != null && !order.getDriverName().isBlank()) {
+            driverInfo = OrderResponse.DriverInfo.builder()
+                    .driverName(order.getDriverName())
+                    .driverCode(order.getDriverCode())
+                    .driverPhone(order.getDriverPhone())
+                    .vehicleType(order.getVehicleType())
+                    .licensePlate(order.getLicensePlate())
+                    .build();
+        }
 
         return OrderResponse.builder()
                 .id(order.getOrderCode())
@@ -390,6 +442,17 @@ public class OrderService {
                 .customerAvatarUrl(order.getCustomer() != null ? order.getCustomer().getAvatarUrl() : null)
                 .shippingNote(order.getShippingNote())
                 .provider(providerInfo)
+                .partner(order.getPartner() != null ? OrderResponse.PartnerInfo.builder()
+                        .id(order.getPartner().getId())
+                        .fullName(order.getPartner().getFullName())
+                        .email(order.getPartner().getEmail())
+                        .phone(order.getPartner().getPhone())
+                        .avatarUrl(order.getPartner().getAvatarUrl())
+                        .build() : null)
+                .shipperNotes(order.getShipperNotes())
+                .podPhoto(order.getPodPhoto())
+                .detailedStatus(order.getDetailedStatus())
+                .driverInfo(driverInfo)
                 .items(itemsMapped)
                 .thumbnails(thumbnails)
                 .itemCount(itemCount)
@@ -403,38 +466,95 @@ public class OrderService {
     public List<OrderResponse> getAllOrders() {
         List<Order> orders = orderRepository.findAll();
         orders.sort((o1, o2) -> {
-            if (o1.getCreatedAt() == null && o2.getCreatedAt() == null) return 0;
-            if (o1.getCreatedAt() == null) return 1;
-            if (o2.getCreatedAt() == null) return -1;
+            if (o1.getCreatedAt() == null && o2.getCreatedAt() == null)
+                return 0;
+            if (o1.getCreatedAt() == null)
+                return 1;
+            if (o2.getCreatedAt() == null)
+                return -1;
             return o2.getCreatedAt().compareTo(o1.getCreatedAt());
         });
         return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Transactional
-    public OrderResponse updateOrderStatusByAdmin(String orderCode, String newStatus, String paymentStatus) {
+    public OrderResponse updateOrderStatusByAdmin(String orderCode, String newStatus, String paymentStatus,
+            String reason) {
+        throw new RuntimeException("Quản trị viên không có quyền can thiệp vào các đơn hàng.");
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getShipperRequests(String email) {
+        List<Order> orders = orderRepository.findAvailableShipperRequests();
+        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getShipperAccepted(String email) {
+        List<Order> orders = orderRepository.findByPartnerEmailOrderByCreatedAtDesc(email);
+        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public OrderResponse acceptShipperRequest(String email, String orderCode, Map<String, String> driverInfo) {
+        Partner partner = partnerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đối tác vận chuyển."));
+
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 
-        String oldStatus = order.getStatus();
-        String statusLower = newStatus.toLowerCase();
-        order.setStatus(statusLower);
-
-        if (paymentStatus != null) {
-            order.setPaymentStatus(paymentStatus);
+        if (order.getPartner() != null) {
+            throw new RuntimeException("Đơn hàng này đã được một tài xế khác chấp nhận.");
         }
 
-        // Restore stock if transitioning to cancelled or rejected
-        if (("cancelled".equals(statusLower) || "rejected".equals(statusLower)) &&
-            !("cancelled".equalsIgnoreCase(oldStatus) || "rejected".equalsIgnoreCase(oldStatus))) {
-            for (OrderItem item : order.getItems()) {
-                Optional<Product> productOpt = productRepository.findById(item.getProductId());
-                if (productOpt.isPresent()) {
-                    Product product = productOpt.get();
-                    product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
-                    productRepository.save(product);
-                }
-            }
+        order.setPartner(partner);
+        order.setStatus("shipping");
+        order.setDetailedStatus("assigned");
+
+        // Save driver assignment info
+        if (driverInfo != null) {
+            if (driverInfo.get("driverName") != null) order.setDriverName(driverInfo.get("driverName"));
+            if (driverInfo.get("driverCode") != null) order.setDriverCode(driverInfo.get("driverCode"));
+            if (driverInfo.get("driverPhone") != null) order.setDriverPhone(driverInfo.get("driverPhone"));
+            if (driverInfo.get("vehicleType") != null) order.setVehicleType(driverInfo.get("vehicleType"));
+            if (driverInfo.get("licensePlate") != null) order.setLicensePlate(driverInfo.get("licensePlate"));
+        }
+
+        Order updatedOrder = orderRepository.save(order);
+        return mapToResponse(updatedOrder);
+    }
+
+    @Transactional
+    public OrderResponse rejectShipperRequest(String email, String orderCode, String reason) {
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+        order.setStatus("rejected");
+        order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Đối tác vận chuyển từ chối");
+        Order updatedOrder = orderRepository.save(order);
+        return mapToResponse(updatedOrder);
+    }
+
+    @Transactional
+    public OrderResponse updateShipperOrderStatus(String email, String orderCode, String newDetailedStatus,
+            String notes, String podPhoto) {
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+
+        if (order.getPartner() == null || !order.getPartner().getEmail().equalsIgnoreCase(email)) {
+            throw new RuntimeException("Bạn không có quyền cập nhật trạng thái đơn hàng này.");
+        }
+
+        order.setDetailedStatus(newDetailedStatus);
+        order.setShipperNotes(notes);
+        if (podPhoto != null && !podPhoto.isBlank()) {
+            order.setPodPhoto(podPhoto);
+        }
+
+        if ("delivered".equalsIgnoreCase(newDetailedStatus)) {
+            order.setStatus("delivered");
+            order.setPaymentStatus("paid");
+        } else {
+            order.setStatus("shipping");
         }
 
         Order updatedOrder = orderRepository.save(order);

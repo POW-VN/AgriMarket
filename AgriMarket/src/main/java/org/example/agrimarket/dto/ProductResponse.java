@@ -40,4 +40,10 @@ public class ProductResponse {
     private String farmerAvatarUrl;
     private String rejectionReason;
     private String adminNotes;
+    private Double rating;
+    private Integer reviewsCount;
+    private Integer sold;
+    private String farmerVietgapUrl;
+    private String farmerGlobalgapUrl;
+    private String farmerOrganicUrl;
 }

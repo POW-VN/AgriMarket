@@ -5,6 +5,7 @@ import { getAllApprovedProducts } from "../../services/productService";
 import cartService from "../../services/cartService";
 import "./Home.css";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
+import Header from "../../components/common/Header/Header";
 
 // Import local images
 import heroBanner from "./assets/hero_banner.png";
@@ -109,7 +110,6 @@ const Home = () => {
               🌾
             </div>
           )}
-          {p.isOrganic && <span className="tag-pill tag-organic" style={{ position: "absolute", top: "10px", left: "10px", zIndex: 1 }}>Hữu cơ</span>}
           {isBestSeller && <span className="tag-pill tag-bestseller" style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2 }}>🔥 Bán chạy nhất</span>}
         </div>
         <div className="card-body">
@@ -121,6 +121,50 @@ const Home = () => {
             {isBestSeller && <span className="bestseller-crown">🏆 </span>}
             {p.name}
           </h3>
+          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "4px", marginBottom: "4px" }}>
+            {(p.isOrganic || p.farmerOrganicUrl) && (
+              <span className="tag-pill tag-organic" style={{ 
+                backgroundColor: "#e8f5e9", 
+                color: "#2e7d32", 
+                fontSize: "10px", 
+                fontWeight: "700", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                border: "1px solid #c8e6c9",
+                display: "inline-block"
+              }}>
+                Hữu cơ
+              </span>
+            )}
+            {p.farmerVietgapUrl && (
+              <span className="tag-pill tag-vietgap" style={{ 
+                backgroundColor: "#e0f2fe", 
+                color: "#0369a1", 
+                fontSize: "10px", 
+                fontWeight: "700", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                border: "1px solid #bae6fd",
+                display: "inline-block"
+              }}>
+                VietGAP
+              </span>
+            )}
+            {p.farmerGlobalgapUrl && (
+              <span className="tag-pill tag-globalgap" style={{ 
+                backgroundColor: "#fee2e2", 
+                color: "#b91c1c", 
+                fontSize: "10px", 
+                fontWeight: "700", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                border: "1px solid #fecaca",
+                display: "inline-block"
+              }}>
+                GlobalGAP
+              </span>
+            )}
+          </div>
           
           {/* Rating and Sold */}
           <div className="product-rating-sold">
@@ -139,7 +183,7 @@ const Home = () => {
             <span className={`sold-count ${isBestSeller ? "bestseller-sold" : ""}`}>Đã bán {p.sold}</span>
           </div>
 
-          <p className="standard-card-farm">Nông trại địa phương</p>
+          <p className="standard-card-farm">{p.farmerName || "Nông trại địa phương"}</p>
           <div className="card-footer">
             <p className="standard-card-price">
               {p.price.toLocaleString("vi-VN")} đ <span className="unit">/ {p.unit}</span>
@@ -184,114 +228,7 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      {/* Header / Navbar */}
-      <header className="home-header">
-        <div className="header-container">
-          <div className="header-logo" onClick={() => navigate("/")}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="logo-tractor"
-            >
-              <circle cx="7" cy="18" r="2"></circle>
-              <circle cx="18" cy="18" r="2"></circle>
-              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-              <path d="M16 9h3l2 3v4"></path>
-            </svg>
-            <span className="logo-text">AgriMarket</span>
-          </div>
-
-          <nav className="header-nav">
-            <Link to="/" className="nav-link active">Trang chủ</Link>
-            <Link to="/shop" className="nav-link">Cửa hàng</Link>
-            <Link to="/farms" className="nav-link">Nông trại</Link>
-            {user && user.role === "admin" ? (
-              <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
-            ) : (
-              <Link to="/about" className="nav-link">Giới thiệu</Link>
-            )}
-          </nav>
-
-          <div className="header-actions">
-            {/* Search Icon */}
-            <button className="icon-btn" aria-label="Tìm kiếm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
-
-            {/* Cart Icon */}
-            {(!user || user.role !== "admin") && (
-              <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                {cartItemsCount > 0 && (
-                  <span className="cart-badge">{cartItemsCount}</span>
-                )}
-              </button>
-            )}
-
-            {/* Bell Icon (Thông báo) */}
-            {user && <NotificationBell user={user} />}
-
-            {/* Profile & Auth Info */}
-            {user ? (
-              <div className="auth-profile-container">
-                <div className="profile-indicator" onClick={() => navigate("/profile")} title="Xem hồ sơ">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.fullName} className="avatar-img" />
-                  ) : (
-                    <div className="avatar-fallback">
-                      {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                    </div>
-                  )}
-                  <span className="profile-name">{user.fullName}</span>
-                </div>
-                <button className="btn-auth btn-logout" onClick={handleLogout}>
-                  Đăng xuất
-                </button>
-              </div>
-            ) : (
-              <div className="auth-profile-container">
-                <button className="btn-auth btn-login" onClick={() => navigate("/login")}>
-                  Đăng nhập
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header activeTab="home" />
 
       <main className="home-main">
         {/* Hero Section */}

@@ -45,12 +45,21 @@ export const FarmerOverview = () => {
   return (
     <div className="fd-overview-tab">
       {/* Verification status alert */}
-      {farmerProfile?.verificationStatus === "pending" && (
+      {!loading && (!farmerProfile?.verificationStatus || farmerProfile.verificationStatus !== "verified") && (
         <div className="fd-alert alert-warning">
           <span className="icon">⚠️</span>
           <div className="body">
-            <strong>Hồ sơ trang trại đang chờ kiểm duyệt</strong>
-            <p>Ban quản trị đang rà soát hồ sơ của bạn. Bạn vẫn có thể thêm sản phẩm nhưng sản phẩm sẽ chỉ xuất hiện ngoài gian hàng sau khi trang trại được duyệt.</p>
+            {farmerProfile?.verificationStatus === "rejected" ? (
+              <>
+                <strong>Hồ sơ trang trại đã bị từ chối kiểm duyệt</strong>
+                <p>Hồ sơ của bạn không đạt yêu cầu kiểm duyệt. Vui lòng cập nhật lại thông tin trang trại hoặc liên hệ ban quản trị để được hỗ trợ.</p>
+              </>
+            ) : (
+              <>
+                <strong>Hồ sơ trang trại đang chờ kiểm duyệt</strong>
+                <p>Ban quản trị đang rà soát hồ sơ của bạn. Bạn vẫn có thể thêm sản phẩm nhưng sản phẩm sẽ chỉ xuất hiện ngoài gian hàng sau khi trang trại được duyệt.</p>
+              </>
+            )}
           </div>
         </div>
       )}

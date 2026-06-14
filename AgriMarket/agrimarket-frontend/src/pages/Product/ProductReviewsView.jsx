@@ -5,7 +5,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import { getProductById } from "../../services/productService";
-import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
+import reviewService from "../../services/reviewService";
+import Header from "../../components/common/Header/Header";
 import "./ProductReviewsView.css";
 
 /*
@@ -191,29 +192,17 @@ export default function ProductReviewsView() {
                     price: productData.price,
                     unit: productData.unit,
                     imageUrl: productData.imageUrl || productData.images?.[0],
-                    rating: productData.rating || 4.8,
-                    reviewsCount: productData.reviewsCount || 0,
+                    rating: (productData.rating !== undefined && productData.rating !== null) ? Number(productData.rating) : 0,
+                    reviewsCount: (productData.reviewsCount !== undefined && productData.reviewsCount !== null) ? Number(productData.reviewsCount) : 0,
                     isOrganic: productData.isOrganic,
                 });
 
-                /*
-                  TODO BACKEND:
-                  Hiện tại đang dùng mock review để hiển thị giao diện.
-                  Sau khi có API review thì thay bằng:
-                  const reviewsData = await reviewService.getReviewsByProductId(id);
-                  setReviews(reviewsData);
-                */
-                setReviews(MOCK_REVIEWS);
+                const reviewsData = await reviewService.getReviewsByProductId(id);
+                setReviews(reviewsData);
             } catch (err) {
                 console.error("Lỗi khi tải dữ liệu đánh giá sản phẩm:", err);
-
-                /*
-                  TODO BACKEND:
-                  Fallback này chỉ dùng khi API chưa ổn định.
-                  Khi backend hoàn chỉnh có thể xóa đoạn fallback này.
-                */
                 setProduct(MOCK_PRODUCT);
-                setReviews(MOCK_REVIEWS);
+                setReviews([]);
             } finally {
                 setLoading(false);
             }
@@ -349,59 +338,7 @@ export default function ProductReviewsView() {
 
     return (
         <div className="product-reviews-page">
-            {/* HEADER */}
-            <header className="prv-header">
-                <div className="prv-header-inner">
-                    <div className="prv-logo" onClick={() => navigate("/")}>
-                        <span className="prv-logo-icon">🚜</span>
-                        <span>AgriMarket</span>
-                    </div>
-
-                    <nav className="prv-nav">
-                        <Link to="/">Trang chủ</Link>
-                        <Link to="/shop">Cửa hàng</Link>
-                        <Link to="/farms">Nông trại</Link>
-                        <Link to="/about">Giới thiệu</Link>
-                    </nav>
-
-                    <div className="prv-header-actions">
-                        <button
-                            className="prv-icon-btn"
-                            aria-label="Giỏ hàng"
-                            onClick={() => navigate("/cart")}
-                        >
-                            🛒
-                            {cartItemsCount > 0 && (
-                                <span className="prv-cart-badge">{cartItemsCount}</span>
-                            )}
-                        </button>
-
-                        {user && <NotificationBell user={user} />}
-
-                        {user ? (
-                            <>
-                                <button
-                                    className="prv-user-btn"
-                                    onClick={() => navigate("/profile")}
-                                >
-                                    {user.avatarUrl ? (
-                                        <img src={user.avatarUrl} alt={user.fullName} />
-                                    ) : (
-                                        <span>{user.fullName?.charAt(0)?.toUpperCase() || "U"}</span>
-                                    )}
-                                </button>
-                                <button className="prv-logout-btn" onClick={handleLogout}>
-                                    Đăng xuất
-                                </button>
-                            </>
-                        ) : (
-                            <button className="prv-login-btn" onClick={() => navigate("/login")}>
-                                Đăng nhập
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </header>
+            <Header />
 
             <main className="prv-main">
                 <button

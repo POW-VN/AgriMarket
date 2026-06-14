@@ -126,11 +126,19 @@ const normalizeProduct = (item) => {
         certificateUrl: getFullImageUrl(item.certificateUrl || item.certificate_url || ""),
         isLocal: true,
         images: resolvedImages,
-        reviewsCount: Number(item.reviewsCount || item.reviews_count || (10 + (Number(item.id || 0) * 7) % 150)),
+        reviewsCount: (item.reviewsCount !== undefined && item.reviewsCount !== null)
+            ? Number(item.reviewsCount)
+            : ((item.reviews_count !== undefined && item.reviews_count !== null)
+                ? Number(item.reviews_count)
+                : (10 + (Number(item.id || 0) * 7) % 150)),
 
         // rating and sales (sold)
-        rating: Number(item.rating || (4.0 + (Number(item.id || 0) % 11) * 0.1).toFixed(1)),
-        sold: Number(item.sold || ((Number(item.id || 0) * 17) % 150) + 10),
+        rating: (item.rating !== undefined && item.rating !== null)
+            ? Number(item.rating)
+            : Number((4.0 + (Number(item.id || 0) % 11) * 0.1).toFixed(1)),
+        sold: (item.sold !== undefined && item.sold !== null)
+            ? Number(item.sold)
+            : 0,
 
         // product_image.img_url
         // Backend nên trả ảnh thumbnail là thumbnail_url
@@ -141,6 +149,9 @@ const normalizeProduct = (item) => {
         farmerAvatarUrl: getFullImageUrl(item.farmerAvatarUrl || item.farmer_avatar_url || item.farmer?.avatarUrl || ""),
         adminNotes: item.adminNotes || item.admin_notes || "",
         rejectionReason: item.rejectionReason || item.rejection_reason || "",
+        farmerVietgapUrl: item.farmerVietgapUrl || item.farmer_vietgap_url || "",
+        farmerGlobalgapUrl: item.farmerGlobalgapUrl || item.farmer_globalgap_url || "",
+        farmerOrganicUrl: item.farmerOrganicUrl || item.farmer_organic_url || "",
     };
 };
 

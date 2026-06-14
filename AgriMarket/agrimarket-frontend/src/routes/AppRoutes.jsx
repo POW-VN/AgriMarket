@@ -31,9 +31,8 @@ import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
-import ShipmentRequests from "../pages/Admin/ShipmentRequests";
-import ShipmentTracking from "../pages/Admin/ShipmentTracking";
-import ShipperDashboard from "../pages/Shipper/ShipperDashboard";
+import ShipmentRequests from "../pages/Shipper/ShipmentRequests";
+import UpdateShipmentStatus from "../pages/Shipper/UpdateShipmentStatus";
 import ProductApproval from "../pages/Admin/ProductApproval";
 import OrderManagement from "../pages/Admin/OrderManagement";
 import ProductReview from "../pages/Orders/ProductReview";
@@ -105,6 +104,11 @@ const AppRoutes = () => {
         <Route path="/admin/users/create" element={<CreateAccount />} />
         <Route path="/admin/products" element={<ProductApproval />} />
         <Route path="/admin/orders" element={<OrderManagement />} />
+
+        {/* Shipper Routes */}
+        <Route path="/shipper/dashboard" element={<Navigate to="/shipper/requests" replace />} />
+        <Route path="/shipper/requests" element={<ShipmentRequests />} />
+        <Route path="/shipper/update-status" element={<UpdateShipmentStatus />} />
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />

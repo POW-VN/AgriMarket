@@ -607,7 +607,7 @@ export const CustomerOrderDetail = () => {
                               })
                             }
                           >
-                            Đánh giá
+                            {item.isReviewed ? "Sửa đánh giá" : "Đánh giá"}
                           </button>
                         </div>
                       )}

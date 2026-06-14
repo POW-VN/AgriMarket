@@ -5,6 +5,7 @@ import cartService from "../../services/cartService";
 import orderService from "../../services/orderService";
 import Footer from "../../components/common/Footer/Footer";
 import "./PaymentPage.css";
+import Header from "../../components/common/Header/Header";
 
 const INITIAL_ORDERS = [
     {
@@ -237,38 +238,7 @@ export default function PaymentPage() {
     if (!pendingOrder && !isSuccess) {
         return (
             <div className="payment-page-wrapper">
-                <header className="home-header">
-                    <div className="header-container">
-                        <div className="header-logo" onClick={() => navigate("/")}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logo-tractor">
-                                <circle cx="7" cy="18" r="2"></circle>
-                                <circle cx="18" cy="18" r="2"></circle>
-                                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                                <path d="M16 9h3l2 3v4"></path>
-                            </svg>
-                            <span className="logo-text">AgriMarket</span>
-                        </div>
-                        <nav className="header-nav">
-                            <Link to="/" className="nav-link">Trang chủ</Link>
-                            <Link to="/products" className="nav-link">Cửa hàng</Link>
-                            <Link to="/farms" className="nav-link">Nông trại</Link>
-                            {user && user.role === "admin" ? (
-                                <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
-                            ) : (
-                                <Link to="/about" className="nav-link">Giới thiệu</Link>
-                            )}
-                        </nav>
-                        <div className="header-actions">
-                            <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                                    <circle cx="9" cy="21" r="1"></circle>
-                                    <circle cx="20" cy="21" r="1"></circle>
-                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </header>
+                <Header />
 
                 <main className="payment-main-container">
                     <div className="payment-empty-container">
@@ -288,99 +258,7 @@ export default function PaymentPage() {
     return (
         <div className="payment-page-wrapper">
             {/* ── HEADER ── */}
-            <header className="home-header">
-                <div className="header-container">
-                    <div className="header-logo" onClick={() => navigate("/")}>
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="logo-tractor"
-                        >
-                            <circle cx="7" cy="18" r="2"></circle>
-                            <circle cx="18" cy="18" r="2"></circle>
-                            <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                            <path d="M16 9h3l2 3v4"></path>
-                        </svg>
-                        <span className="logo-text">AgriMarket</span>
-                    </div>
-
-                    <nav className="header-nav">
-                        <Link to="/" className="nav-link">Trang chủ</Link>
-                        <Link to="/products" className="nav-link">Cửa hàng</Link>
-                        <Link to="/farms" className="nav-link">Nông trại</Link>
-                        {user && user.role === "admin" ? (
-                            <Link to="/admin/users" className="nav-link">AgriAdmin</Link>
-                        ) : (
-                            <Link to="/about" className="nav-link">Giới thiệu</Link>
-                        )}
-                    </nav>
-
-                    <div className="header-actions">
-                        <button className="icon-btn" aria-label="Tìm kiếm">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                        </button>
-
-                        {(!user || user.role !== "admin") && (
-                            <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                                    <circle cx="9" cy="21" r="1"></circle>
-                                    <circle cx="20" cy="21" r="1"></circle>
-                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                </svg>
-                                {cartItemsCount > 0 && (
-                                    <span className="cart-badge">{cartItemsCount}</span>
-                                )}
-                            </button>
-                        )}
-
-                        {user ? (
-                            <div className="auth-profile-container" style={{ position: "relative" }}>
-                                <div
-                                    className="profile-indicator"
-                                    onClick={() => setShowProfileDropdown(v => !v)}
-                                    title="Tùy chọn tài khoản"
-                                >
-                                    {user.avatarUrl ? (
-                                        <img src={user.avatarUrl} alt={user.fullName} className="avatar-img" />
-                                    ) : (
-                                        <div className="avatar-fallback">
-                                            {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                                        </div>
-                                    )}
-                                    <span className="profile-name">{user.fullName}</span>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12" style={{ marginLeft: "4px" }}>
-                                        <polyline points="6 9 12 15 18 9" />
-                                    </svg>
-                                </div>
-
-                                {showProfileDropdown && (
-                                    <div className="header-dropdown-menu">
-                                        <button onClick={() => { navigate("/profile"); setShowProfileDropdown(false); }}>Hồ sơ của tôi</button>
-                                        <button onClick={() => { navigate("/profile/orders"); setShowProfileDropdown(false); }}>Lịch sử đơn hàng</button>
-                                        <button onClick={() => { navigate("/security"); setShowProfileDropdown(false); }}>Bảo mật</button>
-                                        <hr />
-                                        <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <button className="btn-auth btn-login" onClick={() => navigate("/login")}>
-                                Đăng nhập
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </header>
+            <Header />
 
             <main className="payment-main-container">
                 {/* ── SUCCESS RECEIPT SCREEN ── */}

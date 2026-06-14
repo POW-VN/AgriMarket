@@ -189,6 +189,15 @@ public class AdminUserController {
             }
         }
 
+        if (phone != null && !phone.trim().isEmpty()) {
+            String trimmedPhone = phone.trim();
+            if (customerRepository.existsByPhone(trimmedPhone) ||
+                farmerRepository.existsByPhone(trimmedPhone) ||
+                partnerRepository.findByPhone(trimmedPhone).isPresent()) {
+                return ResponseEntity.badRequest().body("Số điện thoại đã tồn tại trong hệ thống");
+            }
+        }
+
         String encodedPassword = passwordEncoder.encode(password != null ? password : "Password123");
 
         if ("admin".equals(role)) {
@@ -279,6 +288,11 @@ public class AdminUserController {
             Farmer f = farmerRepository.findById(id).orElse(null);
             if (f == null) return ResponseEntity.notFound().build();
             f.setStatus(newStatus);
+            if ("active".equalsIgnoreCase(newStatus)) {
+                f.setVerificationStatus("verified");
+            } else if ("suspended".equalsIgnoreCase(newStatus) || "rejected".equalsIgnoreCase(newStatus)) {
+                f.setVerificationStatus("rejected");
+            }
             farmerRepository.save(f);
             
             // Sync status to Customer with same email (lock/unlock)

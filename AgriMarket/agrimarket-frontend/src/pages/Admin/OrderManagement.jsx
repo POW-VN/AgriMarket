@@ -799,6 +799,54 @@ const OrderManagement = () => {
           { name: "Cam sành hữu cơ loại 1 (10kg)", farmer: "Trang trại Cam Sạch Tiền Giang", price: 70000, qty: 10, img: "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150" },
           { name: "Cà rốt Đà Lạt chuẩn VietGAP", farmer: "Trang trại Cam Sạch Tiền Giang", price: 270000, qty: 2, img: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=150" }
         ]
+      },
+      {
+        id: "ORD-8919",
+        status: "cancelled",
+        statusLabel: "Đã hủy",
+        date: "22/10/2023",
+        time: "11:20",
+        subtotal: 500000,
+        shippingFee: 30000,
+        serviceFee: 10000,
+        discount: 0,
+        amount: 540000,
+        recipient: "Lê Văn B",
+        address: "789 Nguyễn Trãi, Quận 5, TP. Hồ Chí Minh",
+        phone: "0901234567",
+        trackingNumber: "",
+        paymentMethod: "COD (Thanh toán khi nhận)",
+        paymentStatus: "unpaid",
+        customerAvatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+        shippingNote: "",
+        cancelReason: "Khách hàng đổi ý, muốn mua sản phẩm khác.",
+        items: [
+          { name: "Táo sạch Honeycrisp (10kg)", farmer: "Sunrise Orchards", price: 500000, qty: 1, img: "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150" }
+        ]
+      },
+      {
+        id: "ORD-8918",
+        status: "rejected",
+        statusLabel: "Đã từ chối",
+        date: "21/10/2023",
+        time: "15:45",
+        subtotal: 1500000,
+        shippingFee: 30000,
+        serviceFee: 10000,
+        discount: 0,
+        amount: 1540000,
+        recipient: "Phan Thanh C",
+        address: "101 Trần Hưng Đạo, Quận 1, TP. Hồ Chí Minh",
+        phone: "0934567890",
+        trackingNumber: "",
+        paymentMethod: "Thẻ tín dụng",
+        paymentStatus: "unpaid",
+        customerAvatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
+        shippingNote: "",
+        cancelReason: "Hết hàng tồn kho do thời tiết bất lợi.",
+        items: [
+          { name: "Giỏ cam ngọt cao cấp", farmer: "Sunrise Orchards", price: 1500000, qty: 1, img: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=150" }
+        ]
       }
     ];
   };
@@ -843,12 +891,6 @@ const OrderManagement = () => {
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             </span>
             Quản lý tài khoản
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/shipment-requests")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path></svg>
-            </span>
-            Yêu cầu vận chuyển
           </button>
           <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
             <span className="admin-nav-icon">
@@ -1032,6 +1074,16 @@ const OrderManagement = () => {
                           </span>
                         </div>
                       </div>
+                      {(selectedOrder.status?.toLowerCase() === "cancelled" || selectedOrder.status?.toLowerCase() === "rejected") && (
+                        <div className="details-field-item" style={{ marginTop: "4px", padding: "10px 12px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px" }}>
+                          <span className="details-field-label" style={{ fontSize: "11px", color: "#991b1b", textTransform: "uppercase", fontWeight: "700" }}>
+                            Lý do {selectedOrder.status?.toLowerCase() === "cancelled" ? "hủy" : "từ chối"}
+                          </span>
+                          <span className="details-field-value" style={{ fontWeight: "600", color: "#991b1b", display: "block", marginTop: "4px", fontSize: "13px", lineHeight: "1.4" }}>
+                            {selectedOrder.cancelReason || "Không có lý do cụ thể"}
+                          </span>
+                        </div>
+                      )}
                       <div className="details-field-item">
                         <span className="details-field-label" style={{ fontSize: "12px", color: "var(--admin-text-muted)", textTransform: "uppercase", fontWeight: "600" }}>Thanh toán</span>
                         <div style={{ marginTop: "4px" }}>
@@ -1702,6 +1754,11 @@ const OrderManagement = () => {
                                   </>
                                 )}
                               </span>
+                              {(order.status?.toLowerCase() === 'cancelled' || order.status?.toLowerCase() === 'rejected') && order.cancelReason && (
+                                <div style={{ fontSize: "11px", color: "#b91c1c", marginTop: "4px", fontWeight: "600", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={order.cancelReason}>
+                                  Lý do: {order.cancelReason}
+                                </div>
+                              )}
                             </td>
                             <td>
                               <span style={{ color: "#4b5563", fontSize: "14px" }}>{order.date}</span>

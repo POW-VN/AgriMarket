@@ -1,0 +1,791 @@
+/* UpdateShipmentStatus.css */
+
+:root {
+  --logistics-primary: #064e3b;
+  --logistics-primary-light: #d1fae5;
+  --logistics-text-main: #111827;
+  --logistics-text-muted: #6b7280;
+  --logistics-border: #e5e7eb;
+  --logistics-bg: #f9fafb;
+  --logistics-active-green: #10b981;
+}
+
+.logistics-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--logistics-text-main);
+  background-color: var(--logistics-bg);
+}
+
+/* TOP NAVBAR */
+.logistics-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--logistics-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-brand-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.navbar-brand-logo {
+  color: var(--logistics-primary);
+  display: flex;
+  align-items: center;
+}
+
+.navbar-brand-text {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--logistics-primary);
+  letter-spacing: -0.02em;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 24px;
+}
+
+.navbar-link-item {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--logistics-text-muted);
+  cursor: pointer;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.navbar-link-item:hover {
+  color: var(--logistics-primary);
+}
+
+.navbar-link-item.active {
+  color: var(--logistics-primary);
+}
+
+.navbar-link-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--logistics-primary);
+  border-radius: 2px;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navbar-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #374151;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.navbar-action-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.navbar-profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--logistics-primary);
+}
+
+/* MAIN LAYOUT WITH SIDEBAR */
+.logistics-main-wrapper {
+  display: flex;
+  flex: 1;
+}
+
+/* SIDEBAR */
+.logistics-sidebar {
+  width: 260px;
+  background-color: #ffffff;
+  border-right: 1px solid var(--logistics-border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title-section {
+  margin-bottom: 24px;
+  padding-left: 8px;
+}
+
+.sidebar-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--logistics-text-main);
+  margin: 0;
+}
+
+.sidebar-subtitle {
+  font-size: 12px;
+  color: var(--logistics-text-muted);
+  margin: 2px 0 0 0;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.sidebar-menu-btn:hover {
+  background-color: #f3f4f6;
+  color: var(--logistics-primary);
+}
+
+.sidebar-menu-btn.active {
+  background-color: var(--logistics-primary-light);
+  color: var(--logistics-primary);
+}
+
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CONTENT CONTAINER */
+.logistics-content-container {
+  flex: 1;
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CONTENT HEADER */
+.content-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.content-title-section h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--logistics-text-main);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.content-title-section p {
+  font-size: 14.5px;
+  color: var(--logistics-text-muted);
+  margin: 6px 0 0 0;
+}
+
+.content-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-outline-action {
+  background-color: #ffffff;
+  border: 1px solid var(--logistics-border);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.btn-outline-action:hover {
+  background-color: #f9fafb;
+}
+
+.btn-solid-action {
+  background-color: var(--logistics-primary);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.btn-solid-action:hover {
+  opacity: 0.9;
+}
+
+/* DASHBOARD GRID */
+.update-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.grid-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grid-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* CARDS COMMON */
+.logistics-card {
+  background-color: #ffffff;
+  border: 1px solid var(--logistics-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  padding: 24px;
+  position: relative;
+}
+
+/* SHIPMENT CARD SPECIAL */
+.shipment-info-card {
+  border-left: 4px solid var(--logistics-primary);
+}
+
+.shipment-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.shipment-tag-gray {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shipment-tag-green {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-floating-badge {
+  margin-left: auto;
+  background-color: var(--logistics-primary-light);
+  color: var(--logistics-primary);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-floating-badge.incident {
+  background-color: #fef2f2;
+  color: #b91c1c;
+}
+
+.shipment-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 16px 0;
+  color: var(--logistics-text-main);
+}
+
+.shipment-details-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  gap: 10px;
+}
+
+.detail-icon {
+  font-size: 16px;
+  color: var(--logistics-text-muted);
+  margin-top: 2px;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--logistics-text-muted);
+  display: block;
+}
+
+.detail-value {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--logistics-text-main);
+  margin: 2px 0 0 0;
+}
+
+/* TIMELINE SECTION */
+.timeline-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--logistics-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 20px 0;
+}
+
+.horizontal-timeline {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  padding: 0 20px;
+  margin: 20px 0 10px 0;
+}
+
+.timeline-line {
+  position: absolute;
+  top: 18px;
+  left: 40px;
+  right: 40px;
+  height: 3px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.timeline-node-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  width: 80px;
+}
+
+.timeline-node-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 3px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.3s;
+}
+
+.timeline-node-item.completed .timeline-node-circle {
+  background-color: var(--logistics-primary);
+  border-color: var(--logistics-primary);
+  color: #ffffff;
+}
+
+.timeline-node-item.active .timeline-node-circle {
+  background-color: var(--logistics-primary-light);
+  border-color: var(--logistics-primary);
+  color: var(--logistics-primary);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+.timeline-node-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--logistics-text-main);
+  margin: 8px 0 0 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.timeline-node-time {
+  font-size: 11px;
+  color: var(--logistics-text-muted);
+  margin-top: 2px;
+  text-align: center;
+}
+
+.timeline-node-item.active .timeline-node-time {
+  color: var(--logistics-primary);
+  font-weight: 600;
+}
+
+/* FORM STYLING */
+.form-section-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--logistics-text-main);
+  margin: 0 0 20px 0;
+  border-bottom: 1px solid var(--logistics-border);
+  padding-bottom: 10px;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group-item label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--logistics-text-main);
+}
+
+.logistics-select, .logistics-input, .logistics-textarea {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--logistics-border);
+  font-size: 14.5px;
+  color: var(--logistics-text-main);
+  background-color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.logistics-select:focus, .logistics-input:focus, .logistics-textarea:focus {
+  border-color: var(--logistics-primary);
+}
+
+.logistics-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* UPLOAD ZONE */
+.upload-dropzone {
+  border: 2px dashed var(--logistics-border);
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  background-color: #fafbfb;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-dropzone:hover {
+  border-color: var(--logistics-primary);
+  background-color: #f4fbf7;
+}
+
+.upload-icon {
+  color: var(--logistics-text-muted);
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--logistics-text-main);
+  margin: 0;
+}
+
+.upload-subtext {
+  font-size: 12px;
+  color: var(--logistics-text-muted);
+  margin: 4px 0 0 0;
+}
+
+.uploaded-preview-container {
+  position: relative;
+  margin-top: 12px;
+  max-width: 100%;
+}
+
+.uploaded-preview-img {
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.btn-remove-preview {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* SIDEBAR CARDS */
+.side-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--logistics-text-main);
+  margin: 0 0 14px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.side-map-wrapper {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--logistics-border);
+  position: relative;
+}
+
+.side-map-eta {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--logistics-text-main);
+  margin: 12px 0 0 0;
+  text-align: center;
+}
+
+.quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-quick-action {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--logistics-border);
+  background-color: #ffffff;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.2s;
+}
+
+.btn-quick-action:hover {
+  background-color: #f9fafb;
+  border-color: var(--logistics-primary);
+}
+
+.action-btn-subtitle {
+  font-size: 11px;
+  color: var(--logistics-text-muted);
+  font-weight: 500;
+}
+
+/* FOOTER */
+.logistics-footer {
+  background-color: #ffffff;
+  border-top: 1px solid var(--logistics-border);
+  padding: 16px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--logistics-text-muted);
+  margin-top: auto;
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
+}
+
+.footer-link {
+  color: var(--logistics-text-muted);
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--logistics-primary);
+}
+
+/* TOAST */
+.logistics-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: var(--logistics-primary);
+  color: #ffffff;
+  padding: 14px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(100%) scale(0.9); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* --- Retained styles from ShipmentTracking.css for UpdateShipmentStatus page layout --- */
+
+.ast-header {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #E5E8E5;
+  padding: 20px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ast-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #718096;
+  margin-bottom: 6px;
+}
+
+.ast-breadcrumbs .separator {
+  color: #A0AEC0;
+}
+
+.ast-breadcrumbs .current {
+  color: #2D3748;
+  font-weight: 500;
+}
+
+.ast-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ast-title-row h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0A2F1D;
+  margin: 0;
+}
+
+.ast-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-print-manifest {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E0;
+  color: #4A5568;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-print-manifest:hover {
+  background-color: #F7FAFC;
+  border-color: #A0AEC0;
+}
+
+.btn-update-status {
+  background-color: #0A2F1D;
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  box-shadow: 0 4px 10px rgba(10, 47, 29, 0.12);
+}
+
+.btn-update-status:hover {
+  background-color: #11412A;
+  transform: translateY(-1px);
+}
+
+.ast-content-body {
+  padding: 32px;
+  background-color: #F8F9FA;
+  flex: 1;
+}
