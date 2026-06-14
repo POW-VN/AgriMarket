@@ -176,11 +176,11 @@ export const AddProduct = () => {
         setAiGeneratedText(cleaned);
         setShowAiModal(true);
       } else {
-        showToast("Không thể sinh mô tả tự động lúc này. Vui lòng thử lại.", "error");
+        showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
       }
     } catch (err) {
       console.error("AI generation failed:", err);
-      showToast("Sinh mô tả thất bại: " + (err.response?.data || err.message), "error");
+      showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
     } finally {
       setIsAiGenerating(false);
     }
@@ -210,11 +210,11 @@ export const AddProduct = () => {
         setAiPriceData(response.data);
         setShowAiPriceModal(true);
       } else {
-        showToast("Không thể gợi ý giá lúc này. Vui lòng thử lại.", "error");
+        showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
       }
     } catch (err) {
       console.error("AI price suggestion failed:", err);
-      showToast("Gợi ý giá thất bại: " + (err.response?.data || err.message), "error");
+      showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
     } finally {
       setIsAiSuggestingPrice(false);
     }
