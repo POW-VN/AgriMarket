@@ -66,11 +66,13 @@ public class AuthService {
         if (user == null) {
             Optional<Customer> customerOpt = customerRepository.findByEmail(email);
             if (customerOpt.isPresent()) {
-                user = customerOpt.get();
                 // Check if this Customer is also registered as a Farmer
-                if (farmerRepository.findByEmail(email).isPresent()) {
+                Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+                if (farmerOpt.isPresent()) {
+                    user = farmerOpt.get();
                     resolvedRole = "farmer";
                 } else {
+                    user = customerOpt.get();
                     resolvedRole = "customer";
                 }
             }
@@ -161,6 +163,9 @@ public class AuthService {
 
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
+        String rawPhone = request.getPhoneNumber();
+        String normalizedPhone = (rawPhone != null && !rawPhone.trim().isEmpty()) ? rawPhone.trim() : null;
+
         switch (role) {
 
             case "customer":
@@ -169,7 +174,7 @@ public class AuthService {
 
                 customer.setFullName(request.getFullName());
                 customer.setEmail(request.getEmail());
-                customer.setPhone(request.getPhoneNumber());
+                customer.setPhone(normalizedPhone);
                 customer.setPassword(hashedPassword);
                 customer.setStatus("active");
                 customer.setCreatedAt(LocalDateTime.now());
@@ -182,7 +187,7 @@ public class AuthService {
 
                 farmer.setFullName(request.getFullName());
                 farmer.setEmail(request.getEmail());
-                farmer.setPhone(request.getPhoneNumber());
+                farmer.setPhone(normalizedPhone);
                 farmer.setPassword(hashedPassword);
                 farmer.setVerificationStatus("pending");
                 farmer.setStatus("pending");
@@ -256,10 +261,12 @@ public class AuthService {
                 customer.setPhone(phone.trim());
                 customer = customerRepository.save(customer);
             }
-            user = customer;
-            if (farmerRepository.findByEmail(email).isPresent()) {
+            Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+            if (farmerOpt.isPresent()) {
+                user = farmerOpt.get();
                 resolvedRole = "farmer";
             } else {
+                user = customer;
                 resolvedRole = "customer";
             }
         } else if (farmer != null) {

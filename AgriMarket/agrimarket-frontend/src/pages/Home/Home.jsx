@@ -16,7 +16,6 @@ const MAIN_CATEGORIES = [
   { name: "Rau củ quả", icon: "🥕" },
   { name: "Trái cây", icon: "🍎" },
   { name: "Cây công nghiệp", icon: "🪵" },
-  { name: "Nông sản hữu cơ", icon: "🌿" },
   { name: "Chăn nuôi", icon: "🐖" },
   { name: "Giống cây trồng", icon: "🌱" },
   { name: "Nông sản chế biến", icon: "🥫" },
@@ -76,7 +75,7 @@ const Home = () => {
   const displayProducts = products;
 
   const filteredProducts = displayProducts.filter((product) => {
-    const mainNames = ["Cây lương thực", "Rau củ quả", "Trái cây", "Cây công nghiệp", "Nông sản hữu cơ", "Chăn nuôi", "Giống cây trồng", "Nông sản chế biến"];
+    const mainNames = ["Cây lương thực", "Rau củ quả", "Trái cây", "Cây công nghiệp", "Chăn nuôi", "Giống cây trồng", "Nông sản chế biến"];
     if (selectedCategory === "Khác") {
       return !mainNames.includes(product.category);
     }

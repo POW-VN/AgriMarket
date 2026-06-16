@@ -22,6 +22,8 @@ public class OrderResponse {
     private String phone;
     private String trackingNumber;
     private String cancelReason;
+    private String cancelBy;
+    private java.time.LocalDateTime cancelledAt;
     private String customerAvatarUrl;
     private String shippingNote;
     private ProviderInfo provider;

@@ -20,9 +20,7 @@ public class ProductResponse {
     private String categoryName;
     private String name;
     private String description;
-    private String aiGeneratedDescription;
     private Double price;
-    private Double aiSuggestedPrice;
     private Integer stockQuantity;
     private String unit;
     private String status;
@@ -30,7 +28,6 @@ public class ProductResponse {
     private LocalDate expirationDate;
     private LocalDateTime createdAt;
     private Boolean isOrganic;
-    private String certificateUrl;
     private String traceabilityImageUrl;
     private String thumbnailUrl;
     private List<String> images;

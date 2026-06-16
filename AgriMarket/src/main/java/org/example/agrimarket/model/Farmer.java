@@ -6,34 +6,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "farmer")
+@PrimaryKeyJoinColumn(name = "id")
+@DiscriminatorValue("FARMER")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Farmer {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Farmer extends User {
 
     @Transient
     private String role = "farmer";
 
-    @Column(name = "full_name", columnDefinition = "nvarchar(255)")
-    private String fullName;
-    
-    private String email;
-    private String phone;
-    private String password;
-
     @Column(name = "password_set")
     private Boolean passwordSet = true;
-    
-    @Column(name = "avatar_url")
-    private String avatarUrl;
     
     @Column(name = "farm_name", columnDefinition = "nvarchar(255)")
     private String farmName;
@@ -67,11 +54,4 @@ public class Farmer {
     
     @Column(name = "total_products")
     private Integer totalProducts;
-    
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
-    private String status; // active, banned, pending
 }
-
-

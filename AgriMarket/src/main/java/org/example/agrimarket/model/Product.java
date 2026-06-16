@@ -34,14 +34,8 @@ public class Product {
     @Column(columnDefinition = "nvarchar(max)")
     private String description;
 
-    @Column(name = "ai_generated_description", columnDefinition = "nvarchar(max)")
-    private String aiGeneratedDescription;
-
     @Column(nullable = false)
     private Double price;
-
-    @Column(name = "ai_suggested_price")
-    private Double aiSuggestedPrice;
 
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity = 0;
@@ -60,8 +54,6 @@ public class Product {
     @Column(name = "is_organic")
     private Boolean isOrganic = false;
 
-    @Column(name = "certificate_url", length = 1000)
-    private String certificateUrl;
 
     @Column(name = "traceability_image_url", length = 1000)
     private String traceabilityImageUrl;

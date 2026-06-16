@@ -9,7 +9,6 @@ const CATEGORIES = [
   "Rau củ quả",
   "Trái cây",
   "Cây công nghiệp",
-  "Nông sản hữu cơ",
   "Chăn nuôi",
   "Giống cây trồng",
   "Nông sản chế biến",

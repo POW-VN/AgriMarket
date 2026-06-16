@@ -193,7 +193,6 @@ public class ProfileController {
 
         // Collect all physical files to delete after database deletions succeed
         List<String> filesToDeleteProducts = new java.util.ArrayList<>();
-        List<String> filesToDeleteCertificates = new java.util.ArrayList<>();
         List<String> filesToDeleteTraceability = new java.util.ArrayList<>();
         List<String> filesToDeleteDocuments = new java.util.ArrayList<>();
         List<String> avatarsToDelete = new java.util.ArrayList<>();
@@ -226,9 +225,6 @@ public class ProfileController {
             List<Product> products = productRepository.findByFarmerIdOrderByCreatedAtDesc(farmer.getId());
             if (products != null) {
                 for (Product product : products) {
-                    if (product.getCertificateUrl() != null) {
-                        filesToDeleteCertificates.add(product.getCertificateUrl());
-                    }
                     if (product.getTraceabilityImageUrl() != null) {
                         filesToDeleteTraceability.add(product.getTraceabilityImageUrl());
                     }
@@ -257,9 +253,6 @@ public class ProfileController {
             }
             for (String url : filesToDeleteDocuments) {
                 deletePhysicalFile(url, "documents");
-            }
-            for (String url : filesToDeleteCertificates) {
-                deletePhysicalFile(url, "certificates");
             }
             for (String url : filesToDeleteTraceability) {
                 deletePhysicalFile(url, "traceability");
@@ -291,17 +284,12 @@ public class ProfileController {
             jdbcTemplate.update("DELETE FROM preorder WHERE customer_id = ?", customerId);
         }
 
-        // 3. wishlist_item
-        if (customerId != null) {
-            jdbcTemplate.update("DELETE FROM wishlist_item WHERE wishlist_id IN (SELECT id FROM wishlist WHERE customer_id = ?)", customerId);
-        }
-        if (farmerId != null) {
-            jdbcTemplate.update("DELETE FROM wishlist_item WHERE product_id IN (SELECT id FROM product WHERE farmer_id = ?)", farmerId);
-        }
-
-        // 4. wishlist
+        // 3. wishlist
         if (customerId != null) {
             jdbcTemplate.update("DELETE FROM wishlist WHERE customer_id = ?", customerId);
+        }
+        if (farmerId != null) {
+            jdbcTemplate.update("DELETE FROM wishlist WHERE product_id IN (SELECT id FROM product WHERE farmer_id = ?)", farmerId);
         }
 
         // 5. checkout_item
@@ -400,9 +388,7 @@ public class ProfileController {
 
         if (!orderIds.isEmpty()) {
             String idsCsv = orderIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
-            jdbcTemplate.update("DELETE FROM order_cancellation WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM payment WHERE order_id IN (" + idsCsv + ")");
-            jdbcTemplate.update("DELETE FROM shipments WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM product_review WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM farmer_review WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM order_item WHERE order_id IN (" + idsCsv + ")");

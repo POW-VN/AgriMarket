@@ -518,7 +518,7 @@ const MOCK_PRODUCTS = [
     {
         id: "mock-8",
         name: "Trà ô long thượng hạng",
-        category: "Nông sản hữu cơ",
+        category: "Nông sản chế biến",
         price: 250000,
         unit: "hộp",
         isOrganic: true,

@@ -6,31 +6,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "admin")
+@PrimaryKeyJoinColumn(name = "id")
+@DiscriminatorValue("ADMIN")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Admin {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Admin extends User {
 
     @Transient
     private String role = "admin";
-
-    @Column(name = "full_name", columnDefinition = "nvarchar(255)")
-    private String fullName;
-    
-    private String email;
-    private String password;
-    
-    @Column(name = "avatar_url")
-    private String avatarUrl;
-    
-    @Column(name = "create_at")
-    private LocalDateTime createdAt;
 }

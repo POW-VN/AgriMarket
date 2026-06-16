@@ -28,20 +28,16 @@ public class Order {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Column(name = "recipient", nullable = false, columnDefinition = "nvarchar(255)")
-    private String recipient;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_group_id", nullable = false)
+    private OrderGroup orderGroup;
 
-    @Column(name = "phone", nullable = false)
-    private String phone;
-
-    @Column(name = "address", columnDefinition = "nvarchar(1000)", nullable = false)
-    private String address;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "farmer_id", nullable = false)
+    private Farmer farmer;
 
     @Column(name = "shipping_note", columnDefinition = "nvarchar(1000)")
     private String shippingNote;
-
-    @Column(name = "payment_method", columnDefinition = "nvarchar(100)", nullable = false)
-    private String paymentMethod;
 
     @Column(name = "payment_status", nullable = false)
     private String paymentStatus; // unpaid, paid, refunded
@@ -69,6 +65,12 @@ public class Order {
 
     @Column(name = "cancel_reason", columnDefinition = "nvarchar(1000)")
     private String cancelReason;
+
+    @Column(name = "cancel_by")
+    private String cancelBy;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id")

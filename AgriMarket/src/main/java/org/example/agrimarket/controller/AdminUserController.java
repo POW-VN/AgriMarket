@@ -175,7 +175,8 @@ public class AdminUserController {
         if (email != null) {
             email = email.trim().toLowerCase();
         }
-        String phone = (String) payload.get("phone");
+        String phoneInput = (String) payload.get("phone");
+        String phone = (phoneInput != null && !phoneInput.trim().isEmpty()) ? phoneInput.trim() : null;
         String password = (String) payload.get("password");
         String avatarUrl = (String) payload.get("avatarUrl");
         String status = (String) payload.getOrDefault("status", "active");
@@ -339,7 +340,6 @@ public class AdminUserController {
                             }
                             productImageRepository.deleteAll(images);
                         }
-                        deletePhysicalFile(product.getCertificateUrl(), "certificates");
                         deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
                         productRepository.delete(product);
                     }

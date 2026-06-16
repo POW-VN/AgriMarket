@@ -22,6 +22,9 @@ public class OrderService {
     private OrderRepository orderRepository;
 
     @Autowired
+    private OrderGroupRepository orderGroupRepository;
+
+    @Autowired
     private OrderItemRepository orderItemRepository;
 
     @Autowired
@@ -50,44 +53,41 @@ public class OrderService {
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng."));
 
-        // Generate unique order code
-        String orderCode;
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new RuntimeException("Đơn hàng phải có ít nhất một sản phẩm.");
+        }
+
+        // Generate group code
+        String groupCode;
         Random random = new Random();
         do {
-            orderCode = "FH-2026-" + (1000 + random.nextInt(9000));
-        } while (orderRepository.findByOrderCode(orderCode).isPresent());
+            groupCode = "OG-2026-" + (1000 + random.nextInt(9000));
+        } while (orderGroupRepository.findByGroupCode(groupCode).isPresent());
 
-        Order order = new Order();
-        order.setOrderCode(orderCode);
-        order.setCustomer(customer);
-        order.setRecipient(request.getRecipient());
-        order.setPhone(request.getPhone());
-        order.setAddress(request.getAddress());
-        order.setShippingNote(request.getShippingNote());
+        // Create OrderGroup
+        OrderGroup orderGroup = new OrderGroup();
+        orderGroup.setGroupCode(groupCode);
+        orderGroup.setCustomer(customer);
+        orderGroup.setTotalSubtotal(request.getSubtotal());
+        orderGroup.setTotalShippingFee(request.getShippingFee());
+        orderGroup.setTotalServiceFee(request.getServiceFee());
+        orderGroup.setTotalDiscount(request.getDiscount());
+        orderGroup.setGrandTotal(request.getAmount());
+        orderGroup.setRecipientName(request.getRecipient());
+        orderGroup.setRecipientPhone(request.getPhone());
+        orderGroup.setDeliveryAddress(request.getAddress());
+        orderGroup.setPaymentMethod(request.getPaymentMethod());
+        orderGroup.setPaymentStatus("unpaid");
 
-        String method = request.getPaymentMethod();
-        order.setPaymentMethod(method);
+        orderGroup = orderGroupRepository.save(orderGroup);
 
-        // Default statuses
-        order.setStatus("pending");
-        order.setPaymentStatus("unpaid");
-
-        order.setSubtotal(request.getSubtotal());
-        order.setShippingFee(request.getShippingFee());
-        order.setServiceFee(request.getServiceFee());
-        order.setDiscount(request.getDiscount());
-        order.setAmount(request.getAmount());
-
-        // Generate tracking number
-        order.setTrackingNumber("FH-TRACK-" + (100000 + random.nextInt(900000)));
-
-        List<OrderItem> orderItems = new ArrayList<>();
+        // Group items by Farmer
+        Map<Farmer, List<OrderItemDraft>> farmerItemsMap = new HashMap<>();
         Set<Long> orderedProductIds = new HashSet<>();
 
         for (OrderItemRequest itemReq : request.getItems()) {
             Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(
-                            () -> new RuntimeException("Không tìm thấy sản phẩm có ID: " + itemReq.getProductId()));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm có ID: " + itemReq.getProductId()));
 
             if (product.getStockQuantity() < itemReq.getQuantity()) {
                 throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho.");
@@ -108,22 +108,105 @@ public class OrderService {
                         .orElse(images.get(0).getImgUrl());
             }
 
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProductId(product.getId());
-            orderItem.setProductName(product.getName());
-            orderItem.setProductPrice(product.getPrice());
-            orderItem.setProductUnit(product.getUnit());
-            orderItem.setImageUrl(imageUrl);
-            orderItem.setQuantity(itemReq.getQuantity());
-            orderItem.setFarmer(product.getFarmer());
+            Farmer farmer = product.getFarmer();
+            if (farmer == null) {
+                throw new RuntimeException("Sản phẩm " + product.getName() + " không có thông tin nhà vườn.");
+            }
 
-            orderItems.add(orderItem);
+            OrderItemDraft draft = new OrderItemDraft(product, itemReq.getQuantity(), imageUrl);
+            farmerItemsMap.computeIfAbsent(farmer, k -> new ArrayList<>()).add(draft);
             orderedProductIds.add(product.getId());
         }
 
-        order.setItems(orderItems);
-        Order savedOrder = orderRepository.save(order);
+        // Proportional distribution totals
+        double totalSubtotal = request.getSubtotal();
+        double totalShippingFee = request.getShippingFee();
+        double totalServiceFee = request.getServiceFee();
+        double totalDiscount = request.getDiscount();
+
+        List<Order> savedSubOrders = new ArrayList<>();
+        int farmerIndex = 0;
+        int numFarmers = farmerItemsMap.size();
+
+        double allocatedShippingSum = 0;
+        double allocatedServiceSum = 0;
+        double allocatedDiscountSum = 0;
+
+        for (Map.Entry<Farmer, List<OrderItemDraft>> entry : farmerItemsMap.entrySet()) {
+            Farmer farmer = entry.getKey();
+            List<OrderItemDraft> drafts = entry.getValue();
+
+            double farmerSubtotal = 0;
+            for (OrderItemDraft d : drafts) {
+                farmerSubtotal += d.product.getPrice() * d.quantity;
+            }
+
+            double ratio = totalSubtotal > 0 ? (farmerSubtotal / totalSubtotal) : (1.0 / numFarmers);
+
+            double shippingFee;
+            double serviceFee;
+            double discount;
+
+            farmerIndex++;
+            if (farmerIndex == numFarmers) {
+                // Last farmer gets the remainder
+                shippingFee = totalShippingFee - allocatedShippingSum;
+                serviceFee = totalServiceFee - allocatedServiceSum;
+                discount = totalDiscount - allocatedDiscountSum;
+            } else {
+                shippingFee = Math.round((ratio * totalShippingFee) * 100.0) / 100.0;
+                serviceFee = Math.round((ratio * totalServiceFee) * 100.0) / 100.0;
+                discount = Math.round((ratio * totalDiscount) * 100.0) / 100.0;
+
+                allocatedShippingSum += shippingFee;
+                allocatedServiceSum += serviceFee;
+                allocatedDiscountSum += discount;
+            }
+
+            double amount = farmerSubtotal + shippingFee + serviceFee - discount;
+
+            // Generate child order code
+            String orderCode;
+            do {
+                orderCode = "FH-2026-" + (1000 + random.nextInt(9000));
+            } while (orderRepository.findByOrderCode(orderCode).isPresent());
+
+            Order order = new Order();
+            order.setOrderCode(orderCode);
+            order.setOrderGroup(orderGroup);
+            order.setFarmer(farmer);
+            order.setCustomer(customer);
+            order.setShippingNote(request.getShippingNote());
+            order.setPaymentStatus("unpaid");
+            order.setStatus("pending");
+            order.setSubtotal(farmerSubtotal);
+            order.setShippingFee(shippingFee);
+            order.setServiceFee(serviceFee);
+            order.setDiscount(discount);
+            order.setAmount(amount);
+            order.setTrackingNumber("FH-TRACK-" + (100000 + random.nextInt(900000)));
+
+            List<OrderItem> orderItems = new ArrayList<>();
+            for (OrderItemDraft d : drafts) {
+                OrderItem item = new OrderItem();
+                item.setOrder(order);
+                item.setProductId(d.product.getId());
+                item.setProductName(d.product.getName());
+                item.setProductPrice(d.product.getPrice());
+                item.setProductUnit(d.product.getUnit());
+                item.setImageUrl(d.imageUrl);
+                item.setQuantity(d.quantity);
+                item.setFarmer(farmer);
+                orderItems.add(item);
+            }
+
+            order.setItems(orderItems);
+            Order savedOrder = orderRepository.save(order);
+            savedSubOrders.add(savedOrder);
+        }
+
+        orderGroup.getSubOrders().clear();
+        orderGroup.getSubOrders().addAll(savedSubOrders);
 
         // Remove from cart
         Optional<Cart> cartOpt = cartRepository.findByEmail(email);
@@ -140,7 +223,7 @@ public class OrderService {
             }
         }
 
-        return mapToResponse(savedOrder);
+        return mapGroupToResponse(orderGroup);
     }
 
     @Transactional(readOnly = true)
@@ -180,6 +263,8 @@ public class OrderService {
 
         order.setStatus("cancelled");
         order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Người dùng tự hủy");
+        order.setCancelBy("customer");
+        order.setCancelledAt(LocalDateTime.now());
 
         // Restore stock
         for (OrderItem item : order.getItems()) {
@@ -197,8 +282,34 @@ public class OrderService {
 
     @Transactional
     public OrderResponse confirmPayment(String email, String orderCode, String paymentMethod) {
+        // Check if it is a group payment confirmation
+        Optional<OrderGroup> groupOpt = orderGroupRepository.findByGroupCode(orderCode);
+        if (groupOpt.isPresent()) {
+            OrderGroup group = groupOpt.get();
+            if (!group.getCustomer().getEmail().equalsIgnoreCase(email)) {
+                throw new RuntimeException("Bạn không có quyền thao tác trên đơn hàng này.");
+            }
+
+            group.setPaymentStatus("paid");
+            if (paymentMethod != null && !paymentMethod.isBlank()) {
+                group.setPaymentMethod(paymentMethod);
+            }
+
+            if (group.getSubOrders() != null) {
+                for (Order order : group.getSubOrders()) {
+                    order.setStatus("pending");
+                    order.setPaymentStatus("paid");
+                    orderRepository.save(order);
+                }
+            }
+
+            OrderGroup savedGroup = orderGroupRepository.save(group);
+            return mapGroupToResponse(savedGroup);
+        }
+
+        // Otherwise fallback to individual order confirmation
         Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng hoặc nhóm đơn hàng."));
 
         // Verify customer ownership
         if (!order.getCustomer().getEmail().equalsIgnoreCase(email)) {
@@ -207,8 +318,9 @@ public class OrderService {
 
         order.setStatus("pending");
         order.setPaymentStatus("paid");
-        if (paymentMethod != null && !paymentMethod.isBlank()) {
-            order.setPaymentMethod(paymentMethod);
+        if (paymentMethod != null && !paymentMethod.isBlank() && order.getOrderGroup() != null) {
+            order.getOrderGroup().setPaymentMethod(paymentMethod);
+            orderGroupRepository.save(order.getOrderGroup());
         }
 
         Order updatedOrder = orderRepository.save(order);
@@ -229,11 +341,8 @@ public class OrderService {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 
-        // Verify at least one item belongs to this farmer
-        boolean belongsToFarmer = order.getItems().stream()
-                .anyMatch(
-                        item -> item.getFarmer() != null && item.getFarmer().getEmail().equalsIgnoreCase(farmerEmail));
-        if (!belongsToFarmer) {
+        // Verify this order belongs to the farmer
+        if (order.getFarmer() == null || !order.getFarmer().getEmail().equalsIgnoreCase(farmerEmail)) {
             throw new RuntimeException("Bạn không có quyền cập nhật trạng thái đơn hàng này.");
         }
 
@@ -260,6 +369,8 @@ public class OrderService {
         // - restoring all is simpler since it's a single order)
         if ("rejected".equals(statusLower) || "cancelled".equals(statusLower)) {
             order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Nhà vườn từ chối");
+            order.setCancelBy("farmer");
+            order.setCancelledAt(LocalDateTime.now());
             for (OrderItem item : order.getItems()) {
                 Optional<Product> productOpt = productRepository.findById(item.getProductId());
                 if (productOpt.isPresent()) {
@@ -352,11 +463,13 @@ public class OrderService {
                 break;
         }
 
-        // Provider mapping from first item
+        // Provider mapping from farmer directly or first item as fallback
         OrderResponse.ProviderInfo providerInfo = null;
-        if (order.getItems() != null && !order.getItems().isEmpty()) {
-            Farmer farmer = order.getItems().get(0).getFarmer();
-            if (farmer != null) {
+        Farmer farmer = order.getFarmer();
+        if (farmer == null && order.getItems() != null && !order.getItems().isEmpty()) {
+            farmer = order.getItems().get(0).getFarmer();
+        }
+        if (farmer != null) {
                 String name = farmer.getFarmName() != null && !farmer.getFarmName().isBlank()
                         ? farmer.getFarmName()
                         : farmer.getFullName();
@@ -379,7 +492,6 @@ public class OrderService {
                         .avatarBg(avatarBg)
                         .avatarUrl(farmer.getAvatarUrl())
                         .build();
-            }
         }
 
         // Map items
@@ -434,11 +546,13 @@ public class OrderService {
                 .serviceFee(order.getServiceFee())
                 .discount(order.getDiscount())
                 .amount(order.getAmount())
-                .recipient(order.getRecipient())
-                .address(order.getAddress())
-                .phone(order.getPhone())
+                .recipient(order.getOrderGroup() != null ? order.getOrderGroup().getRecipientName() : "")
+                .address(order.getOrderGroup() != null ? order.getOrderGroup().getDeliveryAddress() : "")
+                .phone(order.getOrderGroup() != null ? order.getOrderGroup().getRecipientPhone() : "")
                 .trackingNumber(order.getTrackingNumber())
                 .cancelReason(order.getCancelReason())
+                .cancelBy(order.getCancelBy())
+                .cancelledAt(order.getCancelledAt())
                 .customerAvatarUrl(order.getCustomer() != null ? order.getCustomer().getAvatarUrl() : null)
                 .shippingNote(order.getShippingNote())
                 .provider(providerInfo)
@@ -457,7 +571,7 @@ public class OrderService {
                 .thumbnails(thumbnails)
                 .itemCount(itemCount)
                 .hasMoreItems(hasMoreItems)
-                .paymentMethod(order.getPaymentMethod())
+                .paymentMethod(order.getOrderGroup() != null ? order.getOrderGroup().getPaymentMethod() : "")
                 .paymentStatus(order.getPaymentStatus())
                 .build();
     }
@@ -530,6 +644,8 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
         order.setStatus("rejected");
         order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Đối tác vận chuyển từ chối");
+        order.setCancelBy("partner");
+        order.setCancelledAt(LocalDateTime.now());
         Order updatedOrder = orderRepository.save(order);
         return mapToResponse(updatedOrder);
     }
@@ -559,5 +675,118 @@ public class OrderService {
 
         Order updatedOrder = orderRepository.save(order);
         return mapToResponse(updatedOrder);
+    }
+
+    private OrderResponse mapGroupToResponse(OrderGroup group) {
+        // Date time formatting
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd 'thg' MM, yyyy", new Locale("vi", "VN"));
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", new Locale("vi", "VN"));
+
+        String dateStr = group.getCreatedAt().format(dateFormatter);
+        String timeStr = group.getCreatedAt().format(timeFormatter).replace("AM", "SA").replace("PM", "CH");
+
+        String statusLabel = "Chờ xác nhận";
+
+        // Provider mapping from first sub-order
+        OrderResponse.ProviderInfo providerInfo = null;
+        if (group.getSubOrders() != null && !group.getSubOrders().isEmpty()) {
+            Farmer farmer = group.getSubOrders().get(0).getFarmer();
+            if (farmer != null) {
+                String name = farmer.getFarmName() != null && !farmer.getFarmName().isBlank()
+                        ? farmer.getFarmName()
+                        : farmer.getFullName();
+                String location = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isBlank()
+                        ? farmer.getFarmAddress()
+                        : "Tiền Giang";
+                int estYear = farmer.getCreatedAt() != null ? farmer.getCreatedAt().getYear() : 2018;
+                String avatarText = name.substring(0, Math.min(name.length(), 2)).toUpperCase();
+
+                String[] colors = { "#1b5e20", "#0d47a1", "#e65100", "#004d40", "#3e2723", "#33691e" };
+                String avatarBg = colors[Math.abs(name.hashCode()) % colors.length];
+
+                providerInfo = OrderResponse.ProviderInfo.builder()
+                        .name(name)
+                        .location(location)
+                        .phone(farmer.getPhone())
+                        .estYear(estYear)
+                        .avatarText(avatarText)
+                        .avatarBg(avatarBg)
+                        .avatarUrl(farmer.getAvatarUrl())
+                        .build();
+            }
+        }
+
+        // Map items from all sub-orders
+        List<OrderItemResponseDTO> itemsMapped = new ArrayList<>();
+        if (group.getSubOrders() != null) {
+            for (Order subOrder : group.getSubOrders()) {
+                if (subOrder.getItems() != null) {
+                    for (OrderItem item : subOrder.getItems()) {
+                        boolean isReviewed = productReviewRepository.findByOrderIdAndProductIdAndCustomerId(
+                                subOrder.getId(), item.getProductId(), group.getCustomer().getId()).isPresent();
+                        itemsMapped.add(OrderItemResponseDTO.builder()
+                                .productId(item.getProductId())
+                                .farmerId(item.getFarmer() != null ? item.getFarmer().getId() : null)
+                                .name(item.getProductName())
+                                .farmer(item.getFarmer() != null ? item.getFarmer().getFullName() : "Nhà vườn địa phương")
+                                .price(item.getProductPrice())
+                                .qty(item.getQuantity())
+                                .img(item.getImageUrl())
+                                .isReviewed(isReviewed)
+                                .build());
+                    }
+                }
+            }
+        }
+
+        List<String> thumbnails = itemsMapped.stream()
+                .map(OrderItemResponseDTO::getImg)
+                .filter(img -> img != null && !img.isBlank())
+                .limit(3)
+                .collect(Collectors.toList());
+
+        int itemCount = itemsMapped.stream().mapToInt(OrderItemResponseDTO::getQty).sum();
+        int hasMoreItems = Math.max(0, itemsMapped.size() - 3);
+
+        String trackingNumber = "";
+        if (group.getSubOrders() != null && !group.getSubOrders().isEmpty()) {
+            trackingNumber = group.getSubOrders().get(0).getTrackingNumber();
+        }
+
+        return OrderResponse.builder()
+                .id(group.getGroupCode())
+                .status("pending")
+                .statusLabel(statusLabel)
+                .date(dateStr)
+                .time(timeStr)
+                .subtotal(group.getTotalSubtotal())
+                .shippingFee(group.getTotalShippingFee())
+                .serviceFee(group.getTotalServiceFee())
+                .discount(group.getTotalDiscount())
+                .amount(group.getGrandTotal())
+                .recipient(group.getRecipientName())
+                .address(group.getDeliveryAddress())
+                .phone(group.getRecipientPhone())
+                .trackingNumber(trackingNumber)
+                .paymentMethod(group.getPaymentMethod())
+                .paymentStatus(group.getPaymentStatus())
+                .provider(providerInfo)
+                .items(itemsMapped)
+                .thumbnails(thumbnails)
+                .itemCount(itemCount)
+                .hasMoreItems(hasMoreItems)
+                .build();
+    }
+
+    private static class OrderItemDraft {
+        final Product product;
+        final int quantity;
+        final String imageUrl;
+
+        OrderItemDraft(Product product, int quantity, String imageUrl) {
+            this.product = product;
+            this.quantity = quantity;
+            this.imageUrl = imageUrl;
+        }
     }
 }

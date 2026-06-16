@@ -78,12 +78,15 @@ public class ProductServiceImpl implements ProductService {
         String farmerOrganicUrl = "";
         if (product.getFarmer() != null) {
             Farmer farmer = product.getFarmer();
-            farmerName = farmer.getFarmName() != null && !farmer.getFarmName().isEmpty() 
-                    ? farmer.getFarmName() : farmer.getFullName();
-            farmLocation = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isEmpty() 
-                    ? farmer.getFarmAddress() : "Chưa có địa chỉ";
-            farmDescription = farmer.getDescription() != null && !farmer.getDescription().isEmpty() 
-                    ? farmer.getDescription() : "Chưa có mô tả nông trại";
+            farmerName = farmer.getFarmName() != null && !farmer.getFarmName().isEmpty()
+                    ? farmer.getFarmName()
+                    : farmer.getFullName();
+            farmLocation = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isEmpty()
+                    ? farmer.getFarmAddress()
+                    : "Chưa có địa chỉ";
+            farmDescription = farmer.getDescription() != null && !farmer.getDescription().isEmpty()
+                    ? farmer.getDescription()
+                    : "Chưa có mô tả nông trại";
             farmerAvatarUrl = farmer.getAvatarUrl();
             farmerVietgapUrl = farmer.getVietgapUrl() != null ? farmer.getVietgapUrl() : "";
             farmerGlobalgapUrl = farmer.getGlobalgapUrl() != null ? farmer.getGlobalgapUrl() : "";
@@ -104,9 +107,7 @@ public class ProductServiceImpl implements ProductService {
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .name(product.getName())
                 .description(product.getDescription())
-                .aiGeneratedDescription(product.getAiGeneratedDescription())
                 .price(product.getPrice())
-                .aiSuggestedPrice(product.getAiSuggestedPrice())
                 .stockQuantity(product.getStockQuantity())
                 .unit(product.getUnit())
                 .status(product.getStatus())
@@ -114,7 +115,6 @@ public class ProductServiceImpl implements ProductService {
                 .expirationDate(product.getExpirationDate())
                 .createdAt(product.getCreatedAt())
                 .isOrganic(product.getIsOrganic())
-                .certificateUrl(product.getCertificateUrl())
                 .traceabilityImageUrl(product.getTraceabilityImageUrl())
                 .thumbnailUrl(thumbnailUrl)
                 .images(imageUrls)
@@ -152,10 +152,6 @@ public class ProductServiceImpl implements ProductService {
             productImageRepository.deleteAll(images);
         }
 
-        // Delete certificate physically
-        if (product.getCertificateUrl() != null && !product.getCertificateUrl().isEmpty()) {
-            deletePhysicalFile(product.getCertificateUrl(), "certificates");
-        }
 
         // Delete traceability image physically
         if (product.getTraceabilityImageUrl() != null && !product.getTraceabilityImageUrl().isEmpty()) {
@@ -167,26 +163,33 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void deletePhysicalFile(String fileUrl, String subFolder) {
-        if (fileUrl == null) return;
+        if (fileUrl == null)
+            return;
         String normalizedUrl = fileUrl.replace("\\", "/");
         if (normalizedUrl.contains("/uploads/" + subFolder + "/")) {
             try {
                 String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File("uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+                java.io.File fileInParent = new java.io.File(
+                        "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads"
+                        + java.io.File.separator + subFolder + java.io.File.separator + fileName);
 
                 boolean deleted = false;
                 if (fileInParent.exists()) {
                     deleted = fileInParent.delete();
-                    System.out.println(">>> ProductServiceImpl: Deleted physical file in parent: " + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> ProductServiceImpl: Deleted physical file in parent: "
+                            + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
                 } else if (fileInSub.exists()) {
                     deleted = fileInSub.delete();
-                    System.out.println(">>> ProductServiceImpl: Deleted physical file in subfolder: " + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> ProductServiceImpl: Deleted physical file in subfolder: "
+                            + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
                 } else {
-                    System.out.println(">>> ProductServiceImpl: File not found at parent: " + fileInParent.getAbsolutePath() + " or subfolder: " + fileInSub.getAbsolutePath());
+                    System.out.println(">>> ProductServiceImpl: File not found at parent: "
+                            + fileInParent.getAbsolutePath() + " or subfolder: " + fileInSub.getAbsolutePath());
                 }
             } catch (Exception e) {
-                System.err.println(">>> ProductServiceImpl: Failed to delete physical file: " + fileUrl + ", error: " + e.getMessage());
+                System.err.println(">>> ProductServiceImpl: Failed to delete physical file: " + fileUrl + ", error: "
+                        + e.getMessage());
             }
         }
     }
@@ -221,11 +224,6 @@ public class ProductServiceImpl implements ProductService {
         product.setExpirationDate(request.getExpirationDate());
         product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
 
-        // Handle certificate file Base64 if organic is enabled
-        if (Boolean.TRUE.equals(request.getIsOrganic()) && request.getCertificateFileBase64() != null && !request.getCertificateFileBase64().isEmpty()) {
-            String certUrl = saveBase64File(request.getCertificateFileBase64(), "certificates");
-            product.setCertificateUrl(certUrl);
-        }
 
         // Handle traceability image Base64 if uploaded
         if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
@@ -287,23 +285,6 @@ public class ProductServiceImpl implements ProductService {
         }
         product.setCategory(category);
 
-        // Certificate file
-        if (Boolean.TRUE.equals(product.getIsOrganic())) {
-            if (request.getCertificateFileBase64() != null && !request.getCertificateFileBase64().isEmpty()) {
-                if (request.getCertificateFileBase64().startsWith("data:")) {
-                    if (product.getCertificateUrl() != null) {
-                        deletePhysicalFile(product.getCertificateUrl(), "certificates");
-                    }
-                    String certUrl = saveBase64File(request.getCertificateFileBase64(), "certificates");
-                    product.setCertificateUrl(certUrl);
-                }
-            }
-        } else {
-            if (product.getCertificateUrl() != null) {
-                deletePhysicalFile(product.getCertificateUrl(), "certificates");
-                product.setCertificateUrl(null);
-            }
-        }
 
         // Traceability image
         if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
@@ -428,7 +409,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> getAllApprovedProducts() {
-        List<Product> products = productRepository.findByStatusOrderByCreatedAtDesc("approved");
+        List<Product> products = productRepository.findApprovedProductsFromVerifiedFarmers();
         return products.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 
@@ -443,9 +424,12 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getAllProducts() {
         List<Product> products = productRepository.findAll();
         products.sort((p1, p2) -> {
-            if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
-            if (p1.getCreatedAt() == null) return 1;
-            if (p2.getCreatedAt() == null) return -1;
+            if (p1.getCreatedAt() == null && p2.getCreatedAt() == null)
+                return 0;
+            if (p1.getCreatedAt() == null)
+                return 1;
+            if (p2.getCreatedAt() == null)
+                return -1;
             return p2.getCreatedAt().compareTo(p1.getCreatedAt());
         });
         return products.stream().map(this::convertToResponse).collect(Collectors.toList());

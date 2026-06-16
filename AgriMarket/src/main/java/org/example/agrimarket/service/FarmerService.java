@@ -85,7 +85,8 @@ public class FarmerService {
             existing.setFullName(request.getFullName());
         }
         if (request.getPhone() != null) {
-            existing.setPhone(request.getPhone());
+            String trimmedPhone = request.getPhone().trim();
+            existing.setPhone(trimmedPhone.isEmpty() ? null : trimmedPhone);
         }
         if (request.getAvatarUrl() != null) {
             String newAvatar = request.getAvatarUrl();

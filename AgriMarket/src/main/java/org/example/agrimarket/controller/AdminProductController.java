@@ -38,7 +38,7 @@ public class AdminProductController {
         int descLen = pr.getDescription() != null ? pr.getDescription().length() : 0;
         int score = descLen > 200 ? 88 : descLen > 100 ? 68 : 42;
         boolean isHighPrice = pr.getPrice() != null && pr.getPrice() > 100000;
-        int riskScore = Boolean.TRUE.equals(pr.getIsOrganic()) ? 18 : (pr.getCertificateUrl() != null ? 30 : 55);
+        int riskScore = Boolean.TRUE.equals(pr.getIsOrganic()) ? 18 : 55;
 
         Map<String, Object> insights = new HashMap<>();
         insights.put("productId", pr.getId());

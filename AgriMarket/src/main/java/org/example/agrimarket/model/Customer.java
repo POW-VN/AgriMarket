@@ -6,44 +6,23 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "Customer")
+@Table(name = "customer")
+@PrimaryKeyJoinColumn(name = "id")
+@DiscriminatorValue("CUSTOMER")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Customer {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Customer extends User {
 
     @Transient
     private String role = "customer";
 
-    @Column(name = "full_name", columnDefinition = "nvarchar(255)")
-    private String fullName;
-    
-    @Column(name = "email", unique = true, nullable = false)
-    private String email;
-    
-    @Column(name = "phone", unique = true)
-    private String phone;
-    
-    private String password;
-
     @Column(name = "password_set")
     private Boolean passwordSet = true;
-    
-    @Column(name = "avatar_url")
-    private String avatarUrl;
-    
-    private String status; // active, banned, pending
-    
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 
     // Quan hệ 1-nhiều với CustomerAddress
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)

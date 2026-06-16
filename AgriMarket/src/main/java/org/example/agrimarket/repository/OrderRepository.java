@@ -14,7 +14,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByCustomerEmailOrderByCreatedAtDesc(String email);
     Optional<Order> findByOrderCode(String orderCode);
 
-    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i WHERE i.farmer.email = :farmerEmail ORDER BY o.createdAt DESC")
+    @Query("SELECT o FROM Order o WHERE o.farmer.email = :farmerEmail ORDER BY o.createdAt DESC")
     List<Order> findByFarmerEmail(@Param("farmerEmail") String farmerEmail);
 
     @Query("SELECT o FROM Order o WHERE o.partner IS NULL AND o.status = 'confirmed' ORDER BY o.createdAt DESC")

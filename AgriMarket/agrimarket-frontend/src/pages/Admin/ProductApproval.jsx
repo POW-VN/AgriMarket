@@ -651,7 +651,7 @@ const ProductApproval = () => {
                 {[
                   { key: "vietgapVerified", label: "Chứng nhận VietGAP / Giấy phép chất lượng nông sản hợp lệ", link: prod.certificateUrl || prod.farmerVietgapUrl, linkText: "Xem ảnh tài liệu", disabled: false },
                   { key: "globalgapVerified", label: "Chứng nhận GlobalGAP", link: prod.farmerGlobalgapUrl, linkText: "Xem ảnh tài liệu", disabled: false },
-                  { key: "organicVerified", label: "Chứng nhận hữu cơ (Organic Certificate)", link: prod.farmerOrganicUrl, linkText: "Xem ảnh tài liệu", disabled: !prod.isOrganic && !prod.farmerOrganicUrl },
+                  { key: "organicVerified", label: "Chứng nhận hữu cơ (Organic Certificate)", link: prod.farmerOrganicUrl, linkText: "Xem ảnh tài liệu", disabled: false },
                   { key: "traceabilityVerified", label: "Bản đồ vùng trồng / Hình ảnh truy xuất nguồn gốc (Traceability Map)", link: prod.traceabilityImageUrl, linkText: "Xem ảnh bản đồ", disabled: false },
                 ].map(({ key, label, link, linkText, disabled }) => {
                   const isChecked = checklist[key];
