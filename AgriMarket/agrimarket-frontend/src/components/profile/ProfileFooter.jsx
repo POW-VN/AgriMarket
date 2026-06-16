@@ -1,12 +1,8 @@
-// src/components/profile/ProfileFooter.jsx
+import Footer from "../common/Footer/Footer";
 
 const ProfileFooter = () => {
   return (
-    <footer className="profile-footer">
-      <span>Trung tâm trợ giúp</span>
-      <span>Chính sách bảo mật</span>
-      <span>Điều khoản dịch vụ</span>
-    </footer>
+    <Footer />
   );
 };
 

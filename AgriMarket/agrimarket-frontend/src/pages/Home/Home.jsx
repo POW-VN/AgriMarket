@@ -2,20 +2,20 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import { getAllApprovedProducts } from "../../services/productService";
+import cartService from "../../services/cartService";
 import "./Home.css";
+import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
+import Header from "../../components/common/Header/Header";
 
 // Import local images
 import heroBanner from "./assets/hero_banner.png";
-import heirloomTomatoes from "./assets/heirloom_tomatoes.png";
-import bunchedCarrots from "./assets/bunched_carrots.png";
-import honeycrispApples from "./assets/honeycrisp_apples.png";
+
 
 const MAIN_CATEGORIES = [
   { name: "Cây lương thực", icon: "🌾" },
   { name: "Rau củ quả", icon: "🥕" },
   { name: "Trái cây", icon: "🍎" },
   { name: "Cây công nghiệp", icon: "🪵" },
-  { name: "Nông sản hữu cơ", icon: "🌿" },
   { name: "Chăn nuôi", icon: "🐖" },
   { name: "Giống cây trồng", icon: "🌱" },
   { name: "Nông sản chế biến", icon: "🥫" },
@@ -28,6 +28,7 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("Rau củ quả");
   const [loading, setLoading] = useState(true);
+  const [cartItemsCount, setCartItemsCount] = useState(0);
 
   useEffect(() => {
     // Check login state
@@ -47,123 +48,34 @@ const Home = () => {
       }
     };
     fetchProducts();
+
+    // Fetch cart count
+    const fetchCartCount = async () => {
+      if (currentUser) {
+        try {
+          const cart = await cartService.getCart();
+          setCartItemsCount(cart.length);
+        } catch (err) {
+          console.error("Lỗi khi load giỏ hàng:", err);
+          loadLocalCartCount();
+        }
+      } else {
+        loadLocalCartCount();
+      }
+    };
+
+    const loadLocalCartCount = () => {
+      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      setCartItemsCount(savedCart.length);
+    };
+
+    fetchCartCount();
   }, []);
 
-  const displayProducts = products.length > 0 ? products : [
-    {
-      id: "mock-1",
-      name: "Cà chua Heirloom hữu cơ",
-      category: "Rau củ quả",
-      price: 49900,
-      unit: "kg",
-      isOrganic: true,
-      imageUrl: heirloomTomatoes,
-      rating: 4.8,
-      sold: 120
-    },
-    {
-      id: "mock-2",
-      name: "Cà rốt tươi Đà Lạt",
-      category: "Rau củ quả",
-      price: 25000,
-      unit: "bó",
-      isOrganic: true,
-      imageUrl: bunchedCarrots,
-      rating: 4.5,
-      sold: 85
-    },
-    {
-      id: "mock-3",
-      name: "Táo Honeycrisp giòn ngọt",
-      category: "Trái cây",
-      price: 69000,
-      unit: "kg",
-      isOrganic: false,
-      imageUrl: honeycrispApples,
-      rating: 4.9,
-      sold: 210
-    },
-    {
-      id: "mock-4",
-      name: "Gạo Tám Xoan Điện Biên",
-      category: "Cây lương thực",
-      price: 32000,
-      unit: "kg",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600",
-      rating: 4.7,
-      sold: 340
-    },
-    {
-      id: "mock-5",
-      name: "Dâu tây sạch loại A",
-      category: "Trái cây",
-      price: 150000,
-      unit: "hộp",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600",
-      rating: 4.9,
-      sold: 400
-    },
-    {
-      id: "mock-6",
-      name: "Mật ong hoa nhãn nguyên chất",
-      category: "Nông sản chế biến",
-      price: 180000,
-      unit: "chai",
-      isOrganic: false,
-      imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600",
-      rating: 4.6,
-      sold: 150
-    },
-    {
-      id: "mock-7",
-      name: "Hạt tiêu đen chín đỏ",
-      category: "Cây công nghiệp",
-      price: 95000,
-      unit: "hộp",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?w=600",
-      rating: 4.4,
-      sold: 95
-    },
-    {
-      id: "mock-8",
-      name: "Trà ô long thượng hạng",
-      category: "Nông sản hữu cơ",
-      price: 250000,
-      unit: "hộp",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=600",
-      rating: 4.8,
-      sold: 180
-    },
-    {
-      id: "mock-9",
-      name: "Thịt heo rừng lai hữu cơ",
-      category: "Chăn nuôi",
-      price: 160000,
-      unit: "kg",
-      isOrganic: true,
-      imageUrl: "https://images.unsplash.com/photo-1602491453977-63a5385166cf?w=600",
-      rating: 4.5,
-      sold: 70
-    },
-    {
-      id: "mock-10",
-      name: "Giống xoài cát Hòa Lộc",
-      category: "Giống cây trồng",
-      price: 45000,
-      unit: "cây",
-      isOrganic: false,
-      imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=600",
-      rating: 4.3,
-      sold: 50
-    }
-  ];
+  const displayProducts = products;
 
   const filteredProducts = displayProducts.filter((product) => {
-    const mainNames = ["Cây lương thực", "Rau củ quả", "Trái cây", "Cây công nghiệp", "Nông sản hữu cơ", "Chăn nuôi", "Giống cây trồng", "Nông sản chế biến"];
+    const mainNames = ["Cây lương thực", "Rau củ quả", "Trái cây", "Cây công nghiệp", "Chăn nuôi", "Giống cây trồng", "Nông sản chế biến"];
     if (selectedCategory === "Khác") {
       return !mainNames.includes(product.category);
     }
@@ -178,11 +90,18 @@ const Home = () => {
       return b.rating - a.rating;
     })
     .slice(0, 6);
-
   const renderProductCard = (p, isBestSeller = false) => {
     return (
-      <div key={p.id} className={`product-card standard-card ${isBestSeller ? "best-seller-card" : ""}`}>
-        <div className="card-img-wrapper" style={{ height: "200px", overflow: "hidden", position: "relative" }}>
+      <Link 
+        key={p.id} 
+        to={`/products/${p.id}`} 
+        className={`product-card standard-card ${isBestSeller ? "best-seller-card" : ""}`}
+        style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column" }}
+      >
+        <div 
+          className="card-img-wrapper" 
+          style={{ height: "200px", overflow: "hidden", position: "relative" }}
+        >
           {p.imageUrl ? (
             <img src={p.imageUrl} alt={p.name} className="standard-card-img" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
@@ -190,15 +109,61 @@ const Home = () => {
               🌾
             </div>
           )}
-          {p.isOrganic && <span className="tag-pill tag-organic" style={{ position: "absolute", top: "10px", left: "10px", zIndex: 1 }}>Hữu cơ</span>}
           {isBestSeller && <span className="tag-pill tag-bestseller" style={{ position: "absolute", top: "10px", right: "10px", zIndex: 2 }}>🔥 Bán chạy nhất</span>}
         </div>
         <div className="card-body">
           <span className="card-category">{p.category}</span>
-          <h3 className="standard-card-title" title={p.name}>
+          <h3 
+            className="standard-card-title" 
+            title={p.name}
+          >
             {isBestSeller && <span className="bestseller-crown">🏆 </span>}
             {p.name}
           </h3>
+          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "4px", marginBottom: "4px" }}>
+            {(p.isOrganic || p.farmerOrganicUrl) && (
+              <span className="tag-pill tag-organic" style={{ 
+                backgroundColor: "#e8f5e9", 
+                color: "#2e7d32", 
+                fontSize: "10px", 
+                fontWeight: "700", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                border: "1px solid #c8e6c9",
+                display: "inline-block"
+              }}>
+                Hữu cơ
+              </span>
+            )}
+            {p.farmerVietgapUrl && (
+              <span className="tag-pill tag-vietgap" style={{ 
+                backgroundColor: "#e0f2fe", 
+                color: "#0369a1", 
+                fontSize: "10px", 
+                fontWeight: "700", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                border: "1px solid #bae6fd",
+                display: "inline-block"
+              }}>
+                VietGAP
+              </span>
+            )}
+            {p.farmerGlobalgapUrl && (
+              <span className="tag-pill tag-globalgap" style={{ 
+                backgroundColor: "#fee2e2", 
+                color: "#b91c1c", 
+                fontSize: "10px", 
+                fontWeight: "700", 
+                padding: "2px 6px", 
+                borderRadius: "4px",
+                border: "1px solid #fecaca",
+                display: "inline-block"
+              }}>
+                GlobalGAP
+              </span>
+            )}
+          </div>
           
           {/* Rating and Sold */}
           <div className="product-rating-sold">
@@ -217,13 +182,21 @@ const Home = () => {
             <span className={`sold-count ${isBestSeller ? "bestseller-sold" : ""}`}>Đã bán {p.sold}</span>
           </div>
 
-          <p className="standard-card-farm">Nông trại địa phương</p>
+          <p className="standard-card-farm">{p.farmerName || "Nông trại địa phương"}</p>
           <div className="card-footer">
             <p className="standard-card-price">
               {p.price.toLocaleString("vi-VN")} đ <span className="unit">/ {p.unit}</span>
             </p>
-            {(!user || user.role !== "farmer") && (
-              <button className="add-cart-btn-plus" aria-label="Thêm vào giỏ hàng">
+            {(!user || user.role !== "admin") && (
+              <button 
+                className="add-cart-btn-plus" 
+                aria-label="Thêm vào giỏ hàng"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/products/${p.id}`);
+                }}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"
@@ -242,7 +215,7 @@ const Home = () => {
             )}
           </div>
         </div>
-      </div>
+      </Link>
     );
   };
 
@@ -254,104 +227,7 @@ const Home = () => {
 
   return (
     <div className="home-page">
-      {/* Header / Navbar */}
-      <header className="home-header">
-        <div className="header-container">
-          <div className="header-logo" onClick={() => navigate("/")}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="logo-tractor"
-            >
-              <circle cx="7" cy="18" r="2"></circle>
-              <circle cx="18" cy="18" r="2"></circle>
-              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-              <path d="M16 9h3l2 3v4"></path>
-            </svg>
-            <span className="logo-text">AgriMarket</span>
-          </div>
-
-          <nav className="header-nav">
-            <Link to="/" className="nav-link active">Trang chủ</Link>
-            <Link to="/shop" className="nav-link">Cửa hàng</Link>
-            <Link to="/farms" className="nav-link">Nông trại</Link>
-            <Link to="/about" className="nav-link">Giới thiệu</Link>
-          </nav>
-
-          <div className="header-actions">
-            {/* Search Icon */}
-            <button className="icon-btn" aria-label="Tìm kiếm">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </button>
-
-            {/* Cart Icon */}
-            {user && user.role !== "farmer" && (
-              <button className="icon-btn" aria-label="Giỏ hàng">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-              </button>
-            )}
-
-            {/* Profile & Auth Info */}
-            {user ? (
-              <div className="auth-profile-container">
-                <div className="profile-indicator" onClick={() => navigate("/profile")} title="Xem hồ sơ">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.fullName} className="avatar-img" />
-                  ) : (
-                    <div className="avatar-fallback">
-                      {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                    </div>
-                  )}
-                  <span className="profile-name">{user.fullName}</span>
-                </div>
-                <button className="btn-auth btn-logout" onClick={handleLogout}>
-                  Đăng xuất
-                </button>
-              </div>
-            ) : (
-              <div className="auth-profile-container">
-                <button className="btn-auth btn-login" onClick={() => navigate("/login")}>
-                  Đăng nhập
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header activeTab="home" />
 
       <main className="home-main">
         {/* Hero Section */}

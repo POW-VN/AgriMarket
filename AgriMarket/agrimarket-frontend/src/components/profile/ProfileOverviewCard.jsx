@@ -1,7 +1,6 @@
 // src/components/profile/ProfileOverviewCard.jsx
 
 import ProfileAvatar from "./ProfileAvatar";
-import { ROLE_LABELS } from "../../constants/profileConstants";
 
 const ProfileOverviewCard = ({ profile, onEdit }) => {
   return (
@@ -17,12 +16,6 @@ const ProfileOverviewCard = ({ profile, onEdit }) => {
         <div className="profile-overview-info">
           <div className="profile-name-line">
             <h2>{profile?.fullName || "Tên chưa cập nhật"}</h2>
-
-            <div className="profile-badge-row">
-              <span className="profile-badge dark">
-                {ROLE_LABELS[profile?.role] || "Tài khoản"}
-              </span>
-            </div>
           </div>
 
           <div className="profile-contact-grid">
@@ -38,7 +31,9 @@ const ProfileOverviewCard = ({ profile, onEdit }) => {
               <span>☎</span>
               <div>
                 <p>Số điện thoại</p>
-                <strong>{profile?.phone || "Chưa cập nhật"}</strong>
+                <strong style={!profile?.phone ? { color: "#d97706", fontStyle: "italic" } : {}}>
+                  {profile?.phone || "Chưa cập nhật"}
+                </strong>
               </div>
             </div>
           </div>

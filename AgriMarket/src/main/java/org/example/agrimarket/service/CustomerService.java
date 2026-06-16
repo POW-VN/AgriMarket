@@ -44,7 +44,8 @@ public class CustomerService {
             existing.setFullName(updatedCustomer.getFullName());
         }
         if (updatedCustomer.getPhone() != null) {
-            existing.setPhone(updatedCustomer.getPhone());
+            String trimmedPhone = updatedCustomer.getPhone().trim();
+            existing.setPhone(trimmedPhone.isEmpty() ? null : trimmedPhone);
         }
         if (updatedCustomer.getAvatarUrl() != null) {
             String newAvatar = updatedCustomer.getAvatarUrl();

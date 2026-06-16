@@ -133,6 +133,31 @@ const normalizeAuthUser = (user, fallbackRole) => {
 
     description: user.description || "",
 
+    identityCard:
+      user.identityCard ||
+      user.identity_card ||
+      "",
+
+    businessRegistrationUrl:
+      user.businessRegistrationUrl ||
+      user.business_registration_url ||
+      "",
+
+    vietgapUrl:
+      user.vietgapUrl ||
+      user.vietgap_url ||
+      "",
+
+    globalgapUrl:
+      user.globalgapUrl ||
+      user.globalgap_url ||
+      "",
+
+    organicUrl:
+      user.organicUrl ||
+      user.organic_url ||
+      "",
+
     verificationStatus:
       user.verificationStatus ||
       user.verification_status ||
@@ -276,6 +301,26 @@ export const authService = {
     // resetData: { email, otpCode, newPassword }
     try {
       const response = await apiClient.post("/auth/forgot-password/reset", resetData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
+
+  registerAsFarmer: async (farmData) => {
+    // farmData: { farmName, farmAddress, description }
+    try {
+      const response = await apiClient.post("/api/farmers/register", farmData);
+      if (response.data?.token) {
+        localStorage.setItem("farmconnect_token", response.data.token);
+      }
+      if (response.data?.user) {
+        const normalizedUser = normalizeAuthUser(
+          response.data.user,
+          "farmer"
+        );
+        localStorage.setItem("farmconnect_user", JSON.stringify(normalizedUser));
+      }
       return response.data;
     } catch (error) {
       throw error.response?.data || error;

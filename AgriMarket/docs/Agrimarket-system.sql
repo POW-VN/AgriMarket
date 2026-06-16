@@ -1,949 +1,665 @@
--- =========================
+-- ==========================================================
 -- CREATE DATABASE
--- =========================
-CREATE DATABASE AgroMarketplace;
+-- ==========================================================
+CREATE DATABASE AgriMarketplace;
 GO
 
-USE AgroMarketplace;
+USE AgriMarketplace;
 GO
 
--- =========================
--- 1. ADMIN
--- =========================
-CREATE TABLE admin (
+-- ==========================================================
+-- 1. ROLE (Danh mục vai trò)
+-- ==========================================================
+CREATE TABLE role (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-    full_name NVARCHAR(255) NOT NULL,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+GO
+
+-- Chèn mặc định các vai trò hệ thống
+INSERT INTO role (name) VALUES ('ROLE_CUSTOMER'), ('ROLE_FARMER'), ('ROLE_ADMIN'), ('ROLE_SHIPPER');
+GO
+
+-- ==========================================================
+-- 2. USERS (Bảng người dùng chung - Unified User)
+-- ==========================================================
+CREATE TABLE users (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    avatar_url NVARCHAR(500),
-    created_at DATETIME DEFAULT GETDATE()
-);
-
--- =========================
--- 2. CUSTOMER
--- =========================
-CREATE TABLE customer (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
     full_name NVARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE,
-    password VARCHAR(255) NOT NULL,
     avatar_url NVARCHAR(500),
-
     status VARCHAR(20) CHECK(status IN ('active','banned','pending')) DEFAULT 'pending',
-
-    created_at DATETIME DEFAULT GETDATE()
+    user_type VARCHAR(30) NOT NULL, -- Phân biệt thực thể ở mức JPA: 'CUSTOMER', 'FARMER', 'ADMIN', 'SHIPPER'
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL
 );
+GO
 
--- =========================
--- 2.1 CUSTOMER ADDRESS
--- =========================
+-- ==========================================================
+-- 3. ADMIN (Kế thừa từ USERS)
+-- ==========================================================
+CREATE TABLE admin (
+    id BIGINT PRIMARY KEY,
+    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+);
+GO
+
+-- ==========================================================
+-- 4. CUSTOMER (Kế thừa từ USERS)
+-- ==========================================================
+CREATE TABLE customer (
+    id BIGINT PRIMARY KEY,
+    password_set BIT DEFAULT 1,
+    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+);
+GO
+
+-- ==========================================================
+-- 4.1 CUSTOMER ADDRESS (Địa chỉ khách nhận hàng)
+-- ==========================================================
 CREATE TABLE customer_address (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
-
     receiver_name NVARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
+    phone VARCHAR(20) NOT NULL,
     address NVARCHAR(1000) NOT NULL,
-
     is_default BIT DEFAULT 0,
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 3. FARMER
--- =========================
+-- ==========================================================
+-- 5. FARMER (Kế thừa từ USERS)
+-- ==========================================================
 CREATE TABLE farmer (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    full_name NVARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(20) UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    avatar_url NVARCHAR(500),
-
+    id BIGINT PRIMARY KEY,
     farm_name NVARCHAR(255) NOT NULL,
     farm_address NVARCHAR(1000) NOT NULL,
     description NVARCHAR(MAX),
-
-    verification_status VARCHAR(20)
-        CHECK(verification_status IN ('pending','verified','rejected'))
-        DEFAULT 'pending',
-
+    identity_card VARCHAR(50),
+    business_registration_url NVARCHAR(1000),
+    vietgap_url NVARCHAR(1000),
+    globalgap_url NVARCHAR(1000),
+    organic_url NVARCHAR(1000),
+    verification_status VARCHAR(20) CHECK(verification_status IN ('pending','verified','rejected')) DEFAULT 'pending',
     rating_average DECIMAL(3,2) DEFAULT 0,
     total_products INT DEFAULT 0,
-
-    status VARCHAR(20)
-        CHECK(status IN ('active','banned','pending'))
-        DEFAULT 'pending',
-
-    created_at DATETIME DEFAULT GETDATE()
+    rejection_reason NVARCHAR(MAX),
+    admin_notes NVARCHAR(MAX),
+    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 4. OTP VERIFICATION
--- =========================
+-- ==========================================================
+-- 6. PARTNER (Đơn vị vận chuyển - Kế thừa từ USERS)
+-- ==========================================================
+CREATE TABLE partner (
+    id BIGINT PRIMARY KEY,
+    FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
+);
+GO
+
+-- ==========================================================
+-- 7. OTP VERIFICATION
+-- ==========================================================
 CREATE TABLE otp_verification (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     email VARCHAR(255) NOT NULL,
-
-    user_type VARCHAR(20)
-        CHECK(user_type IN ('customer','farmer','admin')),
-
+    user_type VARCHAR(20) CHECK(user_type IN ('customer','farmer','admin','partner')),
     otp_code VARCHAR(10) NOT NULL,
-
-    type VARCHAR(30)
-        CHECK(type IN ('register','forgot_password')),
-
+    type VARCHAR(30) CHECK(type IN ('register','forgot_password')),
     expired_at DATETIME NOT NULL,
-
     verified BIT DEFAULT 0,
-
     created_at DATETIME DEFAULT GETDATE()
 );
+GO
 
--- =========================
--- 5. CATEGORIES
--- =========================
-CREATE TABLE categories (
+-- ==========================================================
+-- 8. CATEGORY (Danh mục sản phẩm)
+-- ==========================================================
+CREATE TABLE category (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     name NVARCHAR(255) NOT NULL,
     description NVARCHAR(MAX),
-
     parent_id BIGINT NULL,
-
-    FOREIGN KEY (parent_id)
-        REFERENCES categories(id)
+    FOREIGN KEY (parent_id) REFERENCES category(id)
 );
+GO
 
--- =========================
--- 6. PRODUCT
--- =========================
+-- ==========================================================
+-- 9. PRODUCT (Sản phẩm nông sản)
+-- ==========================================================
 CREATE TABLE product (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     farmer_id BIGINT NOT NULL,
     category_id BIGINT NOT NULL,
-
     name NVARCHAR(255) NOT NULL,
-
     description NVARCHAR(MAX),
-
-    ai_generated_description BIT DEFAULT 0,
-
-    price DECIMAL(18,2) NOT NULL,
-
-    ai_suggested_price DECIMAL(18,2),
-
-    stock_quantity INT DEFAULT 0,
-
+    price DECIMAL(18,2) NOT NULL CHECK(price >= 0),
+    stock_quantity INT DEFAULT 0 CHECK(stock_quantity >= 0),
     unit NVARCHAR(50),
-
-    status VARCHAR(20)
-        CHECK(status IN ('draft','pending','approved','rejected','hidden','sold_out'))
-        DEFAULT 'draft',
-
+    status VARCHAR(20) CHECK(status IN ('draft','pending','approved','rejected','hidden','sold_out')) DEFAULT 'draft',
     harvest_date DATE,
-
+    expiration_date DATE,
+    is_organic BIT DEFAULT 0,
+    traceability_image_url NVARCHAR(1000),
     created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
+    rejection_reason NVARCHAR(MAX),
+    admin_notes NVARCHAR(MAX),
 
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id),
-
-    FOREIGN KEY (category_id)
-        REFERENCES categories(id)
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES category(id)
 );
+GO
 
--- =========================
--- 7. PRODUCT IMAGE
--- =========================
+-- ==========================================================
+-- 9.1 PRODUCT IMAGE
+-- ==========================================================
 CREATE TABLE product_image (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     product_id BIGINT NOT NULL,
-
     img_url NVARCHAR(1000) NOT NULL,
-
     is_thumbnail BIT DEFAULT 0,
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 8. PRODUCT DISCOUNT
--- =========================
+-- ==========================================================
+-- 9.2 PRODUCT DISCOUNT
+-- ==========================================================
 CREATE TABLE product_discount (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     product_id BIGINT NOT NULL,
-
-    discount_percent DECIMAL(5,2),
-
+    discount_percent DECIMAL(5,2) CHECK(discount_percent >= 0 AND discount_percent <= 100),
     start_date DATETIME,
     end_date DATETIME,
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 9. PRODUCT VIEW HISTORY
--- =========================
+-- ==========================================================
+-- 9.3 PRODUCT VIEW HISTORY
+-- ==========================================================
 CREATE TABLE product_view_history (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-
     viewed_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
+GO
 
--- =========================
+-- ==========================================================
 -- 10. CART
--- =========================
+-- ==========================================================
 CREATE TABLE cart (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    customer_id BIGINT UNIQUE NOT NULL,
-
-    created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at DATETIME DEFAULT GETDATE()
 );
+GO
 
--- =========================
--- 11. CART ITEM
--- =========================
+-- ==========================================================
+-- 10.1 CART ITEM
+-- ==========================================================
 CREATE TABLE cart_item (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     cart_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
-
     quantity INT NOT NULL CHECK(quantity > 0),
-
+    checked BIT DEFAULT 1,
     UNIQUE(cart_id, product_id),
-
-    FOREIGN KEY (cart_id)
-        REFERENCES cart(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (cart_id) REFERENCES cart(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 12. WISHLIST
--- =========================
+-- ==========================================================
+-- 11. WISHLIST
+-- ==========================================================
 CREATE TABLE wishlist (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    customer_id BIGINT UNIQUE NOT NULL,
-
-    created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
-);
-
--- =========================
--- 13. WISHLIST ITEM
--- =========================
-CREATE TABLE wishlist_item (
-    wishlist_id BIGINT NOT NULL,
-    product_id BIGINT NOT NULL,
-
-    PRIMARY KEY(wishlist_id, product_id),
-
-    FOREIGN KEY (wishlist_id)
-        REFERENCES wishlist(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
-);
-
--- =========================
--- 14. CHECKOUT
--- =========================
-CREATE TABLE checkout_session (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
-
-    subtotal DECIMAL(18,2),
-    shipping_fee DECIMAL(18,2),
-    discount_amount DECIMAL(18,2),
-    total_amount DECIMAL(18,2),
-
-    shipping_address NVARCHAR(1000),
-
-    status VARCHAR(30)
-        CHECK(status IN ('pending','payment_processing','completed','expired','cancelled'))
-        DEFAULT 'pending',
-
-    created_at DATETIME DEFAULT GETDATE(),
-
-    expired_at DATETIME,
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
-);
-
--- =========================
--- 15. CHECKOUT ITEM
--- =========================
-CREATE TABLE checkout_item (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    checkout_id BIGINT NOT NULL,
-
     product_id BIGINT NOT NULL,
-
-    product_name NVARCHAR(255),
-    product_thumbnail NVARCHAR(1000),
-
-    quantity INT NOT NULL,
-
-    unit_price DECIMAL(18,2),
-
-    subtotal DECIMAL(18,2),
-
-    FOREIGN KEY (checkout_id)
-        REFERENCES checkout_session(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    created_at DATETIME DEFAULT GETDATE(),
+    PRIMARY KEY(customer_id, product_id),
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE NO ACTION,
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 16. ORDERS
--- =========================
+-- ==========================================================
+-- 12. ORDER GROUP (Đơn hàng cha / Transaction)
+-- ==========================================================
+CREATE TABLE order_group (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    group_code VARCHAR(100) UNIQUE NOT NULL,
+    customer_id BIGINT NOT NULL,
+    total_subtotal DECIMAL(18,2) NOT NULL CHECK(total_subtotal >= 0),
+    total_shipping_fee DECIMAL(18,2) NOT NULL CHECK(total_shipping_fee >= 0),
+    total_service_fee DECIMAL(18,2) NOT NULL CHECK(total_service_fee >= 0),
+    total_discount DECIMAL(18,2) NOT NULL CHECK(total_discount >= 0),
+    grand_total DECIMAL(18,2) NOT NULL CHECK(grand_total >= 0),
+    recipient_name NVARCHAR(255) NOT NULL,
+    recipient_phone VARCHAR(20) NOT NULL,
+    delivery_address NVARCHAR(1000) NOT NULL,
+    payment_method NVARCHAR(100) NOT NULL,
+    payment_status VARCHAR(20) DEFAULT 'unpaid',
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (customer_id) REFERENCES customer(id)
+);
+GO
+
+-- ==========================================================
+-- 13. ORDERS (Đơn hàng con - Sub-Order)
+-- ==========================================================
 CREATE TABLE orders (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
+    order_code VARCHAR(100) UNIQUE NOT NULL,
+    order_group_id BIGINT NOT NULL,
+    farmer_id BIGINT NOT NULL,
     customer_id BIGINT NOT NULL,
-
-    checkout_id BIGINT NOT NULL,
-
-    total_price DECIMAL(18,2),
-
-    shipping_address NVARCHAR(1000),
-
-    status VARCHAR(20)
-        CHECK(status IN ('pending','confirmed','shipping','delivered','cancelled','rejected'))
-        DEFAULT 'pending',
-
-    payment_status VARCHAR(20)
-        CHECK(payment_status IN ('unpaid','paid','refunded'))
-        DEFAULT 'unpaid',
-
+    shipping_note NVARCHAR(1000),
+    payment_status VARCHAR(20) DEFAULT 'unpaid',
+    status VARCHAR(20) DEFAULT 'pending',
+    subtotal DECIMAL(18,2) NOT NULL CHECK(subtotal >= 0),
+    shipping_fee DECIMAL(18,2) NOT NULL CHECK(shipping_fee >= 0),
+    service_fee DECIMAL(18,2) NOT NULL CHECK(service_fee >= 0),
+    discount DECIMAL(18,2) NOT NULL CHECK(discount >= 0),
+    amount DECIMAL(18,2) NOT NULL CHECK(amount >= 0),
+    tracking_number VARCHAR(100),
+    cancel_reason NVARCHAR(1000),
+    cancel_by VARCHAR(50),
+    cancelled_at DATETIME,
+    partner_id BIGINT NULL,
+    shipper_notes NVARCHAR(1000),
+    pod_photo NVARCHAR(MAX),
+    detailed_status VARCHAR(50),
+    driver_name NVARCHAR(255),
+    driver_code VARCHAR(100),
+    driver_phone VARCHAR(50),
+    vehicle_type VARCHAR(100),
+    license_plate VARCHAR(50),
     created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME NULL,
 
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id),
-
-    FOREIGN KEY (checkout_id)
-        REFERENCES checkout_session(id)
+    FOREIGN KEY (order_group_id) REFERENCES order_group(id) ON DELETE CASCADE,
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id),
+    FOREIGN KEY (customer_id) REFERENCES customer(id),
+    FOREIGN KEY (partner_id) REFERENCES partner(id)
 );
+GO
 
--- =========================
--- 17. ORDER ITEM
--- =========================
+-- ==========================================================
+-- 13.1 ORDER ITEM (Chi tiết đơn hàng con)
+-- ==========================================================
 CREATE TABLE order_item (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     order_id BIGINT NOT NULL,
-
     product_id BIGINT NOT NULL,
-
     farmer_id BIGINT NOT NULL,
+    product_name NVARCHAR(255) NOT NULL,
+    product_price DECIMAL(18,2) NOT NULL CHECK(product_price >= 0),
+    product_unit NVARCHAR(255),
+    image_url NVARCHAR(1000),
+    quantity INT NOT NULL CHECK(quantity > 0),
 
-    product_name NVARCHAR(255),
-
-    product_thumbnail NVARCHAR(1000),
-
-    quantity INT NOT NULL,
-
-    unit_price DECIMAL(18,2),
-
-    subtotal DECIMAL(18,2),
-
-    FOREIGN KEY (order_id)
-        REFERENCES orders(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id)
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id),
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id)
 );
+GO
 
--- =========================
--- 18. ORDER CANCELLATION
--- =========================
-CREATE TABLE order_cancellation (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    order_id BIGINT UNIQUE NOT NULL,
-
-    cancel_by VARCHAR(20)
-        CHECK(cancel_by IN ('customer','farmer','admin')),
-
-    reason NVARCHAR(MAX),
-
-    created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (order_id)
-        REFERENCES orders(id)
-);
-
--- =========================
--- 19. PAYMENT
--- =========================
+-- ==========================================================
+-- 14. PAYMENT
+-- ==========================================================
 CREATE TABLE payment (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    order_id BIGINT NOT NULL,
-
+    order_group_id BIGINT NOT NULL,
     payment_method NVARCHAR(100),
-
     transaction_code VARCHAR(255),
-
-    amount DECIMAL(18,2),
-
+    amount DECIMAL(18,2) CHECK(amount >= 0),
     status VARCHAR(50),
-
     paid_at DATETIME,
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (order_id)
-        REFERENCES orders(id)
+    FOREIGN KEY (order_group_id) REFERENCES order_group(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 20. VOUCHER
--- =========================
+-- ==========================================================
+-- 15. VOUCHER
+-- ==========================================================
 CREATE TABLE voucher (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     code VARCHAR(100) UNIQUE NOT NULL,
-
-    discount_percent DECIMAL(5,2),
-
-    max_discount DECIMAL(18,2),
-
-    quantity INT,
-
+    discount_percent DECIMAL(5,2) CHECK(discount_percent >= 0 AND discount_percent <= 100),
+    max_discount DECIMAL(18,2) CHECK(max_discount >= 0),
+    quantity INT CHECK(quantity >= 0),
     expired_at DATETIME
 );
+GO
 
--- =========================
--- 21. VOUCHER USAGE
--- =========================
+-- ==========================================================
+-- 15.1 VOUCHER USAGE
+-- ==========================================================
 CREATE TABLE voucher_usage (
     voucher_id BIGINT NOT NULL,
-
     customer_id BIGINT NOT NULL,
-
     used_at DATETIME DEFAULT GETDATE(),
-
     PRIMARY KEY(voucher_id, customer_id),
-
-    FOREIGN KEY (voucher_id)
-        REFERENCES voucher(id),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    FOREIGN KEY (voucher_id) REFERENCES voucher(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 22. SHIPPING PARTNER
--- =========================
-CREATE TABLE shipping_partner (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    company_name NVARCHAR(255),
-
-    phone VARCHAR(20),
-
-    email VARCHAR(255)
-);
-
--- =========================
--- 23. SHIPMENTS
--- =========================
-CREATE TABLE shipments (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    order_id BIGINT NOT NULL,
-
-    shipping_partner_id BIGINT NOT NULL,
-
-    tracking_code VARCHAR(255),
-
-    status NVARCHAR(100),
-
-    estimated_delivery DATETIME,
-
-    delivered_at DATETIME,
-
-    created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (order_id)
-        REFERENCES orders(id),
-
-    FOREIGN KEY (shipping_partner_id)
-        REFERENCES shipping_partner(id)
-);
-
--- =========================
--- 24. PRODUCT REVIEW
--- =========================
+-- ==========================================================
+-- 17. PRODUCT REVIEW
+-- ==========================================================
 CREATE TABLE product_review (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     order_id BIGINT NOT NULL,
-
     product_id BIGINT NOT NULL,
-
     customer_id BIGINT NOT NULL,
-
     rating INT CHECK(rating BETWEEN 1 AND 5),
-
     comment NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
     UNIQUE(order_id, product_id, customer_id),
-
-    FOREIGN KEY (order_id)
-        REFERENCES orders(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id),
+    FOREIGN KEY (customer_id) REFERENCES customer(id)
 );
+GO
 
--- =========================
--- 25. FARMER REVIEW
--- =========================
+-- ==========================================================
+-- 18. FARMER REVIEW
+-- ==========================================================
 CREATE TABLE farmer_review (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     farmer_id BIGINT NOT NULL,
-
     customer_id BIGINT NOT NULL,
-
     order_id BIGINT NOT NULL,
-
     rating INT CHECK(rating BETWEEN 1 AND 5),
-
     comment NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id),
-
-    FOREIGN KEY (order_id)
-        REFERENCES orders(id)
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customer(id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+GO
 
--- =========================
--- 26. PREORDER
--- =========================
+-- ==========================================================
+-- 19. PREORDER
+-- ==========================================================
 CREATE TABLE preorder (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
-
     status VARCHAR(50),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 27. PREORDER ITEM
--- =========================
+-- ==========================================================
+-- 19.1 PREORDER ITEM
+-- ==========================================================
 CREATE TABLE preorder_item (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     preorder_id BIGINT NOT NULL,
-
     product_id BIGINT NOT NULL,
-
-    quantity INT,
-
+    quantity INT CHECK(quantity > 0),
     expected_harvest_date DATE,
-
-    FOREIGN KEY (preorder_id)
-        REFERENCES preorder(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (preorder_id) REFERENCES preorder(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
+GO
 
--- =========================
--- 28. CONVERSATION
--- =========================
+-- ==========================================================
+-- 20. CONVERSATION (Chat giữa khách hàng và nhà vườn)
+-- ==========================================================
 CREATE TABLE conversation (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
-
     farmer_id BIGINT NOT NULL,
-
     created_at DATETIME DEFAULT GETDATE(),
-
     UNIQUE(customer_id, farmer_id),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id),
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id)
 );
+GO
 
--- =========================
--- 29. MESSAGES
--- =========================
-CREATE TABLE messages (
+-- ==========================================================
+-- 20.1 MESSAGE (Tin nhắn chi tiết - Trỏ trực tiếp tới bảng users)
+-- ==========================================================
+CREATE TABLE message (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     conversation_id BIGINT NOT NULL,
-
-    sender_type VARCHAR(20)
-        CHECK(sender_type IN ('customer','farmer')),
-
-    sender_id BIGINT NOT NULL,
-
+    sender_id BIGINT NOT NULL, -- Khóa ngoại trực tiếp tới bảng users (Khắc phục lỗi đa hình)
     message NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (conversation_id)
-        REFERENCES conversation(id)
+    FOREIGN KEY (conversation_id) REFERENCES conversation(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id)
 );
+GO
 
--- =========================
--- 30. LIVESTREAM
--- =========================
+-- ==========================================================
+-- 21. LIVESTREAM
+-- ==========================================================
 CREATE TABLE livestream (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     farmer_id BIGINT NOT NULL,
-
     title NVARCHAR(255),
-
     description NVARCHAR(MAX),
-
     start_time DATETIME,
-
     status NVARCHAR(50),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id)
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 31. LIVESTREAM PRODUCT
--- =========================
+-- ==========================================================
+-- 21.1 LIVESTREAM PRODUCT (Ghim sản phẩm trong live)
+-- ==========================================================
 CREATE TABLE livestream_product (
     livestream_id BIGINT NOT NULL,
-
     product_id BIGINT NOT NULL,
-
     PRIMARY KEY(livestream_id, product_id),
-
-    FOREIGN KEY (livestream_id)
-        REFERENCES livestream(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (livestream_id) REFERENCES livestream(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
+GO
 
--- =========================
--- 32. LIVESTREAM COMMENT
--- =========================
+-- ==========================================================
+-- 21.2 LIVESTREAM COMMENT
+-- ==========================================================
 CREATE TABLE livestream_comment (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     livestream_id BIGINT NOT NULL,
-
-    sender_type VARCHAR(20)
-        CHECK(sender_type IN ('customer','farmer')),
-
-    sender_id BIGINT NOT NULL,
-
+    sender_id BIGINT NOT NULL, -- Khóa ngoại trực tiếp tới bảng users (Khắc phục lỗi đa hình)
     comment NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (livestream_id)
-        REFERENCES livestream(id)
+    FOREIGN KEY (livestream_id) REFERENCES livestream(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id)
 );
+GO
 
--- =========================
--- 33. SUPPORT REQUESTS
--- =========================
-CREATE TABLE support_requests (
+-- ==========================================================
+-- 22. SUPPORT REQUEST (Yêu cầu hỗ trợ gửi lên Admin)
+-- ==========================================================
+CREATE TABLE support_request (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    sender_type VARCHAR(20)
-        CHECK(sender_type IN ('customer','farmer')),
-
-    sender_id BIGINT NOT NULL,
-
+    sender_id BIGINT NOT NULL, -- Khóa ngoại trực tiếp tới bảng users (Khắc phục lỗi đa hình)
     title NVARCHAR(255),
-
     description NVARCHAR(MAX),
-
     status NVARCHAR(50),
-
-    created_at DATETIME DEFAULT GETDATE()
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (sender_id) REFERENCES users(id)
 );
+GO
 
--- =========================
--- 34. NOTIFICATION
--- =========================
+-- ==========================================================
+-- 23. NOTIFICATION (Thông báo hệ thống)
+-- ==========================================================
 CREATE TABLE notification (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    receiver_type VARCHAR(20)
-        CHECK(receiver_type IN ('customer','farmer')),
-
+    receiver_type VARCHAR(20) NOT NULL CHECK(receiver_type IN ('customer','farmer')),
     receiver_id BIGINT NOT NULL,
-
     title NVARCHAR(255),
-
     content NVARCHAR(MAX),
-
     is_read BIT DEFAULT 0,
-
-    created_at DATETIME DEFAULT GETDATE()
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 35. REPORT
--- =========================
+-- ==========================================================
+-- 24. REPORT (Báo cáo vi phạm)
+-- ==========================================================
 CREATE TABLE report (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    reporter_type VARCHAR(20)
-        CHECK(reporter_type IN ('customer','farmer')),
-
-    target_type VARCHAR(20)
-        CHECK(target_type IN ('customer','farmer','product')),
-
+    reporter_id BIGINT NOT NULL, -- Khóa ngoại trực tiếp tới bảng users (Khắc phục lỗi đa hình)
+    target_type VARCHAR(20) CHECK(target_type IN ('customer','farmer','product')),
     target_id BIGINT NOT NULL,
-
     reason NVARCHAR(255),
-
     description NVARCHAR(MAX),
-
     status NVARCHAR(50),
-
-    created_at DATETIME DEFAULT GETDATE()
-);
-
--- =========================
--- 36. AI CONVERSATION
--- =========================
-CREATE TABLE AI_conversation (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    customer_id BIGINT NOT NULL,
-
-    title NVARCHAR(255),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    updated_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    FOREIGN KEY (reporter_id) REFERENCES users(id)
 );
+GO
 
--- =========================
--- 37. AI MESSAGE
--- =========================
-CREATE TABLE AI_message (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
-    conversation_id BIGINT NOT NULL,
-
-    sender_type VARCHAR(20)
-        CHECK(sender_type IN ('user','AI')),
-
-    message NVARCHAR(MAX),
-
-    send_time DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (conversation_id)
-        REFERENCES AI_conversation(id)
-);
-
--- =========================
--- 38. FARMER FOLLOW
--- =========================
+-- ==========================================================
+-- 25. FARMER FOLLOW
+-- ==========================================================
 CREATE TABLE farmer_follow (
     customer_id BIGINT NOT NULL,
-
     farmer_id BIGINT NOT NULL,
-
     created_at DATETIME DEFAULT GETDATE(),
-
     PRIMARY KEY(customer_id, farmer_id),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id),
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id)
 );
+GO
 
--- =========================
--- 39. AI PRODUCT DESCRIPTION HISTORY
--- =========================
+-- ==========================================================
+-- 26. AI CONVERSATION
+-- ==========================================================
+CREATE TABLE AI_conversation (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    customer_id BIGINT NOT NULL,
+    title NVARCHAR(255),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
+);
+GO
+
+-- ==========================================================
+-- 26.1 AI MESSAGE
+-- ==========================================================
+CREATE TABLE AI_message (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    conversation_id BIGINT NOT NULL,
+    sender_type VARCHAR(20) CHECK(sender_type IN ('user','AI')),
+    message NVARCHAR(MAX),
+    send_time DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (conversation_id) REFERENCES AI_conversation(id) ON DELETE CASCADE
+);
+GO
+
+-- ==========================================================
+-- 27. AI PRODUCT DESCRIPTION HISTORY
+-- ==========================================================
 CREATE TABLE AI_product_description_history (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     farmer_id BIGINT NOT NULL,
-
     product_id BIGINT NULL,
-
     product_name NVARCHAR(255),
-
     input_prompt NVARCHAR(MAX),
-
     generated_description NVARCHAR(MAX),
-
     generated_keywords NVARCHAR(MAX),
-
     generated_hashtags NVARCHAR(MAX),
-
     language VARCHAR(50),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
+GO
 
--- =========================
--- 40. AI PRICE SUGGESTION
--- =========================
+-- ==========================================================
+-- 28. AI PRICE SUGGESTION
+-- ==========================================================
 CREATE TABLE AI_price_suggestion (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     farmer_id BIGINT NOT NULL,
-
     product_id BIGINT NULL,
-
     product_name NVARCHAR(255),
-
-    input_cost_price DECIMAL(18,2),
-
-    market_average_price DECIMAL(18,2),
-
-    suggested_price DECIMAL(18,2),
-
-    min_price DECIMAL(18,2),
-
-    max_price DECIMAL(18,2),
-
+    input_cost_price DECIMAL(18,2) CHECK(input_cost_price >= 0),
+    market_average_price DECIMAL(18,2) CHECK(market_average_price >= 0),
+    suggested_price DECIMAL(18,2) CHECK(suggested_price >= 0),
+    min_price DECIMAL(18,2) CHECK(min_price >= 0),
+    max_price DECIMAL(18,2) CHECK(max_price >= 0),
     ai_reason NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (farmer_id)
-        REFERENCES farmer(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
+GO
 
--- =========================
--- 41. AI RECOMMENDATION
--- =========================
+-- ==========================================================
+-- 29. AI RECOMMENDATION
+-- ==========================================================
 CREATE TABLE AI_recommendation (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
-
     product_id BIGINT NOT NULL,
-
     recommendation_score DECIMAL(5,2),
-
     reason NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
+GO
 
--- =========================
--- 42. AI SEARCH HISTORY
--- =========================
+-- ==========================================================
+-- 30. AI SEARCH HISTORY
+-- ==========================================================
 CREATE TABLE AI_search_history (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     customer_id BIGINT NOT NULL,
-
     prompt NVARCHAR(MAX),
-
     ai_response NVARCHAR(MAX),
-
     created_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (customer_id)
-        REFERENCES customer(id)
+    FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
 );
+GO
 
--- =========================
--- 43. AI CONTENT MODERATION
--- =========================
+-- ==========================================================
+-- 31. AI CONTENT MODERATION
+-- ==========================================================
 CREATE TABLE AI_content_moderation (
     id BIGINT IDENTITY(1,1) PRIMARY KEY,
-
     product_id BIGINT NOT NULL,
-
     is_safe BIT DEFAULT 1,
-
     flagged_reason NVARCHAR(MAX),
-
     checked_at DATETIME DEFAULT GETDATE(),
-
-    FOREIGN KEY (product_id)
-        REFERENCES product(id)
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
 );
+GO
+
+-- ==========================================================
+-- INDEXES FOR PERFORMANCE OPTIMIZATION
+-- ==========================================================
+CREATE INDEX IX_users_email ON users(email);
+CREATE INDEX IX_product_farmer ON product(farmer_id);
+CREATE INDEX IX_product_category ON product(category_id);
+CREATE INDEX IX_product_status ON product(status);
+CREATE INDEX IX_orders_order_group ON orders(order_group_id);
+CREATE INDEX IX_orders_farmer ON orders(farmer_id);
+CREATE INDEX IX_orders_customer ON orders(customer_id);
+CREATE INDEX IX_orders_status ON orders(status);
+CREATE INDEX IX_orders_created_at ON orders(created_at);
+CREATE INDEX IX_order_item_order ON order_item(order_id);
+GO

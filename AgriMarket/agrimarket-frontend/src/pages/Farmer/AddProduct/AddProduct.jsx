@@ -1,19 +1,14 @@
-import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { createFarmerProduct } from "../../../services/productService";
-import ProfileSidebar from "../../../components/profile/ProfileSidebar";
-import useProfile from "../../../hooks/useProfile";
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import * as productService from "../../../services/productService";
+import apiClient from "../../../services/apiClient";
 import "./AddProduct.css";
-import "../../Product/ProductPage.css";
-
-// Nav constants removed in favor of ProfileSidebar component
 
 const CATEGORIES = [
   "Cây lương thực",
   "Rau củ quả",
   "Trái cây",
   "Cây công nghiệp",
-  "Nông sản hữu cơ",
   "Chăn nuôi",
   "Giống cây trồng",
   "Nông sản chế biến",
@@ -24,24 +19,26 @@ const UNITS = ["kg", "bó", "thùng", "cái", "lít"];
 
 export const AddProduct = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
-
-  const { profile, isProfileLoading } = useProfile();
-  const isFarmer = profile?.role?.toLowerCase() === "farmer";
+  const { id } = useParams();
+  const isEdit = !!id;
+  const descriptionRef = useRef(null);
 
   // Form state
   const [productName, setProductName] = useState("");
   const [category, setCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [harvestDate, setHarvestDate] = useState("");
+  const [expirationDate, setExpirationDate] = useState("");
   const [description, setDescription] = useState("");
-  const [isOrganic, setIsOrganic] = useState(false);
   const [basePrice, setBasePrice] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("kg");
   const [isCustomUnit, setIsCustomUnit] = useState(false);
   const [customUnitVal, setCustomUnitVal] = useState("");
   const [stockQty, setStockQty] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("");
+  const [productStatus, setProductStatus] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Multi-image state
   const [productImages, setProductImages] = useState([]);  // [{ id, url }]
@@ -49,15 +46,42 @@ export const AddProduct = () => {
   const multiImgRef = useRef(null);
   const [previewSlideIdx, setPreviewSlideIdx] = useState(0); // slider index
 
-  // Certificate upload state
-  const certInputRef = useRef(null);
-  const [certFile, setCertFile] = useState(null);   // { name, url }
+  // Traceability image upload state
+  const traceabilityInputRef = useRef(null);
+  const [traceabilityFile, setTraceabilityFile] = useState(null); // { name, url }
 
   const [loading, setLoading] = useState(false);
-  const [previewToast, setPreviewToast] = useState(false);
   const [errors, setErrors] = useState({});
-
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  // AI description suggestion state
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiGeneratedText, setAiGeneratedText] = useState("");
+
+  const cleanMarkdown = (text) => {
+    if (!text) return "";
+    return text
+      .replace(/###\s+/g, "") // Remove H3 headers
+      .replace(/##\s+/g, "")  // Remove H2 headers
+      .replace(/#\s+/g, "")   // Remove H1 headers
+      .replace(/\*\*/g, "")   // Remove bold markdown
+      .replace(/\*/g, "")     // Remove italic markdown
+      .replace(/`/g, "")      // Remove backticks
+      .trim();
+  };
+
+  useEffect(() => {
+    if (descriptionRef.current) {
+      descriptionRef.current.style.height = "auto";
+      descriptionRef.current.style.height = `${descriptionRef.current.scrollHeight}px`;
+    }
+  }, [description]);
+
+  // AI price suggestion state
+  const [isAiSuggestingPrice, setIsAiSuggestingPrice] = useState(false);
+  const [showAiPriceModal, setShowAiPriceModal] = useState(false);
+  const [aiPriceData, setAiPriceData] = useState({ recommendedPrice: 0, minPrice: 0, maxPrice: 0, explanation: "" });
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -66,30 +90,136 @@ export const AddProduct = () => {
     }, 3000);
   };
 
-  if (isProfileLoading) {
-    return (
-      <div className="product-loading">
-        <div className="loading-spinner"></div>
-        <span>Đang tải hồ sơ...</span>
-      </div>
-    );
-  }
+  // Load product info if in Edit mode
+  useEffect(() => {
+    if (isEdit) {
+      const loadProductDetails = async () => {
+        setLoading(true);
+        try {
+          const prod = await productService.getProductById(id);
+          if (prod) {
+            setProductName(prod.name || "");
+            if (CATEGORIES.includes(prod.categoryName)) {
+              setCategory(prod.categoryName);
+              setCustomCategory("");
+            } else {
+              setCategory("Khác");
+              setCustomCategory(prod.categoryName || "");
+            }
+            setHarvestDate(prod.harvestDate ? prod.harvestDate.substring(0, 10) : "");
+            setExpirationDate(prod.expirationDate ? prod.expirationDate.substring(0, 10) : "");
+            setDescription(prod.description || "");
+            setBasePrice(prod.price || "");
+            
+            if (UNITS.includes(prod.unit)) {
+              setSelectedUnit(prod.unit);
+              setIsCustomUnit(false);
+              setCustomUnitVal("");
+            } else {
+              setSelectedUnit(prod.unit || "kg");
+              setIsCustomUnit(true);
+              setCustomUnitVal(prod.unit || "");
+            }
+            setStockQty(prod.stockQuantity !== undefined ? prod.stockQuantity : prod.stock || 0);
 
-  if (!isFarmer) {
-    return (
-      <div className="product-layout">
-        <ProfileSidebar profile={profile} />
-        <main className="product-main">
-          <div className="product-permission-box">
-            <h2>Không có quyền truy cập</h2>
-            <p>Chức năng thêm sản phẩm chỉ dành cho tài khoản nông dân.</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
+            // Load images
+            if (prod.images && prod.images.length > 0) {
+              setProductImages(prod.images.map((imgUrl, i) => ({ id: i, url: imgUrl })));
+            } else if (prod.imageUrl) {
+              setProductImages([{ id: 0, url: prod.imageUrl }]);
+            } else {
+              setProductImages([]);
+            }
 
-  // ── Multi-image handlers ──────────────────────────────
+            if (prod.traceabilityImageUrl) {
+              setTraceabilityFile({ name: "traceability_image.jpg", url: prod.traceabilityImageUrl });
+            } else {
+              setTraceabilityFile(null);
+            }
+            setProductStatus(prod.status || "");
+            setAdminNotes(prod.adminNotes || "");
+            setRejectionReason(prod.rejectionReason || "");
+          }
+        } catch (err) {
+          console.error("Lỗi khi tải chi tiết sản phẩm để chỉnh sửa:", err);
+          showToast("Không thể tải thông tin sản phẩm.", "error");
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadProductDetails();
+    }
+  }, [id, isEdit]);
+
+  const handleAiGenerate = async () => {
+    if (!productName.trim()) {
+      showToast("Vui lòng nhập tên sản phẩm trước để AI gợi ý mô tả.", "warning");
+      return;
+    }
+    if (!category) {
+      showToast("Vui lòng chọn danh mục trước để AI gợi ý mô tả.", "warning");
+      return;
+    }
+
+    setIsAiGenerating(true);
+    try {
+      const response = await apiClient.post("/api/ai/generate-description", {
+        productName: productName.trim(),
+        category: category === "Khác" ? customCategory.trim() : category,
+        harvestDate: harvestDate || null,
+        expirationDate: expirationDate || null
+      });
+
+      if (response.data && response.data.description) {
+        const cleaned = cleanMarkdown(response.data.description);
+        setAiGeneratedText(cleaned);
+        setShowAiModal(true);
+      } else {
+        showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
+      }
+    } catch (err) {
+      console.error("AI generation failed:", err);
+      showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const handleAiSuggestPrice = async () => {
+    if (!productName.trim()) {
+      showToast("Vui lòng nhập tên sản phẩm trước để gợi ý giá bán.", "warning");
+      return;
+    }
+    if (!category) {
+      showToast("Vui lòng chọn danh mục trước để gợi ý giá bán.", "warning");
+      return;
+    }
+
+    setIsAiSuggestingPrice(true);
+    try {
+      const response = await apiClient.post("/api/ai/suggest-price", {
+        productName: productName.trim(),
+        category: category === "Khác" ? customCategory.trim() : category,
+        unit: selectedUnit,
+        harvestDate: harvestDate || null,
+        expirationDate: expirationDate || null
+      });
+
+      if (response.data && response.data.recommendedPrice) {
+        setAiPriceData(response.data);
+        setShowAiPriceModal(true);
+      } else {
+        showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
+      }
+    } catch (err) {
+      console.error("AI price suggestion failed:", err);
+      showToast("Có lỗi xảy ra, vui lòng thử lại", "error");
+    } finally {
+      setIsAiSuggestingPrice(false);
+    }
+  };
+
+  // Multi-image handlers
   const readFiles = (files) => {
     Array.from(files).forEach((file) => {
       if (!file.type.startsWith("image/")) return;
@@ -118,19 +248,18 @@ export const AddProduct = () => {
   const removeImage = (id) =>
     setProductImages((prev) => prev.filter((img) => img.id !== id));
 
-  // ── Certificate upload ────────────────────────────────
-  const handleCertChange = (e) => {
+  // Traceability image upload
+  const handleTraceabilityChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setCertFile({ name: file.name, url: reader.result });
+      setTraceabilityFile({ name: file.name, url: reader.result });
       setPreviewSlideIdx(productImages.length);
     };
     reader.readAsDataURL(file);
   };
 
-  // Validation
   const validate = () => {
     const newErrors = {};
     if (!productName.trim()) newErrors.productName = "Vui lòng nhập tên sản phẩm.";
@@ -143,8 +272,8 @@ export const AddProduct = () => {
       newErrors.basePrice = "Vui lòng nhập giá hợp lệ.";
     if (!stockQty || isNaN(stockQty) || parseInt(stockQty) < 0)
       newErrors.stockQty = "Vui lòng nhập số lượng hợp lệ.";
-    if (isOrganic && !certFile) {
-      newErrors.certFile = "Vui lòng tải lên ảnh giấy chứng nhận.";
+    if (productImages.length === 0) {
+      newErrors.images = "Hình ảnh sản phẩm là bắt buộc. Vui lòng chọn ít nhất một hình ảnh.";
     }
     setErrors(newErrors);
 
@@ -169,17 +298,23 @@ export const AddProduct = () => {
         unit: selectedUnit,
         status: "pending",
         harvestDate: harvestDate || null,
-        isOrganic: isOrganic,
-        certificateFileBase64: isOrganic && certFile ? certFile.url : null,
-        certificateFileName: isOrganic && certFile ? certFile.name : null,
+        expirationDate: expirationDate || null,
+        traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
+        traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
       };
-      await createFarmerProduct(payload);
-      sessionStorage.setItem("product_success_message", "Thêm sản phẩm thành công và đang chờ phê duyệt!");
-      navigate("/products");
+
+      if (isEdit) {
+        await productService.updateFarmerProduct(id, payload);
+        sessionStorage.setItem("product_success_message", "Cập nhật sản phẩm thành công, đang chờ quản trị viên phê duyệt!");
+      } else {
+        await productService.createFarmerProduct(payload);
+        sessionStorage.setItem("product_success_message", "Thêm sản phẩm thành công và đang chờ phê duyệt!");
+      }
+      navigate("/farmer/products");
     } catch (err) {
       console.error(err);
-      showToast("Đã xảy ra lỗi khi thêm sản phẩm: " + (err.response?.data || err.message), "error");
+      showToast("Đã xảy ra lỗi: " + (err.response?.data || err.message), "error");
     } finally {
       setLoading(false);
     }
@@ -198,14 +333,20 @@ export const AddProduct = () => {
         unit: selectedUnit,
         status: "draft",
         harvestDate: harvestDate || null,
-        isOrganic: isOrganic,
-        certificateFileBase64: isOrganic && certFile ? certFile.url : null,
-        certificateFileName: isOrganic && certFile ? certFile.name : null,
+        expirationDate: expirationDate || null,
+        traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
+        traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
       };
-      await createFarmerProduct(payload);
-      sessionStorage.setItem("product_success_message", "Đã lưu bản nháp thành công!");
-      navigate("/products");
+
+      if (isEdit) {
+        await productService.updateFarmerProduct(id, payload);
+        sessionStorage.setItem("product_success_message", "Đã cập nhật bản nháp thành công!");
+      } else {
+        await productService.createFarmerProduct(payload);
+        sessionStorage.setItem("product_success_message", "Đã lưu bản nháp thành công!");
+      }
+      navigate("/farmer/products");
     } catch (err) {
       console.error(err);
       showToast("Đã xảy ra lỗi khi lưu bản nháp: " + (err.response?.data || err.message), "error");
@@ -214,19 +355,13 @@ export const AddProduct = () => {
     }
   };
 
-  const handlePreviewCart = () => {
-    setPreviewToast(true);
-    setTimeout(() => setPreviewToast(false), 2500);
-  };
-
   const displayPrice = basePrice
     ? `${parseInt(basePrice).toLocaleString("vi-VN")} VNĐ`
     : "0 VNĐ";
   const displayName = productName || "Tên sản phẩm xem trước";
-  // All preview slides: product images + cert (if organic + uploaded)
   const previewSlides = [
     ...productImages.map((img) => ({ url: img.url, type: "product" })),
-    ...(isOrganic && certFile ? [{ url: certFile.url, type: "cert" }] : []),
+    ...(traceabilityFile ? [{ url: traceabilityFile.url, type: "traceability" }] : []),
   ];
   const slideCount = previewSlides.length;
   const safeIdx = slideCount > 0 ? previewSlideIdx % slideCount : 0;
@@ -237,16 +372,16 @@ export const AddProduct = () => {
     setPreviewSlideIdx((i) => (i + 1) % Math.max(slideCount, 1));
 
   return (
-    <div className="ap-page product-layout">
-      <ProfileSidebar profile={profile} />
-
+    <div className="ap-page" style={{ padding: "0 4px" }}>
       {/* MAIN CONTENT */}
       <div className="ap-main">
         {/* TOP BAR */}
         <header className="ap-topbar">
           <div className="ap-topbar-left">
-            <h1 className="ap-page-title">Tạo Sản phẩm</h1>
-            <p className="ap-page-subtitle">Thêm sản phẩm nông nghiệp mới vào gian hàng của bạn.</p>
+            <h1 className="ap-page-title">{isEdit ? "Chỉnh sửa Sản phẩm" : "Tạo Sản phẩm"}</h1>
+            <p className="ap-page-subtitle">
+              {isEdit ? "Cập nhật các thông số và thuộc tính của sản phẩm hiện tại." : "Thêm sản phẩm nông nghiệp mới vào gian hàng của bạn."}
+            </p>
           </div>
           <div className="ap-topbar-actions">
             <button className="ap-btn-draft" onClick={handleSaveDraft} disabled={loading}>
@@ -256,11 +391,42 @@ export const AddProduct = () => {
               {loading ? (
                 <span className="ap-spinner" />
               ) : (
-                "Gửi duyệt"
+                isEdit ? "Cập nhật sản phẩm" : "Gửi duyệt"
               )}
             </button>
           </div>
         </header>
+
+        {/* BANNER FOR CHANGES REQUESTED OR REJECTED */}
+        {isEdit && productStatus === "request_changes" && adminNotes && (
+          <div className="ap-changes-banner">
+            <div className="ap-changes-banner-icon">⚠️</div>
+            <div className="ap-changes-banner-content">
+              <strong>Yêu cầu sửa đổi từ Quản trị viên:</strong>
+              <p>{adminNotes}</p>
+            </div>
+          </div>
+        )}
+
+        {isEdit && productStatus === "rejected" && rejectionReason && (
+          <div className="ap-changes-banner rejected">
+            <div className="ap-changes-banner-icon">❌</div>
+            <div className="ap-changes-banner-content">
+              <strong>Sản phẩm bị từ chối phê duyệt:</strong>
+              <p>{rejectionReason}</p>
+            </div>
+          </div>
+        )}
+
+        {isEdit && productStatus === "hidden" && rejectionReason && (
+          <div className="ap-changes-banner rejected">
+            <div className="ap-changes-banner-icon">🚫</div>
+            <div className="ap-changes-banner-content">
+              <strong>Sản phẩm bị ẩn khỏi thị trường công khai:</strong>
+              <p>{rejectionReason}</p>
+            </div>
+          </div>
+        )}
 
         {/* FORM + PREVIEW LAYOUT */}
         <div className="ap-content-grid">
@@ -268,7 +434,7 @@ export const AddProduct = () => {
           <div className="ap-form-col">
             {/* Product Media - Multi-image */}
             <section className="ap-card">
-              <h2 className="ap-card-title">Hình ảnh sản phẩm</h2>
+              <h2 className="ap-card-title">Hình ảnh sản phẩm <span className="ap-required">*</span></h2>
               <p className="ap-card-subtitle">
                 Tải lên nhiều góc chụp khác nhau của nông sản — ảnh đầu tiên sẽ làm ảnh đại diện.
               </p>
@@ -292,7 +458,7 @@ export const AddProduct = () => {
 
               {/* Upload zone */}
               <div
-                className={`ap-upload-zone ${isDragging ? "ap-upload-dragging" : ""}`}
+                className={`ap-upload-zone ${isDragging ? "ap-upload-dragging" : ""} ${errors.images ? "ap-input-error" : ""}`}
                 onClick={() => multiImgRef.current?.click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
@@ -322,6 +488,7 @@ export const AddProduct = () => {
                   <p className="ap-upload-hint">PNG, JPG, GIF — tối đa 5 ảnh, mỗi ảnh &le; 5MB</p>
                 </div>
               </div>
+              {errors.images && <span className="ap-error-msg" style={{ display: "block", marginTop: "8px" }}>{errors.images}</span>}
             </section>
 
             {/* General Information */}
@@ -376,87 +543,106 @@ export const AddProduct = () => {
               )}
 
               <div className="ap-field-group">
-                <label className="ap-label">Mô tả sản phẩm</label>
+                <div className="ap-label-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <label className="ap-label" style={{ marginBottom: 0 }}>Mô tả sản phẩm</label>
+                  <button
+                    type="button"
+                    className="ap-btn-ai"
+                    onClick={handleAiGenerate}
+                    disabled={isAiGenerating}
+                  >
+                    {isAiGenerating ? (
+                      <>
+                        <span className="ap-ai-spinner" /> Đang tạo...
+                      </>
+                    ) : (
+                      "✨ AI gợi ý mô tả"
+                    )}
+                  </button>
+                </div>
                 <textarea
+                  ref={descriptionRef}
                   className="ap-textarea"
                   placeholder="Mô tả hương vị, hình thức và phương pháp canh tác..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
+                  rows={6}
+                  style={{ overflow: "hidden", resize: "none" }}
                 />
               </div>
+            </section>
 
-              {/* Organic toggle + cert upload */}
-              <div className={`ap-organic-toggle ${isOrganic ? "ap-organic-active" : ""}`}>
-                <div className="ap-toggle-info">
-                  <span className="ap-toggle-label">Giấy chứng nhận nguồn gốc & An toàn sản phẩm</span>
-                  <span className="ap-toggle-hint">Huy hiệu sẽ hiển thị trên thẻ sản phẩm</span>
+            {/* Hạn dùng & Truy xuất nguồn gốc */}
+            <section className="ap-card">
+              <h2 className="ap-card-title">Hạn dùng & Truy xuất nguồn gốc</h2>
+              <p className="ap-card-subtitle">
+                Cung cấp thời hạn của nông sản và ảnh chụp tài liệu truy xuất nguồn gốc.
+              </p>
+
+              <div className="ap-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                <div className="ap-field-group" style={{ marginBottom: 0 }}>
+                  <label className="ap-label">Ngày thu hoạch/đóng gói</label>
+                  <input
+                    type="date"
+                    className="ap-input"
+                    value={harvestDate}
+                    onChange={(e) => setHarvestDate(e.target.value)}
+                  />
                 </div>
-                <button
-                  type="button"
-                  className={`ap-toggle-btn ${isOrganic ? "ap-toggle-on" : ""}`}
-                  onClick={() => {
-                    const nextOrganic = !isOrganic;
-                    setIsOrganic(nextOrganic);
-                    if (nextOrganic && certFile) {
-                      setPreviewSlideIdx(productImages.length);
-                    } else {
-                      setPreviewSlideIdx(0);
-                    }
-                  }}
-                  aria-label="Bật/tắt giấy chứng nhận nguồn gốc & an toàn sản phẩm"
-                >
-                  <span className="ap-toggle-thumb" />
-                </button>
+
+                <div className="ap-field-group" style={{ marginBottom: 0 }}>
+                  <label className="ap-label">Hạn sử dụng</label>
+                  <input
+                    type="date"
+                    className="ap-input"
+                    value={expirationDate}
+                    onChange={(e) => setExpirationDate(e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Certificate upload — shows when toggle is ON */}
-              {isOrganic && (
-                <div className="ap-cert-upload">
-                  <div className="ap-cert-header">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.8" width="16" height="16">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/>
-                      <line x1="16" y1="17" x2="8" y2="17"/>
-                      <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                    <span className="ap-cert-title">Tải ảnh giấy chứng nhận</span>
-                    <span className="ap-cert-badge">bắt buộc</span>
-                  </div>
-
-                  {certFile ? (
-                    <div className="ap-cert-preview">
-                      <img src={certFile.url} alt="Chứng nhận" className="ap-cert-img" />
-                      <div className="ap-cert-info">
-                        <span className="ap-cert-name">{certFile.name}</span>
-                        <button className="ap-cert-remove" onClick={() => setCertFile(null)}>Xóa</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className={`ap-cert-zone ${errors.certFile ? "ap-input-error" : ""}`}
-                      onClick={() => certInputRef.current?.click()}
-                    >
-                      <input
-                        type="file"
-                        ref={certInputRef}
-                        accept="image/*,application/pdf"
-                        style={{ display: "none" }}
-                        onChange={handleCertChange}
-                      />
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5" width="28" height="28">
-                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                      </svg>
-                      <p className="ap-cert-zone-text">Nhấp để tải ảnh chứng nhận lên</p>
-                      <p className="ap-cert-zone-hint">JPG, PNG hoặc PDF — tối đa 10MB</p>
-                    </div>
-                  )}
-                  {errors.certFile && <span className="ap-error-msg" style={{ display: "block", marginTop: "6px" }}>{errors.certFile}</span>}
+              <div className="ap-cert-upload" style={{ borderTop: "1px solid rgba(229, 231, 235, 0.5)", paddingTop: "16px", marginTop: "8px" }}>
+                <div className="ap-cert-header" style={{ marginBottom: "10px" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.8" width="16" height="16">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <circle cx="10" cy="13" r="2"/>
+                    <path d="M12 15l3 3"/>
+                  </svg>
+                  <span className="ap-cert-title" style={{ color: "#0284c7" }}>Ảnh thông tin truy xuất nguồn gốc</span>
                 </div>
-              )}
+
+                {traceabilityFile ? (
+                  <div className="ap-cert-preview">
+                    <img src={traceabilityFile.url} alt="Truy xuất nguồn gốc" className="ap-cert-img" />
+                    <div className="ap-cert-info">
+                      <span className="ap-cert-name">{traceabilityFile.name}</span>
+                      <button className="ap-cert-remove" onClick={() => setTraceabilityFile(null)}>Xóa</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="ap-cert-zone"
+                    onClick={() => traceabilityInputRef.current?.click()}
+                    style={{ border: "2px dashed rgba(2, 132, 199, 0.2)" }}
+                  >
+                    <input
+                      type="file"
+                      ref={traceabilityInputRef}
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleTraceabilityChange}
+                    />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.5" width="28" height="28">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p className="ap-cert-zone-text" style={{ color: "#0284c7" }}>Nhấp để tải ảnh truy xuất lên</p>
+                    <p className="ap-cert-zone-hint">JPG, PNG — tối đa 10MB</p>
+                  </div>
+                )}
+              </div>
             </section>
 
             {/* Bottom row: Pricing + Inventory */}
@@ -469,9 +655,25 @@ export const AddProduct = () => {
                 </div>
 
                 <div className="ap-field-group">
-                  <label className="ap-label">
-                    Giá bán <span className="ap-required">*</span>
-                  </label>
+                  <div className="ap-label-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <label className="ap-label" style={{ marginBottom: 0 }}>
+                      Giá bán <span className="ap-required">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      className="ap-btn-ai"
+                      onClick={handleAiSuggestPrice}
+                      disabled={isAiSuggestingPrice}
+                    >
+                      {isAiSuggestingPrice ? (
+                        <>
+                          <span className="ap-ai-spinner" /> Đang gợi ý...
+                        </>
+                      ) : (
+                        "✨ AI gợi ý giá"
+                      )}
+                    </button>
+                  </div>
                   <div className="ap-price-input-wrap">
                     <input
                       type="number"
@@ -574,10 +776,6 @@ export const AddProduct = () => {
             <div className="ap-preview-card">
               <div className="ap-preview-label">XEM TRƯỚC GIAN HÀNG THỰC TẾ</div>
 
-              {isOrganic && (
-                <div className="ap-preview-badge">🌿 Đạt chứng nhận</div>
-              )}
-
               {/* Image slider */}
               <div className="ap-preview-image-wrap">
                 {slideCount > 0 ? (
@@ -587,12 +785,12 @@ export const AddProduct = () => {
                         src={previewSlides[safeIdx].url}
                         alt={`Slide ${safeIdx + 1}`}
                         className={`ap-preview-img ${
-                          previewSlides[safeIdx].type === "cert" ? "ap-preview-cert-img" : ""
+                          previewSlides[safeIdx].type === "cert" || previewSlides[safeIdx].type === "traceability" ? "ap-preview-cert-img" : ""
                         }`}
                       />
-                      {previewSlides[safeIdx].type === "cert" && (
-                        <div className="ap-slide-cert-badge">
-                          📜 Giấy chứng nhận nguồn gốc & An toàn sản phẩm
+                      {previewSlides[safeIdx].type === "traceability" && (
+                        <div className="ap-slide-cert-badge" style={{ backgroundColor: "#0284c7" }}>
+                          🔍 Ảnh thông tin truy xuất nguồn gốc
                         </div>
                       )}
                     </div>
@@ -610,7 +808,7 @@ export const AddProduct = () => {
                               key={i}
                               className={`ap-slider-dot ${
                                 i === safeIdx ? "ap-slider-dot-active" : ""
-                              } ${s.type === "cert" ? "ap-slider-dot-cert" : ""}`}
+                              }`}
                               onClick={() => setPreviewSlideIdx(i)}
                             />
                           ))}
@@ -646,7 +844,7 @@ export const AddProduct = () => {
                   {loading ? (
                     <span className="ap-spinner" />
                   ) : (
-                    "Đăng sản phẩm"
+                    isEdit ? "Cập nhật" : "Đăng sản phẩm"
                   )}
                 </button>
               </div>
@@ -654,6 +852,203 @@ export const AddProduct = () => {
           </aside>
         </div>
       </div>
+
+      {showAiModal && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal ai-modal" style={{ maxWidth: "600px", width: "90%" }}>
+            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
+              <span className="custom-modal-icon" style={{ fontSize: "22px" }}>✨</span>
+              <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý mô tả nông sản</h3>
+            </div>
+            <div className="ai-modal-body" style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+              <p className="ai-modal-intro" style={{ fontSize: "14px", color: "#4b5563" }}>
+                AI đã tự động thiết kế nội dung mô tả dựa trên các thông số sản phẩm của bạn. Bạn có thể tự chỉnh sửa nội dung này trực tiếp bên dưới trước khi áp dụng:
+              </p>
+              <textarea
+                className="ai-modal-textarea"
+                value={aiGeneratedText}
+                onChange={(e) => setAiGeneratedText(e.target.value)}
+                rows={12}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "10px",
+                  border: "1px solid #d1d5db",
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "14.5px",
+                  lineHeight: "1.6",
+                  color: "#1f2937",
+                  backgroundColor: "#f9fafb",
+                  resize: "vertical"
+                }}
+              />
+            </div>
+            <div className="custom-modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                type="button"
+                className="custom-btn-cancel"
+                onClick={() => setShowAiModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="custom-btn-confirm"
+                style={{ backgroundColor: "#10b981", boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)" }}
+                onClick={() => {
+                  setDescription(aiGeneratedText);
+                  setShowAiModal(false);
+                  showToast("Đã áp dụng mô tả từ AI!", "success");
+                }}
+              >
+                Áp dụng mô tả
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAiPriceModal && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal ai-modal" style={{ maxWidth: "550px", width: "90%" }}>
+            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
+              <span className="custom-modal-icon" style={{ fontSize: "22px" }}>💰</span>
+              <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý giá bán nông sản</h3>
+            </div>
+            
+            <div className="ai-modal-body" style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+              <p style={{ fontSize: "14px", color: "#4b5563", margin: 0 }}>
+                Dựa trên tên sản phẩm, danh mục và trạng thái hữu cơ của bạn, AI đề xuất giá bán sau (đơn vị: <strong>{selectedUnit}</strong>):
+              </p>
+
+              <div className="ai-price-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                <div 
+                  className="ai-price-card"
+                  onClick={() => {
+                    setBasePrice(aiPriceData.minPrice);
+                    setShowAiPriceModal(false);
+                    showToast("Đã áp dụng giá sàn!", "success");
+                  }}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #e5e7eb",
+                    backgroundColor: "#f9fafb",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Giá tối thiểu</div>
+                  <div style={{ fontSize: "16px", fontWeight: "600", color: "#374151" }}>
+                    {aiPriceData.minPrice?.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
+                </div>
+
+                <div 
+                  className="ai-price-card recommended"
+                  onClick={() => {
+                    setBasePrice(aiPriceData.recommendedPrice);
+                    setShowAiPriceModal(false);
+                    showToast("Đã áp dụng giá đề xuất!", "success");
+                  }}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "2px solid #10b981",
+                    backgroundColor: "#ecfdf5",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <span style={{
+                    position: "absolute",
+                    top: "-10px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "#10b981",
+                    color: "#fff",
+                    fontSize: "9px",
+                    padding: "2px 8px",
+                    borderRadius: "20px",
+                    fontWeight: "600",
+                    textTransform: "uppercase"
+                  }}>Đề xuất</span>
+                  <div style={{ fontSize: "12px", color: "#065f46", marginBottom: "4px", marginTop: "4px" }}>Giá tối ưu</div>
+                  <div style={{ fontSize: "18px", fontWeight: "700", color: "#047857" }}>
+                    {aiPriceData.recommendedPrice?.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#059669", display: "block", marginTop: "4px", fontWeight: "500" }}>Bấm để chọn</span>
+                </div>
+
+                <div 
+                  className="ai-price-card"
+                  onClick={() => {
+                    setBasePrice(aiPriceData.maxPrice);
+                    setShowAiPriceModal(false);
+                    showToast("Đã áp dụng giá trần!", "success");
+                  }}
+                  style={{
+                    padding: "12px",
+                    borderRadius: "10px",
+                    border: "1px solid #e5e7eb",
+                    backgroundColor: "#f9fafb",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>Giá tối đa</div>
+                  <div style={{ fontSize: "16px", fontWeight: "600", color: "#374151" }}>
+                    {aiPriceData.maxPrice?.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
+                </div>
+              </div>
+
+              {aiPriceData.explanation && (
+                <div style={{ 
+                  backgroundColor: "#f3f4f6", 
+                  padding: "12px 16px", 
+                  borderRadius: "10px", 
+                  fontSize: "13.5px", 
+                  lineHeight: "1.5", 
+                  color: "#4b5563",
+                  borderLeft: "4px solid #10b981"
+                }}>
+                  <strong>💡 Giải thích từ AI:</strong> {aiPriceData.explanation}
+                </div>
+              )}
+            </div>
+
+            <div className="custom-modal-actions" style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                type="button"
+                className="custom-btn-cancel"
+                onClick={() => setShowAiPriceModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="custom-btn-confirm"
+                style={{ backgroundColor: "#10b981", boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)" }}
+                onClick={() => {
+                  setBasePrice(aiPriceData.recommendedPrice);
+                  setShowAiPriceModal(false);
+                  showToast("Đã áp dụng giá tối ưu!", "success");
+                }}
+              >
+                Áp dụng giá tối ưu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">

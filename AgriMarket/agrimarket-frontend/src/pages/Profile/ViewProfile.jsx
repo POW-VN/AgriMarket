@@ -123,17 +123,159 @@ const ViewProfile = () => {
           </div>
         )}
 
+        {/* Phone number update banner for Google users */}
+        {!profile.phone && (
+          <div className="password-alert-banner" style={{
+            backgroundColor: "#eff6ff",
+            border: "1px solid #dbeafe",
+            borderRadius: "12px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            boxShadow: "0 4px 12px rgba(59, 130, 246, 0.05)"
+          }}>
+            <div style={{
+              fontSize: "24px",
+              color: "#2563eb"
+            }}>📱</div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: "0 0 4px 0", color: "#1e3a8a", fontWeight: "700", fontSize: "15px" }}>
+                Số điện thoại chưa được cập nhật
+              </h4>
+              <p style={{ margin: 0, color: "#1d4ed8", fontSize: "13.5px", lineHeight: "1.5" }}>
+                Vui lòng{" "}
+                <span
+                  onClick={() => navigate("/profile/edit")}
+                  style={{ textDecoration: "underline", cursor: "pointer", fontWeight: "600", color: "#1d4ed8" }}
+                >
+                  cập nhật số điện thoại
+                </span>{" "}
+                để nhận thông báo đơn hàng và bảo mật tài khoản tốt hơn.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/profile/edit")}
+              style={{
+                backgroundColor: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                fontSize: "13px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "background-color 0.2s",
+                whiteSpace: "nowrap"
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = "#1d4ed8"}
+              onMouseOut={(e) => e.target.style.backgroundColor = "#2563eb"}
+            >
+              Cập nhật ngay
+            </button>
+          </div>
+        )}
+
         <ProfileOverviewCard
           profile={profile}
           onEdit={() => navigate("/profile/edit")}
         />
 
         {profile.role === USER_ROLES.CUSTOMER && (
-          <CustomerInfoCard profile={profile} />
+          <>
+            <CustomerInfoCard profile={profile} />
+            <div className="become-farmer-banner" style={{
+              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color: "#ffffff",
+              borderRadius: "16px",
+              padding: "24px",
+              marginTop: "24px",
+              boxShadow: "0 10px 15px -3px rgba(16, 185, 129, 0.2)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "16px"
+            }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", color: "#ffffff" }}>Trở thành đối tác Nhà vườn 🌾</h3>
+                <p style={{ margin: 0, fontSize: "14.5px", opacity: 0.95, lineHeight: "1.5" }}>Bắt đầu bán nông sản của bạn trực tiếp tới khách hàng trên AgriMarket.</p>
+              </div>
+              <button 
+                onClick={() => navigate("/farmer/register")} 
+                style={{
+                  backgroundColor: "#ffffff",
+                  color: "#059669",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px 24px",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+                  transition: "all 0.2s"
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.transform = "translateY(-2px)";
+                  e.target.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = "none";
+                  e.target.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.1)";
+                }}
+              >
+                Đăng ký bán hàng
+              </button>
+            </div>
+          </>
         )}
 
         {profile.role === USER_ROLES.FARMER && (
-          <FarmerInfoCard profile={profile} />
+          <>
+            {/* Farmer is also a customer — show full customer info card */}
+            <CustomerInfoCard profile={profile} />
+
+            {/* Banner to go to farm dashboard */}
+            <div style={{
+              background: "linear-gradient(135deg, #064e3b 0%, #065f46 100%)",
+              color: "#ffffff",
+              borderRadius: "16px",
+              padding: "24px",
+              marginTop: "24px",
+              boxShadow: "0 10px 15px -3px rgba(6, 78, 59, 0.25)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "16px"
+            }}>
+              <div style={{ flex: "1 1 300px" }}>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "700", color: "#ffffff" }}>🏡 Quản lý trang trại của bạn</h3>
+                <p style={{ margin: 0, fontSize: "14px", opacity: 0.85, lineHeight: "1.5" }}>Cập nhật thông tin trang trại, chứng nhận chất lượng và hình ảnh trong Kênh nhà vườn.</p>
+              </div>
+              <button
+                onClick={() => navigate("/farmer/farm-profile")}
+                style={{
+                  backgroundColor: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px 24px",
+                  fontSize: "15px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
+                  transition: "all 0.2s",
+                  whiteSpace: "nowrap"
+                }}
+                onMouseOver={(e) => { e.target.style.transform = "translateY(-2px)"; e.target.style.backgroundColor = "#059669"; }}
+                onMouseOut={(e) => { e.target.style.transform = "none"; e.target.style.backgroundColor = "#10b981"; }}
+              >
+                Đi tới Kênh nhà vườn
+              </button>
+            </div>
+          </>
         )}
 
         {profile.role === USER_ROLES.ADMIN && (

@@ -56,4 +56,42 @@ public class UploadController {
                     .body("Failed to upload image: " + e.getMessage());
         }
     }
+
+    @PostMapping("/file")
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File is empty");
+        }
+
+        try {
+            String docUploadDir = "uploads" + File.separator + "documents";
+            File directory = new File(docUploadDir);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            String originalFileName = file.getOriginalFilename();
+            String extension = "";
+            if (originalFileName != null && originalFileName.contains(".")) {
+                extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+            }
+            String newFileName = UUID.randomUUID().toString() + extension;
+
+            File destinationFile = new File(directory.getAbsolutePath() + File.separator + newFileName);
+            file.transferTo(destinationFile);
+
+            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/documents/")
+                    .path(newFileName)
+                    .toUriString();
+
+            return ResponseEntity.ok(Map.of("fileUrl", fileUrl));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to upload file: " + e.getMessage());
+        }
+    }
 }
+

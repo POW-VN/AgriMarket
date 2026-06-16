@@ -10,6 +10,8 @@ import org.example.agrimarket.repository.CategoryRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.repository.ProductRepository;
+import org.example.agrimarket.repository.ProductReviewRepository;
+import org.example.agrimarket.repository.OrderItemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,12 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private FarmerRepository farmerRepository;
 
+    @Autowired
+    private ProductReviewRepository productReviewRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
+
     @Override
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
         List<Product> products = productRepository.findByFarmerEmailOrderByCreatedAtDesc(email);
@@ -55,6 +63,43 @@ public class ProductServiceImpl implements ProductService {
                 .findFirstByProductIdAndIsThumbnailTrue(product.getId());
         String thumbnailUrl = thumbnailImage.map(ProductImage::getImgUrl).orElse("");
 
+        // Find all image URLs for this product
+        List<ProductImage> productImages = productImageRepository.findByProductId(product.getId());
+        List<String> imageUrls = productImages.stream()
+                .map(ProductImage::getImgUrl)
+                .collect(Collectors.toList());
+
+        String farmerName = "";
+        String farmLocation = "";
+        String farmDescription = "";
+        String farmerAvatarUrl = "";
+        String farmerVietgapUrl = "";
+        String farmerGlobalgapUrl = "";
+        String farmerOrganicUrl = "";
+        if (product.getFarmer() != null) {
+            Farmer farmer = product.getFarmer();
+            farmerName = farmer.getFarmName() != null && !farmer.getFarmName().isEmpty()
+                    ? farmer.getFarmName()
+                    : farmer.getFullName();
+            farmLocation = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isEmpty()
+                    ? farmer.getFarmAddress()
+                    : "Chưa có địa chỉ";
+            farmDescription = farmer.getDescription() != null && !farmer.getDescription().isEmpty()
+                    ? farmer.getDescription()
+                    : "Chưa có mô tả nông trại";
+            farmerAvatarUrl = farmer.getAvatarUrl();
+            farmerVietgapUrl = farmer.getVietgapUrl() != null ? farmer.getVietgapUrl() : "";
+            farmerGlobalgapUrl = farmer.getGlobalgapUrl() != null ? farmer.getGlobalgapUrl() : "";
+            farmerOrganicUrl = farmer.getOrganicUrl() != null ? farmer.getOrganicUrl() : "";
+        }
+
+        Double avgRating = productReviewRepository.getAverageRatingByProductId(product.getId());
+        if (avgRating == null) {
+            avgRating = 0.0;
+        }
+        Long count = productReviewRepository.countByProductId(product.getId());
+        Integer soldCount = orderItemRepository.sumQuantityByProductIdAndOrderStatus(product.getId());
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .farmerId(product.getFarmer() != null ? product.getFarmer().getId() : null)
@@ -62,17 +107,29 @@ public class ProductServiceImpl implements ProductService {
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .name(product.getName())
                 .description(product.getDescription())
-                .aiGeneratedDescription(product.getAiGeneratedDescription())
                 .price(product.getPrice())
-                .aiSuggestedPrice(product.getAiSuggestedPrice())
                 .stockQuantity(product.getStockQuantity())
                 .unit(product.getUnit())
                 .status(product.getStatus())
                 .harvestDate(product.getHarvestDate())
+                .expirationDate(product.getExpirationDate())
                 .createdAt(product.getCreatedAt())
                 .isOrganic(product.getIsOrganic())
-                .certificateUrl(product.getCertificateUrl())
+                .traceabilityImageUrl(product.getTraceabilityImageUrl())
                 .thumbnailUrl(thumbnailUrl)
+                .images(imageUrls)
+                .farmerName(farmerName)
+                .farmLocation(farmLocation)
+                .farmDescription(farmDescription)
+                .farmerAvatarUrl(farmerAvatarUrl)
+                .rejectionReason(product.getRejectionReason())
+                .adminNotes(product.getAdminNotes())
+                .rating(avgRating)
+                .reviewsCount(count.intValue())
+                .sold(soldCount)
+                .farmerVietgapUrl(farmerVietgapUrl)
+                .farmerGlobalgapUrl(farmerGlobalgapUrl)
+                .farmerOrganicUrl(farmerOrganicUrl)
                 .build();
     }
 
@@ -95,9 +152,10 @@ public class ProductServiceImpl implements ProductService {
             productImageRepository.deleteAll(images);
         }
 
-        // Delete certificate physically
-        if (product.getCertificateUrl() != null && !product.getCertificateUrl().isEmpty()) {
-            deletePhysicalFile(product.getCertificateUrl(), "certificates");
+
+        // Delete traceability image physically
+        if (product.getTraceabilityImageUrl() != null && !product.getTraceabilityImageUrl().isEmpty()) {
+            deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
         }
 
         // Delete product
@@ -105,26 +163,33 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void deletePhysicalFile(String fileUrl, String subFolder) {
-        if (fileUrl == null) return;
+        if (fileUrl == null)
+            return;
         String normalizedUrl = fileUrl.replace("\\", "/");
         if (normalizedUrl.contains("/uploads/" + subFolder + "/")) {
             try {
                 String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File("uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+                java.io.File fileInParent = new java.io.File(
+                        "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
+                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads"
+                        + java.io.File.separator + subFolder + java.io.File.separator + fileName);
 
                 boolean deleted = false;
                 if (fileInParent.exists()) {
                     deleted = fileInParent.delete();
-                    System.out.println(">>> ProductServiceImpl: Deleted physical file in parent: " + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> ProductServiceImpl: Deleted physical file in parent: "
+                            + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
                 } else if (fileInSub.exists()) {
                     deleted = fileInSub.delete();
-                    System.out.println(">>> ProductServiceImpl: Deleted physical file in subfolder: " + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> ProductServiceImpl: Deleted physical file in subfolder: "
+                            + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
                 } else {
-                    System.out.println(">>> ProductServiceImpl: File not found at parent: " + fileInParent.getAbsolutePath() + " or subfolder: " + fileInSub.getAbsolutePath());
+                    System.out.println(">>> ProductServiceImpl: File not found at parent: "
+                            + fileInParent.getAbsolutePath() + " or subfolder: " + fileInSub.getAbsolutePath());
                 }
             } catch (Exception e) {
-                System.err.println(">>> ProductServiceImpl: Failed to delete physical file: " + fileUrl + ", error: " + e.getMessage());
+                System.err.println(">>> ProductServiceImpl: Failed to delete physical file: " + fileUrl + ", error: "
+                        + e.getMessage());
             }
         }
     }
@@ -156,12 +221,14 @@ public class ProductServiceImpl implements ProductService {
         product.setUnit(request.getUnit());
         product.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
         product.setHarvestDate(request.getHarvestDate());
+        product.setExpirationDate(request.getExpirationDate());
         product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
 
-        // Handle certificate file Base64 if organic is enabled
-        if (Boolean.TRUE.equals(request.getIsOrganic()) && request.getCertificateFileBase64() != null && !request.getCertificateFileBase64().isEmpty()) {
-            String certUrl = saveBase64File(request.getCertificateFileBase64(), "certificates");
-            product.setCertificateUrl(certUrl);
+
+        // Handle traceability image Base64 if uploaded
+        if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
+            String traceabilityUrl = saveBase64File(request.getTraceabilityImageBase64(), "traceability");
+            product.setTraceabilityImageUrl(traceabilityUrl);
         }
 
         product = productRepository.save(product);
@@ -177,6 +244,109 @@ public class ProductServiceImpl implements ProductService {
                     pImage.setImgUrl(imgUrl);
                     pImage.setIsThumbnail(i == 0); // first image is the thumbnail
                     productImageRepository.save(pImage);
+                }
+            }
+        }
+
+        return convertToResponse(product);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse updateProduct(Long id, ProductRequest request, String farmerEmail) throws Exception {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        if (product.getFarmer() == null || !product.getFarmer().getEmail().equalsIgnoreCase(farmerEmail)) {
+            throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa sản phẩm này.");
+        }
+
+        // Basic fields
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+        product.setUnit(request.getUnit());
+        product.setHarvestDate(request.getHarvestDate());
+        product.setExpirationDate(request.getExpirationDate());
+        product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
+        product.setStatus("pending"); // Reset status to pending for admin approval
+
+        // Category
+        Category category = null;
+        if (request.getCategoryName() != null && !request.getCategoryName().isEmpty()) {
+            category = categoryRepository.findByName(request.getCategoryName())
+                    .orElseGet(() -> {
+                        Category newCat = new Category();
+                        newCat.setName(request.getCategoryName());
+                        newCat.setDescription("Danh mục nông sản " + request.getCategoryName());
+                        return categoryRepository.save(newCat);
+                    });
+        }
+        product.setCategory(category);
+
+
+        // Traceability image
+        if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
+            if (request.getTraceabilityImageBase64().startsWith("data:")) {
+                if (product.getTraceabilityImageUrl() != null) {
+                    deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
+                }
+                String traceabilityUrl = saveBase64File(request.getTraceabilityImageBase64(), "traceability");
+                product.setTraceabilityImageUrl(traceabilityUrl);
+            }
+        } else {
+            if (request.getTraceabilityImageBase64() == null && product.getTraceabilityImageUrl() != null) {
+                deletePhysicalFile(product.getTraceabilityImageUrl(), "traceability");
+                product.setTraceabilityImageUrl(null);
+            }
+        }
+
+        product = productRepository.save(product);
+
+        // Images handling
+        if (request.getImages() != null) {
+            List<ProductImage> dbImages = productImageRepository.findByProductId(id);
+            List<String> requestImages = request.getImages();
+
+            // Find images to delete
+            for (ProductImage dbImg : dbImages) {
+                boolean keep = false;
+                for (String reqImg : requestImages) {
+                    if (reqImg != null && reqImg.equalsIgnoreCase(dbImg.getImgUrl())) {
+                        keep = true;
+                        break;
+                    }
+                }
+                if (!keep) {
+                    deletePhysicalFile(dbImg.getImgUrl(), "products");
+                    productImageRepository.delete(dbImg);
+                }
+            }
+
+            productImageRepository.flush(); // Ensure deletes are synchronized
+
+            for (int i = 0; i < requestImages.size(); i++) {
+                String imgStr = requestImages.get(i);
+                if (imgStr != null && !imgStr.isEmpty()) {
+                    if (imgStr.startsWith("data:")) {
+                        String imgUrl = saveBase64File(imgStr, "products");
+                        ProductImage pImage = new ProductImage();
+                        pImage.setProduct(product);
+                        pImage.setImgUrl(imgUrl);
+                        pImage.setIsThumbnail(i == 0);
+                        productImageRepository.save(pImage);
+                    } else {
+                        final String url = imgStr;
+                        Optional<ProductImage> existingOpt = productImageRepository.findByProductId(id).stream()
+                                .filter(pImg -> pImg.getImgUrl().equalsIgnoreCase(url))
+                                .findFirst();
+                        if (existingOpt.isPresent()) {
+                            ProductImage pImage = existingOpt.get();
+                            pImage.setIsThumbnail(i == 0);
+                            productImageRepository.save(pImage);
+                        }
+                    }
                 }
             }
         }
@@ -239,7 +409,29 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> getAllApprovedProducts() {
-        List<Product> products = productRepository.findByStatusOrderByCreatedAtDesc("approved");
+        List<Product> products = productRepository.findApprovedProductsFromVerifiedFarmers();
+        return products.stream().map(this::convertToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public ProductResponse getProductById(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + id));
+        return convertToResponse(product);
+    }
+
+    @Override
+    public List<ProductResponse> getAllProducts() {
+        List<Product> products = productRepository.findAll();
+        products.sort((p1, p2) -> {
+            if (p1.getCreatedAt() == null && p2.getCreatedAt() == null)
+                return 0;
+            if (p1.getCreatedAt() == null)
+                return 1;
+            if (p2.getCreatedAt() == null)
+                return -1;
+            return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+        });
         return products.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 }

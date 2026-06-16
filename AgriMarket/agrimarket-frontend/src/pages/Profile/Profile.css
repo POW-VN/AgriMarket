@@ -21,6 +21,7 @@
 .profile-primary-button,
 .profile-secondary-button,
 .form-group input,
+.form-group select,
 .form-group textarea {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -45,12 +46,19 @@
 
 .profile-sidebar {
   width: 250px;
-  min-height: 100vh;
+  min-width: 250px;
+  max-width: 250px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
   background: var(--profile-sidebar-bg);
   padding: 28px 24px;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  flex-grow: 0;
+  box-sizing: border-box;
 }
 
 .profile-brand {
@@ -141,13 +149,15 @@
 
 .profile-main-content {
   flex: 1;
-  padding: 52px 64px 24px;
+  min-width: 0;
+  padding: 0;
   overflow-x: hidden;
 }
 
 .profile-content {
   max-width: 900px;
   margin: 0 auto;
+  padding: 48px 56px 32px;
 }
 
 .profile-page-header {
@@ -504,6 +514,7 @@
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
   width: 100%;
   border: 1px solid var(--profile-border);
@@ -516,6 +527,7 @@
 }
 
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   border-color: var(--profile-green);
   box-shadow: 0 0 0 4px rgba(0, 65, 47, 0.08);

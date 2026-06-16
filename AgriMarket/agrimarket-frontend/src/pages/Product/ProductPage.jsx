@@ -6,6 +6,7 @@ import "./ProductPage.css";
 import { getFarmerProducts, deleteFarmerProduct } from "../../services/productService";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useProfile from "../../hooks/useProfile";
+import Footer from "../../components/common/Footer/Footer";
 
 export default function ProductPage() {
     const navigate = useNavigate();
@@ -272,6 +273,7 @@ export default function ProductPage() {
                 </section>
 
                 <button className="add-product-floating" onClick={() => navigate("/farmer/products/add")}>＋ Thêm sản phẩm mới</button>
+                <Footer />
             </main>
 
             {/* Custom Confirm Modal */}

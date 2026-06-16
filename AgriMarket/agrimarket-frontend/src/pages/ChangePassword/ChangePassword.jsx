@@ -6,6 +6,7 @@ import authService from "../../services/authService";
 
 import ProfileLayout from "../../components/profile/ProfileLayout";
 import ProfileHeader from "../../components/profile/ProfileHeader";
+import ProfileFooter from "../../components/profile/ProfileFooter";
 
 import PasswordInput from "../../components/common/PasswordInput/PasswordInput";
 import ChangePasswordSuccess from "../ChangePasswordSuccess/ChangePasswordSuccess";
@@ -222,6 +223,7 @@ const ChangePassword = () => {
               </form>
             </div>
           </section>
+          <ProfileFooter />
         </ProfileLayout>
 
         <ChangePasswordSuccess

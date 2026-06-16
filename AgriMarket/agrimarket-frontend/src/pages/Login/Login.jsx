@@ -7,6 +7,7 @@ import icon from "./icon.svg";
 import icon2 from "./icon-2.svg";
 import image from "./image.svg";
 import authService from "../../services/authService";
+import cartService from "../../services/cartService";
 import "./Login.css";
 
 export const LoginFarmconnect = () => {
@@ -19,6 +20,32 @@ export const LoginFarmconnect = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const syncGuestCart = async () => {
+    try {
+      const guestCartJson = localStorage.getItem("agrimarket_cart");
+      if (guestCartJson) {
+        const guestItems = JSON.parse(guestCartJson);
+        if (Array.isArray(guestItems) && guestItems.length > 0) {
+          // Map guest cart items to CartItemAddRequest format (productId, quantity)
+          const itemsToSync = guestItems
+            .filter(item => item.id && !String(item.id).startsWith("mock-"))
+            .map(item => ({
+              productId: Number(item.id),
+              quantity: item.quantity
+            }));
+          
+          if (itemsToSync.length > 0) {
+            await cartService.syncCart(itemsToSync);
+          }
+          // Clear guest cart after syncing
+          localStorage.removeItem("agrimarket_cart");
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi khi đồng bộ giỏ hàng khách:", err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -27,6 +54,7 @@ export const LoginFarmconnect = () => {
     try {
       const response = await authService.login({ email, password, role });
       console.log("Login successful:", response);
+      await syncGuestCart();
       navigate("/");
     } catch (err) {
       const errMsg = typeof err === "string" ? err : (err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
@@ -43,14 +71,12 @@ export const LoginFarmconnect = () => {
       try {
         const response = await authService.googleLogin({
           token: tokenResponse.access_token,
-          role: "",
+          role: "customer",
+          isRegister: false
         });
-        if (response?.newUser || response?.isNewUser) {
-          navigate("/role", { state: { googleAccessToken: tokenResponse.access_token } });
-        } else {
-          console.log("Google login successful:", response);
-          navigate("/");
-        }
+        console.log("Google login successful:", response);
+        await syncGuestCart();
+        navigate("/");
       } catch (err) {
         const errMsg = typeof err === "string" ? err : (err.message || "Đăng nhập bằng Google thất bại. Vui lòng thử lại.");
         setError(errMsg);
@@ -119,22 +145,6 @@ export const LoginFarmconnect = () => {
             </div>
             {error && <div className="error-message" style={{ color: 'var(--error-color)', backgroundColor: '#ffebee', padding: '10px', borderRadius: '8px', width: '100%', marginBottom: '10px', border: '1px solid #ffcdd2' }}>{error}</div>}
             
-            <div className="role-selection">
-              <button 
-                type="button" 
-                className={role === "customer" ? "button" : "div-wrapper"}
-                onClick={() => setRole("customer")}
-              >
-                <div className={role === "customer" ? "text" : "text-2"}>Khách hàng</div>
-              </button>
-              <button 
-                type="button" 
-                className={role === "farmer" ? "button" : "div-wrapper"}
-                onClick={() => setRole("farmer")}
-              >
-                <div className={role === "farmer" ? "text" : "text-2"}>Nông dân</div>
-              </button>
-            </div>
             <div className="button-google-sign" onClick={handleGoogleLogin} style={{ cursor: "pointer" }}>
               <img className="google-logo" alt="Google logo" src={googleLogo} />
               <div className="text-3">Đăng nhập bằng Google</div>

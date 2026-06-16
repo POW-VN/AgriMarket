@@ -6,10 +6,12 @@ import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.OtpVerification;
+import org.example.agrimarket.model.Partner;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.OtpVerificationRepository;
+import org.example.agrimarket.repository.PartnerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,9 @@ public class AuthService {
     private AdminRepository adminRepository;
 
     @Autowired
+    private PartnerRepository partnerRepository;
+
+    @Autowired
     private OtpVerificationRepository otpVerificationRepository;
 
     @Autowired
@@ -43,56 +48,70 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     public AuthResponse login(String email, String password, String role) {
-
-        if (role == null || role.isBlank()) {
-            throw new RuntimeException("Vai trò là bắt buộc");
-        }
-
-        role = role.toLowerCase();
         if (email != null) {
             email = email.trim().toLowerCase();
         }
 
-        Object user;
+        Object user = null;
+        String resolvedRole = null;
 
-        switch (role) {
+        // 1. Try logging in as Admin
+        Optional<Admin> adminOpt = adminRepository.findByEmail(email);
+        if (adminOpt.isPresent()) {
+            user = adminOpt.get();
+            resolvedRole = "admin";
+        }
 
-            case "customer":
-                user = customerRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng"));
-                break;
+        // 2. Try logging in as Customer
+        if (user == null) {
+            Optional<Customer> customerOpt = customerRepository.findByEmail(email);
+            if (customerOpt.isPresent()) {
+                // Check if this Customer is also registered as a Farmer
+                Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+                if (farmerOpt.isPresent()) {
+                    user = farmerOpt.get();
+                    resolvedRole = "farmer";
+                } else {
+                    user = customerOpt.get();
+                    resolvedRole = "customer";
+                }
+            }
+        }
 
-            case "farmer":
-                user = farmerRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản nông dân"));
-                break;
+        // 3. Fallback for legacy users who are only in Farmer table
+        if (user == null) {
+            Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+            if (farmerOpt.isPresent()) {
+                user = farmerOpt.get();
+                resolvedRole = "farmer";
+            }
+        }
 
-            case "admin":
-                user = adminRepository.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản quản trị viên"));
-                break;
+        // 4. Try logging in as Partner/Shipper
+        if (user == null) {
+            Optional<Partner> partnerOpt = partnerRepository.findByEmail(email);
+            if (partnerOpt.isPresent()) {
+                user = partnerOpt.get();
+                resolvedRole = "partner";
+            }
+        }
 
-            default:
-                throw new RuntimeException("Vai trò không hợp lệ");
+        if (user == null) {
+            throw new RuntimeException("Không tìm thấy tài khoản với email này");
         }
 
         String hashedPassword;
-
-        switch (role) {
-            case "admin":
-                hashedPassword = ((Admin) user).getPassword();
-                break;
-
-            case "farmer":
-                hashedPassword = ((Farmer) user).getPassword();
-                break;
-
-            default:
-                hashedPassword = ((Customer) user).getPassword();
-                break;
+        if ("admin".equals(resolvedRole)) {
+            hashedPassword = ((Admin) user).getPassword();
+        } else if (user instanceof Farmer) {
+            hashedPassword = ((Farmer) user).getPassword();
+        } else if (user instanceof Partner) {
+            hashedPassword = ((Partner) user).getPassword();
+        } else {
+            hashedPassword = ((Customer) user).getPassword();
         }
 
-        System.out.println("DEBUG LOGIN: email=" + email + ", role=" + role + ", inputPassword=" + password + ", storedHashedPassword=" + hashedPassword);
+        System.out.println("DEBUG LOGIN: email=" + email + ", resolvedRole=" + resolvedRole + ", inputPassword=" + password + ", storedHashedPassword=" + hashedPassword);
         if (!passwordEncoder.matches(password, hashedPassword)) {
             System.out.println("DEBUG LOGIN: matches FAILED!");
             throw new RuntimeException("Tài khoản hoặc mật khẩu không chính xác");
@@ -100,7 +119,7 @@ public class AuthService {
             System.out.println("DEBUG LOGIN: matches SUCCESS!");
         }
 
-        String token = jwtUtil.generateToken(email, role);
+        String token = jwtUtil.generateToken(email, resolvedRole);
 
         AuthResponse response = new AuthResponse();
         response.setToken(token);
@@ -144,6 +163,9 @@ public class AuthService {
 
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
+        String rawPhone = request.getPhoneNumber();
+        String normalizedPhone = (rawPhone != null && !rawPhone.trim().isEmpty()) ? rawPhone.trim() : null;
+
         switch (role) {
 
             case "customer":
@@ -152,7 +174,7 @@ public class AuthService {
 
                 customer.setFullName(request.getFullName());
                 customer.setEmail(request.getEmail());
-                customer.setPhone(request.getPhoneNumber());
+                customer.setPhone(normalizedPhone);
                 customer.setPassword(hashedPassword);
                 customer.setStatus("active");
                 customer.setCreatedAt(LocalDateTime.now());
@@ -165,10 +187,10 @@ public class AuthService {
 
                 farmer.setFullName(request.getFullName());
                 farmer.setEmail(request.getEmail());
-                farmer.setPhone(request.getPhoneNumber());
+                farmer.setPhone(normalizedPhone);
                 farmer.setPassword(hashedPassword);
                 farmer.setVerificationStatus("pending");
-                farmer.setStatus("active");
+                farmer.setStatus("pending");
                 farmer.setCreatedAt(LocalDateTime.now());
                 farmer.setFarmName("Farm of " + (request.getFullName() != null ? request.getFullName() : "Farmer"));
                 farmer.setFarmAddress("Not updated");
@@ -191,7 +213,7 @@ public class AuthService {
         }
     }
 
-    public AuthResponse googleLogin(String googleAccessToken, String role) {
+    public AuthResponse googleLogin(String googleAccessToken, String role, String phone, Boolean isRegister) {
         org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.set("Authorization", "Bearer " + googleAccessToken);
@@ -224,16 +246,43 @@ public class AuthService {
         // Check if the user already exists in the database
         Customer customer = customerRepository.findByEmail(email).orElse(null);
         Farmer farmer = farmerRepository.findByEmail(email).orElse(null);
+        Partner partner = partnerRepository.findByEmail(email).orElse(null);
+
+        boolean userExists = (customer != null || farmer != null || partner != null);
+        if (Boolean.TRUE.equals(isRegister) && userExists) {
+            throw new RuntimeException("Tài khoản email này đã được đăng ký trên hệ thống. Vui lòng chuyển sang trang Đăng nhập.");
+        }
 
         Object user = null;
         String resolvedRole = null;
 
         if (customer != null) {
-            user = customer;
-            resolvedRole = "customer";
+            if (phone != null && !phone.trim().isEmpty()) {
+                customer.setPhone(phone.trim());
+                customer = customerRepository.save(customer);
+            }
+            Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
+            if (farmerOpt.isPresent()) {
+                user = farmerOpt.get();
+                resolvedRole = "farmer";
+            } else {
+                user = customer;
+                resolvedRole = "customer";
+            }
         } else if (farmer != null) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                farmer.setPhone(phone.trim());
+                farmer = farmerRepository.save(farmer);
+            }
             user = farmer;
             resolvedRole = "farmer";
+        } else if (partner != null) {
+            if (phone != null && !phone.trim().isEmpty()) {
+                partner.setPhone(phone.trim());
+                partner = partnerRepository.save(partner);
+            }
+            user = partner;
+            resolvedRole = "partner";
         }
 
         if (user != null) {
@@ -246,81 +295,35 @@ public class AuthService {
             return response;
         }
 
-        // User does not exist. Do they have a selected role from RoleCard?
-        if (role == null || role.isBlank() || (!"customer".equalsIgnoreCase(role) && !"farmer".equalsIgnoreCase(role))) {
-            // No role selected yet, return response indicating we need role selection
-            AuthResponse response = new AuthResponse();
-            response.setNewUser(true);
-            return response;
+        // New Google User: Auto-register as Customer by default
+        customer = new Customer();
+        customer.setFullName(name != null ? name : "Google User");
+        customer.setEmail(email);
+        customer.setAvatarUrl(picture);
+        customer.setStatus("active");
+        customer.setCreatedAt(LocalDateTime.now());
+        // Auto-generate remaining attributes:
+        customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        customer.setPasswordSet(false);
+        if (phone != null && !phone.trim().isEmpty()) {
+            customer.setPhone(phone.trim());
         }
+        customer = customerRepository.save(customer);
 
-        // Role is provided. Register the user and generate login details.
-        String lowercaseRole = role.toLowerCase();
-        if ("customer".equals(lowercaseRole)) {
-            customer = new Customer();
-            customer.setFullName(name != null ? name : "Google User");
-            customer.setEmail(email);
-            customer.setAvatarUrl(picture);
-            customer.setStatus("active");
-            customer.setCreatedAt(LocalDateTime.now());
-            // Auto-generate remaining attributes:
-            customer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
-            customer.setPasswordSet(false);
-            customer.setPhone(generateUniquePhoneForCustomer());
-            customer = customerRepository.save(customer);
-            user = customer;
-            resolvedRole = "customer";
-        } else if ("farmer".equals(lowercaseRole)) {
-            farmer = new Farmer();
-            farmer.setFullName(name != null ? name : "Google User");
-            farmer.setEmail(email);
-            farmer.setAvatarUrl(picture);
-            farmer.setVerificationStatus("pending");
-            farmer.setStatus("active");
-            farmer.setCreatedAt(LocalDateTime.now());
-            // Auto-generate remaining attributes:
-            farmer.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
-            farmer.setPasswordSet(false);
-            farmer.setPhone(generateUniquePhoneForFarmer());
-            farmer.setFarmName("Nông trại của " + (name != null ? name : "Google Farmer"));
-            farmer.setFarmAddress("Chưa cập nhật");
-            farmer.setDescription("Mô tả nông trại chưa được cập nhật.");
-            farmer.setRatingAverage(0.0);
-            farmer.setTotalProducts(0);
-            farmer = farmerRepository.save(farmer);
-            user = farmer;
-            resolvedRole = "farmer";
-        }
-
-        String token = jwtUtil.generateToken(email, resolvedRole);
+        String token = jwtUtil.generateToken(email, "customer");
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-        response.setUser(user);
-        response.setNewUser(false);
+        response.setUser(customer);
+        
+        // If role is not provided, it is the initial login check -> mark as newUser to force onboarding/role/phone selection
+        if (role == null || role.trim().isEmpty()) {
+            response.setNewUser(true);
+        } else {
+            response.setNewUser(false);
+        }
         return response;
     }
 
-    private String generateUniquePhoneForCustomer() {
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 100; i++) {
-            String phone = "0" + (300000000L + random.nextLong(700000000L));
-            if (!customerRepository.existsByPhone(phone)) {
-                return phone;
-            }
-        }
-        throw new RuntimeException("Tạo số điện thoại duy nhất thất bại");
-    }
-
-    private String generateUniquePhoneForFarmer() {
-        java.util.Random random = new java.util.Random();
-        for (int i = 0; i < 100; i++) {
-            String phone = "0" + (300000000L + random.nextLong(700000000L));
-            if (!farmerRepository.existsByPhone(phone)) {
-                return phone;
-            }
-        }
-        throw new RuntimeException("Tạo số điện thoại duy nhất thất bại");
-    }
 
     public void sendForgotPasswordOtp(String email) {
         if (email != null) {
@@ -333,6 +336,8 @@ public class AuthService {
             userType = "farmer";
         } else if (adminRepository.findByEmail(email).isPresent()) {
             userType = "admin";
+        } else if (partnerRepository.findByEmail(email).isPresent()) {
+            userType = "partner";
         }
 
         if (userType == null) {
@@ -364,12 +369,14 @@ public class AuthService {
         }
         if (customerRepository.findByEmail(email).isPresent() ||
             farmerRepository.findByEmail(email).isPresent() ||
-            adminRepository.findByEmail(email).isPresent()) {
+            adminRepository.findByEmail(email).isPresent() ||
+            partnerRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Địa chỉ email đã được đăng ký.");
         }
 
         if (customerRepository.existsByPhone(request.getPhoneNumber()) ||
-            farmerRepository.existsByPhone(request.getPhoneNumber())) {
+            farmerRepository.existsByPhone(request.getPhoneNumber()) ||
+            partnerRepository.findByPhone(request.getPhoneNumber()).isPresent()) {
             throw new RuntimeException("Số điện thoại đã được đăng ký.");
         }
 
@@ -427,6 +434,11 @@ public class AuthService {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản quản trị viên"));
             admin.setPassword(hashedPassword);
             adminRepository.save(admin);
+        } else if ("partner".equals(otp.getUserType())) {
+            Partner partner = partnerRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản đối tác/shipper"));
+            partner.setPassword(hashedPassword);
+            partnerRepository.save(partner);
         }
     }
 }

@@ -78,6 +78,31 @@ export const normalizeProfileData = (rawUser) => {
       rawUser.total_products ||
       0,
 
+    identityCard:
+      rawUser.identityCard ||
+      rawUser.identity_card ||
+      "",
+
+    businessRegistrationUrl:
+      rawUser.businessRegistrationUrl ||
+      rawUser.business_registration_url ||
+      "",
+
+    vietgapUrl:
+      rawUser.vietgapUrl ||
+      rawUser.vietgap_url ||
+      "",
+
+    globalgapUrl:
+      rawUser.globalgapUrl ||
+      rawUser.globalgap_url ||
+      "",
+
+    organicUrl:
+      rawUser.organicUrl ||
+      rawUser.organic_url ||
+      "",
+
     // Customer address
     addresses:
       rawUser.addresses ||
@@ -121,6 +146,11 @@ export const buildProfileUpdatePayload = (role, formData) => {
       farmName: formData.farmName,
       farmAddress: formData.farmAddress,
       description: formData.description,
+      identityCard: formData.identityCard,
+      businessRegistrationUrl: formData.businessRegistrationUrl,
+      vietgapUrl: formData.vietgapUrl,
+      globalgapUrl: formData.globalgapUrl,
+      organicUrl: formData.organicUrl,
     };
   }
 

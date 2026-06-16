@@ -3,7 +3,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import profileService from "../../services/profileService";
 import ProfileAvatar from "./ProfileAvatar";
-import { ROLE_LABELS } from "../../constants/profileConstants";
 import "../../pages/Profile/Profile.css";
 
 const ProfileSidebar = ({ profile }) => {
@@ -17,6 +16,7 @@ const ProfileSidebar = ({ profile }) => {
 
   const userRole = profile?.role?.toLowerCase();
   const isFarmer = userRole === "farmer";
+  const isShipper = userRole === "partner" || userRole === "shipper";
 
 
   return (
@@ -55,9 +55,6 @@ const ProfileSidebar = ({ profile }) => {
           <p className="sidebar-name">
             {profile?.fullName || "Người dùng"}
           </p>
-          <p className="sidebar-role">
-            {ROLE_LABELS[profile?.role] || "Tài khoản"}
-          </p>
         </div>
       </div>
 
@@ -82,14 +79,16 @@ const ProfileSidebar = ({ profile }) => {
         {isFarmer && (
           <button
             className={`sidebar-menu-item ${
-              (location.pathname.startsWith("/products") || location.pathname.startsWith("/farmer/products")) ? "active" : ""
+              location.pathname.startsWith("/farmer") ? "active" : ""
             }`}
-            onClick={() => navigate("/products")}
+            onClick={() => navigate("/farmer/dashboard")}
           >
-            <span>📦</span>
-            Sản phẩm
+            <span>🚜</span>
+            Kênh nhà vườn
           </button>
         )}
+
+
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/security" ? "active" : ""
@@ -100,14 +99,12 @@ const ProfileSidebar = ({ profile }) => {
           Bảo mật
         </button>
 
-        <button className="sidebar-menu-item">
-          <span>🔔</span>
-          Thông báo
-        </button>
-
-        <button className="sidebar-menu-item">
+        <button
+          className={`sidebar-menu-item ${location.pathname === "/profile/orders" ? "active" : ""}`}
+          onClick={() => navigate("/profile/orders")}
+        >
           <span>🕘</span>
-          Lịch sử giao dịch
+          Đơn hàng của tôi
         </button>
       </nav>
 

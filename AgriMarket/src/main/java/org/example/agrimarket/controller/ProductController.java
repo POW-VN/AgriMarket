@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,6 +74,23 @@ public class ProductController {
         }
     }
 
+    @PutMapping("/farmer/products/{id}")
+    public ResponseEntity<?> updateProduct(Principal principal, @PathVariable Long id, @RequestBody ProductRequest request) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Vui lòng đăng nhập.");
+        }
+
+        try {
+            ProductResponse response = productService.updateProduct(id, request, principal.getName());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi sửa sản phẩm: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/products")
     public ResponseEntity<?> getAllApprovedProducts() {
         try {
@@ -81,6 +99,19 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Đã xảy ra lỗi khi lấy danh sách sản phẩm: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/products/{id}")
+    public ResponseEntity<?> getProductById(@PathVariable Long id) {
+        try {
+            ProductResponse product = productService.getProductById(id);
+            return ResponseEntity.ok(product);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi lấy thông tin sản phẩm: " + e.getMessage());
         }
     }
 }
