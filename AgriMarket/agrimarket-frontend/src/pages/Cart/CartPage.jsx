@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
+import { getProductById } from "../../services/productService";
 import CartItem from "./CartItem";
 import Footer from "../../components/common/Footer/Footer";
 import "./CartPage.css";
@@ -15,6 +16,31 @@ export default function CartPage() {
     const [user, setUser] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
+    const enrichCartItems = async (items) => {
+        if (!items || items.length === 0) return [];
+        return await Promise.all(items.map(async (item) => {
+            if (!item.farmerId || !item.farmerName || item.stockQuantity === undefined) {
+                try {
+                    const prodDetails = await getProductById(item.id);
+                    return {
+                        ...item,
+                        farmerId: item.farmerId || prodDetails.farmerId,
+                        farmerName: item.farmerName || prodDetails.farmerName,
+                        stockQuantity: item.stockQuantity !== undefined ? item.stockQuantity : prodDetails.stock
+                    };
+                } catch (e) {
+                    console.error("Error enriching product details:", e);
+                }
+            }
+            return item;
+        }));
+    };
+
+    const updateCartState = async (items) => {
+        const enriched = await enrichCartItems(items);
+        setCartItems(enriched);
+    };
+
     useEffect(() => {
         // Load user session
         const currentUser = authService.getCurrentUser();
@@ -24,17 +50,34 @@ export default function CartPage() {
             if (currentUser) {
                 try {
                     const data = await cartService.getCart();
-                    setCartItems(data);
+                    // Enrich items with farmer details if they are missing
+                    const enrichedData = await Promise.all(data.map(async (item) => {
+                        if (!item.farmerId || !item.farmerName) {
+                            try {
+                                const prodDetails = await getProductById(item.id);
+                                return {
+                                    ...item,
+                                    farmerId: item.farmerId || prodDetails.farmerId,
+                                    farmerName: item.farmerName || prodDetails.farmerName,
+                                    stockQuantity: item.stockQuantity !== undefined ? item.stockQuantity : prodDetails.stock
+                                };
+                            } catch (e) {
+                                console.error("Error enriching product details:", e);
+                            }
+                        }
+                        return item;
+                    }));
+                    setCartItems(enrichedData);
                 } catch (err) {
                     console.error("Lỗi khi load giỏ hàng từ DB:", err);
-                    loadLocalCart();
+                    await loadLocalCart();
                 }
             } else {
-                loadLocalCart();
+                await loadLocalCart();
             }
         };
 
-        const loadLocalCart = () => {
+        const loadLocalCart = async () => {
             let savedCart = JSON.parse(localStorage.getItem("agrimarket_cart"));
 
             if (!savedCart || savedCart.length === 0) {
@@ -46,7 +89,10 @@ export default function CartPage() {
                         unit: "kg",
                         imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300",
                         quantity: 2,
-                        checked: true
+                        checked: true,
+                        stockQuantity: 10,
+                        farmerId: 1,
+                        farmerName: "Trang trại Đà Lạt Xanh"
                     },
                     {
                         id: "mock-2",
@@ -55,7 +101,10 @@ export default function CartPage() {
                         unit: "bó",
                         imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=300",
                         quantity: 1,
-                        checked: true
+                        checked: true,
+                        stockQuantity: 5,
+                        farmerId: 1,
+                        farmerName: "Trang trại Đà Lạt Xanh"
                     },
                     {
                         id: "mock-3",
@@ -64,19 +113,40 @@ export default function CartPage() {
                         unit: "kg",
                         imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300",
                         quantity: 3,
-                        checked: true
+                        checked: true,
+                        stockQuantity: 12,
+                        farmerId: 2,
+                        farmerName: "Nông trại Hoa Mặt Trời"
                     }
                 ];
 
                 localStorage.setItem("agrimarket_cart", JSON.stringify(savedCart));
             }
 
-            savedCart = savedCart.map(item => ({
+            // Enrich local items if they lack farmer data
+            const enrichedCart = await Promise.all(savedCart.map(async (item) => {
+                if (!item.farmerId || !item.farmerName || item.stockQuantity === undefined) {
+                    try {
+                        const prodDetails = await getProductById(item.id);
+                        return {
+                            ...item,
+                            farmerId: item.farmerId || prodDetails.farmerId,
+                            farmerName: item.farmerName || prodDetails.farmerName,
+                            stockQuantity: item.stockQuantity !== undefined ? item.stockQuantity : prodDetails.stock
+                        };
+                    } catch (e) {
+                        console.error("Error enriching local product details:", e);
+                    }
+                }
+                return item;
+            }));
+
+            const checkedCart = enrichedCart.map(item => ({
                 ...item,
                 checked: item.checked ?? true
             }));
 
-            setCartItems(savedCart);
+            setCartItems(checkedCart);
         };
 
         loadCart();
@@ -122,24 +192,48 @@ export default function CartPage() {
         return new Intl.NumberFormat("vi-VN").format(price) + " đ";
     };
 
-    const syncCart = (updatedCart) => {
-        setCartItems(updatedCart);
+    const syncCart = async (updatedCart) => {
+        await updateCartState(updatedCart);
         localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
     };
+
+    const groupedItems = useMemo(() => {
+        const groups = {};
+        cartItems.forEach(item => {
+            const fId = item.farmerId || 999;
+            const fName = item.farmerName || "Nhà vườn AgriMarket";
+            if (!groups[fId]) {
+                groups[fId] = {
+                    farmerId: fId,
+                    farmerName: fName,
+                    items: []
+                };
+            }
+            groups[fId].items.push(item);
+        });
+        return Object.values(groups);
+    }, [cartItems]);
 
     const handleUpdateQuantity = async (itemId, newQuantity) => {
         if (user) {
             try {
                 const data = await cartService.updateCartItem(itemId, newQuantity, null);
-                setCartItems(data);
+                await updateCartState(data);
             } catch (err) {
                 console.error("Lỗi khi cập nhật số lượng:", err);
+                const errMsg = err.response?.data || "Không thể cập nhật số lượng. Đã vượt quá số lượng tồn kho.";
+                triggerToast(errMsg);
             }
         } else {
+            const item = cartItems.find(i => i.id === itemId);
+            if (item && item.stockQuantity !== undefined && newQuantity > item.stockQuantity) {
+                triggerToast(`Không thể cập nhật số lượng vượt quá tồn kho hiện có (${item.stockQuantity}).`);
+                return;
+            }
             const updatedCart = cartItems.map(item =>
                 item.id === itemId ? { ...item, quantity: newQuantity } : item
             );
-            syncCart(updatedCart);
+            await syncCart(updatedCart);
         }
     };
 
@@ -147,14 +241,14 @@ export default function CartPage() {
         if (user) {
             try {
                 const data = await cartService.removeFromCart(itemId);
-                setCartItems(data);
+                await updateCartState(data);
                 triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
             } catch (err) {
                 console.error("Lỗi khi xóa sản phẩm:", err);
             }
         } else {
             const updatedCart = cartItems.filter(item => item.id !== itemId);
-            syncCart(updatedCart);
+            await syncCart(updatedCart);
             triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
         }
     };
@@ -166,7 +260,7 @@ export default function CartPage() {
         if (user) {
             try {
                 const data = await cartService.updateCartItem(itemId, null, !item.checked);
-                setCartItems(data);
+                await updateCartState(data);
             } catch (err) {
                 console.error("Lỗi khi chọn sản phẩm:", err);
             }
@@ -174,7 +268,7 @@ export default function CartPage() {
             const updatedCart = cartItems.map(item =>
                 item.id === itemId ? { ...item, checked: !item.checked } : item
             );
-            syncCart(updatedCart);
+            await syncCart(updatedCart);
         }
     };
 
@@ -190,7 +284,7 @@ export default function CartPage() {
                         lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
                     }
                 }
-                setCartItems(lastData);
+                await updateCartState(lastData);
             } catch (err) {
                 console.error("Lỗi khi chọn tất cả sản phẩm:", err);
             }
@@ -199,7 +293,29 @@ export default function CartPage() {
                 ...item,
                 checked: newCheckedVal
             }));
-            syncCart(updatedCart);
+            await syncCart(updatedCart);
+        }
+    };
+
+    const handleSelectFarmerAll = async (farmerId, newCheckedVal) => {
+        const targetItems = cartItems.filter(item => (item.farmerId || 999) === farmerId);
+        if (user) {
+            try {
+                let lastData = cartItems;
+                for (const item of targetItems) {
+                    if (item.checked !== newCheckedVal) {
+                        lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
+                    }
+                }
+                await updateCartState(lastData);
+            } catch (err) {
+                console.error("Lỗi khi chọn sản phẩm của nhà vườn:", err);
+            }
+        } else {
+            const updatedCart = cartItems.map(item =>
+                (item.farmerId || 999) === farmerId ? { ...item, checked: newCheckedVal } : item
+            );
+            await syncCart(updatedCart);
         }
     };
 
@@ -210,7 +326,7 @@ export default function CartPage() {
         if (user) {
             try {
                 const data = await cartService.clearCart();
-                setCartItems(data);
+                await updateCartState(data);
                 triggerToast("Giỏ hàng đã được làm trống!");
             } catch (err) {
                 console.error("Lỗi khi làm trống giỏ hàng:", err);
@@ -230,6 +346,13 @@ export default function CartPage() {
 
         if (selectedItems.length === 0) {
             triggerToast("Vui lòng chọn ít nhất một sản phẩm để thanh toán!");
+            return;
+        }
+
+        // Validate stock quantity for selected items
+        const invalidItem = selectedItems.find(item => item.quantity > (item.stockQuantity ?? 0));
+        if (invalidItem) {
+            triggerToast(`Sản phẩm "${invalidItem.name}" vượt quá tồn kho (Tồn kho: ${invalidItem.stockQuantity}). Vui lòng giảm số lượng!`);
             return;
         }
 
@@ -343,15 +466,34 @@ export default function CartPage() {
                                 <span>Tạm tính</span>
                             </div>
 
-                            <div className="cart-items-list-container">
-                                {cartItems.map(item => (
-                                    <CartItem
-                                        key={item.id}
-                                        item={item}
-                                        onUpdateQuantity={handleUpdateQuantity}
-                                        onRemove={handleRemoveItem}
-                                        onSelectItem={handleSelectItem}
-                                    />
+                            <div className="cart-grouped-list-container">
+                                {groupedItems.map(group => (
+                                    <div key={group.farmerId} className="farmer-group-container">
+                                        <div className="farmer-group-header">
+                                            <label className="farmer-select-all-label">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={group.items.every(item => item.checked)}
+                                                    onChange={() => handleSelectFarmerAll(group.farmerId, !group.items.every(item => item.checked))}
+                                                />
+                                                <span className="custom-checkbox-span"></span>
+                                            </label>
+                                            <span className="farmer-icon">🏡</span>
+                                            <span className="farmer-name">{group.farmerName}</span>
+                                            <span className="farmer-badge">Nhà vườn</span>
+                                        </div>
+                                        <div className="farmer-items-list">
+                                            {group.items.map(item => (
+                                                <CartItem
+                                                    key={item.id}
+                                                    item={item}
+                                                    onUpdateQuantity={handleUpdateQuantity}
+                                                    onRemove={handleRemoveItem}
+                                                    onSelectItem={handleSelectItem}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 

@@ -67,6 +67,39 @@ export default function PaymentPage() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [receiptOrder, setReceiptOrder] = useState(null);
 
+    // Processing & Toast Feedback states
+    const [processingStep, setProcessingStep] = useState(null); // null, 'connecting', 'authenticating', 'processing', 'success'
+    const [toastMessage, setToastMessage] = useState(null);
+
+    const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(null), 2500);
+    };
+
+    const handleCopyToClipboard = (text, label) => {
+        if (!navigator.clipboard) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast(`Đã sao chép ${label}`);
+            } catch (err) {
+                console.error('Copy fallback failed', err);
+            }
+            document.body.removeChild(textArea);
+            return;
+        }
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                showToast(`Đã sao chép ${label}`);
+            })
+            .catch(err => {
+                console.error("Failed to copy text: ", err);
+            });
+    };
+
     // Initialise active tab from checkout method
     useEffect(() => {
         const method = location.state?.paymentMethod || pendingOrder?.paymentMethod;
@@ -137,18 +170,41 @@ export default function PaymentPage() {
 
     const validateCardForm = () => {
         const formErrors = {};
-        if (!cardNumber.trim() || cardNumber.replace(/\s/g, "").length < 16) {
-            formErrors.cardNumber = "Mã số thẻ phải đủ 16 số";
+        const rawCardNum = cardNumber.replace(/\s/g, "");
+        if (!rawCardNum || rawCardNum.length !== 16 || !/^\d{16}$/.test(rawCardNum)) {
+            formErrors.cardNumber = "Số thẻ phải gồm đúng 16 chữ số";
         }
-        if (!cardExpiry.trim() || !/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-            formErrors.cardExpiry = "HSD thẻ là MM/YY";
+        
+        if (!cardExpiry.trim()) {
+            formErrors.cardExpiry = "Vui lòng nhập hạn sử dụng";
+        } else if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
+            formErrors.cardExpiry = "HSD thẻ phải là MM/YY";
+        } else {
+            const [month, year] = cardExpiry.split("/").map(Number);
+            if (month < 1 || month > 12) {
+                formErrors.cardExpiry = "Tháng hết hạn không hợp lệ (01-12)";
+            } else {
+                const now = new Date();
+                const currentYear = now.getFullYear() % 100;
+                const currentMonth = now.getMonth() + 1;
+                if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                    formErrors.cardExpiry = "Thẻ đã hết hạn sử dụng";
+                }
+            }
         }
-        if (!cardCvv.trim() || cardCvv.length < 3) {
+
+        const rawCvv = cardCvv.trim();
+        if (!rawCvv || rawCvv.length !== 3 || !/^\d{3}$/.test(rawCvv)) {
             formErrors.cardCvv = "Mã CVV phải gồm 3 chữ số";
         }
-        if (!cardHolder.trim()) {
+
+        const cleanedHolder = cardHolder.trim();
+        if (!cleanedHolder) {
             formErrors.cardHolder = "Vui lòng nhập tên chủ thẻ";
+        } else if (!/^[A-Z\s]+$/.test(cleanedHolder)) {
+            formErrors.cardHolder = "Tên chủ thẻ chỉ gồm chữ cái viết hoa không dấu";
         }
+
         setErrors(formErrors);
         return Object.keys(formErrors).length === 0;
     };
@@ -164,8 +220,17 @@ export default function PaymentPage() {
 
         const method = activeTab === "card" ? "CARD" : activeTab === "bank" ? "BANK_TRANSFER" : "WALLET";
 
-        if (user) {
-            try {
+        // Start processing phases
+        setProcessingStep("connecting");
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        try {
+            await delay(1000);
+            setProcessingStep("authenticating");
+            await delay(1000);
+            setProcessingStep("processing");
+
+            if (user) {
                 const backendOrder = await orderService.confirmPayment(pendingOrder.id, method);
                 
                 // Clear pending session
@@ -179,46 +244,63 @@ export default function PaymentPage() {
                     localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
                 }
 
-                // If backend returned order items, use them, otherwise map cardEnding if card active tab
                 const receipt = {
                     ...backendOrder,
                     cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null
                 };
 
+                await delay(1000);
+                setProcessingStep("success");
+                await delay(600);
+                setProcessingStep(null);
+
                 setReceiptOrder(receipt);
                 setIsSuccess(true);
                 window.scrollTo({ top: 0, behavior: "smooth" });
-            } catch (err) {
-                console.error("Lỗi khi xác nhận thanh toán:", err);
-                const errMsg = err.response?.data
-                    ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
-                    : "Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.";
-                alert(errMsg);
+            } else {
+                // Finalise the order placement (Mock fallback)
+                const confirmedOrder = {
+                    ...pendingOrder,
+                    status: "pending",
+                    statusLabel: "Chờ xác nhận",
+                    paymentStatus: "paid",
+                    paymentMethod: method,
+                    cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null
+                };
+
+                // Write to local storage under orders database
+                const stored = localStorage.getItem("agrimarket_orders");
+                const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
+                const updatedOrders = [confirmedOrder, ...existingOrders];
+                localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+
+                // Clear pending session
+                localStorage.removeItem("agrimarket_pending_order");
+                localStorage.removeItem("agrimarket_checkout");
+
+                // Clear checked items from local cart for guest as well
+                if (pendingOrder.items) {
+                    const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+                    const remainingCart = savedCart.filter(item => !pendingOrder.items.some(poi => poi.productId === item.id || poi.name === item.name));
+                    localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
+                }
+
+                await delay(1000);
+                setProcessingStep("success");
+                await delay(600);
+                setProcessingStep(null);
+
+                setReceiptOrder(confirmedOrder);
+                setIsSuccess(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
             }
-        } else {
-            // Finalise the order placement (Mock fallback)
-            const confirmedOrder = {
-                ...pendingOrder,
-                status: "pending",
-                statusLabel: "Chờ xác nhận",
-                paymentStatus: "paid",
-                paymentMethod: method,
-                cardEnding: activeTab === "card" ? cardNumber.slice(-4) : null
-            };
-
-            // Write to local storage under orders database
-            const stored = localStorage.getItem("agrimarket_orders");
-            const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
-            const updatedOrders = [confirmedOrder, ...existingOrders];
-            localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
-
-            // Clear pending session
-            localStorage.removeItem("agrimarket_pending_order");
-            localStorage.removeItem("agrimarket_checkout");
-
-            setReceiptOrder(confirmedOrder);
-            setIsSuccess(true);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (err) {
+            setProcessingStep(null);
+            console.error("Lỗi khi xác nhận thanh toán:", err);
+            const errMsg = err.response?.data
+                ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
+                : "Có lỗi xảy ra khi xác nhận thanh toán. Vui lòng thử lại.";
+            alert(errMsg);
         }
     };
 
@@ -485,7 +567,14 @@ export default function PaymentPage() {
                                                     </div>
                                                     <div className="bank-info-item">
                                                         <span>Số tài khoản</span>
-                                                        <strong className="copy-badge">1900123456789</strong>
+                                                        <strong 
+                                                            className="copy-badge copyable-field"
+                                                            onClick={() => handleCopyToClipboard("1900123456789", "Số tài khoản")}
+                                                            style={{ cursor: "pointer" }}
+                                                            title="Click để sao chép"
+                                                        >
+                                                            1900123456789 📋
+                                                        </strong>
                                                     </div>
                                                     <div className="bank-info-item">
                                                         <span>Tên chủ TK</span>
@@ -497,7 +586,14 @@ export default function PaymentPage() {
                                                     </div>
                                                     <div className="bank-info-item">
                                                         <span>Nội dung CK</span>
-                                                        <strong className="copy-badge green-value">AGRIMARKET {pendingOrder.id}</strong>
+                                                        <strong 
+                                                            className="copy-badge green-value copyable-field"
+                                                            onClick={() => handleCopyToClipboard(`AGRIMARKET ${pendingOrder.id}`, "Nội dung chuyển khoản")}
+                                                            style={{ cursor: "pointer" }}
+                                                            title="Click để sao chép"
+                                                        >
+                                                            AGRIMARKET {pendingOrder.id} 📋
+                                                        </strong>
                                                     </div>
 
                                                     <span className="bank-warning">
@@ -632,6 +728,44 @@ export default function PaymentPage() {
                 )}
             </main>
             <Footer />
+
+            {/* ── GLASSMORPHIC PROCESSING OVERLAY ── */}
+            {processingStep && (
+                <div className="processing-overlay">
+                    <div className="processing-card">
+                        {processingStep !== "success" ? (
+                            <div className="processing-spinner-container">
+                                <div className="processing-spinner"></div>
+                                <div className="processing-spinner-inner"></div>
+                            </div>
+                        ) : (
+                            <div className="processing-success-checkmark">
+                                <span className="checkmark-check">✓</span>
+                            </div>
+                        )}
+                        
+                        <h3 className="processing-title">
+                            {processingStep === "connecting" && "Kết nối cổng thanh toán..."}
+                            {processingStep === "authenticating" && "Xác thực tài khoản..."}
+                            {processingStep === "processing" && "Đang xử lý giao dịch..."}
+                            {processingStep === "success" && "Thanh toán thành công!"}
+                        </h3>
+                        <p className="processing-subtitle">
+                            {processingStep !== "success" 
+                                ? "Vui lòng không đóng trình duyệt hoặc tải lại trang." 
+                                : "Đang chuẩn bị hóa đơn thanh toán của bạn..."}
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* ── CLIPBOARD TOAST FEEDBACK ── */}
+            {toastMessage && (
+                <div className="clipboard-toast">
+                    <span className="toast-icon">📋</span>
+                    <span className="toast-text">{toastMessage}</span>
+                </div>
+            )}
         </div>
     );
 }

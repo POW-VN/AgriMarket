@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectItem }) {
     const [imageError, setImageError] = useState(false);
+    const [tempValue, setTempValue] = useState(undefined);
+
+    useEffect(() => {
+        setTempValue(undefined);
+    }, [item.quantity]);
 
     const formatVND = (price) => {
         return new Intl.NumberFormat("vi-VN").format(price) + " đ";
@@ -14,7 +19,41 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
     };
 
     const handleIncrease = () => {
+        if (item.stockQuantity !== undefined && item.quantity >= item.stockQuantity) {
+            return;
+        }
         onUpdateQuantity(item.id, item.quantity + 1);
+    };
+
+    const handleInputChange = (e) => {
+        const val = e.target.value;
+        if (val === "" || /^\d+$/.test(val)) {
+            setTempValue(val);
+        }
+    };
+
+    const handleInputBlur = () => {
+        if (tempValue === undefined) return;
+        
+        let parsed = parseInt(tempValue, 10);
+        const maxStock = item.stockQuantity !== undefined ? item.stockQuantity : 9999;
+        
+        if (isNaN(parsed) || parsed < 1) {
+            parsed = 1;
+        } else if (parsed > maxStock) {
+            parsed = maxStock;
+        }
+        
+        setTempValue(undefined);
+        if (parsed !== item.quantity) {
+            onUpdateQuantity(item.id, parsed);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter") {
+            handleInputBlur();
+        }
     };
 
     return (
@@ -41,7 +80,14 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                 </div>
                 <div className="cart-item-details">
                     <h4 className="cart-item-title">{item.name}</h4>
-                    <span className="cart-item-unit">Đơn vị: {item.unit || "kg"}</span>
+                    <div className="cart-item-meta">
+                        <span className="cart-item-unit">Đơn vị: {item.unit || "kg"}</span>
+                        {item.stockQuantity !== undefined && (
+                            <span className={`cart-item-stock-badge ${item.stockQuantity === 0 ? "out-of-stock" : ""}`}>
+                                {item.stockQuantity === 0 ? "Hết hàng" : `Tồn kho: ${item.stockQuantity}`}
+                            </span>
+                        )}
+                    </div>
                     <span className="cart-item-price-mobile">{formatVND(item.price)}</span>
                 </div>
             </div>
@@ -61,11 +107,20 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                     >
                         -
                     </button>
-                    <span className="qty-value">{item.quantity}</span>
+                    <input
+                        type="text"
+                        className="qty-input"
+                        value={tempValue !== undefined ? tempValue : item.quantity}
+                        onChange={handleInputChange}
+                        onBlur={handleInputBlur}
+                        onKeyDown={handleKeyDown}
+                        aria-label="Số lượng"
+                    />
                     <button
                         type="button"
                         className="qty-btn btn-plus"
                         onClick={handleIncrease}
+                        disabled={item.stockQuantity !== undefined && item.quantity >= item.stockQuantity}
                         aria-label="Tăng số lượng"
                     >
                         +

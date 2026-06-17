@@ -74,11 +74,21 @@ export const ProductList = () => {
     });
   };
 
+  const getEffectiveStatus = (p) => {
+    if (p.status === "sold_out" || p.status === "out_of_stock") {
+      return "out_of_stock";
+    }
+    if (p.status === "approved" && Number(p.stock) === 0) {
+      return "out_of_stock";
+    }
+    return p.status;
+  };
+
   // Filter & Page products
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.id.toString().includes(productSearch);
-      const matchTab = productActiveTab === "all" || p.status === productActiveTab;
+      const matchTab = productActiveTab === "all" || getEffectiveStatus(p) === productActiveTab;
       return matchSearch && matchTab;
     });
   }, [products, productSearch, productActiveTab]);
@@ -112,7 +122,7 @@ export const ProductList = () => {
       {/* Filter Status Pills */}
       <div className="fd-tabs-filter">
         {["all", "approved", "pending", "request_changes", "rejected", "draft", "out_of_stock", "hidden"].map(statusKey => {
-          const count = statusKey === "all" ? products.length : products.filter(p => p.status === statusKey).length;
+          const count = statusKey === "all" ? products.length : products.filter(p => getEffectiveStatus(p) === statusKey).length;
           const label = statusKey === "all" ? "Tất cả" : PRODUCT_STATUS_CONFIG[statusKey]?.label;
           return (
             <button
@@ -147,7 +157,7 @@ export const ProductList = () => {
               <tr><td colSpan="7" className="empty-state">Không có sản phẩm nào.</td></tr>
             ) : (
               paginatedProducts.map(p => {
-                const conf = PRODUCT_STATUS_CONFIG[p.status] || { label: p.status, cls: "" };
+                const conf = PRODUCT_STATUS_CONFIG[getEffectiveStatus(p)] || { label: p.status, cls: "" };
                 return (
                   <tr key={p.id} className="row-hover">
                     <td>

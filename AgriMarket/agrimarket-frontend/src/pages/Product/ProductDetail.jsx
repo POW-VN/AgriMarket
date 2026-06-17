@@ -1,6 +1,6 @@
 // src/pages/Product/ProductDetail.jsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
@@ -38,9 +38,8 @@ export default function ProductDetail() {
   // Related Products
   const [relatedProducts, setRelatedProducts] = useState([]);
 
-  // Toast notifications
-  const [toastMessage, setToastMessage] = useState("");
-  const [showToast, setShowToast] = useState(false);
+  // Toast notifications state
+  const [toasts, setToasts] = useState([]);
 
   // Shipping location state
   const [selectedCity, setSelectedCity] = useState("TP. Hồ Chí Minh");
@@ -156,11 +155,12 @@ export default function ProductDetail() {
     };
   }, [isLightboxOpen, allImages]);
 
-  const triggerToast = (msg) => {
-    setToastMessage(msg);
-    setShowToast(true);
+  const triggerToast = (message, type = "success") => {
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+
     setTimeout(() => {
-      setShowToast(false);
+      setToasts(prev => prev.filter(t => t.id !== id));
     }, 3000);
   };
 
@@ -205,7 +205,11 @@ export default function ProductDetail() {
         } else {
           setActiveImage(data.imageUrl);
         }
-        setQuantity(1);
+        if (data.stock === 0) {
+          setQuantity(0);
+        } else {
+          setQuantity(1);
+        }
 
         // Fetch reviews from backend
         try {
@@ -282,16 +286,17 @@ export default function ProductDetail() {
   };
 
   const handleQuantityChange = (val) => {
-    if (!product) return;
+    if (!product || product.stock === 0) return;
     const currentQty = parseInt(quantity, 10) || 1;
     const newQty = currentQty + val;
-    if (newQty >= 1 && newQty <= (product.stock || 100)) {
+    const maxStock = product.stock !== undefined && product.stock !== null ? product.stock : 100;
+    if (newQty >= 1 && newQty <= maxStock) {
       setQuantity(newQty);
     }
   };
 
   const handleAddToCart = async () => {
-    if (!product) return;
+    if (!product || product.stock === 0) return;
     const qtyToUse = parseInt(quantity, 10) || 1;
 
     if (user) {
@@ -309,8 +314,17 @@ export default function ProductDetail() {
       const existingIndex = currentCart.findIndex(item => String(item.id) === String(product.id));
 
       if (existingIndex > -1) {
-        currentCart[existingIndex].quantity += qtyToUse;
+        const newQty = currentCart[existingIndex].quantity + qtyToUse;
+        if (product.stock !== undefined && newQty > product.stock) {
+          triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+          return;
+        }
+        currentCart[existingIndex].quantity = newQty;
       } else {
+        if (product.stock !== undefined && qtyToUse > product.stock) {
+          triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+          return;
+        }
         currentCart.push({
           id: product.id,
           name: product.name,
@@ -318,7 +332,10 @@ export default function ProductDetail() {
           unit: product.unit,
           imageUrl: product.imageUrl,
           quantity: qtyToUse,
-          checked: true
+          checked: true,
+          stockQuantity: product.stock,
+          farmerId: product.farmerId,
+          farmerName: product.farmerName
         });
       }
       localStorage.setItem(cartKey, JSON.stringify(currentCart));
@@ -328,6 +345,7 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = async () => {
+    if (!product || product.stock === 0) return;
     await handleAddToCart();
     navigate("/cart");
   };
@@ -824,7 +842,7 @@ export default function ProductDetail() {
                 <button
                   className="qty-btn"
                   onClick={() => handleQuantityChange(-1)}
-                  disabled={(parseInt(quantity, 10) || 1) <= 1}
+                  disabled={product.stock === 0 || (parseInt(quantity, 10) || 1) <= 1}
                   aria-label="Decrease quantity"
                 >
                   -
@@ -834,6 +852,7 @@ export default function ProductDetail() {
                   className="qty-input"
                   value={quantity}
                   onChange={(e) => {
+                    if (product.stock === 0) return;
                     const valStr = e.target.value;
                     if (valStr === "") {
                       setQuantity("");
@@ -841,7 +860,7 @@ export default function ProductDetail() {
                     }
                     const val = parseInt(valStr, 10);
                     if (!isNaN(val)) {
-                      const maxStock = product.stock || 45;
+                      const maxStock = product.stock !== undefined && product.stock !== null ? product.stock : 45;
                       if (val >= 1 && val <= maxStock) {
                         setQuantity(val);
                       } else if (val < 1) {
@@ -852,26 +871,37 @@ export default function ProductDetail() {
                     }
                   }}
                   onBlur={() => {
+                    if (product.stock === 0) {
+                      setQuantity(0);
+                      return;
+                    }
                     const parsed = parseInt(quantity, 10);
                     if (isNaN(parsed) || parsed < 1) {
                       setQuantity(1);
                     }
                   }}
-                  min="1"
-                  max={product.stock || 45}
+                  min={product.stock === 0 ? "0" : "1"}
+                  max={product.stock !== undefined && product.stock !== null ? product.stock : 45}
+                  disabled={product.stock === 0}
                 />
                 <button
                   className="qty-btn"
                   onClick={() => handleQuantityChange(1)}
-                  disabled={(parseInt(quantity, 10) || 1) >= (product.stock || 45)}
+                  disabled={product.stock === 0 || (parseInt(quantity, 10) || 1) >= (product.stock !== undefined && product.stock !== null ? product.stock : 45)}
                   aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
-              <span className="stock-status-info">
-                Còn hàng ({product.stock || 45} {product.unit === "bunch" ? "bó" : product.unit === "bag" ? "túi" : product.unit === "3lbs" ? "túi" : product.unit || "bó"})
-              </span>
+              {product.stock === 0 ? (
+                <span className="stock-status-info out-of-stock" style={{ color: "#dc2626", fontWeight: "700" }}>
+                  Hết hàng
+                </span>
+              ) : (
+                <span className="stock-status-info">
+                  Còn hàng ({product.stock} {product.unit === "bunch" ? "bó" : product.unit === "bag" ? "túi" : product.unit === "3lbs" ? "túi" : product.unit || "bó"})
+                </span>
+              )}
             </div>
 
             {/* Vận chuyển location selector */}
@@ -915,7 +945,12 @@ export default function ProductDetail() {
             </div>
 
             <div className="action-buttons-group">
-              <button className="btn-buy-now" onClick={handleBuyNow}>
+              <button 
+                className="btn-buy-now" 
+                onClick={handleBuyNow}
+                disabled={product.stock === 0}
+                style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
@@ -923,7 +958,12 @@ export default function ProductDetail() {
                 Mua ngay
               </button>
 
-              <button className="btn-add-to-cart" onClick={handleAddToCart}>
+              <button 
+                className="btn-add-to-cart" 
+                onClick={handleAddToCart}
+                disabled={product.stock === 0}
+                style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="9" cy="21" r="1"></circle>
                   <circle cx="20" cy="21" r="1"></circle>
@@ -1382,13 +1422,15 @@ export default function ProductDetail() {
         </div>
       )}
 
-      {/* Global Action Toast Notification */}
-      {showToast && (
-        <div className="product-detail-toast">
-          <span>✅</span>
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      {/* Global Action Toast Notification Container */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className="product-detail-toast">
+            <span>{t.type === "error" ? "❌" : "✅"}</span>
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
