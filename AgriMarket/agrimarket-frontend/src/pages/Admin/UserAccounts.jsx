@@ -272,7 +272,7 @@ const UserAccounts = () => {
                   }}
                 />
               ) : (
-                <div className="details-avatar-large fallback">
+                <div className={`details-avatar-large fallback avatar-color-${user.id % 5}`}>
                   {user.fullName ? user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "U"}
                 </div>
               )}
@@ -1438,7 +1438,7 @@ const UserAccounts = () => {
                                 }}
                               />
                             ) : (
-                              <div className="user-cell-avatar" style={{ backgroundColor: "#e2e8f0" }}>
+                              <div className={`user-cell-avatar avatar-color-${user.id % 5}`}>
                                 {userInitial}
                               </div>
                             )}
@@ -1457,31 +1457,33 @@ const UserAccounts = () => {
                             {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role === "partner" ? "Đơn vị vận chuyển" : user.role}
                           </span>
                         </td>
-                        <td>
-                          <span className={`badge-status ${isLocked ? "suspended" : user.status}`}>
-                            {!isLocked && user.status === "active" ? (
-                              <>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                Hoạt động
-                              </>
-                            ) : isLocked ? (
-                              <>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line></svg>
-                                Đã khóa
-                              </>
-                            ) : (
-                              <>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                Chờ duyệt
-                              </>
-                            )}
-                          </span>
-                          {user.role === "farmer" && user.status === "active" && (
-                            <span className="badge-verified" style={{ marginLeft: "8px" }}>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
-                              Đã xác minh
+                        <td style={{ verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                            <span className={`badge-status ${isLocked ? "suspended" : user.status}`}>
+                              {!isLocked && user.status === "active" ? (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                  Hoạt động
+                                </>
+                              ) : isLocked ? (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                                  Đã khóa
+                                </>
+                              ) : (
+                                <>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                  Chờ duyệt
+                                </>
+                              )}
                             </span>
-                          )}
+                            {user.role === "farmer" && user.status === "active" && (
+                              <span className="badge-verified" style={{ margin: 0 }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Đã xác minh
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ textAlign: "right" }}>
                           <div className="action-buttons-cell">
