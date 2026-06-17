@@ -245,8 +245,17 @@ export default function ProductReviewsView() {
                 );
 
                 if (existingIndex >= 0) {
-                    currentCart[existingIndex].quantity += 1;
+                    const newQty = currentCart[existingIndex].quantity + 1;
+                    if (product.stock !== undefined && newQty > product.stock) {
+                        triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+                        return;
+                    }
+                    currentCart[existingIndex].quantity = newQty;
                 } else {
+                    if (product.stock !== undefined && 1 > product.stock) {
+                        triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+                        return;
+                    }
                     currentCart.push({
                         id: product.id,
                         name: product.name,
@@ -255,6 +264,9 @@ export default function ProductReviewsView() {
                         imageUrl: product.imageUrl,
                         quantity: 1,
                         checked: true,
+                        stockQuantity: product.stock,
+                        farmerId: product.farmerId,
+                        farmerName: product.farmerName
                     });
                 }
 

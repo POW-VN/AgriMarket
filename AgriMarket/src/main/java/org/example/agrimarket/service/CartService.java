@@ -79,6 +79,8 @@ public class CartService {
                 .quantity(item.getQuantity())
                 .checked(item.getChecked() != null ? item.getChecked() : true)
                 .stockQuantity(product.getStockQuantity())
+                .farmerId(product.getFarmer() != null ? product.getFarmer().getId() : null)
+                .farmerName(product.getFarmer() != null ? product.getFarmer().getFarmName() : null)
                 .build();
 
         return Optional.of(response);
@@ -87,6 +89,12 @@ public class CartService {
     @Transactional
     public List<CartItemResponse> addToCart(String email, Long productId, int quantity) {
         Cart cart = getOrCreateCart(email);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        if (product.getStockQuantity() == 0) {
+            throw new IllegalArgumentException("Sản phẩm đã hết hàng.");
+        }
 
         Optional<CartItem> existingItemOpt = cart.getItems().stream()
                 .filter(item -> item.getProductId().equals(productId))
@@ -94,9 +102,16 @@ public class CartService {
 
         if (existingItemOpt.isPresent()) {
             CartItem existingItem = existingItemOpt.get();
-            existingItem.setQuantity(existingItem.getQuantity() + quantity);
+            int newQty = existingItem.getQuantity() + quantity;
+            if (newQty > product.getStockQuantity()) {
+                throw new IllegalArgumentException("Không thể thêm số lượng vượt quá tồn kho hiện có (" + product.getStockQuantity() + ").");
+            }
+            existingItem.setQuantity(newQty);
             cartItemRepository.save(existingItem);
         } else {
+            if (quantity > product.getStockQuantity()) {
+                throw new IllegalArgumentException("Không thể thêm số lượng vượt quá tồn kho hiện có (" + product.getStockQuantity() + ").");
+            }
             CartItem newItem = new CartItem();
             newItem.setCart(cart);
             newItem.setProductId(productId);
@@ -113,6 +128,8 @@ public class CartService {
     @Transactional
     public List<CartItemResponse> updateCartItem(String email, Long productId, Integer quantity, Boolean checked) {
         Cart cart = getOrCreateCart(email);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
 
         Optional<CartItem> itemOpt = cart.getItems().stream()
                 .filter(item -> item.getProductId().equals(productId))
@@ -121,6 +138,9 @@ public class CartService {
         if (itemOpt.isPresent()) {
             CartItem item = itemOpt.get();
             if (quantity != null) {
+                if (quantity > product.getStockQuantity()) {
+                    throw new IllegalArgumentException("Không thể cập nhật số lượng vượt quá tồn kho hiện có (" + product.getStockQuantity() + ").");
+                }
                 item.setQuantity(quantity);
             }
             if (checked != null) {
@@ -164,19 +184,30 @@ public class CartService {
         Cart cart = getOrCreateCart(email);
 
         for (CartItemAddRequest guestItem : guestItems) {
+            Product product = productRepository.findById(guestItem.getProductId()).orElse(null);
+            if (product == null) continue;
+
             Optional<CartItem> existingItemOpt = cart.getItems().stream()
                     .filter(item -> item.getProductId().equals(guestItem.getProductId()))
                     .findFirst();
 
             if (existingItemOpt.isPresent()) {
                 CartItem existingItem = existingItemOpt.get();
-                existingItem.setQuantity(existingItem.getQuantity() + guestItem.getQuantity());
+                int newQty = existingItem.getQuantity() + guestItem.getQuantity();
+                if (newQty > product.getStockQuantity()) {
+                    newQty = product.getStockQuantity();
+                }
+                existingItem.setQuantity(newQty);
                 cartItemRepository.save(existingItem);
             } else {
+                int qty = guestItem.getQuantity();
+                if (qty > product.getStockQuantity()) {
+                    qty = product.getStockQuantity();
+                }
                 CartItem newItem = new CartItem();
                 newItem.setCart(cart);
                 newItem.setProductId(guestItem.getProductId());
-                newItem.setQuantity(guestItem.getQuantity());
+                newItem.setQuantity(qty);
                 newItem.setChecked(true);
                 cart.getItems().add(newItem);
                 cartItemRepository.save(newItem);

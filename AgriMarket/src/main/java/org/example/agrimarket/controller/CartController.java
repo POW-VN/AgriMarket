@@ -36,8 +36,12 @@ public class CartController {
         if (request.getProductId() == null || request.getQuantity() == null || request.getQuantity() <= 0) {
             return ResponseEntity.badRequest().body("Thông tin sản phẩm hoặc số lượng không hợp lệ.");
         }
-        List<CartItemResponse> cart = cartService.addToCart(principal.getName(), request.getProductId(), request.getQuantity());
-        return ResponseEntity.ok(cart);
+        try {
+            List<CartItemResponse> cart = cartService.addToCart(principal.getName(), request.getProductId(), request.getQuantity());
+            return ResponseEntity.ok(cart);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PutMapping("/update")
@@ -48,13 +52,17 @@ public class CartController {
         if (request.getProductId() == null) {
             return ResponseEntity.badRequest().body("ProductId không thể bỏ trống.");
         }
-        List<CartItemResponse> cart = cartService.updateCartItem(
-                principal.getName(),
-                request.getProductId(),
-                request.getQuantity(),
-                request.getChecked()
-        );
-        return ResponseEntity.ok(cart);
+        try {
+            List<CartItemResponse> cart = cartService.updateCartItem(
+                    principal.getName(),
+                    request.getProductId(),
+                    request.getQuantity(),
+                    request.getChecked()
+            );
+            return ResponseEntity.ok(cart);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/remove/{productId}")

@@ -18,4 +18,6 @@ public class CartItemResponse {
     private Integer quantity;
     private Boolean checked;
     private Integer stockQuantity;
+    private Long farmerId;
+    private String farmerName;
 }

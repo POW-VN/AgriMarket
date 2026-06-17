@@ -30,6 +30,18 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [cartItemsCount, setCartItemsCount] = useState(0);
 
+  // Toast notifications state
+  const [toasts, setToasts] = useState([]);
+
+  const triggerToast = (message, type = "success") => {
+    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
+
   useEffect(() => {
     // Check login state
     const currentUser = authService.getCurrentUser();
@@ -71,6 +83,63 @@ const Home = () => {
 
     fetchCartCount();
   }, []);
+
+  const handleAddToCart = async (p, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Check if product is out of stock
+    if (p.stock === 0) {
+      triggerToast(`Sản phẩm "${p.name}" đã hết hàng!`, "error");
+      return;
+    }
+
+    if (user) {
+      try {
+        const data = await cartService.addToCart(p.id, 1);
+        setCartItemsCount(data.length);
+        window.dispatchEvent(new Event("cartUpdated"));
+        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
+      } catch (err) {
+        console.error("Lỗi khi thêm vào giỏ hàng:", err);
+        triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!", "error");
+      }
+    } else {
+      const cartKey = "agrimarket_cart";
+      const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
+      const existingIndex = currentCart.findIndex(item => String(item.id) === String(p.id));
+
+      if (existingIndex > -1) {
+        const newQty = currentCart[existingIndex].quantity + 1;
+        if (p.stock !== undefined && newQty > p.stock) {
+          triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${p.stock}).`, "error");
+          return;
+        }
+        currentCart[existingIndex].quantity = newQty;
+      } else {
+        if (p.stock !== undefined && 1 > p.stock) {
+          triggerToast(`Sản phẩm "${p.name}" đã hết hàng!`, "error");
+          return;
+        }
+        currentCart.push({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          unit: p.unit,
+          imageUrl: p.imageUrl,
+          quantity: 1,
+          checked: true,
+          stockQuantity: p.stock,
+          farmerId: p.farmerId,
+          farmerName: p.farmerName
+        });
+      }
+      localStorage.setItem(cartKey, JSON.stringify(currentCart));
+      setCartItemsCount(currentCart.length);
+      window.dispatchEvent(new Event("cartUpdated"));
+      triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
+    }
+  };
 
   const displayProducts = products;
 
@@ -191,11 +260,7 @@ const Home = () => {
               <button 
                 className="add-cart-btn-plus" 
                 aria-label="Thêm vào giỏ hàng"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate(`/products/${p.id}`);
-                }}
+                onClick={(e) => handleAddToCart(p, e)}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -342,6 +407,19 @@ const Home = () => {
           </div>
         </div>
       </footer>
+
+      {/* Toast Notification Container */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`custom-toast ${t.type}`}>
+            <span className="custom-toast-icon">
+              {t.type === "success" ? "✅" : t.type === "error" ? "❌" : "⚠️"}
+            </span>
+            <span className="custom-toast-message">{t.message}</span>
+            <button className="custom-toast-close" onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}>×</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

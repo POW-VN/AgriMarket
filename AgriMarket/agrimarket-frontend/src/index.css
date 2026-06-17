@@ -146,3 +146,24 @@ input {
   from { transform: translateY(80px); opacity: 0; }
   to   { transform: translateY(0); opacity: 1; }
 }
+
+/* Toast container for stacked toasts */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 100000;
+  pointer-events: none;
+}
+
+.toast-container .custom-toast,
+.toast-container .product-detail-toast {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
+  pointer-events: auto;
+  margin: 0 !important;
+}

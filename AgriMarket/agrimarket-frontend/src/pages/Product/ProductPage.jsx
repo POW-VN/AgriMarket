@@ -53,6 +53,16 @@ export default function ProductPage() {
         if (isFarmer) loadProducts();
     }, [isFarmer]);
 
+    const getEffectiveStatus = (product) => {
+        if (product.status === "sold_out" || product.status === "out_of_stock") {
+            return "sold_out";
+        }
+        if (product.status === "approved" && Number(product.stock) === 0) {
+            return "sold_out";
+        }
+        return product.status;
+    };
+
     // Filter products theo keyword và trạng thái
     const filteredProducts = useMemo(() => {
         return products.filter((product) => {
@@ -61,7 +71,7 @@ export default function ProductPage() {
 
             const matchesFilter =
                 activeFilter === "ALL" ||
-                product.status === activeFilter;
+                getEffectiveStatus(product) === activeFilter;
 
             return matchesKeyword && matchesFilter;
         });
@@ -111,7 +121,8 @@ export default function ProductPage() {
 
     // Render status sản phẩm
     const renderStatus = (status, stock) => {
-        switch (status) {
+        const effectiveStatus = (status === "approved" && Number(stock) === 0) ? "sold_out" : status;
+        switch (effectiveStatus) {
             case "approved":
                 return <span className="product-status approved">Đã duyệt</span>;
             case "pending":
@@ -123,6 +134,7 @@ export default function ProductPage() {
             case "hidden":
                 return <span className="product-status hidden">Đã ẩn</span>;
             case "sold_out":
+            case "out_of_stock":
                 return <span className="product-status sold-out">Hết hàng</span>;
             default:
                 return <span className="product-status draft">Không xác định</span>;
