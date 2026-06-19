@@ -234,6 +234,15 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderResponse getOrderDetails(String email, String orderCode) {
+        if (orderCode != null && orderCode.startsWith("OG-")) {
+            OrderGroup group = orderGroupRepository.findByGroupCode(orderCode)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy nhóm đơn hàng."));
+            if (!group.getCustomer().getEmail().equalsIgnoreCase(email)) {
+                throw new RuntimeException("Bạn không có quyền xem đơn hàng này.");
+            }
+            return mapGroupToResponse(group);
+        }
+
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 

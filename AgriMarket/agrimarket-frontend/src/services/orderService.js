@@ -62,6 +62,16 @@ const updateShipperOrderStatus = async (orderCode, status, notes = "", podPhoto 
   return response.data;
 };
 
+const createVNPayPaymentUrl = async (orderCode) => {
+  const response = await apiClient.get(`/api/payment/create-vnpay-payment?orderCode=${orderCode}`);
+  return response.data;
+};
+
+const verifyVNPayCallback = async (queryParamsString) => {
+  const response = await apiClient.get(`/api/payment/vnpay-callback?${queryParamsString}`);
+  return response.data;
+};
+
 const orderService = {
   createOrder,
   getCustomerOrders,
@@ -75,6 +85,8 @@ const orderService = {
   acceptShipperRequest,
   rejectShipperRequest,
   updateShipperOrderStatus,
+  createVNPayPaymentUrl,
+  verifyVNPayCallback,
 };
 
 export default orderService;

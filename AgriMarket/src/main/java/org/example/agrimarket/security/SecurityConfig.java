@@ -55,7 +55,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/error",
-                                "/api/products/**"
+                                "/api/products/**",
+                                "/api/payment/vnpay-callback"
                         ).permitAll()
 
                         // Other APIs need login

@@ -93,7 +93,7 @@ export default function CheckoutPage() {
     const [profileData, setProfileData] = useState(null);
 
     // Payment method
-    const [paymentMethod, setPaymentMethod] = useState("cod"); // cod, bank, card
+    const [paymentMethod, setPaymentMethod] = useState("cod"); // cod, vnpay
 
     // Form Validation errors
     const [errors, setErrors] = useState({});
@@ -363,7 +363,7 @@ export default function CheckoutPage() {
             phone: recipientPhone,
             address: formattedAddress,
             shippingNote: shippingNote,
-            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "BANK_TRANSFER" : "CARD",
+            paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
             subtotal: subtotal,
             shippingFee: shippingFee,
             serviceFee: serviceFee,
@@ -392,8 +392,18 @@ export default function CheckoutPage() {
                     setIsSuccess(true);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                 } else {
-                    localStorage.setItem("agrimarket_pending_order", JSON.stringify(backendOrder));
-                    navigate("/payment", { state: { pendingOrder: backendOrder, paymentMethod } });
+                    // For online VNPAY, redirect directly
+                    try {
+                        const res = await orderService.createVNPayPaymentUrl(backendOrder.id);
+                        if (res && res.paymentUrl) {
+                            window.location.href = res.paymentUrl;
+                        } else {
+                            throw new Error("Không thể tạo liên kết thanh toán VNPay.");
+                        }
+                    } catch (payErr) {
+                        console.error("Lỗi khi kết nối VNPay:", payErr);
+                        alert("Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại hoặc chọn phương thức thanh toán khi nhận hàng.");
+                    }
                 }
             } catch (err) {
                 console.error("Lỗi khi đặt hàng:", err);
@@ -426,7 +436,7 @@ export default function CheckoutPage() {
                 address: formattedAddress,
                 phone: recipientPhone,
                 trackingNumber: `FH-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
-            paymentMethod: paymentMethod === "cod" ? "COD" : paymentMethod === "bank" ? "BANK_TRANSFER" : "CARD",
+            paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
                 provider: {
                     name: selectedItems[0]?.farmer || "Hợp tác xã Nông nghiệp số",
                     location: "Cái Bè, Tiền Giang",
@@ -752,36 +762,19 @@ export default function CheckoutPage() {
                                         </div>
                                     </label>
 
-                                    <label className={`method-option-card ${paymentMethod === "bank" ? "selected" : ""}`}>
+                                    <label className={`method-option-card ${paymentMethod === "vnpay" ? "selected" : ""}`}>
                                         <input
                                             type="radio"
                                             name="paymentMethod"
-                                            value="bank"
-                                            checked={paymentMethod === "bank"}
-                                            onChange={() => setPaymentMethod("bank")}
-                                        />
-                                        <div className="method-option-info">
-                                            <span className="method-icon">🏦</span>
-                                            <div className="method-text">
-                                                <span className="method-title">Chuyển khoản Ngân hàng</span>
-                                                <span className="method-desc">Quét mã QR qua ví điện tử hoặc Mobile Banking của bạn ở trang kế tiếp.</span>
-                                            </div>
-                                        </div>
-                                    </label>
-
-                                    <label className={`method-option-card ${paymentMethod === "card" ? "selected" : ""}`}>
-                                        <input
-                                            type="radio"
-                                            name="paymentMethod"
-                                            value="card"
-                                            checked={paymentMethod === "card"}
-                                            onChange={() => setPaymentMethod("card")}
+                                            value="vnpay"
+                                            checked={paymentMethod === "vnpay"}
+                                            onChange={() => setPaymentMethod("vnpay")}
                                         />
                                         <div className="method-option-info">
                                             <span className="method-icon">💳</span>
                                             <div className="method-text">
-                                                <span className="method-title">Thẻ tín dụng / Thẻ ghi nợ (Visa/Mastercard)</span>
-                                                <span className="method-desc">Thanh toán qua thẻ Visa/Mastercard quốc tế hoặc nội địa ở trang kế tiếp.</span>
+                                                <span className="method-title">Thanh toán trực tuyến qua VNPAY</span>
+                                                <span className="method-desc">Thanh toán an toàn qua VietQR, thẻ ATM nội địa hoặc thẻ quốc tế Visa/Mastercard.</span>
                                             </div>
                                         </div>
                                     </label>
@@ -793,9 +786,9 @@ export default function CheckoutPage() {
                                         <p>📦 Bạn sẽ thanh toán tổng số tiền là <strong>{formatVND(checkoutData.totalAmount)}</strong> cho nhân viên giao hàng khi đơn hàng được giao đến. Vui lòng chuẩn bị sẵn số tiền mặt để thuận tiện giao dịch.</p>
                                     </div>
                                 )}
-                                {paymentMethod !== "cod" && (
+                                {paymentMethod === "vnpay" && (
                                     <div className="method-detail-box cod-box">
-                                        <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật ở bước tiếp theo để hoàn thành giao dịch chuyển khoản hoặc thẻ tín dụng trị giá <strong>{formatVND(checkoutData.totalAmount)}</strong>.</p>
+                                        <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount)}</strong>.</p>
                                     </div>
                                 )}
                             </div>

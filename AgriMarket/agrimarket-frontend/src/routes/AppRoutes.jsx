@@ -29,6 +29,7 @@ import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
 import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PaymentPage from "../pages/Payment/PaymentPage";
+import VNPayCallbackPage from "../pages/Payment/VNPayCallbackPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
 import ShipmentRequests from "../pages/Shipper/ShipmentRequests";
@@ -94,6 +95,7 @@ const AppRoutes = () => {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/payment/vnpay-callback" element={<VNPayCallbackPage />} />
 
         {/* Privacy Policy and Terms of Service */}
         <Route path="/privacy" element={<PrivacyPolicy />} />
