@@ -152,6 +152,10 @@ const normalizeProduct = (item) => {
         farmerVietgapUrl: item.farmerVietgapUrl || item.farmer_vietgap_url || "",
         farmerGlobalgapUrl: item.farmerGlobalgapUrl || item.farmer_globalgap_url || "",
         farmerOrganicUrl: item.farmerOrganicUrl || item.farmer_organic_url || "",
+        perishability: item.perishability || item.perishability_level || "khô",
+        limitDistance: item.limitDistance !== undefined && item.limitDistance !== null 
+            ? item.limitDistance 
+            : (item.limit_distance !== undefined && item.limit_distance !== null ? item.limit_distance : null),
     };
 };
 

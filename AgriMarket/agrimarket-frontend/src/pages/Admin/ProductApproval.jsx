@@ -583,6 +583,20 @@ const ProductApproval = () => {
               <InfoCard label="Tồn kho" value={prod.stockQuantity ? `${prod.stockQuantity} ${prod.unit}` : "—"} />
               <InfoCard label="Ngày thu hoạch" value={prod.harvestDate || "—"} />
               <InfoCard label="Hạn sử dụng" value={prod.expirationDate || "—"} />
+              <InfoCard 
+                label="Độ hư hỏng / Vận chuyển" 
+                value={
+                  prod.perishability === "rất dễ hư" ? "Rất dễ hư (Nội tỉnh)" :
+                  prod.perishability === "dễ hư" ? "Dễ hư hỏng (Giao nhanh)" :
+                  prod.perishability === "trung bình" ? "Trung bình (Liên tỉnh)" :
+                  prod.perishability === "khô" ? "Khô (Toàn quốc)" : 
+                  (prod.perishability || "—")
+                } 
+              />
+              <InfoCard 
+                label="Bán kính giới hạn" 
+                value={prod.limitDistance !== undefined && prod.limitDistance !== null ? `${prod.limitDistance} km` : "Không giới hạn"} 
+              />
             </div>
 
             {/* Farmer Info */}

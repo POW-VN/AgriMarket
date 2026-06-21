@@ -29,6 +29,9 @@ public class CustomerAddress {
     @Column(name = "is_default")
     private Boolean isDefault;
 
+    private Double latitude;
+    private Double longitude;
+
     @ManyToOne
     @JoinColumn(name = "customer_id")
     @JsonIgnore

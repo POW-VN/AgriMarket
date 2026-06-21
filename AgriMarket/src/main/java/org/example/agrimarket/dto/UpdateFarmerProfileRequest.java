@@ -18,6 +18,9 @@ public class UpdateFarmerProfileRequest {
     private String farmAddress;
     private String description;
     private String identityCard;
+    private Double maxDeliveryDistance;
+    private Double latitude;
+    private Double longitude;
 
     // These can be null to indicate "clear this field"
     private String businessRegistrationUrl;
@@ -78,6 +81,15 @@ public class UpdateFarmerProfileRequest {
         this.organicUrl = organicUrl;
         this.organicUrlPresent = true;
     }
+
+    public Double getMaxDeliveryDistance() { return maxDeliveryDistance; }
+    public void setMaxDeliveryDistance(Double maxDeliveryDistance) { this.maxDeliveryDistance = maxDeliveryDistance; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 
     public boolean isBusinessRegistrationUrlPresent() { return businessRegistrationUrlPresent; }
     public boolean isVietgapUrlPresent() { return vietgapUrlPresent; }

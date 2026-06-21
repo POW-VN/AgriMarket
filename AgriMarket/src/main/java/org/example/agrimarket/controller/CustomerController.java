@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import java.util.Optional;
+import java.security.Principal;
+import org.example.agrimarket.model.CustomerAddress;
 
 @RestController
 @RequestMapping("/api/customers")
@@ -38,5 +40,18 @@ public class CustomerController {
     @PutMapping("/{id}")
     public ResponseEntity<Customer> updateProfile(@PathVariable Long id, @RequestBody Customer customer) {
         return ResponseEntity.ok(customerService.updateProfile(id, customer));
+    }
+
+    @PostMapping("/addresses")
+    public ResponseEntity<?> addAddress(Principal principal, @RequestBody CustomerAddress address) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            CustomerAddress saved = customerService.addAddressByEmail(principal.getName(), address);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
 }

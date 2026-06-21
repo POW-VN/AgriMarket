@@ -74,6 +74,10 @@ public class ProfileController {
         if (farmer.isPresent()) {
             Farmer f = farmer.get();
             f.setRole("farmer");
+            Optional<Customer> customerOpt = customerRepository.findByEmail(email);
+            if (customerOpt.isPresent()) {
+                f.setAddresses(customerOpt.get().getAddresses());
+            }
             return ResponseEntity.ok(f);
         }
 

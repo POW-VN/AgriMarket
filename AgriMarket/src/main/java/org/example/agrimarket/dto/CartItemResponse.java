@@ -20,4 +20,9 @@ public class CartItemResponse {
     private Integer stockQuantity;
     private Long farmerId;
     private String farmerName;
+
+    private Double distance;
+    private Double maxDeliveryRange;
+    private Boolean isWithinDeliveryRange;
+    private String perishability;
 }

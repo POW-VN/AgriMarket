@@ -55,6 +55,9 @@ public class FarmerService {
         farmer.setCreatedAt(LocalDateTime.now());
         farmer.setRatingAverage(0.0);
         farmer.setTotalProducts(0);
+        farmer.setMaxDeliveryDistance(request.getMaxDeliveryDistance() != null ? request.getMaxDeliveryDistance() : 50.0);
+        farmer.setLatitude(request.getLatitude());
+        farmer.setLongitude(request.getLongitude());
         farmer.setRole("farmer");
 
         Farmer savedFarmer = farmerRepository.save(farmer);
@@ -107,6 +110,15 @@ public class FarmerService {
         }
         if (request.getIdentityCard() != null) {
             existing.setIdentityCard(request.getIdentityCard());
+        }
+        if (request.getMaxDeliveryDistance() != null) {
+            existing.setMaxDeliveryDistance(request.getMaxDeliveryDistance());
+        }
+        if (request.getLatitude() != null) {
+            existing.setLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            existing.setLongitude(request.getLongitude());
         }
 
         // Business Registration URL: field was present in request (even if null = clear it)

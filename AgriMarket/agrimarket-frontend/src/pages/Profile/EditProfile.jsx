@@ -11,6 +11,7 @@ import { USER_ROLES } from "../../constants/profileConstants";
 import { buildProfileUpdatePayload } from "../../utils/profileMapper";
 import apiClient from "../../services/apiClient";
 import * as addressService from "../../services/addressService";
+import { MapPicker } from "../../components/MapPicker/MapPicker";
 import "./Profile.css";
 
 const EditProfile = () => {
@@ -44,6 +45,132 @@ const EditProfile = () => {
   const [addrDistrict, setAddrDistrict] = useState({ code: "", name: "" });
   const [addrWard, setAddrWard] = useState({ code: "", name: "" });
   const [addrStreet, setAddrStreet] = useState("");
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
+
+  const handleMapLocationChange = async (lat, lng) => {
+    setLatitude(lat);
+    setLongitude(lng);
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
+        headers: {
+          "User-Agent": "AgriMarket-Application/1.0",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.address) {
+          const addr = data.address;
+          const streetName = addr.road || addr.suburb || addr.neighbourhood || "";
+          const houseNo = addr.house_number || "";
+          const streetValue = houseNo ? `${houseNo} ${streetName}` : streetName;
+          
+          if (streetValue) {
+            setAddrStreet(streetValue);
+          }
+
+          // Match Province/City
+          const provinceCandidates = [
+            addr.city,
+            addr.province,
+            addr.state
+          ].filter(Boolean);
+
+          let provinceMatch = null;
+          if (provinces.length > 0) {
+            for (const candidate of provinceCandidates) {
+              const normProv = addressService.normalizeName(candidate);
+              provinceMatch = provinces.find(
+                (p) => addressService.normalizeName(p.name) === normProv
+              );
+              if (provinceMatch) break;
+            }
+          }
+
+          if (provinceMatch) {
+            const provCode = provinceMatch.code;
+            setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+
+            // Load and Match District
+            const dists = await addressService.getDistricts(provCode);
+            setDistricts(dists);
+
+            const districtCandidates = [
+              addr.district,
+              addr.city_district,
+              addr.county,
+              addr.suburb,
+              addr.town
+            ].filter(Boolean);
+
+            let districtMatch = null;
+            if (dists.length > 0) {
+              for (const candidate of districtCandidates) {
+                const normDist = addressService.normalizeName(candidate);
+                districtMatch = dists.find(
+                  (d) => addressService.normalizeName(d.name) === normDist
+                );
+                if (districtMatch) break;
+              }
+            }
+
+            if (districtMatch) {
+              const distCode = districtMatch.code;
+              setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+
+              // Load and Match Ward
+              const wds = await addressService.getWards(distCode);
+              setWards(wds);
+
+              const wardCandidates = [
+                addr.quarter,
+                addr.suburb,
+                addr.village,
+                addr.town,
+                addr.neighbourhood,
+                addr.subdistrict,
+                addr.hamlet
+              ].filter(Boolean);
+
+              let wardMatch = null;
+              if (wds.length > 0) {
+                for (const candidate of wardCandidates) {
+                  const normWard = addressService.normalizeName(candidate);
+                  wardMatch = wds.find(
+                    (w) => addressService.normalizeName(w.name) === normWard
+                  );
+                  if (wardMatch) break;
+                }
+              }
+
+              if (wardMatch) {
+                setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
+              } else {
+                setAddrWard((prev) => {
+                  const isSameDistrict = addrDistrict.name && districtMatch.name &&
+                    addressService.normalizeName(addrDistrict.name) === addressService.normalizeName(districtMatch.name);
+                  return isSameDistrict && prev.code ? prev : { code: "", name: "" };
+                });
+              }
+            } else {
+              setAddrDistrict({ code: "", name: "" });
+              setAddrWard({ code: "", name: "" });
+              setWards([]);
+            }
+          } else {
+            setAddrProvince({ code: "", name: "" });
+            setAddrDistrict({ code: "", name: "" });
+            setAddrWard({ code: "", name: "" });
+            setDistricts([]);
+            setWards([]);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Reverse geocoding failed: ", err);
+    }
+  };
 
   // Load provinces on mount
   useEffect(() => {
@@ -58,9 +185,12 @@ const EditProfile = () => {
   useEffect(() => {
     if (!profile || provinces.length === 0) return;
 
-    const rawAddress = profile.role === USER_ROLES.FARMER 
-      ? (profile.farmAddress || "") 
-      : (profile.addresses?.[0]?.address || "");
+    const rawAddress = profile.addresses?.[0]?.address || "";
+
+    const initLat = profile.addresses?.[0]?.latitude || null;
+    const initLon = profile.addresses?.[0]?.longitude || null;
+    setLatitude(initLat);
+    setLongitude(initLon);
 
     const initializeAddress = async () => {
       const parsed = addressService.parseAddress(rawAddress);
@@ -85,7 +215,7 @@ const EditProfile = () => {
 
       if (provinceMatch) {
         const provCode = provinceMatch.code;
-        setAddrProvince({ code: provCode, name: provinceMatch.name });
+        setAddrProvince({ code: String(provCode), name: provinceMatch.name });
 
         // Load districts
         const dists = await addressService.getDistricts(provCode);
@@ -99,7 +229,7 @@ const EditProfile = () => {
 
         if (districtMatch) {
           const distCode = districtMatch.code;
-          setAddrDistrict({ code: distCode, name: districtMatch.name });
+          setAddrDistrict({ code: String(distCode), name: districtMatch.name });
 
           // Load wards
           const wds = await addressService.getWards(distCode);
@@ -112,7 +242,7 @@ const EditProfile = () => {
           );
 
           if (wardMatch) {
-            setAddrWard({ code: wardMatch.code, name: wardMatch.name });
+            setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
           } else {
             setAddrWard({ code: "", name: "" });
           }
@@ -142,6 +272,8 @@ const EditProfile = () => {
       setAddrDistrict({ code: "", name: "" });
       setAddrWard({ code: "", name: "" });
       setWards([]);
+      setLatitude(null);
+      setLongitude(null);
       const dists = await addressService.getDistricts(provinceCode);
       setDistricts(dists);
     } else {
@@ -150,6 +282,8 @@ const EditProfile = () => {
       setAddrWard({ code: "", name: "" });
       setDistricts([]);
       setWards([]);
+      setLatitude(null);
+      setLongitude(null);
     }
   };
 
@@ -159,12 +293,16 @@ const EditProfile = () => {
     if (districtObj) {
       setAddrDistrict({ code: districtCode, name: districtObj.name });
       setAddrWard({ code: "", name: "" });
+      setLatitude(null);
+      setLongitude(null);
       const wds = await addressService.getWards(districtCode);
       setWards(wds);
     } else {
       setAddrDistrict({ code: "", name: "" });
       setAddrWard({ code: "", name: "" });
       setWards([]);
+      setLatitude(null);
+      setLongitude(null);
     }
   };
 
@@ -173,8 +311,16 @@ const EditProfile = () => {
     const wardObj = wards.find((w) => w.code === parseInt(wardCode));
     if (wardObj) {
       setAddrWard({ code: wardCode, name: wardObj.name });
+      if (!latitude || !longitude) {
+        setLatitude(null);
+        setLongitude(null);
+      }
     } else {
       setAddrWard({ code: "", name: "" });
+      if (!latitude || !longitude) {
+        setLatitude(null);
+        setLongitude(null);
+      }
     }
   };
 
@@ -275,8 +421,9 @@ const EditProfile = () => {
 
     const updatedFormData = {
       ...formData,
-      address: profile.role === USER_ROLES.CUSTOMER ? formattedAddress : formData.address,
-      farmAddress: profile.role === USER_ROLES.FARMER ? formattedAddress : formData.farmAddress,
+      address: formattedAddress,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
     };
 
     try {
@@ -399,7 +546,7 @@ const EditProfile = () => {
               />
             </div>
 
-            {profile.role === USER_ROLES.CUSTOMER && (
+            {(profile.role === USER_ROLES.CUSTOMER || profile.role === USER_ROLES.FARMER) && (
               <>
                 <div className="form-group">
                   <label>Tỉnh / Thành phố</label>
@@ -454,89 +601,27 @@ const EditProfile = () => {
                     type="text"
                     placeholder="Số nhà, ngõ, tên đường..."
                     value={addrStreet}
-                    onChange={(e) => setAddrStreet(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
-
-            {profile.role === USER_ROLES.FARMER && (
-              <>
-                <div className="form-group full-width">
-                  <label>Tên trang trại / Doanh nghiệp</label>
-                  <input
-                    name="farmName"
-                    value={formData.farmName}
-                    onChange={handleChange}
-                    placeholder="Nhập tên trang trại"
+                    onChange={(e) => {
+                      setAddrStreet(e.target.value);
+                      if (!latitude || !longitude) {
+                        setLatitude(null);
+                        setLongitude(null);
+                      }
+                    }}
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Tỉnh / Thành phố</label>
-                  <select
-                    value={addrProvince.code}
-                    onChange={handleProvinceChange}
-                  >
-                    <option value="">Chọn Tỉnh / Thành phố</option>
-                    {provinces.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Quận / Huyện</label>
-                  <select
-                    value={addrDistrict.code}
-                    onChange={handleDistrictChange}
-                    disabled={!addrProvince.code}
-                  >
-                    <option value="">Chọn Quận / Huyện</option>
-                    {districts.map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Phường / Xã</label>
-                  <select
-                    value={addrWard.code}
-                    onChange={handleWardChange}
-                    disabled={!addrDistrict.code}
-                  >
-                    <option value="">Chọn Phường / Xã</option>
-                    {wards.map((w) => (
-                      <option key={w.code} value={w.code}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Số nhà / Tên đường</label>
-                  <input
-                    type="text"
-                    placeholder="Số nhà, ngõ, tên đường..."
-                    value={addrStreet}
-                    onChange={(e) => setAddrStreet(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>Mô tả trang trại</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    placeholder="Mô tả ngắn gọn về trang trại, nông sản hoặc phương pháp canh tác của bạn"
-                    rows="4"
+                <div className="form-group full-width" style={{ gridColumn: "span 2" }}>
+                  <MapPicker
+                    latitude={latitude}
+                    longitude={longitude}
+                    onChange={handleMapLocationChange}
+                    defaultAddress={addressService.formatAddress({
+                      street: addrStreet.trim(),
+                      ward: addrWard.name,
+                      district: addrDistrict.name,
+                      province: addrProvince.name,
+                    })}
                   />
                 </div>
               </>

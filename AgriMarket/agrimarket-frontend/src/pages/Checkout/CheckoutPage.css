@@ -922,3 +922,290 @@
         padding: 16px;
     }
 }
+
+/* Saved Addresses Section in Checkout */
+.saved-addresses-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.saved-addresses-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #103314;
+}
+
+.saved-addresses-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.saved-address-card {
+    background: #fafdfa;
+    border: 1.5px solid #e0e6de;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.saved-address-card:hover {
+    border-color: #1b5e20;
+    background: #f7faf7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(27, 94, 32, 0.04);
+}
+
+.saved-address-card.active {
+    border-color: #1b5e20;
+    background: #f1f8f1;
+    box-shadow: 0 4px 16px rgba(27, 94, 32, 0.08);
+}
+
+.saved-address-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.saved-address-card-name {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #103314;
+}
+
+.saved-address-card-phone {
+    font-size: 13.5px;
+    color: #617364;
+    font-weight: 500;
+}
+
+.saved-address-card-default-badge {
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid #c8e6c9;
+}
+
+/* Shopee-style Address Section */
+.shopee-address-section {
+    border: 1px solid #ffccbc;
+    border-radius: 12px;
+    background: #fffcfb;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(230, 81, 0, 0.03);
+    position: relative;
+}
+
+.shopee-address-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.shopee-address-pin {
+    font-size: 18px;
+}
+
+.shopee-address-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #e65100;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.shopee-address-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.shopee-active-address {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+}
+
+.shopee-active-name-phone {
+    font-size: 15px;
+    color: #103314;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.shopee-active-phone {
+    color: #617364;
+    font-weight: 500;
+}
+
+.shopee-default-badge {
+    background: #ffebea;
+    color: #ee4d2d;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #ffccc7;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.shopee-new-badge {
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #c8e6c9;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.shopee-active-detail {
+    font-size: 14.5px;
+    color: #4a5a4d;
+    line-height: 1.5;
+}
+
+.btn-change-address {
+    background: transparent;
+    border: none;
+    color: #ee4d2d;
+    font-size: 14.5px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-change-address:hover {
+    background: rgba(238, 77, 45, 0.05);
+    text-decoration: underline;
+}
+
+/* Shopee Address Dropdown */
+.shopee-address-dropdown {
+    margin-top: 16px;
+    border-top: 1px dashed #ffd8cc;
+    padding-top: 16px;
+    animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.shopee-dropdown-header h4 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #103314;
+    margin-bottom: 12px;
+    text-align: left;
+}
+
+.shopee-dropdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.shopee-dropdown-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #e0e6de;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.shopee-dropdown-item:hover {
+    border-color: #ee4d2d;
+    background: #fffcfb;
+}
+
+.shopee-dropdown-item.selected {
+    border-color: #ee4d2d;
+    background: #fffcfb;
+    box-shadow: 0 2px 8px rgba(238, 77, 45, 0.05);
+}
+
+.shopee-radio-wrapper {
+    display: flex;
+    align-items: center;
+    height: 20px;
+}
+
+.shopee-radio-wrapper input[type="radio"] {
+    accent-color: #ee4d2d;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.shopee-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.shopee-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.shopee-item-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #103314;
+}
+
+.shopee-item-phone {
+    font-size: 13px;
+    color: #617364;
+    font-weight: 500;
+}
+
+.shopee-item-address {
+    font-size: 13px;
+    color: #5a6b5c;
+    line-height: 1.45;
+}
+
+/* Collapsible New Address Form Fields */
+.new-address-form-fields {
+    border-top: 1px dashed #dce7d9;
+    padding-top: 24px;
+    margin-top: 24px;
+}

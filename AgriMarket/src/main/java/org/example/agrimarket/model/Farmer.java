@@ -19,6 +19,9 @@ public class Farmer extends User {
     @Transient
     private String role = "farmer";
 
+    @Transient
+    private java.util.List<CustomerAddress> addresses;
+
     @Column(name = "password_set")
     private Boolean passwordSet = true;
     
@@ -54,4 +57,10 @@ public class Farmer extends User {
     
     @Column(name = "total_products")
     private Integer totalProducts;
+
+    @Column(name = "max_delivery_distance")
+    private Double maxDeliveryDistance;
+
+    private Double latitude;
+    private Double longitude;
 }

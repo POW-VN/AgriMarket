@@ -66,6 +66,8 @@ CREATE TABLE customer_address (
     phone VARCHAR(20) NOT NULL,
     address NVARCHAR(1000) NOT NULL,
     is_default BIT DEFAULT 0,
+    latitude DECIMAL(9,6) NULL,
+    longitude DECIMAL(9,6) NULL,
     FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
 );
 GO
@@ -88,6 +90,9 @@ CREATE TABLE farmer (
     total_products INT DEFAULT 0,
     rejection_reason NVARCHAR(MAX),
     admin_notes NVARCHAR(MAX),
+    max_delivery_distance DECIMAL(10,2) NULL,
+    latitude DECIMAL(9,6) NULL,
+    longitude DECIMAL(9,6) NULL,
     FOREIGN KEY (id) REFERENCES users(id) ON DELETE CASCADE
 );
 GO
@@ -149,6 +154,7 @@ CREATE TABLE product (
     updated_at DATETIME NULL,
     rejection_reason NVARCHAR(MAX),
     admin_notes NVARCHAR(MAX),
+    perishability NVARCHAR(50) NULL,
 
     FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES category(id)

@@ -4,6 +4,7 @@ import profileService from "../../../services/profileService";
 import authService from "../../../services/authService";
 import apiClient from "../../../services/apiClient";
 import * as addressService from "../../../services/addressService";
+import { MapPicker } from "../../../components/MapPicker/MapPicker";
 import "./FarmerRegister.css";
 
 export const FarmerRegister = () => {
@@ -39,6 +40,134 @@ export const FarmerRegister = () => {
     const [hasOrganic, setHasOrganic] = useState(false);
     const [organicUrl, setOrganicUrl] = useState("");
     const [organicLoading, setOrganicLoading] = useState(false);
+
+    const [maxDeliveryDistance, setMaxDeliveryDistance] = useState(50.0);
+    const [latitude, setLatitude] = useState(null);
+    const [longitude, setLongitude] = useState(null);
+
+    const handleMapLocationChange = async (lat, lng) => {
+        setLatitude(lat);
+        setLongitude(lng);
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
+                headers: {
+                    "User-Agent": "AgriMarket-Application/1.0",
+                },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.address) {
+                    const addr = data.address;
+                    const streetName = addr.road || addr.suburb || addr.neighbourhood || "";
+                    const houseNo = addr.house_number || "";
+                    const streetValue = houseNo ? `${houseNo} ${streetName}` : streetName;
+                    
+                    if (streetValue) {
+                        setStreet(streetValue);
+                    }
+
+                    // Match Province/City
+                    const provinceCandidates = [
+                        addr.city,
+                        addr.province,
+                        addr.state
+                    ].filter(Boolean);
+
+                    let provinceMatch = null;
+                    if (provinces.length > 0) {
+                        for (const candidate of provinceCandidates) {
+                            const normProv = addressService.normalizeName(candidate);
+                            provinceMatch = provinces.find(
+                                (p) => addressService.normalizeName(p.name) === normProv
+                            );
+                            if (provinceMatch) break;
+                        }
+                    }
+
+                    if (provinceMatch) {
+                        const provCode = provinceMatch.code;
+                        setSelectedProvince({ code: String(provCode), name: provinceMatch.name });
+
+                        // Load and Match District
+                        const dists = await addressService.getDistricts(provCode);
+                        setDistricts(dists);
+
+                        const districtCandidates = [
+                            addr.district,
+                            addr.city_district,
+                            addr.county,
+                            addr.suburb,
+                            addr.town
+                        ].filter(Boolean);
+
+                        let districtMatch = null;
+                        if (dists.length > 0) {
+                            for (const candidate of districtCandidates) {
+                                const normDist = addressService.normalizeName(candidate);
+                                districtMatch = dists.find(
+                                    (d) => addressService.normalizeName(d.name) === normDist
+                                );
+                                if (districtMatch) break;
+                            }
+                        }
+
+                        if (districtMatch) {
+                            const distCode = districtMatch.code;
+                            setSelectedDistrict({ code: String(distCode), name: districtMatch.name });
+
+                            // Load and Match Ward
+                            const wds = await addressService.getWards(distCode);
+                            setWards(wds);
+
+                            const wardCandidates = [
+                                addr.quarter,
+                                addr.suburb,
+                                addr.village,
+                                addr.town,
+                                addr.neighbourhood,
+                                addr.subdistrict,
+                                addr.hamlet
+                            ].filter(Boolean);
+
+                            let wardMatch = null;
+                            if (wds.length > 0) {
+                                for (const candidate of wardCandidates) {
+                                    const normWard = addressService.normalizeName(candidate);
+                                    wardMatch = wds.find(
+                                        (w) => addressService.normalizeName(w.name) === normWard
+                                    );
+                                    if (wardMatch) break;
+                                }
+                            }
+
+                             if (wardMatch) {
+                                 setSelectedWard({ code: String(wardMatch.code), name: wardMatch.name });
+                             } else {
+                                 setSelectedWard((prev) => {
+                                     const isSameDistrict = selectedDistrict.name && districtMatch.name &&
+                                         addressService.normalizeName(selectedDistrict.name) === addressService.normalizeName(districtMatch.name);
+                                     return isSameDistrict && prev.code ? prev : { code: "", name: "" };
+                                 });
+                             }
+                        } else {
+                            setSelectedDistrict({ code: "", name: "" });
+                            setSelectedWard({ code: "", name: "" });
+                            setWards([]);
+                        }
+                    } else {
+                        setSelectedProvince({ code: "", name: "" });
+                        setSelectedDistrict({ code: "", name: "" });
+                        setSelectedWard({ code: "", name: "" });
+                        setDistricts([]);
+                        setWards([]);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Reverse geocoding failed: ", err);
+        }
+    };
 
     const handleDocumentUpload = async (e, setUrl, setLoading) => {
         const file = e.target.files[0];
@@ -93,6 +222,8 @@ export const FarmerRegister = () => {
             setSelectedDistrict({ code: "", name: "" });
             setSelectedWard({ code: "", name: "" });
             setWards([]);
+            setLatitude(null);
+            setLongitude(null);
             try {
                 const districtData = await addressService.getDistricts(provinceCode);
                 setDistricts(districtData);
@@ -105,6 +236,8 @@ export const FarmerRegister = () => {
             setSelectedWard({ code: "", name: "" });
             setDistricts([]);
             setWards([]);
+            setLatitude(null);
+            setLongitude(null);
         }
     };
 
@@ -114,6 +247,8 @@ export const FarmerRegister = () => {
         if (districtObj) {
             setSelectedDistrict({ code: districtCode, name: districtObj.name });
             setSelectedWard({ code: "", name: "" });
+            setLatitude(null);
+            setLongitude(null);
             try {
                 const wardData = await addressService.getWards(districtCode);
                 setWards(wardData);
@@ -124,6 +259,8 @@ export const FarmerRegister = () => {
             setSelectedDistrict({ code: "", name: "" });
             setSelectedWard({ code: "", name: "" });
             setWards([]);
+            setLatitude(null);
+            setLongitude(null);
         }
     };
 
@@ -132,8 +269,16 @@ export const FarmerRegister = () => {
         const wardObj = wards.find(w => w.code === parseInt(wardCode));
         if (wardObj) {
             setSelectedWard({ code: wardCode, name: wardObj.name });
+            if (!latitude || !longitude) {
+                setLatitude(null);
+                setLongitude(null);
+            }
         } else {
             setSelectedWard({ code: "", name: "" });
+            if (!latitude || !longitude) {
+                setLatitude(null);
+                setLongitude(null);
+            }
         }
     };
 
@@ -229,7 +374,10 @@ export const FarmerRegister = () => {
                 businessRegistrationUrl: businessRegistrationUrl || null,
                 vietgapUrl: hasVietgap ? vietgapUrl : null,
                 globalgapUrl: hasGlobalgap ? globalgapUrl : null,
-                organicUrl: hasOrganic ? organicUrl : null
+                organicUrl: hasOrganic ? organicUrl : null,
+                maxDeliveryDistance: parseFloat(maxDeliveryDistance) || 50.0,
+                latitude: latitude ? parseFloat(latitude) : null,
+                longitude: longitude ? parseFloat(longitude) : null
             });
 
             // If an avatar was uploaded/updated, update the farmer profile
@@ -323,6 +471,19 @@ export const FarmerRegister = () => {
                             </div>
 
                             <div className="input-group">
+                                <label>Bán kính giao hàng tối đa (km) <span style={{ color: '#ef4444' }}>*</span></label>
+                                <input 
+                                    type="number" 
+                                    min="0.1"
+                                    step="0.1"
+                                    placeholder="Ví dụ: 50" 
+                                    value={maxDeliveryDistance}
+                                    onChange={(e) => setMaxDeliveryDistance(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="input-group">
                                 <label>Số CCCD / CMND <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input 
                                     type="text" 
@@ -386,7 +547,13 @@ export const FarmerRegister = () => {
                                         type="text" 
                                         placeholder="Số 123, đường..." 
                                         value={street}
-                                        onChange={(e) => setStreet(e.target.value)}
+                                        onChange={(e) => {
+                                            setStreet(e.target.value);
+                                            if (!latitude || !longitude) {
+                                                setLatitude(null);
+                                                setLongitude(null);
+                                            }
+                                        }}
                                         required
                                     />
                                 </div>
@@ -402,6 +569,18 @@ export const FarmerRegister = () => {
                                     required
                                 ></textarea>
                             </div>
+
+                            <MapPicker
+                                latitude={latitude}
+                                longitude={longitude}
+                                onChange={handleMapLocationChange}
+                                defaultAddress={addressService.formatAddress({
+                                    street: street.trim(),
+                                    ward: selectedWard.name,
+                                    district: selectedDistrict.name,
+                                    province: selectedProvince.name
+                                })}
+                            />
 
                             <div className="upload-box" onClick={() => document.getElementById("farm-photo-input").click()}>
                                 <input 

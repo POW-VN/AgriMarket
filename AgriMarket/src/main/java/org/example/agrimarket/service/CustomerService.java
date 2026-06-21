@@ -2,7 +2,9 @@ package org.example.agrimarket.service;
 
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.CustomerAddress;
+import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.repository.CustomerRepository;
+import org.example.agrimarket.repository.FarmerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,9 @@ import java.util.Optional;
 public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private FarmerRepository farmerRepository;
 
     public Customer register(Customer customer) {
         customer.setPassword(new BCryptPasswordEncoder().encode(customer.getPassword()));
@@ -37,54 +42,155 @@ public class CustomerService {
     }
 
     public Customer updateProfile(Long id, Customer updatedCustomer) {
-        Customer existing = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        Customer customerExisting = null;
+        Farmer farmerExisting = null;
 
-        if (updatedCustomer.getFullName() != null) {
-            existing.setFullName(updatedCustomer.getFullName());
+        // Try to find Customer by ID
+        Optional<Customer> customerOpt = customerRepository.findById(id);
+        if (customerOpt.isPresent()) {
+            customerExisting = customerOpt.get();
+            // Try to find Farmer by email
+            farmerExisting = farmerRepository.findByEmail(customerExisting.getEmail()).orElse(null);
+        } else {
+            // Try to find Farmer by ID
+            Optional<Farmer> farmerOpt = farmerRepository.findById(id);
+            if (farmerOpt.isPresent()) {
+                farmerExisting = farmerOpt.get();
+                // Try to find Customer by email
+                customerExisting = customerRepository.findByEmail(farmerExisting.getEmail()).orElse(null);
+            }
         }
-        if (updatedCustomer.getPhone() != null) {
-            String trimmedPhone = updatedCustomer.getPhone().trim();
-            existing.setPhone(trimmedPhone.isEmpty() ? null : trimmedPhone);
+
+        if (customerExisting == null) {
+            throw new RuntimeException("Customer not found");
         }
-        if (updatedCustomer.getAvatarUrl() != null) {
-            String newAvatar = updatedCustomer.getAvatarUrl();
-            String oldAvatar = existing.getAvatarUrl();
+
+        String fullName = updatedCustomer.getFullName();
+        String phone = updatedCustomer.getPhone();
+        String avatarUrl = updatedCustomer.getAvatarUrl();
+
+        // Update Customer
+        if (fullName != null) {
+            customerExisting.setFullName(fullName);
+        }
+        if (phone != null) {
+            String trimmedPhone = phone.trim();
+            customerExisting.setPhone(trimmedPhone.isEmpty() ? null : trimmedPhone);
+        }
+        if (avatarUrl != null) {
+            String newAvatar = avatarUrl;
+            String oldAvatar = customerExisting.getAvatarUrl();
             if (!newAvatar.equals(oldAvatar)) {
                 deletePhysicalAvatarFile(oldAvatar);
-                existing.setAvatarUrl(newAvatar.isEmpty() ? null : newAvatar);
+                customerExisting.setAvatarUrl(newAvatar.isEmpty() ? null : newAvatar);
             }
+        }
+
+        // Update Farmer if exists
+        if (farmerExisting != null) {
+            if (fullName != null) {
+                farmerExisting.setFullName(fullName);
+            }
+            if (phone != null) {
+                String trimmedPhone = phone.trim();
+                farmerExisting.setPhone(trimmedPhone.isEmpty() ? null : trimmedPhone);
+            }
+            if (avatarUrl != null) {
+                farmerExisting.setAvatarUrl(avatarUrl.isEmpty() ? null : avatarUrl);
+            }
+            farmerRepository.save(farmerExisting);
         }
 
         // Handle addresses
         if (updatedCustomer.getAddresses() != null) {
-            if (existing.getAddresses() == null) {
-                existing.setAddresses(new java.util.ArrayList<>());
+            if (customerExisting.getAddresses() == null) {
+                customerExisting.setAddresses(new java.util.ArrayList<>());
             }
             if (updatedCustomer.getAddresses().isEmpty()) {
-                existing.getAddresses().clear();
+                customerExisting.getAddresses().clear();
             } else {
                 CustomerAddress newAddrInput = updatedCustomer.getAddresses().get(0);
-                if (!existing.getAddresses().isEmpty()) {
-                    CustomerAddress existingAddr = existing.getAddresses().get(0);
+                if (!customerExisting.getAddresses().isEmpty()) {
+                    CustomerAddress existingAddr = customerExisting.getAddresses().get(0);
                     existingAddr.setAddress(newAddrInput.getAddress());
-                    existingAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName() : existing.getFullName());
-                    existingAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone() : existing.getPhone());
+                    existingAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName() : customerExisting.getFullName());
+                    existingAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone() : customerExisting.getPhone());
+                    existingAddr.setLatitude(newAddrInput.getLatitude());
+                    existingAddr.setLongitude(newAddrInput.getLongitude());
                     existingAddr.setIsDefault(true);
                 } else {
                     CustomerAddress newAddr = new CustomerAddress();
                     newAddr.setAddress(newAddrInput.getAddress());
-                    newAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName() : existing.getFullName());
-                    newAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone() : existing.getPhone());
+                    newAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName() : customerExisting.getFullName());
+                    newAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone() : customerExisting.getPhone());
+                    newAddr.setLatitude(newAddrInput.getLatitude());
+                    newAddr.setLongitude(newAddrInput.getLongitude());
                     newAddr.setIsDefault(true);
-                    newAddr.setCustomer(existing);
-                    existing.getAddresses().add(newAddr);
+                    newAddr.setCustomer(customerExisting);
+                    customerExisting.getAddresses().add(newAddr);
                 }
             }
         }
 
-        existing.setRole("customer");
-        return customerRepository.save(existing);
+        customerExisting.setRole("customer");
+        return customerRepository.save(customerExisting);
+    }
+
+    public CustomerAddress addAddressByEmail(String email, CustomerAddress newAddrInput) {
+        Customer existing = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        if (existing.getAddresses() == null) {
+            existing.setAddresses(new java.util.ArrayList<>());
+        }
+
+        String newAddrStr = newAddrInput.getAddress().trim();
+        Optional<CustomerAddress> duplicate = existing.getAddresses().stream()
+                .filter(a -> a.getAddress().trim().equalsIgnoreCase(newAddrStr))
+                .findFirst();
+
+        if (duplicate.isPresent()) {
+            CustomerAddress existingDuplicate = duplicate.get();
+            existingDuplicate.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName().trim() : existing.getFullName());
+            existingDuplicate.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone().trim() : existing.getPhone());
+            existingDuplicate.setLatitude(newAddrInput.getLatitude());
+            existingDuplicate.setLongitude(newAddrInput.getLongitude());
+            if (Boolean.TRUE.equals(newAddrInput.getIsDefault())) {
+                for (CustomerAddress addr : existing.getAddresses()) {
+                    addr.setIsDefault(false);
+                }
+                existingDuplicate.setIsDefault(true);
+            }
+            customerRepository.save(existing);
+            return existingDuplicate;
+        }
+
+        if (Boolean.TRUE.equals(newAddrInput.getIsDefault())) {
+            for (CustomerAddress addr : existing.getAddresses()) {
+                addr.setIsDefault(false);
+            }
+        } else if (existing.getAddresses().isEmpty()) {
+            newAddrInput.setIsDefault(true);
+        } else {
+            newAddrInput.setIsDefault(false);
+        }
+
+        CustomerAddress newAddr = new CustomerAddress();
+        newAddr.setAddress(newAddrStr);
+        newAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName().trim() : existing.getFullName());
+        newAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone().trim() : existing.getPhone());
+        newAddr.setLatitude(newAddrInput.getLatitude());
+        newAddr.setLongitude(newAddrInput.getLongitude());
+        newAddr.setIsDefault(newAddrInput.getIsDefault());
+        newAddr.setCustomer(existing);
+        
+        existing.getAddresses().add(newAddr);
+        customerRepository.save(existing);
+
+        return existing.getAddresses().stream()
+                .filter(a -> a.getAddress().trim().equalsIgnoreCase(newAddrStr))
+                .findFirst()
+                .orElse(newAddr);
     }
 
     private void deletePhysicalAvatarFile(String avatarUrl) {

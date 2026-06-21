@@ -10,6 +10,9 @@ import org.example.agrimarket.repository.CartItemRepository;
 import org.example.agrimarket.repository.CartRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.repository.ProductRepository;
+import org.example.agrimarket.model.Customer;
+import org.example.agrimarket.model.CustomerAddress;
+import org.example.agrimarket.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +37,12 @@ public class CartService {
     @Autowired
     private ProductImageRepository productImageRepository;
 
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private DistanceService distanceService;
+
     private Cart getOrCreateCart(String email) {
         return cartRepository.findByEmail(email).orElseGet(() -> {
             Cart cart = new Cart();
@@ -45,14 +54,23 @@ public class CartService {
     @Transactional(readOnly = true)
     public List<CartItemResponse> getCart(String email) {
         Cart cart = getOrCreateCart(email);
+
+        Customer customer = customerRepository.findByEmail(email).orElse(null);
+        final CustomerAddress defaultAddress = (customer != null && customer.getAddresses() != null)
+                ? customer.getAddresses().stream()
+                        .filter(addr -> addr.getIsDefault() != null && addr.getIsDefault())
+                        .findFirst()
+                        .orElse(customer.getAddresses().isEmpty() ? null : customer.getAddresses().get(0))
+                : null;
+
         return cart.getItems().stream()
-                .map(this::mapToResponse)
+                .map(item -> mapToResponse(item, defaultAddress))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
     }
 
-    private Optional<CartItemResponse> mapToResponse(CartItem item) {
+    private Optional<CartItemResponse> mapToResponse(CartItem item, CustomerAddress defaultAddress) {
         Optional<Product> productOpt = productRepository.findById(item.getProductId());
         if (productOpt.isEmpty()) {
             return Optional.empty();
@@ -70,6 +88,28 @@ public class CartService {
                     .orElse(images.get(0).getImgUrl());
         }
 
+        Double distance = null;
+        Double maxDeliveryRange = null;
+        Boolean isWithinDeliveryRange = true;
+
+        if (defaultAddress != null && defaultAddress.getAddress() != null && product.getFarmer() != null && product.getFarmer().getFarmAddress() != null) {
+            String farmAddr = product.getFarmer().getFarmAddress();
+            if (!farmAddr.isBlank() && !farmAddr.equalsIgnoreCase("Not updated") && !farmAddr.equalsIgnoreCase("Chưa có địa chỉ")) {
+                distance = distanceService.calculateDistance(
+                    defaultAddress.getAddress(), defaultAddress.getLatitude(), defaultAddress.getLongitude(),
+                    farmAddr, product.getFarmer().getLatitude(), product.getFarmer().getLongitude()
+                );
+                double maxProductDist = product.getLimitDistance() != null 
+                        ? product.getLimitDistance() 
+                        : distanceService.getMaxAllowedDistance(product.getPerishability());
+                double maxFarmerDist = product.getFarmer().getMaxDeliveryDistance() != null 
+                        ? product.getFarmer().getMaxDeliveryDistance() 
+                        : 1000.0;
+                maxDeliveryRange = Math.min(maxProductDist, maxFarmerDist);
+                isWithinDeliveryRange = (distance <= maxDeliveryRange);
+            }
+        }
+
         CartItemResponse response = CartItemResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -81,6 +121,10 @@ public class CartService {
                 .stockQuantity(product.getStockQuantity())
                 .farmerId(product.getFarmer() != null ? product.getFarmer().getId() : null)
                 .farmerName(product.getFarmer() != null ? product.getFarmer().getFarmName() : null)
+                .distance(distance)
+                .maxDeliveryRange(maxDeliveryRange)
+                .isWithinDeliveryRange(isWithinDeliveryRange)
+                .perishability(product.getPerishability())
                 .build();
 
         return Optional.of(response);

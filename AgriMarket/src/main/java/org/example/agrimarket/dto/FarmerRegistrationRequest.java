@@ -9,6 +9,9 @@ public class FarmerRegistrationRequest {
     private String vietgapUrl;
     private String globalgapUrl;
     private String organicUrl;
+    private Double maxDeliveryDistance;
+    private Double latitude;
+    private Double longitude;
 
     public FarmerRegistrationRequest() {}
 
@@ -86,5 +89,29 @@ public class FarmerRegistrationRequest {
 
     public void setOrganicUrl(String organicUrl) {
         this.organicUrl = organicUrl;
+    }
+
+    public Double getMaxDeliveryDistance() {
+        return maxDeliveryDistance;
+    }
+
+    public void setMaxDeliveryDistance(Double maxDeliveryDistance) {
+        this.maxDeliveryDistance = maxDeliveryDistance;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 }

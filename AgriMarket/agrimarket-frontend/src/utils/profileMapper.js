@@ -103,12 +103,33 @@ export const normalizeProfileData = (rawUser) => {
       rawUser.organic_url ||
       "",
 
+    maxDeliveryDistance:
+      rawUser.maxDeliveryDistance !== undefined
+        ? rawUser.maxDeliveryDistance
+        : rawUser.max_delivery_distance !== undefined
+        ? rawUser.max_delivery_distance
+        : 50.0,
+
+    latitude:
+      rawUser.latitude !== undefined
+        ? rawUser.latitude
+        : null,
+
+    longitude:
+      rawUser.longitude !== undefined
+        ? rawUser.longitude
+        : null,
+
     // Customer address
-    addresses:
-      rawUser.addresses ||
-      rawUser.customerAddresses ||
-      rawUser.customer_address ||
-      [],
+    addresses: (rawUser.addresses || rawUser.customerAddresses || rawUser.customer_address || []).map(addr => ({
+      id: addr.id,
+      receiverName: addr.receiverName || addr.receiver_name || "",
+      phone: addr.phone || "",
+      address: addr.address || "",
+      isDefault: addr.isDefault !== undefined ? addr.isDefault : (addr.is_default !== undefined ? addr.is_default : false),
+      latitude: addr.latitude || null,
+      longitude: addr.longitude || null,
+    })),
   };
 };
 
@@ -119,7 +140,7 @@ export const buildProfileUpdatePayload = (role, formData) => {
     avatarUrl: formData.avatarUrl,
   };
 
-  if (role === "customer") {
+  if (role === "customer" || role === "farmer") {
     return {
       ...basePayload,
 
@@ -134,6 +155,8 @@ export const buildProfileUpdatePayload = (role, formData) => {
               phone: formData.phone,
               address: formData.address,
               isDefault: true,
+              latitude: formData.latitude || null,
+              longitude: formData.longitude || null,
             },
           ]
         : [],
@@ -151,6 +174,9 @@ export const buildProfileUpdatePayload = (role, formData) => {
       vietgapUrl: formData.vietgapUrl,
       globalgapUrl: formData.globalgapUrl,
       organicUrl: formData.organicUrl,
+      maxDeliveryDistance: formData.maxDeliveryDistance,
+      latitude: formData.latitude || null,
+      longitude: formData.longitude || null,
     };
   }
 

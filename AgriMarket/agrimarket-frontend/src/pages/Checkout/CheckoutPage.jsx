@@ -9,6 +9,48 @@ import orderService from "../../services/orderService";
 import Footer from "../../components/common/Footer/Footer";
 import "./CheckoutPage.css";
 import Header from "../../components/common/Header/Header";
+import { MapPicker } from "../../components/MapPicker/MapPicker";
+import apiClient from "../../services/apiClient";
+
+// Geocode address using Nominatim (sequential to avoid rate-limiting)
+const geocodeAddressIfNeeded = async (addressStr) => {
+    if (!addressStr) return null;
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressStr)}&format=json&limit=1`, {
+            headers: {
+                "User-Agent": "AgriMarket-Application/1.0",
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.length > 0) {
+                return {
+                    latitude: parseFloat(data[0].lat),
+                    longitude: parseFloat(data[0].lon)
+                };
+            }
+        }
+    } catch (e) {
+        console.error("Geocoding failed for address:", addressStr, e);
+    }
+    return null;
+};
+
+// Calculate distance in km between two GPS coordinates using Haversine formula
+const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+    const R = 6371; // Earth's radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
 
 const INITIAL_ORDERS = [
     {
@@ -91,6 +133,11 @@ export default function CheckoutPage() {
     const [addrWard, setAddrWard] = useState({ code: "", name: "" });
     const [addrStreet, setAddrStreet] = useState("");
     const [profileData, setProfileData] = useState(null);
+    const [latitude, setLatitude] = useState(null);
+    const [longitude, setLongitude] = useState(null);
+    const [savedAddresses, setSavedAddresses] = useState([]);
+    const [selectedAddressIndex, setSelectedAddressIndex] = useState(-1);
+    const [showAddressSelector, setShowAddressSelector] = useState(false);
 
     // Payment method
     const [paymentMethod, setPaymentMethod] = useState("cod"); // cod, vnpay
@@ -102,6 +149,9 @@ export default function CheckoutPage() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [placedOrder, setPlacedOrder] = useState(null);
     const [cartItemsCount, setCartItemsCount] = useState(0);
+    
+    // Farmer coordinates & max shipping distance
+    const [farmerCoords, setFarmerCoords] = useState(null);
 
     // Generate static order ID on component load for tracking
     const orderId = useMemo(() => {
@@ -112,6 +162,75 @@ export default function CheckoutPage() {
     const formatVND = (price) => {
         return new Intl.NumberFormat("vi-VN").format(price) + " đ";
     };
+
+    // Helper to get distance & validity info for an address
+    const getAddressDistanceInfo = (addr) => {
+        if (!farmerCoords || addr.latitude == null || addr.longitude == null) {
+            return { distance: null, isValid: true, message: "" };
+        }
+        if (farmerCoords.latitude == null || farmerCoords.longitude == null) {
+            return { distance: null, isValid: true, message: "" };
+        }
+        const dist = getHaversineDistance(
+            parseFloat(addr.latitude),
+            parseFloat(addr.longitude),
+            farmerCoords.latitude,
+            farmerCoords.longitude
+        );
+        if (dist === null) {
+            return { distance: null, isValid: true, message: "" };
+        }
+        const isValid = dist <= farmerCoords.maxDistance;
+        return {
+            distance: dist.toFixed(1),
+            isValid,
+            message: isValid 
+                ? `Khoảng cách: ${dist.toFixed(1)} km (Hợp lệ)` 
+                : `Khoảng cách: ${dist.toFixed(1)} km (Vượt giới hạn giao hàng ${farmerCoords.maxDistance} km của nhà vườn)`
+        };
+    };
+
+    // Calculate active selected address distance info
+    const activeDistanceInfo = useMemo(() => {
+        if (selectedAddressIndex !== -1) {
+            const addr = savedAddresses[selectedAddressIndex];
+            if (addr) {
+                return getAddressDistanceInfo(addr);
+            }
+        } else {
+            if (latitude != null && longitude != null) {
+                return getAddressDistanceInfo({ latitude, longitude });
+            }
+        }
+        return { distance: null, isValid: true, message: "" };
+    }, [selectedAddressIndex, savedAddresses, latitude, longitude, farmerCoords]);
+
+    // Fetch farmer coordinates & max delivery distance when checkoutData is loaded
+    useEffect(() => {
+        if (checkoutData && checkoutData.selectedItems && checkoutData.selectedItems.length > 0) {
+            const fetchFarmerCoords = async () => {
+                try {
+                    const prodId = checkoutData.selectedItems[0].id;
+                    const res = await apiClient.get(`/api/products/${prodId}`);
+                    if (res && res.data) {
+                        const lat = res.data.farmerLatitude;
+                        const lng = res.data.farmerLongitude;
+                        const maxDist = res.data.limitDistance || res.data.farmerMaxDeliveryDistance || 15.0; // fallback standard limit
+                        setFarmerCoords({
+                            latitude: lat != null ? parseFloat(lat) : null,
+                            longitude: lng != null ? parseFloat(lng) : null,
+                            maxDistance: maxDist != null ? parseFloat(maxDist) : 15.0,
+                            farmName: res.data.farmerName || ""
+                        });
+                        console.log("Loaded farmer coordinates and delivery limit:", { lat, lng, maxDist });
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi lấy thông tin toạ độ nhà vườn:", err);
+                }
+            };
+            fetchFarmerCoords();
+        }
+    }, [checkoutData]);
 
     useEffect(() => {
         // Load user session
@@ -169,62 +288,135 @@ export default function CheckoutPage() {
                 const profile = await profileService.getCurrentProfile();
                 if (profile) {
                     setProfileData(profile);
-                    setRecipientName(profile.fullName || "");
-                    setRecipientPhone(profile.phone || "");
 
-                    const rawAddress = profile.role === "farmer" 
-                      ? (profile.farmAddress || "") 
-                      : (profile.addresses?.[0]?.address || "");
+                    const profileAddr = profile.addresses || [];
 
-                    if (rawAddress && provinces.length > 0) {
-                        const parsed = addressService.parseAddress(rawAddress);
-                        
-                        if (!parsed.province) {
-                            setAddrStreet(rawAddress);
-                            return;
+                    // Fetch previous orders
+                    let orderAddr = [];
+                    try {
+                        const prevOrders = await orderService.getCustomerOrders();
+                        if (prevOrders && Array.isArray(prevOrders)) {
+                            orderAddr = prevOrders.map(o => ({
+                                receiverName: o.recipient || profile.fullName || "",
+                                phone: o.phone || profile.phone || "",
+                                address: o.address || "",
+                                isDefault: false,
+                                latitude: null,
+                                longitude: null,
+                            }));
                         }
+                    } catch (err) {
+                        console.warn("Failed to fetch previous orders:", err);
+                    }
 
+                    // Merge unique addresses
+                    const merged = [];
+
+                    // Add default address from profile
+                    const defaultAddrObj = profileAddr.find(a => a.isDefault);
+                    if (defaultAddrObj) {
+                        merged.push({
+                            ...defaultAddrObj,
+                            isDefault: true,
+                        });
+                    }
+
+                    // Add previous order addresses (DO NOT add other profile addresses)
+                    orderAddr.forEach(a => {
+                        if (a.address && !merged.some(m => m.address.trim().toLowerCase() === a.address.trim().toLowerCase())) {
+                            // Find corresponding coordinates in DB profile addresses if any
+                            const matchInDB = profileAddr.find(pa => pa.address.trim().toLowerCase() === a.address.trim().toLowerCase());
+                            if (matchInDB) {
+                                a.latitude = matchInDB.latitude;
+                                a.longitude = matchInDB.longitude;
+                            }
+                            merged.push(a);
+                        }
+                    });
+
+                    // Geocode sequentially any historical address that has null coordinates
+                    const resolvedAddresses = [];
+                    for (let i = 0; i < merged.length; i++) {
+                        const addr = merged[i];
+                        if (addr.latitude == null || addr.longitude == null) {
+                            if (i > 0) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                            const coords = await geocodeAddressIfNeeded(addr.address);
+                            if (coords) {
+                                resolvedAddresses.push({
+                                    ...addr,
+                                    latitude: coords.latitude,
+                                    longitude: coords.longitude
+                                });
+                                continue;
+                            }
+                        }
+                        resolvedAddresses.push(addr);
+                    }
+
+                    setSavedAddresses(resolvedAddresses);
+
+                    // Determine index of default address
+                    let selectedIdx = resolvedAddresses.findIndex(m => m.isDefault);
+                    if (selectedIdx === -1 && resolvedAddresses.length > 0) {
+                        selectedIdx = 0; // fallback to first
+                    }
+
+                    setSelectedAddressIndex(selectedIdx);
+
+                    // Setup fields based on selected address
+                    const activeAddr = selectedIdx !== -1 ? resolvedAddresses[selectedIdx] : null;
+                    if (activeAddr) {
+                        setRecipientName(activeAddr.receiverName || profile.fullName || "");
+                        setRecipientPhone(activeAddr.phone || profile.phone || "");
+                        setLatitude(activeAddr.latitude || null);
+                        setLongitude(activeAddr.longitude || null);
+
+                        const parsed = addressService.parseAddress(activeAddr.address);
                         setAddrStreet(parsed.street || "");
 
-                        // Find province
-                        const normProv = addressService.normalizeName(parsed.province);
-                        const provinceMatch = provinces.find(
-                            (p) => addressService.normalizeName(p.name) === normProv
-                        );
-
-                        if (provinceMatch) {
-                            const provCode = provinceMatch.code;
-                            setAddrProvince({ code: provCode, name: provinceMatch.name });
-
-                            // Load districts
-                            const dists = await addressService.getDistricts(provCode);
-                            setDistricts(dists);
-
-                            // Find district
-                            const normDist = addressService.normalizeName(parsed.district);
-                            const districtMatch = dists.find(
-                                (d) => addressService.normalizeName(d.name) === normDist
+                        if (parsed.province) {
+                            const normProv = addressService.normalizeName(parsed.province);
+                            const provinceMatch = provinces.find(
+                                (p) => addressService.normalizeName(p.name) === normProv
                             );
 
-                            if (districtMatch) {
-                                const distCode = districtMatch.code;
-                                setAddrDistrict({ code: distCode, name: districtMatch.name });
+                            if (provinceMatch) {
+                                const provCode = provinceMatch.code;
+                                setAddrProvince({ code: String(provCode), name: provinceMatch.name });
 
-                                // Load wards
-                                const wds = await addressService.getWards(distCode);
-                                setWards(wds);
+                                const dists = await addressService.getDistricts(provCode);
+                                setDistricts(dists);
 
-                                // Find ward
-                                const normWard = addressService.normalizeName(parsed.ward);
-                                const wardMatch = wds.find(
-                                    (w) => addressService.normalizeName(w.name) === normWard
+                                const normDist = addressService.normalizeName(parsed.district);
+                                const districtMatch = dists.find(
+                                    (d) => addressService.normalizeName(d.name) === normDist
                                 );
 
-                                if (wardMatch) {
-                                    setAddrWard({ code: wardMatch.code, name: wardMatch.name });
+                                if (districtMatch) {
+                                    const distCode = districtMatch.code;
+                                    setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+
+                                    const wds = await addressService.getWards(distCode);
+                                    setWards(wds);
+
+                                    const normWard = addressService.normalizeName(parsed.ward);
+                                    const wardMatch = wds.find(
+                                        (w) => addressService.normalizeName(w.name) === normWard
+                                    );
+
+                                    if (wardMatch) {
+                                        setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        setRecipientName(profile.fullName || "");
+                        setRecipientPhone(profile.phone || "");
+                        setLatitude(null);
+                        setLongitude(null);
                     }
                 }
             } catch (err) {
@@ -245,6 +437,8 @@ export default function CheckoutPage() {
             setAddrDistrict({ code: "", name: "" });
             setAddrWard({ code: "", name: "" });
             setWards([]);
+            setLatitude(null);
+            setLongitude(null);
             const dists = await addressService.getDistricts(provinceCode);
             setDistricts(dists);
         } else {
@@ -253,6 +447,8 @@ export default function CheckoutPage() {
             setAddrWard({ code: "", name: "" });
             setDistricts([]);
             setWards([]);
+            setLatitude(null);
+            setLongitude(null);
         }
     };
 
@@ -262,12 +458,16 @@ export default function CheckoutPage() {
         if (districtObj) {
             setAddrDistrict({ code: districtCode, name: districtObj.name });
             setAddrWard({ code: "", name: "" });
+            setLatitude(null);
+            setLongitude(null);
             const wds = await addressService.getWards(districtCode);
             setWards(wds);
         } else {
             setAddrDistrict({ code: "", name: "" });
             setAddrWard({ code: "", name: "" });
             setWards([]);
+            setLatitude(null);
+            setLongitude(null);
         }
     };
 
@@ -276,8 +476,215 @@ export default function CheckoutPage() {
         const wardObj = wards.find((w) => w.code === parseInt(wardCode));
         if (wardObj) {
             setAddrWard({ code: wardCode, name: wardObj.name });
+            if (!latitude || !longitude) {
+                setLatitude(null);
+                setLongitude(null);
+            }
         } else {
             setAddrWard({ code: "", name: "" });
+            if (!latitude || !longitude) {
+                setLatitude(null);
+                setLongitude(null);
+            }
+        }
+    };
+
+    const selectSavedAddress = async (index) => {
+        setSelectedAddressIndex(index);
+        if (index === -1) {
+            setRecipientName("");
+            setRecipientPhone("");
+            setAddrProvince({ code: "", name: "" });
+            setAddrDistrict({ code: "", name: "" });
+            setAddrWard({ code: "", name: "" });
+            setAddrStreet("");
+            setLatitude(null);
+            setLongitude(null);
+            setDistricts([]);
+            setWards([]);
+            return;
+        }
+
+        const selected = savedAddresses[index];
+        setRecipientName(selected.receiverName || "");
+        setRecipientPhone(selected.phone || "");
+        setLatitude(selected.latitude || null);
+        setLongitude(selected.longitude || null);
+
+        const parsed = addressService.parseAddress(selected.address);
+        setAddrStreet(parsed.street || "");
+
+        if (parsed.province) {
+            const normProv = addressService.normalizeName(parsed.province);
+            const provinceMatch = provinces.find(
+                (p) => addressService.normalizeName(p.name) === normProv
+            );
+
+            if (provinceMatch) {
+                const provCode = provinceMatch.code;
+                setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+
+                const dists = await addressService.getDistricts(provCode);
+                setDistricts(dists);
+
+                const normDist = addressService.normalizeName(parsed.district);
+                const districtMatch = dists.find(
+                    (d) => addressService.normalizeName(d.name) === normDist
+                );
+
+                if (districtMatch) {
+                    const distCode = districtMatch.code;
+                    setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+
+                    const wds = await addressService.getWards(distCode);
+                    setWards(wds);
+
+                    const normWard = addressService.normalizeName(parsed.ward);
+                    const wardMatch = wds.find(
+                        (w) => addressService.normalizeName(w.name) === normWard
+                    );
+
+                    if (wardMatch) {
+                        setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
+                    } else {
+                        setAddrWard({ code: "", name: "" });
+                    }
+                } else {
+                    setAddrDistrict({ code: "", name: "" });
+                    setAddrWard({ code: "", name: "" });
+                    setWards([]);
+                }
+            } else {
+                setAddrProvince({ code: "", name: "" });
+                setAddrDistrict({ code: "", name: "" });
+                setAddrWard({ code: "", name: "" });
+                setDistricts([]);
+                setWards([]);
+            }
+        }
+    };
+
+    const handleMapLocationChange = async (lat, lng) => {
+        setLatitude(lat);
+        setLongitude(lng);
+
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
+                headers: {
+                    "User-Agent": "AgriMarket-Application/1.0",
+                },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.address) {
+                    const addr = data.address;
+                    const streetName = addr.road || addr.suburb || addr.neighbourhood || "";
+                    const houseNo = addr.house_number || "";
+                    const streetValue = houseNo ? `${houseNo} ${streetName}` : streetName;
+                    
+                    if (streetValue) {
+                        setAddrStreet(streetValue);
+                    }
+
+                    // Match Province/City
+                    const provinceCandidates = [
+                        addr.city,
+                        addr.province,
+                        addr.state
+                    ].filter(Boolean);
+
+                    let provinceMatch = null;
+                    if (provinces.length > 0) {
+                        for (const candidate of provinceCandidates) {
+                            const normProv = addressService.normalizeName(candidate);
+                            provinceMatch = provinces.find(
+                                (p) => addressService.normalizeName(p.name) === normProv
+                            );
+                            if (provinceMatch) break;
+                        }
+                    }
+
+                    if (provinceMatch) {
+                        const provCode = provinceMatch.code;
+                        setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+
+                        // Load and Match District
+                        const dists = await addressService.getDistricts(provCode);
+                        setDistricts(dists);
+
+                        const districtCandidates = [
+                            addr.district,
+                            addr.city_district,
+                            addr.county,
+                            addr.suburb,
+                            addr.town
+                        ].filter(Boolean);
+
+                        let districtMatch = null;
+                        if (dists.length > 0) {
+                            for (const candidate of districtCandidates) {
+                                const normDist = addressService.normalizeName(candidate);
+                                districtMatch = dists.find(
+                                    (d) => addressService.normalizeName(d.name) === normDist
+                                );
+                                if (districtMatch) break;
+                            }
+                        }
+
+                        if (districtMatch) {
+                            const distCode = districtMatch.code;
+                            setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+
+                            // Load and Match Ward
+                            const wds = await addressService.getWards(distCode);
+                            setWards(wds);
+
+                            const wardCandidates = [
+                                addr.quarter,
+                                addr.suburb,
+                                addr.village,
+                                addr.town,
+                                addr.neighbourhood,
+                                addr.subdistrict,
+                                addr.hamlet
+                            ].filter(Boolean);
+
+                            let wardMatch = null;
+                            if (wds.length > 0) {
+                                for (const candidate of wardCandidates) {
+                                    const normWard = addressService.normalizeName(candidate);
+                                    wardMatch = wds.find(
+                                        (w) => addressService.normalizeName(w.name) === normWard
+                                    );
+                                    if (wardMatch) break;
+                                }
+                            }
+
+                            if (wardMatch) {
+                                setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
+                            } else {
+                                setAddrWard((prev) => {
+                                    const isSameDistrict = addrDistrict.name && districtMatch.name &&
+                                        addressService.normalizeName(addrDistrict.name) === addressService.normalizeName(districtMatch.name);
+                                    return isSameDistrict && prev.code ? prev : { code: "", name: "" };
+                                });
+                            }
+                        } else {
+                            setAddrDistrict({ code: "", name: "" });
+                            setAddrWard({ code: "", name: "" });
+                            setWards([]);
+                        }
+                    } else {
+                        setAddrProvince({ code: "", name: "" });
+                        setAddrDistrict({ code: "", name: "" });
+                        setAddrWard({ code: "", name: "" });
+                        setDistricts([]);
+                        setWards([]);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Reverse geocoding failed: ", err);
         }
     };
 
@@ -297,6 +704,8 @@ export default function CheckoutPage() {
         }
         if (!addrProvince.code || !addrDistrict.code || !addrWard.code || !addrStreet.trim()) {
             formErrors.recipientAddress = "Vui lòng nhập đầy đủ địa chỉ giao hàng 4 cấp";
+        } else if (activeDistanceInfo.distance !== null && !activeDistanceInfo.isValid) {
+            formErrors.recipientAddress = `Địa chỉ nhận hàng vượt quá khoảng cách giao hàng tối đa của nhà vườn (${farmerCoords.maxDistance} km). Vui lòng chọn địa chỉ khác.`;
         }
 
         setErrors(formErrors);
@@ -322,24 +731,44 @@ export default function CheckoutPage() {
             province: addrProvince.name,
         });
 
-        // Auto-save phone and address to user profile
-        if (profileData) {
+        // Auto-save address to customer_address if not already existing
+        if (profileData && profileData.role === "customer") {
+            try {
+                const isExisting = savedAddresses.some(
+                    (a) => a.address.trim().toLowerCase() === formattedAddress.trim().toLowerCase()
+                );
+                if (!isExisting) {
+                    await apiClient.post("/api/customers/addresses", {
+                        receiverName: recipientName,
+                        phone: recipientPhone,
+                        address: formattedAddress,
+                        latitude: latitude ? parseFloat(latitude) : null,
+                        longitude: longitude ? parseFloat(longitude) : null,
+                        isDefault: false
+                    });
+                    console.log("Saved new delivery address to customer_address.");
+                }
+            } catch (err) {
+                console.error("Lỗi khi tự động lưu địa chỉ giao hàng mới:", err);
+            }
+        }
+
+        // Auto-save phone to user profile if updated
+        if (profileData && recipientPhone !== profileData.phone) {
             try {
                 const updatedFormData = {
                     fullName: profileData.fullName || recipientName,
                     phone: recipientPhone,
                     avatarUrl: profileData.avatarUrl,
-                    address: profileData.role === "customer" ? formattedAddress : (profileData.addresses?.[0]?.address || ""),
-                    farmAddress: profileData.role === "farmer" ? formattedAddress : (profileData.farmAddress || ""),
+                    address: profileData.role === "customer" ? (profileData.addresses?.[0]?.address || "") : (profileData.addresses?.[0]?.address || ""),
+                    farmAddress: profileData.role === "farmer" ? (profileData.farmAddress || "") : (profileData.farmAddress || ""),
                     farmName: profileData.farmName || "",
                     description: profileData.description || ""
                 };
-
                 const payload = buildProfileUpdatePayload(profileData.role, updatedFormData);
                 await profileService.updateProfile(payload);
-                console.log("Auto-saved phone and address to database profile.");
             } catch (err) {
-                console.error("Lỗi khi tự động lưu thông tin giao hàng:", err);
+                console.error("Lỗi khi cập nhật số điện thoại hồ sơ:", err);
             }
         }
 
@@ -622,107 +1051,273 @@ export default function CheckoutPage() {
                             {/* Card 1: Delivery Details */}
                             <div className="payment-form-card">
                                 <h3>1. Thông tin giao hàng</h3>
-                                <p className="form-card-subtitle">Vui lòng nhập địa chỉ nhận hàng chính xác để chúng tôi giao sản phẩm tươi ngon nhất.</p>
+                                <p className="form-card-subtitle">Vui lòng nhập địa chỉ nhận hàng chính xác để chúng tôi giao sản phẩm tươi ngon nhất.</p>                                {savedAddresses.length > 0 ? (
+                                    <div className="shopee-address-section" style={{ marginBottom: "24px" }}>
+                                        <div className="shopee-address-header">
+                                            <span className="shopee-address-pin">📍</span>
+                                            <span className="shopee-address-title">Địa chỉ nhận hàng</span>
+                                        </div>
+                                        <div className="shopee-address-content">
+                                            {selectedAddressIndex !== -1 ? (
+                                                <div className="shopee-active-address">
+                                                    <div className="shopee-active-name-phone">
+                                                        <strong>{savedAddresses[selectedAddressIndex].receiverName}</strong>
+                                                        <span className="shopee-active-phone">{savedAddresses[selectedAddressIndex].phone}</span>
+                                                        {savedAddresses[selectedAddressIndex].isDefault && (
+                                                            <span className="shopee-default-badge">Mặc định</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="shopee-active-detail">
+                                                        {savedAddresses[selectedAddressIndex].address}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="shopee-active-address">
+                                                    <div className="shopee-active-name-phone">
+                                                        <strong>{recipientName || "Chưa nhập họ tên"}</strong>
+                                                        <span className="shopee-active-phone">{recipientPhone || "Chưa nhập SĐT"}</span>
+                                                        <span className="shopee-new-badge">Địa chỉ mới</span>
+                                                    </div>
+                                                    <div className="shopee-active-detail">
+                                                        {addressService.formatAddress({
+                                                            street: addrStreet,
+                                                            ward: addrWard.name,
+                                                            district: addrDistrict.name,
+                                                            province: addrProvince.name
+                                                        }) || "Vui lòng nhập chi tiết địa chỉ bên dưới"}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {activeDistanceInfo.distance !== null && (
+                                                <div 
+                                                    className="shopee-active-distance-badge"
+                                                    style={{
+                                                        display: "inline-block",
+                                                        padding: "4px 8px",
+                                                        borderRadius: "4px",
+                                                        backgroundColor: activeDistanceInfo.isValid ? "#e8f5e9" : "#ffebee",
+                                                        color: activeDistanceInfo.isValid ? "#2e7d32" : "#c62828",
+                                                        fontSize: "12.5px",
+                                                        fontWeight: "bold",
+                                                        marginTop: "8px"
+                                                    }}
+                                                >
+                                                    📍 {activeDistanceInfo.message}
+                                                </div>
+                                            )}
+                                            <button 
+                                                type="button" 
+                                                className="btn-change-address" 
+                                                onClick={() => setShowAddressSelector(!showAddressSelector)}
+                                            >
+                                                {showAddressSelector ? "Đóng lại" : "Thay đổi"}
+                                            </button>
+                                        </div>
 
-                                <div className="form-group-row">
-                                    <div className="form-group">
-                                        <label htmlFor="recipientName">Họ và tên người nhận <span className="req-star">*</span></label>
-                                        <input
-                                            type="text"
-                                            id="recipientName"
-                                            name="recipientName"
-                                            value={recipientName}
-                                            onChange={(e) => setRecipientName(e.target.value)}
-                                            placeholder="Nguyễn Văn A"
-                                            className={errors.recipientName ? "input-err" : ""}
-                                        />
-                                        {errors.recipientName && <span className="error-hint-text">{errors.recipientName}</span>}
+                                        {showAddressSelector && (
+                                            <div className="shopee-address-dropdown">
+                                                <div className="shopee-dropdown-header">
+                                                    <h4>Chọn địa chỉ nhận hàng</h4>
+                                                </div>
+                                                <div className="shopee-dropdown-list">
+                                                    {savedAddresses.map((addr, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            className={`shopee-dropdown-item ${selectedAddressIndex === idx ? "selected" : ""}`}
+                                                            onClick={() => {
+                                                                selectSavedAddress(idx);
+                                                                setShowAddressSelector(false);
+                                                            }}
+                                                        >
+                                                            <div className="shopee-radio-wrapper">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name="selectedAddressRadio" 
+                                                                    checked={selectedAddressIndex === idx} 
+                                                                    readOnly
+                                                                />
+                                                            </div>
+                                                            <div className="shopee-item-info">
+                                                                <div className="shopee-item-header">
+                                                                    <span className="shopee-item-name">{addr.receiverName}</span>
+                                                                    <span className="shopee-item-phone">{addr.phone}</span>
+                                                                    {addr.isDefault && <span className="shopee-default-badge">Mặc định</span>}
+                                                                </div>
+                                                                <div className="shopee-item-address">{addr.address}</div>
+                                                                {(() => {
+                                                                    const distInfo = getAddressDistanceInfo(addr);
+                                                                    if (distInfo.distance !== null) {
+                                                                        return (
+                                                                            <div 
+                                                                                className="shopee-item-distance" 
+                                                                                style={{ 
+                                                                                    color: distInfo.isValid ? "#2e7d32" : "#c62828", 
+                                                                                    fontSize: "12px", 
+                                                                                    fontWeight: "bold",
+                                                                                    marginTop: "4px"
+                                                                                }}
+                                                                            >
+                                                                                📍 {distInfo.message}
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    return null;
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div 
+                                                        className={`shopee-dropdown-item ${selectedAddressIndex === -1 ? "selected" : ""}`}
+                                                        onClick={() => {
+                                                            selectSavedAddress(-1);
+                                                            setShowAddressSelector(false);
+                                                        }}
+                                                    >
+                                                        <div className="shopee-radio-wrapper">
+                                                            <input 
+                                                                type="radio" 
+                                                                name="selectedAddressRadio" 
+                                                                checked={selectedAddressIndex === -1} 
+                                                                readOnly
+                                                            />
+                                                        </div>
+                                                        <div className="shopee-item-info">
+                                                            <div className="shopee-item-header">
+                                                                <span className="shopee-item-name" style={{ fontWeight: 700 }}>Giao tới địa chỉ khác / Thêm địa chỉ mới</span>
+                                                            </div>
+                                                            <div className="shopee-item-address">Nhập địa chỉ mới và định vị trên bản đồ bên dưới.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+                                ) : null}
 
-                                    <div className="form-group">
-                                        <label htmlFor="recipientPhone">Số điện thoại liên hệ <span className="req-star">*</span></label>
-                                        <input
-                                            type="text"
-                                            id="recipientPhone"
-                                            name="recipientPhone"
-                                            value={recipientPhone}
-                                            onChange={(e) => setRecipientPhone(e.target.value)}
-                                            placeholder="09XXXXXXXX"
-                                            className={errors.recipientPhone ? "input-err" : ""}
-                                        />
-                                        {errors.recipientPhone && <span className="error-hint-text">{errors.recipientPhone}</span>}
-                                    </div>
-                                </div>
+                                {selectedAddressIndex === -1 && (
+                                    <div className="new-address-form-fields" style={{ animation: "fadeIn 0.3s ease" }}>
+                                        <div className="form-group-row">
+                                            <div className="form-group">
+                                                <label htmlFor="recipientName">Họ và tên người nhận <span className="req-star">*</span></label>
+                                                <input
+                                                    type="text"
+                                                    id="recipientName"
+                                                    name="recipientName"
+                                                    value={recipientName}
+                                                    onChange={(e) => setRecipientName(e.target.value)}
+                                                    placeholder="Nguyễn Văn A"
+                                                    className={errors.recipientName ? "input-err" : ""}
+                                                />
+                                                {errors.recipientName && <span className="error-hint-text">{errors.recipientName}</span>}
+                                            </div>
 
-                                <div className="form-group-row">
-                                    <div className="form-group">
-                                        <label>Tỉnh / Thành phố <span className="req-star">*</span></label>
-                                        <select
-                                            value={addrProvince.code}
-                                            onChange={handleProvinceChange}
-                                            className={errors.recipientAddress ? "input-err" : ""}
-                                        >
-                                            <option value="">Chọn Tỉnh / Thành phố</option>
-                                            {provinces.map((p) => (
-                                                <option key={p.code} value={p.code}>
-                                                    {p.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                            <div className="form-group">
+                                                <label htmlFor="recipientPhone">Số điện thoại liên hệ <span className="req-star">*</span></label>
+                                                <input
+                                                    type="text"
+                                                    id="recipientPhone"
+                                                    name="recipientPhone"
+                                                    value={recipientPhone}
+                                                    onChange={(e) => setRecipientPhone(e.target.value)}
+                                                    placeholder="09XXXXXXXX"
+                                                    className={errors.recipientPhone ? "input-err" : ""}
+                                                />
+                                                {errors.recipientPhone && <span className="error-hint-text">{errors.recipientPhone}</span>}
+                                            </div>
+                                        </div>
 
-                                    <div className="form-group">
-                                        <label>Quận / Huyện <span className="req-star">*</span></label>
-                                        <select
-                                            value={addrDistrict.code}
-                                            onChange={handleDistrictChange}
-                                            disabled={!addrProvince.code}
-                                            className={errors.recipientAddress ? "input-err" : ""}
-                                        >
-                                            <option value="">Chọn Quận / Huyện</option>
-                                            {districts.map((d) => (
-                                                <option key={d.code} value={d.code}>
-                                                    {d.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
+                                        <div className="form-group-row">
+                                            <div className="form-group">
+                                                <label>Tỉnh / Thành phố <span className="req-star">*</span></label>
+                                                <select
+                                                    value={addrProvince.code}
+                                                    onChange={handleProvinceChange}
+                                                    className={errors.recipientAddress ? "input-err" : ""}
+                                                >
+                                                    <option value="">Chọn Tỉnh / Thành phố</option>
+                                                    {provinces.map((p) => (
+                                                        <option key={p.code} value={p.code}>
+                                                            {p.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
 
-                                <div className="form-group-row">
-                                    <div className="form-group">
-                                        <label>Phường / Xã <span className="req-star">*</span></label>
-                                        <select
-                                            value={addrWard.code}
-                                            onChange={handleWardChange}
-                                            disabled={!addrDistrict.code}
-                                            className={errors.recipientAddress ? "input-err" : ""}
-                                        >
-                                            <option value="">Chọn Phường / Xã</option>
-                                            {wards.map((w) => (
-                                                <option key={w.code} value={w.code}>
-                                                    {w.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                            <div className="form-group">
+                                                <label>Quận / Huyện <span className="req-star">*</span></label>
+                                                <select
+                                                    value={addrDistrict.code}
+                                                    onChange={handleDistrictChange}
+                                                    disabled={!addrProvince.code}
+                                                    className={errors.recipientAddress ? "input-err" : ""}
+                                                >
+                                                    <option value="">Chọn Quận / Huyện</option>
+                                                    {districts.map((d) => (
+                                                        <option key={d.code} value={d.code}>
+                                                            {d.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
 
-                                    <div className="form-group">
-                                        <label>Số nhà / Tên đường <span className="req-star">*</span></label>
-                                        <input
-                                            type="text"
-                                            id="recipientAddress"
-                                            name="recipientAddress"
-                                            value={addrStreet}
-                                            onChange={(e) => setAddrStreet(e.target.value)}
-                                            placeholder="Số nhà, ngõ, tên đường..."
-                                            className={errors.recipientAddress ? "input-err" : ""}
-                                        />
-                                    </div>
-                                </div>
-                                {errors.recipientAddress && (
-                                    <div className="form-group" style={{ marginTop: "-12px", marginBottom: "20px" }}>
-                                        <span className="error-hint-text">{errors.recipientAddress}</span>
+                                        <div className="form-group-row">
+                                            <div className="form-group">
+                                                <label>Phường / Xã <span className="req-star">*</span></label>
+                                                <select
+                                                    value={addrWard.code}
+                                                    onChange={handleWardChange}
+                                                    disabled={!addrDistrict.code}
+                                                    className={errors.recipientAddress ? "input-err" : ""}
+                                                >
+                                                    <option value="">Chọn Phường / Xã</option>
+                                                    {wards.map((w) => (
+                                                        <option key={w.code} value={w.code}>
+                                                            {w.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label>Số nhà / Tên đường <span className="req-star">*</span></label>
+                                                <input
+                                                    type="text"
+                                                    id="recipientAddress"
+                                                    name="recipientAddress"
+                                                    value={addrStreet}
+                                                    onChange={(e) => {
+                                                        setAddrStreet(e.target.value);
+                                                        if (!latitude || !longitude) {
+                                                            setLatitude(null);
+                                                            setLongitude(null);
+                                                        }
+                                                    }}
+                                                    placeholder="Số nhà, ngõ, tên đường..."
+                                                    className={errors.recipientAddress ? "input-err" : ""}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group full-width" style={{ marginTop: "15px", marginBottom: "20px" }}>
+                                            <MapPicker
+                                                latitude={latitude}
+                                                longitude={longitude}
+                                                onChange={handleMapLocationChange}
+                                                defaultAddress={addressService.formatAddress({
+                                                    street: addrStreet.trim(),
+                                                    ward: addrWard.name,
+                                                    district: addrDistrict.name,
+                                                    province: addrProvince.name,
+                                                })}
+                                            />
+                                        </div>
+
+                                        {errors.recipientAddress && (
+                                            <div className="form-group" style={{ marginTop: "-12px", marginBottom: "20px" }}>
+                                                <span className="error-hint-text">{errors.recipientAddress}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

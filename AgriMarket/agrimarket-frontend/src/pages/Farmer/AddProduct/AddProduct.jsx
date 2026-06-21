@@ -39,6 +39,21 @@ export const AddProduct = () => {
   const [productStatus, setProductStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [perishability, setPerishability] = useState("khô");
+  const [limitDistance, setLimitDistance] = useState("");
+
+  const handlePerishabilityChange = (val) => {
+    setPerishability(val);
+    if (val === "rất dễ hư") {
+      setLimitDistance(15);
+    } else if (val === "dễ hư") {
+      setLimitDistance(40);
+    } else if (val === "trung bình") {
+      setLimitDistance(85);
+    } else if (val === "khô") {
+      setLimitDistance("");
+    }
+  };
 
   // Multi-image state
   const [productImages, setProductImages] = useState([]);  // [{ id, url }]
@@ -99,12 +114,12 @@ export const AddProduct = () => {
           const prod = await productService.getProductById(id);
           if (prod) {
             setProductName(prod.name || "");
-            if (CATEGORIES.includes(prod.categoryName)) {
-              setCategory(prod.categoryName);
+            if (CATEGORIES.includes(prod.category)) {
+              setCategory(prod.category);
               setCustomCategory("");
             } else {
               setCategory("Khác");
-              setCustomCategory(prod.categoryName || "");
+              setCustomCategory(prod.category || "");
             }
             setHarvestDate(prod.harvestDate ? prod.harvestDate.substring(0, 10) : "");
             setExpirationDate(prod.expirationDate ? prod.expirationDate.substring(0, 10) : "");
@@ -139,6 +154,8 @@ export const AddProduct = () => {
             setProductStatus(prod.status || "");
             setAdminNotes(prod.adminNotes || "");
             setRejectionReason(prod.rejectionReason || "");
+            setPerishability(prod.perishability || "khô");
+            setLimitDistance(prod.limitDistance !== undefined && prod.limitDistance !== null ? prod.limitDistance : "");
           }
         } catch (err) {
           console.error("Lỗi khi tải chi tiết sản phẩm để chỉnh sửa:", err);
@@ -302,6 +319,8 @@ export const AddProduct = () => {
         traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
         traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
+        perishability: perishability,
+        limitDistance: limitDistance ? parseFloat(limitDistance) : null,
       };
 
       if (isEdit) {
@@ -337,6 +356,8 @@ export const AddProduct = () => {
         traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
         traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
+        perishability: perishability || "khô",
+        limitDistance: limitDistance ? parseFloat(limitDistance) : null,
       };
 
       if (isEdit) {
@@ -579,7 +600,7 @@ export const AddProduct = () => {
                 Cung cấp thời hạn của nông sản và ảnh chụp tài liệu truy xuất nguồn gốc.
               </p>
 
-              <div className="ap-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+              <div className="ap-grid-3col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <div className="ap-field-group" style={{ marginBottom: 0 }}>
                   <label className="ap-label">Ngày thu hoạch/đóng gói</label>
                   <input
@@ -598,6 +619,43 @@ export const AddProduct = () => {
                     value={expirationDate}
                     onChange={(e) => setExpirationDate(e.target.value)}
                   />
+                </div>
+
+                <div className="ap-field-group" style={{ marginBottom: 0 }}>
+                  <label className="ap-label">Độ hư hỏng / Vận chuyển</label>
+                  <select
+                    className="ap-select"
+                    value={perishability}
+                    onChange={(e) => handlePerishabilityChange(e.target.value)}
+                    style={{ width: "100%", height: "42px", padding: "0 12px", border: "1px solid #d1d5db", borderRadius: "6px" }}
+                  >
+                    <option value="khô">Khô (Giao toàn quốc)</option>
+                    <option value="trung bình">Trung bình (Giao liên tỉnh)</option>
+                    <option value="dễ hư">Dễ hư hỏng (Giao nhanh)</option>
+                    <option value="rất dễ hư">Rất dễ hư hỏng (Giao nội tỉnh)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Limit Distance Input Row */}
+              <div className="ap-limit-distance-row" style={{ marginBottom: "16px" }}>
+                <div className="ap-field-group">
+                  <label className="ap-label">Khoảng cách giới hạn giao hàng (km)</label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    className="ap-input"
+                    style={{ width: "100%" }}
+                    placeholder={perishability === "khô" ? "Không giới hạn" : "Ví dụ: 15"}
+                    value={limitDistance}
+                    onChange={(e) => setLimitDistance(e.target.value)}
+                  />
+                  <small style={{ color: "#6b7280", marginTop: "4px", display: "block" }}>
+                    {perishability === "khô" 
+                      ? "Sản phẩm khô không giới hạn khoảng cách giao hàng." 
+                      : `Gợi ý mặc định cho độ hư hỏng đã chọn. Bạn có thể tự do điều chỉnh.`}
+                  </small>
                 </div>
               </div>
 

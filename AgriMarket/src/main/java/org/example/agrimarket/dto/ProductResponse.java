@@ -43,4 +43,9 @@ public class ProductResponse {
     private String farmerVietgapUrl;
     private String farmerGlobalgapUrl;
     private String farmerOrganicUrl;
+    private String perishability;
+    private Double limitDistance;
+    private Double farmerLatitude;
+    private Double farmerLongitude;
+    private Double farmerMaxDeliveryDistance;
 }

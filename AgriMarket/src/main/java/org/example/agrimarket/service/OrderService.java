@@ -48,6 +48,9 @@ public class OrderService {
     @Autowired
     private ProductReviewRepository productReviewRepository;
 
+    @Autowired
+    private DistanceService distanceService;
+
     @Transactional
     public OrderResponse createOrder(String email, OrderCreateRequest request) {
         Customer customer = customerRepository.findByEmail(email)
@@ -88,6 +91,42 @@ public class OrderService {
         for (OrderItemRequest itemReq : request.getItems()) {
             Product product = productRepository.findById(itemReq.getProductId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm có ID: " + itemReq.getProductId()));
+
+            // Validate delivery range
+            if (request.getAddress() != null && !request.getAddress().isBlank() 
+                    && product.getFarmer() != null && product.getFarmer().getFarmAddress() != null) {
+                String farmAddr = product.getFarmer().getFarmAddress();
+                if (!farmAddr.isBlank() && !farmAddr.equalsIgnoreCase("Not updated") && !farmAddr.equalsIgnoreCase("Chưa có địa chỉ")) {
+                    Double customerLat = null;
+                    Double customerLon = null;
+                    if (customer.getAddresses() != null) {
+                        for (CustomerAddress addr : customer.getAddresses()) {
+                            if (addr.getAddress() != null && addr.getAddress().equalsIgnoreCase(request.getAddress())) {
+                                customerLat = addr.getLatitude();
+                                customerLon = addr.getLongitude();
+                                break;
+                            }
+                        }
+                    }
+                    double distance = distanceService.calculateDistance(
+                        request.getAddress(), customerLat, customerLon,
+                        farmAddr, product.getFarmer().getLatitude(), product.getFarmer().getLongitude()
+                    );
+                    double maxProductDist = product.getLimitDistance() != null 
+                            ? product.getLimitDistance() 
+                            : distanceService.getMaxAllowedDistance(product.getPerishability());
+                    double maxFarmerDist = product.getFarmer().getMaxDeliveryDistance() != null 
+                            ? product.getFarmer().getMaxDeliveryDistance() 
+                            : 1000.0;
+                    double maxAllowed = Math.min(maxProductDist, maxFarmerDist);
+                    if (distance > maxAllowed) {
+                        throw new RuntimeException("Sản phẩm '" + product.getName() 
+                                + "' nằm ngoài phạm vi giao hàng của nhà vườn (" 
+                                + Math.round(distance * 10) / 10.0 + " km > " 
+                                + Math.round(maxAllowed * 10) / 10.0 + " km). Vui lòng đổi địa chỉ nhận hàng hoặc xóa sản phẩm khỏi giỏ hàng.");
+                    }
+                }
+            }
 
             if (product.getStockQuantity() < itemReq.getQuantity()) {
                 throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho.");

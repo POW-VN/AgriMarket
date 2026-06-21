@@ -130,6 +130,11 @@ public class ProductServiceImpl implements ProductService {
                 .farmerVietgapUrl(farmerVietgapUrl)
                 .farmerGlobalgapUrl(farmerGlobalgapUrl)
                 .farmerOrganicUrl(farmerOrganicUrl)
+                .perishability(product.getPerishability())
+                .limitDistance(product.getLimitDistance())
+                .farmerLatitude(product.getFarmer() != null ? product.getFarmer().getLatitude() : null)
+                .farmerLongitude(product.getFarmer() != null ? product.getFarmer().getLongitude() : null)
+                .farmerMaxDeliveryDistance(product.getFarmer() != null ? product.getFarmer().getMaxDeliveryDistance() : null)
                 .build();
     }
 
@@ -223,7 +228,8 @@ public class ProductServiceImpl implements ProductService {
         product.setHarvestDate(request.getHarvestDate());
         product.setExpirationDate(request.getExpirationDate());
         product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
-
+        product.setPerishability(request.getPerishability() != null ? request.getPerishability() : "khô");
+        product.setLimitDistance(request.getLimitDistance());
 
         // Handle traceability image Base64 if uploaded
         if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
@@ -270,6 +276,8 @@ public class ProductServiceImpl implements ProductService {
         product.setHarvestDate(request.getHarvestDate());
         product.setExpirationDate(request.getExpirationDate());
         product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
+        product.setPerishability(request.getPerishability());
+        product.setLimitDistance(request.getLimitDistance());
         product.setStatus("pending"); // Reset status to pending for admin approval
 
         // Category

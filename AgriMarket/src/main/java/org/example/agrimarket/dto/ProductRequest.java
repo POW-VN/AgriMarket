@@ -34,4 +34,7 @@ public class ProductRequest {
 
     // List of base64 images
     private List<String> images; // List of base64 strings
+
+    private String perishability;
+    private Double limitDistance;
 }

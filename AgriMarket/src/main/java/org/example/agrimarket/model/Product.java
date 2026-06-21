@@ -67,6 +67,12 @@ public class Product {
     @Column(name = "admin_notes", columnDefinition = "nvarchar(max)")
     private String adminNotes;
 
+    @Column(name = "perishability")
+    private String perishability;
+
+    @Column(name = "limit_distance")
+    private Double limitDistance;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
