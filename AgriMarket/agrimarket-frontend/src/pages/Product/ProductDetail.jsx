@@ -125,8 +125,8 @@ export default function ProductDetail() {
       imgs.push(product.imageUrl);
     }
     // Append organic certificate URL if exists
-    if (product.isOrganic && product.certificateUrl && !imgs.includes(product.certificateUrl)) {
-      imgs.push(product.certificateUrl);
+    if (product.farmerOrganicUrl && !imgs.includes(product.farmerOrganicUrl)) {
+      imgs.push(product.farmerOrganicUrl);
     }
     // Append traceability image URL if exists
     if (product.traceabilityImageUrl && !imgs.includes(product.traceabilityImageUrl)) {
@@ -688,7 +688,7 @@ export default function ProductDetail() {
           >
             {mainImageError ? (
               <div className="main-image-placeholder-broken">
-                {product.isOrganic && activeImage === product.certificateUrl ? "📜" : "🌾"}
+                {product.farmerOrganicUrl && activeImage === product.farmerOrganicUrl ? "📜" : "🌾"}
                 <p style={{ fontSize: "14px", marginTop: "8px", color: "#6b7280" }}>Hình ảnh không khả dụng</p>
               </div>
             ) : getFileExtension(activeImage) === "pdf" ? (
@@ -711,7 +711,7 @@ export default function ProductDetail() {
           {allImages.length > 1 && (
             <div className="thumbnail-gallery">
               {allImages.map((imgUrl, idx) => {
-                const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                const isCertificate = product.farmerOrganicUrl && imgUrl === product.farmerOrganicUrl;
                 const isTraceability = product.traceabilityImageUrl && imgUrl === product.traceabilityImageUrl;
                 const isPdf = getFileExtension(imgUrl) === "pdf";
                 const isBroken = brokenImages[idx];
@@ -759,7 +759,7 @@ export default function ProductDetail() {
         <section className="product-info-section">
           <h1 className="product-title">{product.name}</h1>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px", marginBottom: "12px" }}>
-            {(product.isOrganic || product.farmerOrganicUrl) && (
+            {product.farmerOrganicUrl && (
               <span className="tag-pill tag-organic" style={{ 
                 backgroundColor: "#e8f5e9", 
                 color: "#2e7d32", 
@@ -1389,7 +1389,7 @@ export default function ProductDetail() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="lightbox-counter">
-              {product.isOrganic && allImages[lightboxIndex] === product.certificateUrl ? (
+              {product.farmerOrganicUrl && allImages[lightboxIndex] === product.farmerOrganicUrl ? (
                 <span>🌱 Giấy chứng nhận hữu cơ ({lightboxIndex + 1} / {allImages.length})</span>
               ) : (
                 <span>Hình ảnh sản phẩm ({lightboxIndex + 1} / {allImages.length})</span>
@@ -1399,7 +1399,7 @@ export default function ProductDetail() {
             {allImages.length > 1 && (
               <div className="lightbox-thumbnails-strip">
                 {allImages.map((imgUrl, idx) => {
-                  const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                  const isCertificate = product.farmerOrganicUrl && imgUrl === product.farmerOrganicUrl;
                   const isPdf = getFileExtension(imgUrl) === "pdf";
 
                   return (

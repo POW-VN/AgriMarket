@@ -150,8 +150,8 @@ export default function CheckoutPage() {
     const [placedOrder, setPlacedOrder] = useState(null);
     const [cartItemsCount, setCartItemsCount] = useState(0);
     
-    // Farmer coordinates & max shipping distance
-    const [farmerCoords, setFarmerCoords] = useState(null);
+    // Farmer coordinates & max shipping distance for all checkout items
+    const [itemsDeliveryInfo, setItemsDeliveryInfo] = useState([]);
 
     // Generate static order ID on component load for tracking
     const orderId = useMemo(() => {
@@ -165,28 +165,53 @@ export default function CheckoutPage() {
 
     // Helper to get distance & validity info for an address
     const getAddressDistanceInfo = (addr) => {
-        if (!farmerCoords || addr.latitude == null || addr.longitude == null) {
-            return { distance: null, isValid: true, message: "" };
+        if (itemsDeliveryInfo.length === 0 || addr.latitude == null || addr.longitude == null) {
+            return { distance: null, isValid: true, message: "", invalidDetails: [] };
         }
-        if (farmerCoords.latitude == null || farmerCoords.longitude == null) {
-            return { distance: null, isValid: true, message: "" };
+
+        let overallValid = true;
+        const invalidDetails = [];
+        let maxDistanceVal = 0;
+
+        for (const item of itemsDeliveryInfo) {
+            if (item.latitude == null || item.longitude == null) {
+                continue;
+            }
+            const dist = getHaversineDistance(
+                parseFloat(addr.latitude),
+                parseFloat(addr.longitude),
+                item.latitude,
+                item.longitude
+            );
+            if (dist === null) continue;
+
+            if (dist > maxDistanceVal) {
+                maxDistanceVal = dist;
+            }
+
+            const isItemValid = dist <= item.maxDistance;
+            if (!isItemValid) {
+                overallValid = false;
+                invalidDetails.push(`${item.productName} (Khoảng cách: ${dist.toFixed(1)} km, giới hạn: ${item.maxDistance} km)`);
+            }
         }
-        const dist = getHaversineDistance(
-            parseFloat(addr.latitude),
-            parseFloat(addr.longitude),
-            farmerCoords.latitude,
-            farmerCoords.longitude
-        );
-        if (dist === null) {
-            return { distance: null, isValid: true, message: "" };
+
+        if (maxDistanceVal === 0 && itemsDeliveryInfo.every(item => item.latitude == null || item.longitude == null)) {
+            return { distance: null, isValid: true, message: "", invalidDetails: [] };
         }
-        const isValid = dist <= farmerCoords.maxDistance;
+
+        let message = "";
+        if (overallValid) {
+            message = `Khoảng cách: ${maxDistanceVal.toFixed(1)} km (Hợp lệ)`;
+        } else {
+            message = `Vượt giới hạn giao hàng của: ${invalidDetails.join(", ")}`;
+        }
+
         return {
-            distance: dist.toFixed(1),
-            isValid,
-            message: isValid 
-                ? `Khoảng cách: ${dist.toFixed(1)} km (Hợp lệ)` 
-                : `Khoảng cách: ${dist.toFixed(1)} km (Vượt giới hạn giao hàng ${farmerCoords.maxDistance} km của nhà vườn)`
+            distance: maxDistanceVal.toFixed(1),
+            isValid: overallValid,
+            message,
+            invalidDetails
         };
     };
 
@@ -202,33 +227,44 @@ export default function CheckoutPage() {
                 return getAddressDistanceInfo({ latitude, longitude });
             }
         }
-        return { distance: null, isValid: true, message: "" };
-    }, [selectedAddressIndex, savedAddresses, latitude, longitude, farmerCoords]);
+        return { distance: null, isValid: true, message: "", invalidDetails: [] };
+    }, [selectedAddressIndex, savedAddresses, latitude, longitude, itemsDeliveryInfo]);
 
-    // Fetch farmer coordinates & max delivery distance when checkoutData is loaded
+    // Fetch farmer coordinates & max delivery distance for all selected items when checkoutData is loaded
     useEffect(() => {
         if (checkoutData && checkoutData.selectedItems && checkoutData.selectedItems.length > 0) {
-            const fetchFarmerCoords = async () => {
+            const fetchAllItemsCoords = async () => {
                 try {
-                    const prodId = checkoutData.selectedItems[0].id;
-                    const res = await apiClient.get(`/api/products/${prodId}`);
-                    if (res && res.data) {
-                        const lat = res.data.farmerLatitude;
-                        const lng = res.data.farmerLongitude;
-                        const maxDist = res.data.limitDistance || res.data.farmerMaxDeliveryDistance || 15.0; // fallback standard limit
-                        setFarmerCoords({
-                            latitude: lat != null ? parseFloat(lat) : null,
-                            longitude: lng != null ? parseFloat(lng) : null,
-                            maxDistance: maxDist != null ? parseFloat(maxDist) : 15.0,
-                            farmName: res.data.farmerName || ""
-                        });
-                        console.log("Loaded farmer coordinates and delivery limit:", { lat, lng, maxDist });
-                    }
+                    const promises = checkoutData.selectedItems.map(async (item) => {
+                        try {
+                            const res = await apiClient.get(`/api/products/${item.id}`);
+                            if (res && res.data) {
+                                const lat = res.data.farmerLatitude;
+                                const lng = res.data.farmerLongitude;
+                                const maxDist = res.data.limitDistance || res.data.farmerMaxDeliveryDistance || 15.0;
+                                return {
+                                    productId: item.id,
+                                    productName: item.name,
+                                    latitude: lat != null ? parseFloat(lat) : null,
+                                    longitude: lng != null ? parseFloat(lng) : null,
+                                    maxDistance: maxDist != null ? parseFloat(maxDist) : 15.0,
+                                    farmName: res.data.farmerName || ""
+                                };
+                            }
+                        } catch (err) {
+                            console.error(`Lỗi khi lấy thông tin toạ độ sản phẩm ${item.id}:`, err);
+                        }
+                        return null;
+                    });
+                    const results = await Promise.all(promises);
+                    const filtered = results.filter(Boolean);
+                    setItemsDeliveryInfo(filtered);
+                    console.log("Loaded delivery info for checkout items:", filtered);
                 } catch (err) {
-                    console.error("Lỗi khi lấy thông tin toạ độ nhà vườn:", err);
+                    console.error("Lỗi khi load toạ độ giao hàng của các sản phẩm:", err);
                 }
             };
-            fetchFarmerCoords();
+            fetchAllItemsCoords();
         }
     }, [checkoutData]);
 
@@ -564,9 +600,13 @@ export default function CheckoutPage() {
         }
     };
 
-    const handleMapLocationChange = async (lat, lng) => {
+    const handleMapLocationChange = async (lat, lng, isGeocodedFromAddress = false) => {
         setLatitude(lat);
         setLongitude(lng);
+
+        if (isGeocodedFromAddress) {
+            return;
+        }
 
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
@@ -606,11 +646,17 @@ export default function CheckoutPage() {
 
                     if (provinceMatch) {
                         const provCode = provinceMatch.code;
-                        setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+                        const isProvinceChanged = addrProvince.code !== String(provCode);
+                        if (isProvinceChanged) {
+                            setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+                        }
 
                         // Load and Match District
-                        const dists = await addressService.getDistricts(provCode);
-                        setDistricts(dists);
+                        let dists = districts;
+                        if (isProvinceChanged || dists.length === 0) {
+                            dists = await addressService.getDistricts(provCode);
+                            setDistricts(dists);
+                        }
 
                         const districtCandidates = [
                             addr.district,
@@ -633,11 +679,17 @@ export default function CheckoutPage() {
 
                         if (districtMatch) {
                             const distCode = districtMatch.code;
-                            setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+                            const isDistrictChanged = addrDistrict.code !== String(distCode);
+                            if (isDistrictChanged || isProvinceChanged) {
+                                setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+                            }
 
                             // Load and Match Ward
-                            const wds = await addressService.getWards(distCode);
-                            setWards(wds);
+                            let wds = wards;
+                            if (isDistrictChanged || isProvinceChanged || wds.length === 0) {
+                                wds = await addressService.getWards(distCode);
+                                setWards(wds);
+                            }
 
                             const wardCandidates = [
                                 addr.quarter,
@@ -663,28 +715,23 @@ export default function CheckoutPage() {
                             if (wardMatch) {
                                 setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
                             } else {
-                                setAddrWard((prev) => {
-                                    const isSameDistrict = addrDistrict.name && districtMatch.name &&
-                                        addressService.normalizeName(addrDistrict.name) === addressService.normalizeName(districtMatch.name);
-                                    return isSameDistrict && prev.code ? prev : { code: "", name: "" };
-                                });
+                                if (isDistrictChanged || isProvinceChanged) {
+                                    setAddrWard({ code: "", name: "" });
+                                }
                             }
                         } else {
-                            setAddrDistrict({ code: "", name: "" });
-                            setAddrWard({ code: "", name: "" });
-                            setWards([]);
+                            if (isProvinceChanged) {
+                                setAddrDistrict({ code: "", name: "" });
+                                setAddrWard({ code: "", name: "" });
+                                setWards([]);
+                            }
                         }
-                    } else {
-                        setAddrProvince({ code: "", name: "" });
-                        setAddrDistrict({ code: "", name: "" });
-                        setAddrWard({ code: "", name: "" });
-                        setDistricts([]);
-                        setWards([]);
                     }
                 }
             }
         } catch (err) {
             console.error("Reverse geocoding failed: ", err);
+            alert("Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu (Rate Limit/CORS). Vui lòng điền địa chỉ thủ công hoặc thử lại sau 1-2 phút.");
         }
     };
 
@@ -705,7 +752,7 @@ export default function CheckoutPage() {
         if (!addrProvince.code || !addrDistrict.code || !addrWard.code || !addrStreet.trim()) {
             formErrors.recipientAddress = "Vui lòng nhập đầy đủ địa chỉ giao hàng 4 cấp";
         } else if (activeDistanceInfo.distance !== null && !activeDistanceInfo.isValid) {
-            formErrors.recipientAddress = `Địa chỉ nhận hàng vượt quá khoảng cách giao hàng tối đa của nhà vườn (${farmerCoords.maxDistance} km). Vui lòng chọn địa chỉ khác.`;
+            formErrors.recipientAddress = `Địa chỉ nhận hàng vượt quá khoảng cách giao hàng tối đa của một số sản phẩm trong đơn hàng: ${activeDistanceInfo.invalidDetails.join("; ")}. Vui lòng chọn địa chỉ nhận hàng khác.`;
         }
 
         setErrors(formErrors);
@@ -798,6 +845,8 @@ export default function CheckoutPage() {
             serviceFee: serviceFee,
             discount: discountAmount,
             amount: totalAmount,
+            latitude: latitude ? parseFloat(latitude) : null,
+            longitude: longitude ? parseFloat(longitude) : null,
             items: selectedItems.map(item => ({
                 productId: item.id,
                 quantity: item.quantity

@@ -114,7 +114,6 @@ public class ProductServiceImpl implements ProductService {
                 .harvestDate(product.getHarvestDate())
                 .expirationDate(product.getExpirationDate())
                 .createdAt(product.getCreatedAt())
-                .isOrganic(product.getIsOrganic())
                 .traceabilityImageUrl(product.getTraceabilityImageUrl())
                 .thumbnailUrl(thumbnailUrl)
                 .images(imageUrls)
@@ -227,7 +226,6 @@ public class ProductServiceImpl implements ProductService {
         product.setStatus(request.getStatus() != null ? request.getStatus() : "pending");
         product.setHarvestDate(request.getHarvestDate());
         product.setExpirationDate(request.getExpirationDate());
-        product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
         product.setPerishability(request.getPerishability() != null ? request.getPerishability() : "khô");
         product.setLimitDistance(request.getLimitDistance());
 
@@ -275,7 +273,6 @@ public class ProductServiceImpl implements ProductService {
         product.setUnit(request.getUnit());
         product.setHarvestDate(request.getHarvestDate());
         product.setExpirationDate(request.getExpirationDate());
-        product.setIsOrganic(request.getIsOrganic() != null ? request.getIsOrganic() : false);
         product.setPerishability(request.getPerishability());
         product.setLimitDistance(request.getLimitDistance());
         product.setStatus("pending"); // Reset status to pending for admin approval

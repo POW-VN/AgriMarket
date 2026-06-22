@@ -45,9 +45,13 @@ export const FarmerRegister = () => {
     const [latitude, setLatitude] = useState(null);
     const [longitude, setLongitude] = useState(null);
 
-    const handleMapLocationChange = async (lat, lng) => {
+    const handleMapLocationChange = async (lat, lng, isGeocodedFromAddress = false) => {
         setLatitude(lat);
         setLongitude(lng);
+
+        if (isGeocodedFromAddress) {
+            return;
+        }
 
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
@@ -87,11 +91,17 @@ export const FarmerRegister = () => {
 
                     if (provinceMatch) {
                         const provCode = provinceMatch.code;
-                        setSelectedProvince({ code: String(provCode), name: provinceMatch.name });
+                        const isProvinceChanged = selectedProvince.code !== String(provCode);
+                        if (isProvinceChanged) {
+                            setSelectedProvince({ code: String(provCode), name: provinceMatch.name });
+                        }
 
                         // Load and Match District
-                        const dists = await addressService.getDistricts(provCode);
-                        setDistricts(dists);
+                        let dists = districts;
+                        if (isProvinceChanged || dists.length === 0) {
+                            dists = await addressService.getDistricts(provCode);
+                            setDistricts(dists);
+                        }
 
                         const districtCandidates = [
                             addr.district,
@@ -114,11 +124,17 @@ export const FarmerRegister = () => {
 
                         if (districtMatch) {
                             const distCode = districtMatch.code;
-                            setSelectedDistrict({ code: String(distCode), name: districtMatch.name });
+                            const isDistrictChanged = selectedDistrict.code !== String(distCode);
+                            if (isDistrictChanged || isProvinceChanged) {
+                                setSelectedDistrict({ code: String(distCode), name: districtMatch.name });
+                            }
 
                             // Load and Match Ward
-                            const wds = await addressService.getWards(distCode);
-                            setWards(wds);
+                            let wds = wards;
+                            if (isDistrictChanged || isProvinceChanged || wds.length === 0) {
+                                wds = await addressService.getWards(distCode);
+                                setWards(wds);
+                            }
 
                             const wardCandidates = [
                                 addr.quarter,
@@ -141,31 +157,26 @@ export const FarmerRegister = () => {
                                 }
                             }
 
-                             if (wardMatch) {
-                                 setSelectedWard({ code: String(wardMatch.code), name: wardMatch.name });
-                             } else {
-                                 setSelectedWard((prev) => {
-                                     const isSameDistrict = selectedDistrict.name && districtMatch.name &&
-                                         addressService.normalizeName(selectedDistrict.name) === addressService.normalizeName(districtMatch.name);
-                                     return isSameDistrict && prev.code ? prev : { code: "", name: "" };
-                                 });
-                             }
+                            if (wardMatch) {
+                                setSelectedWard({ code: String(wardMatch.code), name: wardMatch.name });
+                            } else {
+                                if (isDistrictChanged || isProvinceChanged) {
+                                    setSelectedWard({ code: "", name: "" });
+                                }
+                            }
                         } else {
-                            setSelectedDistrict({ code: "", name: "" });
-                            setSelectedWard({ code: "", name: "" });
-                            setWards([]);
+                            if (isProvinceChanged) {
+                                setSelectedDistrict({ code: "", name: "" });
+                                setSelectedWard({ code: "", name: "" });
+                                setWards([]);
+                            }
                         }
-                    } else {
-                        setSelectedProvince({ code: "", name: "" });
-                        setSelectedDistrict({ code: "", name: "" });
-                        setSelectedWard({ code: "", name: "" });
-                        setDistricts([]);
-                        setWards([]);
                     }
                 }
             }
         } catch (err) {
             console.error("Reverse geocoding failed: ", err);
+            alert("Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu (Rate Limit/CORS). Vui lòng điền địa chỉ thủ công hoặc thử lại sau 1-2 phút.");
         }
     };
 

@@ -48,9 +48,13 @@ const EditProfile = () => {
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
 
-  const handleMapLocationChange = async (lat, lng) => {
+  const handleMapLocationChange = async (lat, lng, isGeocodedFromAddress = false) => {
     setLatitude(lat);
     setLongitude(lng);
+
+    if (isGeocodedFromAddress) {
+      return;
+    }
 
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
@@ -90,11 +94,17 @@ const EditProfile = () => {
 
           if (provinceMatch) {
             const provCode = provinceMatch.code;
-            setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+            const isProvinceChanged = addrProvince.code !== String(provCode);
+            if (isProvinceChanged) {
+              setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+            }
 
             // Load and Match District
-            const dists = await addressService.getDistricts(provCode);
-            setDistricts(dists);
+            let dists = districts;
+            if (isProvinceChanged || dists.length === 0) {
+              dists = await addressService.getDistricts(provCode);
+              setDistricts(dists);
+            }
 
             const districtCandidates = [
               addr.district,
@@ -117,11 +127,17 @@ const EditProfile = () => {
 
             if (districtMatch) {
               const distCode = districtMatch.code;
-              setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+              const isDistrictChanged = addrDistrict.code !== String(distCode);
+              if (isDistrictChanged || isProvinceChanged) {
+                setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+              }
 
               // Load and Match Ward
-              const wds = await addressService.getWards(distCode);
-              setWards(wds);
+              let wds = wards;
+              if (isDistrictChanged || isProvinceChanged || wds.length === 0) {
+                wds = await addressService.getWards(distCode);
+                setWards(wds);
+              }
 
               const wardCandidates = [
                 addr.quarter,
@@ -147,28 +163,23 @@ const EditProfile = () => {
               if (wardMatch) {
                 setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
               } else {
-                setAddrWard((prev) => {
-                  const isSameDistrict = addrDistrict.name && districtMatch.name &&
-                    addressService.normalizeName(addrDistrict.name) === addressService.normalizeName(districtMatch.name);
-                  return isSameDistrict && prev.code ? prev : { code: "", name: "" };
-                });
+                if (isDistrictChanged || isProvinceChanged) {
+                  setAddrWard({ code: "", name: "" });
+                }
               }
             } else {
-              setAddrDistrict({ code: "", name: "" });
-              setAddrWard({ code: "", name: "" });
-              setWards([]);
+              if (isProvinceChanged) {
+                setAddrDistrict({ code: "", name: "" });
+                setAddrWard({ code: "", name: "" });
+                setWards([]);
+              }
             }
-          } else {
-            setAddrProvince({ code: "", name: "" });
-            setAddrDistrict({ code: "", name: "" });
-            setAddrWard({ code: "", name: "" });
-            setDistricts([]);
-            setWards([]);
           }
         }
       }
     } catch (err) {
       console.error("Reverse geocoding failed: ", err);
+      alert("Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu (Rate Limit/CORS). Vui lòng điền địa chỉ thủ công hoặc thử lại sau 1-2 phút.");
     }
   };
 

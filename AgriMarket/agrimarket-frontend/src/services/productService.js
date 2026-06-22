@@ -122,7 +122,6 @@ const normalizeProduct = (item) => {
         createdAt: item.created_at || item.createdAt || null,
 
         // organic fields
-        isOrganic: !!(item.isOrganic || item.is_organic),
         certificateUrl: getFullImageUrl(item.certificateUrl || item.certificate_url || ""),
         isLocal: true,
         images: resolvedImages,
@@ -351,7 +350,6 @@ export const getProductById = async (productId) => {
             category: "Rau củ quả",
             price: 35000,
             unit: "kg",
-            isOrganic: true,
             isLocal: true,
             imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",
             images: [
@@ -376,7 +374,6 @@ const MOCK_PRODUCTS = [
         category: "Rau củ quả",
         price: 49900,
         unit: "kg",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600",
         images: [
@@ -398,7 +395,6 @@ const MOCK_PRODUCTS = [
         category: "Rau củ quả",
         price: 112500, // Tương đương $4.50
         unit: "bó",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",
         images: [
@@ -420,7 +416,6 @@ const MOCK_PRODUCTS = [
         category: "Trái cây",
         price: 69000,
         unit: "kg",
-        isOrganic: false,
         isLocal: false,
         imageUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=600",
         images: [
@@ -441,7 +436,6 @@ const MOCK_PRODUCTS = [
         category: "Cây lương thực",
         price: 32000,
         unit: "kg",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600",
         images: [
@@ -462,7 +456,6 @@ const MOCK_PRODUCTS = [
         category: "Trái cây",
         price: 150000,
         unit: "hộp",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=600",
         images: [
@@ -483,7 +476,6 @@ const MOCK_PRODUCTS = [
         category: "Nông sản chế biến",
         price: 180000,
         unit: "chai",
-        isOrganic: false,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600",
         images: [
@@ -504,7 +496,6 @@ const MOCK_PRODUCTS = [
         category: "Cây công nghiệp",
         price: 95000,
         unit: "hộp",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?w=600",
         images: [
@@ -525,7 +516,6 @@ const MOCK_PRODUCTS = [
         category: "Nông sản chế biến",
         price: 250000,
         unit: "hộp",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=600",
         images: [
@@ -546,7 +536,6 @@ const MOCK_PRODUCTS = [
         category: "Chăn nuôi",
         price: 160000,
         unit: "kg",
-        isOrganic: true,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1602491453977-63a5385166cf?w=600",
         images: [
@@ -567,7 +556,6 @@ const MOCK_PRODUCTS = [
         category: "Giống cây trồng",
         price: 45000,
         unit: "cây",
-        isOrganic: false,
         isLocal: true,
         imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=600",
         images: [

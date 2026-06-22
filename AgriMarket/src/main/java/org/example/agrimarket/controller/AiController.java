@@ -31,7 +31,6 @@ public class AiController {
             String description = aiService.generateProductDescription(
                     request.getProductName(),
                     request.getCategory(),
-                    request.getIsOrganic(),
                     request.getHarvestDate(),
                     request.getExpirationDate(),
                     principal.getName()
@@ -52,7 +51,6 @@ public class AiController {
             AiPriceResponse priceResponse = aiService.suggestProductPrice(
                     request.getProductName(),
                     request.getCategory(),
-                    request.getIsOrganic(),
                     request.getUnit(),
                     request.getHarvestDate(),
                     request.getExpirationDate(),
