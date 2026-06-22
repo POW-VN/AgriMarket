@@ -1,14 +1,15 @@
 // src/components/profile/CustomerInfoCard.jsx
 
 const CustomerInfoCard = ({ profile }) => {
-  const defaultAddress =
-    profile?.addresses?.find((item) => item.isDefault || item.is_default) ||
-    profile?.addresses?.[0];
+  const isFarmer = profile?.role === "farmer";
+  const defaultAddress = isFarmer 
+    ? { address: profile?.farmAddress }
+    : (profile?.addresses?.find((item) => item.isDefault || item.is_default) || profile?.addresses?.[0]);
 
   return (
     <section className="profile-card profile-detail-card">
       <div className="profile-card-title-row">
-        <h3>Thông tin khách hàng</h3>
+        <h3>{isFarmer ? "Thông tin nhà vườn" : "Thông tin khách hàng"}</h3>
       </div>
 
       <div className="profile-detail-list">
@@ -30,7 +31,7 @@ const CustomerInfoCard = ({ profile }) => {
         </div>
 
         <div>
-          <p>Địa chỉ mặc định</p>
+          <p>{isFarmer ? "Địa chỉ trang trại" : "Địa chỉ mặc định"}</p>
           <strong>{defaultAddress?.address || "Chưa cập nhật"}</strong>
         </div>
       </div>

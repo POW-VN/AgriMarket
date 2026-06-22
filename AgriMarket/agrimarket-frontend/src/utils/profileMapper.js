@@ -140,7 +140,7 @@ export const buildProfileUpdatePayload = (role, formData) => {
     avatarUrl: formData.avatarUrl,
   };
 
-  if (role === "customer" || role === "farmer") {
+  if (role === "customer") {
     return {
       ...basePayload,
 
@@ -167,7 +167,7 @@ export const buildProfileUpdatePayload = (role, formData) => {
     return {
       ...basePayload,
       farmName: formData.farmName,
-      farmAddress: formData.farmAddress,
+      farmAddress: formData.address || formData.farmAddress,
       description: formData.description,
       identityCard: formData.identityCard,
       businessRegistrationUrl: formData.businessRegistrationUrl,

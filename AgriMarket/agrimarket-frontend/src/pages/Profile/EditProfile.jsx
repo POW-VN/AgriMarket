@@ -185,10 +185,18 @@ const EditProfile = () => {
   useEffect(() => {
     if (!profile || provinces.length === 0) return;
 
-    const rawAddress = profile.addresses?.[0]?.address || "";
+    const isFarmer = profile.role === USER_ROLES.FARMER;
+    const rawAddress = isFarmer 
+      ? (profile.farmAddress || "") 
+      : (profile.addresses?.[0]?.address || "");
 
-    const initLat = profile.addresses?.[0]?.latitude || null;
-    const initLon = profile.addresses?.[0]?.longitude || null;
+    const initLat = isFarmer 
+      ? (profile.latitude || null) 
+      : (profile.addresses?.[0]?.latitude || null);
+    const initLon = isFarmer 
+      ? (profile.longitude || null) 
+      : (profile.addresses?.[0]?.longitude || null);
+    
     setLatitude(initLat);
     setLongitude(initLon);
 
