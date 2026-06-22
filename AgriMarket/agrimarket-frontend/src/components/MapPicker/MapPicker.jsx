@@ -149,7 +149,7 @@ export const MapPicker = ({ latitude, longitude, onChange, defaultAddress }) => 
           <button
             type="button"
             className="map-geocode-btn"
-            onClick={geocodeAddressText}
+            onClick={() => geocodeAddressText(defaultAddress)}
             title="Định vị nhanh dựa vào địa chỉ chữ đã nhập"
           >
             Định vị theo địa chỉ đã nhập

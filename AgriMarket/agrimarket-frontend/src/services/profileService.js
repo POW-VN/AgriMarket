@@ -58,21 +58,9 @@ const updateProfile = async (profileData) => {
   }
 
   if (normalizedUser.role === USER_ROLES.FARMER) {
-    // If the update payload has farm-specific fields, update the farmer profile
-    if (profileData.farmName !== undefined || profileData.farmAddress !== undefined) {
-      const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
-      saveLocalUser(response.data);
-      return normalizeProfileData(response.data);
-    } else {
-      // Otherwise, it's a personal/customer profile and address update
-      const response = await apiClient.put(`/api/customers/${normalizedUser.id}`, profileData);
-      const updatedData = {
-        ...response.data,
-        role: "farmer", // Preserve farmer role in localStorage
-      };
-      saveLocalUser(updatedData);
-      return normalizeProfileData(updatedData);
-    }
+    const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
+    saveLocalUser(response.data);
+    return normalizeProfileData(response.data);
   }
 
   const updatedUser = {
