@@ -8,6 +8,7 @@ import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,9 @@ import java.util.Optional;
 
 @Service
 public class FarmerService {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private FarmerRepository farmerRepository;
@@ -35,32 +39,63 @@ public class FarmerService {
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản khách hàng tương ứng."));
 
-        Farmer farmer = new Farmer();
-        farmer.setFullName(customer.getFullName());
-        farmer.setEmail(customer.getEmail());
-        farmer.setPhone(customer.getPhone());
-        farmer.setPassword(customer.getPassword());
-        farmer.setPasswordSet(customer.getPasswordSet());
-        farmer.setAvatarUrl(customer.getAvatarUrl());
-        farmer.setFarmName(request.getFarmName());
-        farmer.setFarmAddress(request.getFarmAddress());
-        farmer.setDescription(request.getDescription());
-        farmer.setIdentityCard(request.getIdentityCard());
-        farmer.setBusinessRegistrationUrl(request.getBusinessRegistrationUrl());
-        farmer.setVietgapUrl(request.getVietgapUrl());
-        farmer.setGlobalgapUrl(request.getGlobalgapUrl());
-        farmer.setOrganicUrl(request.getOrganicUrl());
-        farmer.setVerificationStatus("pending");
-        farmer.setStatus("pending");
-        farmer.setCreatedAt(LocalDateTime.now());
-        farmer.setRatingAverage(0.0);
-        farmer.setTotalProducts(0);
-        farmer.setMaxDeliveryDistance(request.getMaxDeliveryDistance() != null ? request.getMaxDeliveryDistance() : 50.0);
-        farmer.setLatitude(request.getLatitude());
-        farmer.setLongitude(request.getLongitude());
-        farmer.setRole("farmer");
+        Long userId = customer.getId();
 
-        Farmer savedFarmer = farmerRepository.save(farmer);
+        // Bước 1: Xóa record trong bảng customer (giữ nguyên record trong users)
+        jdbcTemplate.update("DELETE FROM customer WHERE id = ?", userId);
+
+        // Bước 2: Cập nhật user_type trong bảng users thành FARMER
+        jdbcTemplate.update(
+                "UPDATE users SET user_type = 'FARMER', status = 'pending', updated_at = GETDATE() WHERE id = ?",
+                userId);
+
+        // Bước 3: Insert vào bảng farmer với cùng id
+        jdbcTemplate.update(
+                "INSERT INTO farmer (id, password_set, farm_name, farm_address, description, identity_card, " +
+                        "business_registration_url, vietgap_url, globalgap_url, organic_url, verification_status, " +
+                        "rating_average, total_products, max_delivery_distance, latitude, longitude) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0.0, 0, ?, ?, ?)",
+                userId,
+                true,
+                request.getFarmName(),
+                request.getFarmAddress(),
+                request.getDescription(),
+                request.getIdentityCard(),
+                request.getBusinessRegistrationUrl(),
+                request.getVietgapUrl(),
+                request.getGlobalgapUrl(),
+                request.getOrganicUrl(),
+                request.getMaxDeliveryDistance() != null ? request.getMaxDeliveryDistance() : 50.0,
+                request.getLatitude(),
+                request.getLongitude());
+
+        // Bước 4: Build Farmer object thủ công để tránh JPA cache conflict
+        // (sau JDBC native SQL, EntityManager vẫn cache entity cũ nên findById không hoạt động đúng)
+        Farmer savedFarmer = new Farmer();
+        savedFarmer.setId(userId);
+        savedFarmer.setEmail(customer.getEmail());
+        savedFarmer.setFullName(customer.getFullName());
+        savedFarmer.setPhone(customer.getPhone());
+        savedFarmer.setPassword(customer.getPassword());
+        savedFarmer.setAvatarUrl(customer.getAvatarUrl());
+        savedFarmer.setCreatedAt(customer.getCreatedAt());
+        savedFarmer.setStatus("pending");
+        savedFarmer.setFarmName(request.getFarmName());
+        savedFarmer.setFarmAddress(request.getFarmAddress());
+        savedFarmer.setDescription(request.getDescription());
+        savedFarmer.setIdentityCard(request.getIdentityCard());
+        savedFarmer.setBusinessRegistrationUrl(request.getBusinessRegistrationUrl());
+        savedFarmer.setVietgapUrl(request.getVietgapUrl());
+        savedFarmer.setGlobalgapUrl(request.getGlobalgapUrl());
+        savedFarmer.setOrganicUrl(request.getOrganicUrl());
+        savedFarmer.setVerificationStatus("pending");
+        savedFarmer.setRatingAverage(0.0);
+        savedFarmer.setTotalProducts(0);
+        savedFarmer.setMaxDeliveryDistance(request.getMaxDeliveryDistance() != null ? request.getMaxDeliveryDistance() : 50.0);
+        savedFarmer.setLatitude(request.getLatitude());
+        savedFarmer.setLongitude(request.getLongitude());
+        savedFarmer.setPasswordSet(true);
+        savedFarmer.setRole("farmer");
 
         String token = jwtUtil.generateToken(email, "farmer");
 
@@ -121,7 +156,8 @@ public class FarmerService {
             existing.setLongitude(request.getLongitude());
         }
 
-        // Business Registration URL: field was present in request (even if null = clear it)
+        // Business Registration URL: field was present in request (even if null = clear
+        // it)
         if (request.isBusinessRegistrationUrlPresent()) {
             String newBizUrl = request.getBusinessRegistrationUrl();
             String oldBizUrl = existing.getBusinessRegistrationUrl();
@@ -179,10 +215,12 @@ public class FarmerService {
         if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
             try {
                 String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
-                java.io.File fileToDelete = new java.io.File("uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
+                java.io.File fileToDelete = new java.io.File(
+                        "uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
                 if (fileToDelete.exists()) {
                     boolean deleted = fileToDelete.delete();
-                    System.out.println(">>> FarmerService: Deleted avatar file: " + fileToDelete.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> FarmerService: Deleted avatar file: " + fileToDelete.getAbsolutePath()
+                            + " (success: " + deleted + ")");
                 }
             } catch (Exception e) {
                 System.err.println("Failed to delete old avatar file: " + e.getMessage());
@@ -191,26 +229,32 @@ public class FarmerService {
     }
 
     private void deletePhysicalDocumentFile(String fileUrl) {
-        if (fileUrl == null) return;
+        if (fileUrl == null)
+            return;
         String normalizedUrl = fileUrl.replace("\\", "/");
         if (normalizedUrl.contains("/uploads/documents/")) {
             try {
                 String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File("uploads" + java.io.File.separator + "documents" + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads" + java.io.File.separator + "documents" + java.io.File.separator + fileName);
+                java.io.File fileInParent = new java.io.File(
+                        "uploads" + java.io.File.separator + "documents" + java.io.File.separator + fileName);
+                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads"
+                        + java.io.File.separator + "documents" + java.io.File.separator + fileName);
 
                 boolean deleted = false;
                 if (fileInParent.exists()) {
                     deleted = fileInParent.delete();
-                    System.out.println(">>> FarmerService: Deleted document file: " + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> FarmerService: Deleted document file: " + fileInParent.getAbsolutePath()
+                            + " (success: " + deleted + ")");
                 } else if (fileInSub.exists()) {
                     deleted = fileInSub.delete();
-                    System.out.println(">>> FarmerService: Deleted document file: " + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
+                    System.out.println(">>> FarmerService: Deleted document file: " + fileInSub.getAbsolutePath()
+                            + " (success: " + deleted + ")");
                 } else {
                     System.out.println(">>> FarmerService: Document file not found on disk: " + fileUrl);
                 }
             } catch (Exception e) {
-                System.err.println(">>> FarmerService: Failed to delete document file: " + fileUrl + ", error: " + e.getMessage());
+                System.err.println(
+                        ">>> FarmerService: Failed to delete document file: " + fileUrl + ", error: " + e.getMessage());
             }
         }
     }
