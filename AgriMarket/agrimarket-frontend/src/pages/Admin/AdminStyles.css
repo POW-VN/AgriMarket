@@ -395,6 +395,7 @@
   border: 1px solid var(--admin-border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  overflow-x: auto;
 }
 
 .admin-table {
@@ -465,6 +466,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  white-space: nowrap;
 }
 
 .user-cell-avatar {
@@ -479,18 +481,21 @@
   justify-content: center;
   font-weight: 600;
   font-size: 15px;
+  flex-shrink: 0;
 }
 
 .user-cell-name {
   font-weight: 600;
   color: var(--admin-text-main);
   margin: 0 0 2px 0;
+  white-space: nowrap;
 }
 
 .user-cell-email {
   font-size: 12px;
   color: var(--admin-text-muted);
   margin: 0;
+  white-space: nowrap;
 }
 
 /* Badges */
@@ -502,6 +507,7 @@
   font-weight: 600;
   border-radius: 6px;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .badge-role.farmer {
@@ -532,6 +538,7 @@
   font-size: 12px;
   font-weight: 600;
   border-radius: 9999px;
+  white-space: nowrap;
 }
 
 .badge-status.active {
@@ -560,6 +567,7 @@
   background-color: #d1fae5;
   color: #065f46;
   margin-left: 8px;
+  white-space: nowrap;
 }
 
 /* Pagination Row */
@@ -1798,14 +1806,22 @@
   transition: background-color 0.15s ease, border-color 0.15s ease;
   user-select: none;
   cursor: pointer;
+  box-sizing: border-box;
+  transform: translateZ(0);
+  will-change: background-color, border-color;
+  backface-visibility: hidden;
 }
-.checklist-item:hover:not(.checklist-item-disabled) {
+.checklist-item:hover:not(.checklist-item-disabled):not(.checklist-item-checked) {
   background-color: #f3f4f6;
   border-color: #d1d5db;
 }
 .checklist-item.checklist-item-checked {
   background-color: #f0fdf4;
   border-color: #bbf7d0;
+}
+.checklist-item.checklist-item-checked:hover:not(.checklist-item-disabled) {
+  background-color: #d1fae5;
+  border-color: #86efac;
 }
 .checklist-item.checklist-item-disabled {
   opacity: 0.5;

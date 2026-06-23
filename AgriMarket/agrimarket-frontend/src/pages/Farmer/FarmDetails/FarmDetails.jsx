@@ -449,7 +449,7 @@ export const FarmDetails = () => {
                             
                             <div className="certs-container-tab">
                                 {/* VietGAP */}
-                                <div className="cert-item-card">
+                                <div className={`cert-item-card ${hasVietgap ? "checked" : ""}`}>
                                     <div className="cert-header-tab">
                                         <label className="cert-checkbox-wrap">
                                             <input 
@@ -489,7 +489,7 @@ export const FarmDetails = () => {
                                 </div>
 
                                 {/* GlobalGAP */}
-                                <div className="cert-item-card">
+                                <div className={`cert-item-card ${hasGlobalgap ? "checked" : ""}`}>
                                     <div className="cert-header-tab">
                                         <label className="cert-checkbox-wrap">
                                             <input 
@@ -529,7 +529,7 @@ export const FarmDetails = () => {
                                 </div>
 
                                 {/* Organic */}
-                                <div className="cert-item-card">
+                                <div className={`cert-item-card ${hasOrganic ? "checked" : ""}`}>
                                     <div className="cert-header-tab">
                                         <label className="cert-checkbox-wrap">
                                             <input 

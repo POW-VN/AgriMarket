@@ -276,14 +276,14 @@ export default function CartPage() {
 
                     <div className="step-node">
                         <span className="node-num">2</span>
-                        <span className="node-label">Nhận hàng & Thanh toán</span>
+                        <span className="node-label">Đặt hàng thành công</span>
                     </div>
 
                     <div className="step-connector"></div>
 
                     <div className="step-node">
                         <span className="node-num">3</span>
-                        <span className="node-label">Hoàn tất</span>
+                        <span className="node-label">Hoàn tất giao hàng</span>
                     </div>
                 </div>
 
