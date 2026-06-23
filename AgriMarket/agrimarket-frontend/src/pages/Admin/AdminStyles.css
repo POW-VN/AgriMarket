@@ -1889,6 +1889,9 @@
   min-height: 48px;
   border: 1px solid #e5e7eb;
   background-color: #fafafa;
+  /* Isolate each row's repaint — prevents cascade when state changes */
+  contain: layout style;
+  will-change: background-color, border-color;
   transition: background-color 0.15s ease, border-color 0.15s ease;
   user-select: none;
   cursor: pointer;
@@ -1905,6 +1908,11 @@
   opacity: 0.5;
   cursor: default;
   background-color: #f9fafb;
+}
+/* Prevent transition cascade on checkbox inside checklist items */
+.checklist-item input[type="checkbox"] {
+  transition: none;
+  flex-shrink: 0;
 }
 
 .details-breadcrumbs {
@@ -2834,7 +2842,10 @@
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     padding: 16px;
-    transition: all 0.3s ease;
+    /* Use specific properties instead of 'all' to avoid checkbox repaint cascade */
+    contain: layout style;
+    will-change: border-color, box-shadow;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .cert-item-container:hover {
@@ -2924,7 +2935,7 @@
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .cert-upload-box:hover {
