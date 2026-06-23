@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import notificationService from "../../../services/notificationService";
 import "./NotificationBell.css";
 
@@ -374,7 +375,7 @@ const NotificationBell = ({ user }) => {
       )}
 
       {/* Full Details Modal */}
-      {showFullModal && (
+      {showFullModal && createPortal(
         <div className="notification-modal-overlay" onClick={() => setShowFullModal(false)}>
           <div className="notification-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -457,7 +458,8 @@ const NotificationBell = ({ user }) => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
