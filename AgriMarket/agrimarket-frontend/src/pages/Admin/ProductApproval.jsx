@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
@@ -136,6 +136,11 @@ const ProductApproval = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 4000);
   };
+
+  // Memoized toggle to prevent re-rendering ALL checklist items on every click
+  const handleChecklistToggle = useCallback((key) => {
+    setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -672,12 +677,12 @@ const ProductApproval = () => {
                     <div
                       key={key}
                       className={`checklist-item${isChecked && !disabled ? " checklist-item-checked" : ""}${disabled ? " checklist-item-disabled" : ""}`}
-                      onClick={() => !disabled && setChecklist({ ...checklist, [key]: !isChecked })}
+                      onClick={() => !disabled && handleChecklistToggle(key)}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={(e) => !disabled && setChecklist({ ...checklist, [key]: e.target.checked })}
+                        onChange={() => !disabled && handleChecklistToggle(key)}
                         disabled={disabled}
                         onClick={(e) => e.stopPropagation()}
                         style={{ accentColor: "#064e3b", width: "16px", height: "16px", flexShrink: 0, cursor: disabled ? "not-allowed" : "pointer" }}
