@@ -145,6 +145,9 @@ export default function CheckoutPage() {
     // Form Validation errors
     const [errors, setErrors] = useState({});
 
+    // Custom error modal state
+    const [errorModal, setErrorModal] = useState({ show: false, title: "", message: "", detail: "" });
+
     // Success State (Used for COD)
     const [isSuccess, setIsSuccess] = useState(false);
     const [placedOrder, setPlacedOrder] = useState(null);
@@ -731,7 +734,12 @@ export default function CheckoutPage() {
             }
         } catch (err) {
             console.error("Reverse geocoding failed: ", err);
-            alert("Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu (Rate Limit/CORS). Vui lòng điền địa chỉ thủ công hoặc thử lại sau 1-2 phút.");
+            setErrorModal({
+                show: true,
+                title: "Đồng bộ bản đồ thất bại",
+                message: "Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu hoặc lỗi CORS.",
+                detail: "Vui lòng tự chọn hoặc điền địa chỉ thủ công ở các trường thông tin bên dưới hoặc thử lại sau ít phút."
+            });
         }
     };
 
@@ -741,8 +749,7 @@ export default function CheckoutPage() {
         navigate("/");
     };
 
-    const validateForm = () => {
-        const formErrors = {};
+    const validateForm = (formErrors = {}) => {
         if (!recipientName.trim()) formErrors.recipientName = "Vui lòng nhập họ và tên";
         if (!recipientPhone.trim()) {
             formErrors.recipientPhone = "Vui lòng nhập số điện thoại";
@@ -762,11 +769,22 @@ export default function CheckoutPage() {
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
 
-        if (!validateForm()) {
-            const firstErrorKey = Object.keys(errors)[0];
-            const errorElement = document.getElementsByName(firstErrorKey)[0];
-            if (errorElement) {
-                errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        const formErrors = {};
+        if (!validateForm(formErrors)) {
+            // Check if there is a distance invalidation error
+            if (activeDistanceInfo.distance !== null && !activeDistanceInfo.isValid) {
+                setErrorModal({
+                    show: true,
+                    title: "Địa chỉ nhận hàng không hợp lệ",
+                    message: "Địa chỉ nhận hàng hiện tại nằm ngoài phạm vi giao hàng của một số sản phẩm trong đơn hàng.",
+                    detail: activeDistanceInfo.message
+                });
+            } else {
+                const firstErrorKey = Object.keys(formErrors)[0];
+                const errorElement = document.getElementsByName(firstErrorKey)[0] || document.getElementById(firstErrorKey);
+                if (errorElement) {
+                    errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
             }
             return;
         }
@@ -880,7 +898,12 @@ export default function CheckoutPage() {
                         }
                     } catch (payErr) {
                         console.error("Lỗi khi kết nối VNPay:", payErr);
-                        alert("Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại hoặc chọn phương thức thanh toán khi nhận hàng.");
+                        setErrorModal({
+                            show: true,
+                            title: "Lỗi kết nối VNPay",
+                            message: "Không thể khởi tạo cổng thanh toán trực tuyến VNPay.",
+                            detail: "Vui lòng thử lại sau hoặc lựa chọn phương thức thanh toán khi nhận hàng (COD)."
+                        });
                     }
                 }
             } catch (err) {
@@ -888,7 +911,12 @@ export default function CheckoutPage() {
                 const errMsg = err.response?.data
                     ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
                     : "Có lỗi xảy ra khi xử lý đặt hàng. Vui lòng thử lại.";
-                alert(errMsg);
+                setErrorModal({
+                    show: true,
+                    title: "Đặt hàng không thành công",
+                    message: "Đã xảy ra lỗi trong quá trình xử lý đặt hàng từ máy chủ.",
+                    detail: errMsg
+                });
             }
         } else {
             const now = new Date();
@@ -995,18 +1023,18 @@ export default function CheckoutPage() {
                         <span className="node-label">Giỏ hàng</span>
                     </div>
 
-                    <div className="step-connector active"></div>
-
-                    <div className={`step-node ${!isSuccess ? "active" : ""}`}>
-                        <span className="node-num">2</span>
-                        <span className="node-label">Nhận hàng & Thanh toán</span>
-                    </div>
-
                     <div className={`step-connector ${isSuccess ? "active" : ""}`}></div>
 
                     <div className={`step-node ${isSuccess ? "active" : ""}`}>
+                        <span className="node-num">2</span>
+                        <span className="node-label">Đặt hàng thành công</span>
+                    </div>
+
+                    <div className="step-connector"></div>
+
+                    <div className="step-node">
                         <span className="node-num">3</span>
-                        <span className="node-label">Hoàn tất</span>
+                        <span className="node-label">Hoàn tất giao hàng</span>
                     </div>
                 </div>
 
@@ -1101,7 +1129,7 @@ export default function CheckoutPage() {
                             <div className="payment-form-card">
                                 <h3>1. Thông tin giao hàng</h3>
                                 <p className="form-card-subtitle">Vui lòng nhập địa chỉ nhận hàng chính xác để chúng tôi giao sản phẩm tươi ngon nhất.</p>                                {savedAddresses.length > 0 ? (
-                                    <div className="shopee-address-section" style={{ marginBottom: "24px" }}>
+                                    <div className={`shopee-address-section ${activeDistanceInfo.distance !== null && !activeDistanceInfo.isValid ? "has-error" : ""}`} style={{ marginBottom: "24px" }}>
                                         <div className="shopee-address-header">
                                             <span className="shopee-address-pin">📍</span>
                                             <span className="shopee-address-title">Địa chỉ nhận hàng</span>
@@ -1109,49 +1137,60 @@ export default function CheckoutPage() {
                                         <div className="shopee-address-content">
                                             {selectedAddressIndex !== -1 ? (
                                                 <div className="shopee-active-address">
-                                                    <div className="shopee-active-name-phone">
-                                                        <strong>{savedAddresses[selectedAddressIndex].receiverName}</strong>
-                                                        <span className="shopee-active-phone">{savedAddresses[selectedAddressIndex].phone}</span>
-                                                        {savedAddresses[selectedAddressIndex].isDefault && (
-                                                            <span className="shopee-default-badge">Mặc định</span>
-                                                        )}
+                                                    <div className="address-info-row">
+                                                        <span className="info-label">Người nhận:</span>
+                                                        <span className="info-value">
+                                                            <strong>{savedAddresses[selectedAddressIndex].receiverName}</strong>
+                                                            {savedAddresses[selectedAddressIndex].isDefault && (
+                                                                <span className="shopee-default-badge">Mặc định</span>
+                                                            )}
+                                                        </span>
                                                     </div>
-                                                    <div className="shopee-active-detail">
-                                                        {savedAddresses[selectedAddressIndex].address}
+                                                    <div className="address-info-row">
+                                                        <span className="info-label">Số điện thoại:</span>
+                                                        <span className="info-value">{savedAddresses[selectedAddressIndex].phone}</span>
                                                     </div>
+                                                    <div className="address-info-row">
+                                                        <span className="info-label">Địa chỉ nhận hàng:</span>
+                                                        <span className="info-value">{savedAddresses[selectedAddressIndex].address}</span>
+                                                    </div>
+                                                    {activeDistanceInfo.distance !== null && (
+                                                        <div className={`address-distance-banner ${activeDistanceInfo.isValid ? "valid" : "invalid"}`}>
+                                                            <span className="distance-banner-icon">{activeDistanceInfo.isValid ? "📍" : "⚠️"}</span>
+                                                            <span className="distance-banner-message">{activeDistanceInfo.message}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="shopee-active-address">
-                                                    <div className="shopee-active-name-phone">
-                                                        <strong>{recipientName || "Chưa nhập họ tên"}</strong>
-                                                        <span className="shopee-active-phone">{recipientPhone || "Chưa nhập SĐT"}</span>
-                                                        <span className="shopee-new-badge">Địa chỉ mới</span>
+                                                    <div className="address-info-row">
+                                                        <span className="info-label">Người nhận:</span>
+                                                        <span className="info-value">
+                                                            <strong>{recipientName || "Chưa nhập họ tên"}</strong>
+                                                            <span className="shopee-new-badge">Địa chỉ mới</span>
+                                                        </span>
                                                     </div>
-                                                    <div className="shopee-active-detail">
-                                                        {addressService.formatAddress({
-                                                            street: addrStreet,
-                                                            ward: addrWard.name,
-                                                            district: addrDistrict.name,
-                                                            province: addrProvince.name
-                                                        }) || "Vui lòng nhập chi tiết địa chỉ bên dưới"}
+                                                    <div className="address-info-row">
+                                                        <span className="info-label">Số điện thoại:</span>
+                                                        <span className="info-value">{recipientPhone || "Chưa nhập SĐT"}</span>
                                                     </div>
-                                                </div>
-                                            )}
-                                            {activeDistanceInfo.distance !== null && (
-                                                <div 
-                                                    className="shopee-active-distance-badge"
-                                                    style={{
-                                                        display: "inline-block",
-                                                        padding: "4px 8px",
-                                                        borderRadius: "4px",
-                                                        backgroundColor: activeDistanceInfo.isValid ? "#e8f5e9" : "#ffebee",
-                                                        color: activeDistanceInfo.isValid ? "#2e7d32" : "#c62828",
-                                                        fontSize: "12.5px",
-                                                        fontWeight: "bold",
-                                                        marginTop: "8px"
-                                                    }}
-                                                >
-                                                    📍 {activeDistanceInfo.message}
+                                                    <div className="address-info-row">
+                                                        <span className="info-label">Địa chỉ nhận hàng:</span>
+                                                        <span className="info-value">
+                                                            {addressService.formatAddress({
+                                                                street: addrStreet,
+                                                                ward: addrWard.name,
+                                                                district: addrDistrict.name,
+                                                                province: addrProvince.name
+                                                            }) || "Vui lòng nhập chi tiết địa chỉ bên dưới"}
+                                                        </span>
+                                                    </div>
+                                                    {activeDistanceInfo.distance !== null && (
+                                                        <div className={`address-distance-banner ${activeDistanceInfo.isValid ? "valid" : "invalid"}`}>
+                                                            <span className="distance-banner-icon">{activeDistanceInfo.isValid ? "📍" : "⚠️"}</span>
+                                                            <span className="distance-banner-message">{activeDistanceInfo.message}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                             <button 
@@ -1187,25 +1226,26 @@ export default function CheckoutPage() {
                                                                 />
                                                             </div>
                                                             <div className="shopee-item-info">
-                                                                <div className="shopee-item-header">
-                                                                    <span className="shopee-item-name">{addr.receiverName}</span>
-                                                                    <span className="shopee-item-phone">{addr.phone}</span>
-                                                                    {addr.isDefault && <span className="shopee-default-badge">Mặc định</span>}
+                                                                <div className="address-info-row">
+                                                                    <span className="info-label">Người nhận:</span>
+                                                                    <span className="info-value">
+                                                                        <strong>{addr.receiverName}</strong>
+                                                                        {addr.isDefault && <span className="shopee-default-badge">Mặc định</span>}
+                                                                    </span>
                                                                 </div>
-                                                                <div className="shopee-item-address">{addr.address}</div>
+                                                                <div className="address-info-row">
+                                                                    <span className="info-label">Số điện thoại:</span>
+                                                                    <span className="info-value">{addr.phone}</span>
+                                                                </div>
+                                                                <div className="address-info-row">
+                                                                    <span className="info-label">Địa chỉ:</span>
+                                                                    <span className="info-value">{addr.address}</span>
+                                                                </div>
                                                                 {(() => {
                                                                     const distInfo = getAddressDistanceInfo(addr);
                                                                     if (distInfo.distance !== null) {
                                                                         return (
-                                                                            <div 
-                                                                                className="shopee-item-distance" 
-                                                                                style={{ 
-                                                                                    color: distInfo.isValid ? "#2e7d32" : "#c62828", 
-                                                                                    fontSize: "12px", 
-                                                                                    fontWeight: "bold",
-                                                                                    marginTop: "4px"
-                                                                                }}
-                                                                            >
+                                                                            <div className={`shopee-item-distance ${distInfo.isValid ? "valid" : "invalid"}`}>
                                                                                 📍 {distInfo.message}
                                                                             </div>
                                                                         );
@@ -1232,7 +1272,7 @@ export default function CheckoutPage() {
                                                         </div>
                                                         <div className="shopee-item-info">
                                                             <div className="shopee-item-header">
-                                                                <span className="shopee-item-name" style={{ fontWeight: 700 }}>Giao tới địa chỉ khác / Thêm địa chỉ mới</span>
+                                                                    <span className="shopee-item-name" style={{ fontWeight: 700 }}>Giao tới địa chỉ khác / Thêm địa chỉ mới</span>
                                                             </div>
                                                             <div className="shopee-item-address">Nhập địa chỉ mới và định vị trên bản đồ bên dưới.</div>
                                                         </div>
@@ -1501,6 +1541,34 @@ export default function CheckoutPage() {
                 )}
             </main>
             <Footer />
+
+            {errorModal.show && (
+                <div className="custom-modal-overlay">
+                    <div className="custom-modal-card">
+                        <div className="custom-modal-header">
+                            <span className="custom-modal-icon">🚫</span>
+                            <h4>{errorModal.title}</h4>
+                        </div>
+                        <div className="custom-modal-body">
+                            <p className="custom-modal-message">{errorModal.message}</p>
+                            {errorModal.detail && (
+                                <div className="custom-modal-detail">
+                                    {errorModal.detail}
+                                </div>
+                            )}
+                        </div>
+                        <div className="custom-modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn-close-modal" 
+                                onClick={() => setErrorModal({ show: false, title: "", message: "", detail: "" })}
+                            >
+                                Đồng ý
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
