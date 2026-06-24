@@ -325,6 +325,68 @@
   font-weight: 500;
 }
 
+/* Harvest & Expiration metadata spec */
+.harvest-meta-spec {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+  background: linear-gradient(135deg, #f7faf5 0%, #f0fdf4 100%);
+  border: 1px solid #e2ebd9;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.harvest-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.harvest-meta-icon {
+  font-size: 20px;
+  background-color: var(--white);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.harvest-meta-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.harvest-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.harvest-meta-val {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 576px) {
+  .harvest-meta-spec {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
 /* Description Section */
 .product-desc-box {
   margin-bottom: 32px;
@@ -908,110 +970,304 @@
   box-shadow: 0 4px 12px rgba(46, 125, 50, 0.2);
 }
 
-.product-extended-details-section {
+/* Redesigned Product Details Section */
+.product-redesigned-details-section {
   max-width: 1200px;
   width: 100%;
-  margin: 0 auto 48px;
+  margin: 0 auto 64px;
   padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
 }
 
-.extended-section-title {
+/* Section 1: Detailed Specifications & Platform Trust Banner */
+.details-layout-full-width {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Full Width: Specifications Card */
+.details-specifications-card.full-width {
+  background-color: var(--white);
+  border-radius: 24px;
+  border: 1px solid #e3eadf;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(27, 94, 32, 0.01);
+}
+
+.details-card-title-main {
   font-family: 'Plus Jakarta Sans', var(--font-family);
-  font-size: 26px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #143324;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spec-list-table {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  column-gap: 48px;
+  row-gap: 4px;
+  margin-top: 20px;
+}
+
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px dashed #e4ebd9;
+}
+
+.spec-row:nth-last-child(1),
+.spec-row:nth-last-child(2) {
+  border-bottom: 1px dashed #e4ebd9;
+}
+
+/* Specific styling for long address row */
+.spec-row.spec-row-address {
+  align-items: flex-start;
+}
+
+.spec-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #556b5c;
+  padding-top: 2px;
+}
+
+.spec-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: right;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-value.spec-value-address {
+  max-width: 70% !important;
+  white-space: normal !important;
+  overflow: visible;
+  text-overflow: clip;
+  display: inline-block;
+  line-height: 1.5;
+}
+
+.address-text {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.btn-toggle-address {
+  background: none;
+  border: none;
+  color: #1b5e20;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 0 0 6px;
+  font-size: 13px;
+  display: inline-block;
+  text-decoration: underline;
+  font-family: inherit;
+  transition: color 0.2s ease;
+}
+
+.btn-toggle-address:hover {
+  color: #388e3c;
+}
+
+/* Quality Commitment Redesigned Box - Full Width Banner */
+.agrimarket-commitment-box-redesigned.full-width {
+  background-color: #f0faf2;
+  border: 1px solid #d1fae5;
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.02);
+}
+
+.agrimarket-commitment-box-redesigned.full-width h4 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #065f46;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agrimarket-commitment-box-redesigned.full-width .commitment-list-small {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 0;
+  margin: 0;
+}
+
+.agrimarket-commitment-box-redesigned.full-width .commitment-list-small li {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #047857;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.6;
+}
+
+.agrimarket-commitment-box-redesigned.full-width .commitment-list-small li span {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+/* FAQ Accordion Styling */
+.details-faq-accordion-section {
+  background-color: #f7faf5;
+  border: 1px solid #e3eadf;
+  border-radius: 24px;
+  padding: 32px;
+  margin-top: 16px;
+}
+
+.faq-section-title-main {
+  font-family: 'Plus Jakarta Sans', var(--font-family);
+  font-size: 24px;
   font-weight: 800;
   color: #143324;
   margin-bottom: 24px;
-  border-bottom: 2px solid #e2ebd5;
-  padding-bottom: 12px;
 }
 
-.extended-details-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.extended-card-item {
-  background-color: var(--white);
-  border-radius: 16px;
-  border: 1px solid #e6ecdf;
-  padding: 24px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.01);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.extended-card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(27, 94, 32, 0.04);
-}
-
-.extended-card-item.highlight-green {
-  background-color: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.extended-card-header {
+.faq-accordion-container {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.extended-icon {
-  font-size: 20px;
+.faq-accordion-item {
+  background-color: var(--white);
+  border: 1px solid #e1e8dc;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.25s ease;
 }
 
-.extended-card-header h3 {
-  font-size: 16px;
+.faq-accordion-item.open {
+  border-color: #1b5e20;
+  box-shadow: 0 4px 15px rgba(27, 94, 32, 0.03);
+}
+
+.faq-accordion-question {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 18px 24px;
+  text-align: left;
+  font-size: 15px;
   font-weight: 700;
   color: #143324;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+  transition: color 0.2s ease;
 }
 
-.extended-card-item p {
+.faq-accordion-question:hover {
+  color: #1b5e20;
+}
+
+.faq-arrow-icon {
+  color: #6b7280;
+  transition: transform 0.25s ease, color 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faq-accordion-item.open .faq-arrow-icon {
+  transform: rotate(180deg);
+  color: #1b5e20;
+}
+
+.faq-accordion-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+}
+
+.faq-accordion-item.open .faq-accordion-answer {
+  max-height: 500px;
+  transition: max-height 0.35s cubic-bezier(1, 0, 1, 0);
+}
+
+.faq-answer-inner {
+  padding: 0 24px 20px;
+  border-top: 1px solid #f3f6f2;
+}
+
+.faq-answer-inner p {
   font-size: 14px;
   color: #4b5563;
   line-height: 1.6;
 }
 
-.extended-specs-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.extended-specs-list li {
-  font-size: 14px;
-  color: #4b5563;
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px dashed #e5e7eb;
-  padding-bottom: 6px;
-}
-
-.extended-specs-list li:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.extended-specs-list li strong {
-  color: #111827;
-}
-
+/* Media Queries for Redesigned Details Section */
 @media (max-width: 968px) {
-  .extended-details-grid {
+  .agrimarket-commitment-box-redesigned.full-width .commitment-list-small {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
+@media (max-width: 768px) {
+  .spec-list-table {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+}
+
 @media (max-width: 576px) {
-  .product-extended-details-section {
+  .product-redesigned-details-section {
     padding: 0 16px;
+    margin-bottom: 48px;
+    gap: 24px;
   }
 
-  .extended-details-grid {
+  .details-specifications-card.full-width {
+    padding: 20px;
+  }
+
+  .spec-value {
+    max-width: 65%;
+  }
+
+  .agrimarket-commitment-box-redesigned.full-width {
+    padding: 20px;
+  }
+
+  .agrimarket-commitment-box-redesigned.full-width .commitment-list-small {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .details-faq-accordion-section {
+    padding: 20px;
+  }
+
+  .faq-accordion-question {
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+
+  .faq-answer-inner {
+    padding: 0 18px 16px;
   }
 }
 
