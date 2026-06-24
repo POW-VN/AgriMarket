@@ -55,20 +55,37 @@ input {
 
 .cart-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background-color: #d32f2f;
+  top: -2px;
+  right: -2px;
+  background-color: #ef4444;
   color: white;
   font-size: 10px;
   font-weight: 700;
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid white;
+  padding: 0 4px;
+  border: 1.5px solid #ffffff;
   pointer-events: none;
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 /* ── GLOBAL TOAST NOTIFICATIONS ──────────────────────── */
@@ -166,4 +183,10 @@ input {
   right: auto !important;
   pointer-events: auto;
   margin: 0 !important;
+}
+
+/* Hide default browser password reveal and clear buttons (Microsoft Edge, Internet Explorer, etc.) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
 }

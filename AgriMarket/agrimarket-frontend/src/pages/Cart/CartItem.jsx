@@ -60,12 +60,15 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
         <div className="cart-item-row">
             <div className="cart-item-info">
                 <div className="cart-item-checkbox">
-                    <input
-                        type="checkbox"
-                        checked={item.checked || false}
-                        onChange={() => onSelectItem(item.id)}
-                        aria-label={`Chọn ${item.name}`}
-                    />
+                    <label className="cart-item-select-label">
+                        <input
+                            type="checkbox"
+                            checked={item.checked || false}
+                            onChange={() => onSelectItem(item.id)}
+                            aria-label={`Chọn ${item.name}`}
+                        />
+                        <span className="custom-checkbox-span"></span>
+                    </label>
                 </div>
                 <div className="cart-item-image">
                     {imageError || !item.imageUrl ? (
