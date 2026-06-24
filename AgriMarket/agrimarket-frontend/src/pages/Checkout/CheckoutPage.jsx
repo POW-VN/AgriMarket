@@ -948,7 +948,7 @@ export default function CheckoutPage() {
 
                     <div className="step-connector active"></div>
 
-                    <div className={`step-node ${!isSuccess ? "active" : ""}`}>
+                    <div className="step-node active">
                         <span className="node-num">2</span>
                         <span className="node-label">Nhận hàng & Thanh toán</span>
                     </div>

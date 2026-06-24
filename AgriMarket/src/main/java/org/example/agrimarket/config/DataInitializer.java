@@ -69,10 +69,12 @@ public class DataInitializer implements CommandLineRunner {
         // Auto-migrate schema: add max_delivery_distance to farmer if not exists
         try {
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'max_delivery_distance')\n" +
-                    "    ALTER TABLE farmer ADD max_delivery_distance DECIMAL(10,2) NULL;");
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'max_delivery_distance')\n"
+                            +
+                            "    ALTER TABLE farmer ADD max_delivery_distance DECIMAL(10,2) NULL;");
             jdbcTemplate.execute("UPDATE farmer SET max_delivery_distance = 50.0 WHERE max_delivery_distance IS NULL;");
-            System.out.println(">>> DataInitializer: Checked and updated max_delivery_distance column in farmer table.");
+            System.out
+                    .println(">>> DataInitializer: Checked and updated max_delivery_distance column in farmer table.");
         } catch (Exception e) {
             System.err.println(">>> DataInitializer: Could not update farmer table: " + e.getMessage());
         }
@@ -80,34 +82,42 @@ public class DataInitializer implements CommandLineRunner {
         // Auto-migrate schema: add latitude and longitude to farmer if not exists
         try {
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'latitude')\n" +
-                    "    ALTER TABLE farmer ADD latitude DECIMAL(9,6) NULL;");
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'latitude')\n"
+                            +
+                            "    ALTER TABLE farmer ADD latitude DECIMAL(9,6) NULL;");
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'longitude')\n" +
-                    "    ALTER TABLE farmer ADD longitude DECIMAL(9,6) NULL;");
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'longitude')\n"
+                            +
+                            "    ALTER TABLE farmer ADD longitude DECIMAL(9,6) NULL;");
             System.out.println(">>> DataInitializer: Checked and updated latitude/longitude columns in farmer table.");
         } catch (Exception e) {
             System.err.println(">>> DataInitializer: Could not update farmer latitude/longitude: " + e.getMessage());
         }
 
-        // Auto-migrate schema: add latitude and longitude to customer_address if not exists
+        // Auto-migrate schema: add latitude and longitude to customer_address if not
+        // exists
         try {
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('customer_address') AND name = 'latitude')\n" +
-                    "    ALTER TABLE customer_address ADD latitude DECIMAL(9,6) NULL;");
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('customer_address') AND name = 'latitude')\n"
+                            +
+                            "    ALTER TABLE customer_address ADD latitude DECIMAL(9,6) NULL;");
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('customer_address') AND name = 'longitude')\n" +
-                    "    ALTER TABLE customer_address ADD longitude DECIMAL(9,6) NULL;");
-            System.out.println(">>> DataInitializer: Checked and updated latitude/longitude columns in customer_address table.");
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('customer_address') AND name = 'longitude')\n"
+                            +
+                            "    ALTER TABLE customer_address ADD longitude DECIMAL(9,6) NULL;");
+            System.out.println(
+                    ">>> DataInitializer: Checked and updated latitude/longitude columns in customer_address table.");
         } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not update customer_address latitude/longitude: " + e.getMessage());
+            System.err.println(
+                    ">>> DataInitializer: Could not update customer_address latitude/longitude: " + e.getMessage());
         }
 
         // Auto-migrate schema: add perishability to product if not exists
         try {
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'perishability')\n" +
-                    "    ALTER TABLE product ADD perishability NVARCHAR(50) NULL;");
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'perishability')\n"
+                            +
+                            "    ALTER TABLE product ADD perishability NVARCHAR(50) NULL;");
             jdbcTemplate.execute("UPDATE product SET perishability = N'khô' WHERE perishability IS NULL;");
             System.out.println(">>> DataInitializer: Checked and updated perishability column in product table.");
         } catch (Exception e) {
@@ -117,14 +127,18 @@ public class DataInitializer implements CommandLineRunner {
         // Auto-migrate schema: add limit_distance to product if not exists
         try {
             jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'limit_distance')\n" +
-                    "    ALTER TABLE product ADD limit_distance DECIMAL(10,2) NULL;");
-            
+                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'limit_distance')\n"
+                            +
+                            "    ALTER TABLE product ADD limit_distance DECIMAL(10,2) NULL;");
+
             // Set initial defaults for existing products based on perishability
-            jdbcTemplate.execute("UPDATE product SET limit_distance = 15.00 WHERE perishability = 'rất dễ hư' AND limit_distance IS NULL;");
-            jdbcTemplate.execute("UPDATE product SET limit_distance = 40.00 WHERE perishability = 'dễ hư' AND limit_distance IS NULL;");
-            jdbcTemplate.execute("UPDATE product SET limit_distance = 85.00 WHERE perishability = 'trung bình' AND limit_distance IS NULL;");
-            
+            jdbcTemplate.execute(
+                    "UPDATE product SET limit_distance = 15.00 WHERE perishability = 'rất dễ hư' AND limit_distance IS NULL;");
+            jdbcTemplate.execute(
+                    "UPDATE product SET limit_distance = 40.00 WHERE perishability = 'dễ hư' AND limit_distance IS NULL;");
+            jdbcTemplate.execute(
+                    "UPDATE product SET limit_distance = 85.00 WHERE perishability = 'trung bình' AND limit_distance IS NULL;");
+
             System.out.println(">>> DataInitializer: Checked and updated limit_distance column in product table.");
         } catch (Exception e) {
             System.err.println(">>> DataInitializer: Could not update product table limit_distance: " + e.getMessage());
@@ -289,4 +303,3 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 }
-
