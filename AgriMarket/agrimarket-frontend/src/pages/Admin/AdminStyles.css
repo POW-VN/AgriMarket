@@ -406,6 +406,7 @@
   border: 1px solid var(--admin-border);
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
   overflow: hidden;
+  overflow-x: auto;
 }
 
 .admin-table {
@@ -486,6 +487,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  white-space: nowrap;
 }
 
 .user-cell-avatar {
@@ -500,6 +502,7 @@
   font-size: 13.5px;
   border: 2px solid #ffffff;
   box-shadow: 0 0 0 1.5px var(--admin-border), 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 .user-cell-avatar.avatar-color-0 {
@@ -527,12 +530,14 @@
   font-weight: 600;
   color: var(--admin-text-main);
   margin: 0 0 2px 0;
+  white-space: nowrap;
 }
 
 .user-cell-email {
   font-size: 12px;
   color: var(--admin-text-muted);
   margin: 0;
+  white-space: nowrap;
 }
 
 /* Badges */
@@ -546,6 +551,7 @@
   text-transform: capitalize;
   letter-spacing: 0.01em;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  white-space: nowrap;
 }
 
 .badge-role.farmer {
@@ -581,6 +587,7 @@
   font-weight: 700;
   border-radius: 20px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  white-space: nowrap;
 }
 
 .badge-status.active {
@@ -614,6 +621,7 @@
   border: 1px solid #dbeafe;
   margin-left: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  white-space: nowrap;
 }
 
 /* Pagination Row */
@@ -965,6 +973,10 @@
   cursor: pointer;
   color: var(--admin-text-muted);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .pwd-strength-bar-wrapper {
@@ -1895,14 +1907,22 @@
   transition: background-color 0.15s ease, border-color 0.15s ease;
   user-select: none;
   cursor: pointer;
+  box-sizing: border-box;
+  transform: translateZ(0);
+  will-change: background-color, border-color;
+  backface-visibility: hidden;
 }
-.checklist-item:hover:not(.checklist-item-disabled) {
+.checklist-item:hover:not(.checklist-item-disabled):not(.checklist-item-checked) {
   background-color: #f3f4f6;
   border-color: #d1d5db;
 }
 .checklist-item.checklist-item-checked {
   background-color: #f0fdf4;
   border-color: #bbf7d0;
+}
+.checklist-item.checklist-item-checked:hover:not(.checklist-item-disabled) {
+  background-color: #d1fae5;
+  border-color: #86efac;
 }
 .checklist-item.checklist-item-disabled {
   opacity: 0.5;

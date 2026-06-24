@@ -1015,13 +1015,16 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
-  /* Isolate cert card repaints from affecting the rest of the page */
+  box-sizing: border-box;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   contain: layout style;
-  will-change: border-color, background-color;
+  will-change: background-color, border-color, box-shadow;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
 }
 
-.cert-item-card:hover {
+.cert-item-card:hover:not(.checked) {
   border-color: #cbd5e1;
   background-color: #f1f5f9;
 }
@@ -1038,6 +1041,29 @@ textarea {
 .cert-item-card input[type="file"],
 .doc-upload-box input[type="file"] {
   transition: none !important;
+}
+
+.cert-item-card.checked {
+  background-color: #f0fdf4;
+  border-color: #a7f3d0;
+}
+
+.cert-item-card.checked:hover {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.cert-item-card.checked .cert-checkbox-wrap {
+  color: #065f46;
+}
+
+.cert-item-card.checked .cert-upload-box-tab {
+  border-color: #a7f3d0;
+}
+
+.cert-item-card.checked .cert-upload-box-tab:hover {
+  border-color: #10b981;
+  background: #f0fdf4;
 }
 
 .cert-checkbox-wrap {
