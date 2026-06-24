@@ -919,6 +919,10 @@
   cursor: pointer;
   color: var(--admin-text-muted);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .pwd-strength-bar-wrapper {

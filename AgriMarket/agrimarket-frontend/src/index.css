@@ -169,3 +169,10 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none !important;
 }
+
+/* Hide default browser password reveal and clear buttons (Microsoft Edge, Internet Explorer, etc.) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+
