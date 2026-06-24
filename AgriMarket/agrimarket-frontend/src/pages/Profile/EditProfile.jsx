@@ -12,6 +12,7 @@ import { buildProfileUpdatePayload } from "../../utils/profileMapper";
 import apiClient from "../../services/apiClient";
 import * as addressService from "../../services/addressService";
 import { MapPicker } from "../../components/MapPicker/MapPicker";
+import SearchableSelect from "../../components/common/SearchableSelect/SearchableSelect";
 import "./Profile.css";
 
 const EditProfile = () => {
@@ -364,7 +365,11 @@ const EditProfile = () => {
   }, [profile, navigate]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    let { name, value } = event.target;
+
+    if (name === "phone") {
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -420,6 +425,14 @@ const EditProfile = () => {
     event.preventDefault();
 
     if (!profile) return;
+
+    if (formData.phone) {
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        setFormMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
+        return;
+      }
+    }
 
     if (addrProvince.code || addrDistrict.code || addrWard.code || addrStreet.trim()) {
       if (!addrProvince.name || !addrDistrict.name || !addrWard.name || !addrStreet.trim()) {
@@ -561,6 +574,7 @@ const EditProfile = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                maxLength={10}
                 placeholder="Nhập số điện thoại"
               />
             </div>
@@ -569,49 +583,34 @@ const EditProfile = () => {
               <>
                 <div className="form-group">
                   <label>Tỉnh / Thành phố</label>
-                  <select
+                  <SearchableSelect
+                    options={provinces}
                     value={addrProvince.code}
                     onChange={handleProvinceChange}
-                  >
-                    <option value="">Chọn Tỉnh / Thành phố</option>
-                    {provinces.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn Tỉnh / Thành phố"
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Quận / Huyện</label>
-                  <select
+                  <SearchableSelect
+                    options={districts}
                     value={addrDistrict.code}
                     onChange={handleDistrictChange}
                     disabled={!addrProvince.code}
-                  >
-                    <option value="">Chọn Quận / Huyện</option>
-                    {districts.map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn Quận / Huyện"
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Phường / Xã</label>
-                  <select
+                  <SearchableSelect
+                    options={wards}
                     value={addrWard.code}
                     onChange={handleWardChange}
                     disabled={!addrDistrict.code}
-                  >
-                    <option value="">Chọn Phường / Xã</option>
-                    {wards.map((w) => (
-                      <option key={w.code} value={w.code}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn Phường / Xã"
+                  />
                 </div>
 
                 <div className="form-group">

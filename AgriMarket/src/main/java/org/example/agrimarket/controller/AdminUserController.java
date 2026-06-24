@@ -140,6 +140,9 @@ public class AdminUserController {
             map.put("vietgapUrl", f.getVietgapUrl());
             map.put("globalgapUrl", f.getGlobalgapUrl());
             map.put("organicUrl", f.getOrganicUrl());
+            map.put("maxDeliveryDistance", f.getMaxDeliveryDistance());
+            map.put("latitude", f.getLatitude());
+            map.put("longitude", f.getLongitude());
 
             userList.add(map);
         }
@@ -246,6 +249,30 @@ public class AdminUserController {
             farmer.setVietgapUrl((String) payload.get("vietgapUrl"));
             farmer.setGlobalgapUrl((String) payload.get("globalgapUrl"));
             farmer.setOrganicUrl((String) payload.get("organicUrl"));
+
+            Double maxDeliveryDistance = null;
+            if (payload.get("maxDeliveryDistance") != null) {
+                try {
+                    maxDeliveryDistance = Double.valueOf(payload.get("maxDeliveryDistance").toString());
+                } catch (Exception e) {}
+            }
+            farmer.setMaxDeliveryDistance(maxDeliveryDistance != null ? maxDeliveryDistance : 50.0);
+
+            Double latitude = null;
+            if (payload.get("latitude") != null) {
+                try {
+                    latitude = Double.valueOf(payload.get("latitude").toString());
+                } catch (Exception e) {}
+            }
+            farmer.setLatitude(latitude);
+
+            Double longitude = null;
+            if (payload.get("longitude") != null) {
+                try {
+                    longitude = Double.valueOf(payload.get("longitude").toString());
+                } catch (Exception e) {}
+            }
+            farmer.setLongitude(longitude);
 
             return ResponseEntity.ok(farmerRepository.save(farmer));
         } else if ("partner".equals(role)) {

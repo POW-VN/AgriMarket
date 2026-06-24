@@ -11,6 +11,7 @@ import "./CheckoutPage.css";
 import Header from "../../components/common/Header/Header";
 import { MapPicker } from "../../components/MapPicker/MapPicker";
 import apiClient from "../../services/apiClient";
+import SearchableSelect from "../../components/common/SearchableSelect/SearchableSelect";
 
 // Geocode address using Nominatim (sequential to avoid rate-limiting)
 const geocodeAddressIfNeeded = async (addressStr) => {
@@ -1307,7 +1308,8 @@ export default function CheckoutPage() {
                                                     id="recipientPhone"
                                                     name="recipientPhone"
                                                     value={recipientPhone}
-                                                    onChange={(e) => setRecipientPhone(e.target.value)}
+                                                    onChange={(e) => setRecipientPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                                    maxLength={10}
                                                     placeholder="09XXXXXXXX"
                                                     className={errors.recipientPhone ? "input-err" : ""}
                                                 />
@@ -1318,54 +1320,39 @@ export default function CheckoutPage() {
                                         <div className="form-group-row">
                                             <div className="form-group">
                                                 <label>Tỉnh / Thành phố <span className="req-star">*</span></label>
-                                                <select
+                                                <SearchableSelect
+                                                    options={provinces}
                                                     value={addrProvince.code}
                                                     onChange={handleProvinceChange}
+                                                    placeholder="Chọn Tỉnh / Thành phố"
                                                     className={errors.recipientAddress ? "input-err" : ""}
-                                                >
-                                                    <option value="">Chọn Tỉnh / Thành phố</option>
-                                                    {provinces.map((p) => (
-                                                        <option key={p.code} value={p.code}>
-                                                            {p.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                />
                                             </div>
 
                                             <div className="form-group">
                                                 <label>Quận / Huyện <span className="req-star">*</span></label>
-                                                <select
+                                                <SearchableSelect
+                                                    options={districts}
                                                     value={addrDistrict.code}
                                                     onChange={handleDistrictChange}
                                                     disabled={!addrProvince.code}
+                                                    placeholder="Chọn Quận / Huyện"
                                                     className={errors.recipientAddress ? "input-err" : ""}
-                                                >
-                                                    <option value="">Chọn Quận / Huyện</option>
-                                                    {districts.map((d) => (
-                                                        <option key={d.code} value={d.code}>
-                                                            {d.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                />
                                             </div>
                                         </div>
 
                                         <div className="form-group-row">
                                             <div className="form-group">
                                                 <label>Phường / Xã <span className="req-star">*</span></label>
-                                                <select
+                                                <SearchableSelect
+                                                    options={wards}
                                                     value={addrWard.code}
                                                     onChange={handleWardChange}
                                                     disabled={!addrDistrict.code}
+                                                    placeholder="Chọn Phường / Xã"
                                                     className={errors.recipientAddress ? "input-err" : ""}
-                                                >
-                                                    <option value="">Chọn Phường / Xã</option>
-                                                    {wards.map((w) => (
-                                                        <option key={w.code} value={w.code}>
-                                                            {w.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                />
                                             </div>
 
                                             <div className="form-group">

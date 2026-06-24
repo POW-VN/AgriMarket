@@ -410,6 +410,11 @@ export const ShipmentRequests = () => {
     loadRequests();
   }, []);
 
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   // Reload when tab changes
   useEffect(() => {
     if (requests.length > 0) {
@@ -476,11 +481,9 @@ export const ShipmentRequests = () => {
     if (!driverForm.driverPhone.trim()) {
       errors.driverPhone = "Vui lòng nhập số điện thoại.";
     } else {
-      // Vietnamese phone: 0[3-9]xxxxxxxx (10 digits) or +84[3-9]xxxxxxxx
-      const phoneRaw = driverForm.driverPhone.trim().replace(/[\s.-]/g, "");
-      const vnPhoneRegex = /^(0[3-9][0-9]{8}|(\+84)[3-9][0-9]{8})$/;
-      if (!vnPhoneRegex.test(phoneRaw)) {
-        errors.driverPhone = "Số điện thoại không hợp lệ (VD: 0901 234 567 hoặc +84901234567).";
+      const vnPhoneRegex = /^0\d{9}$/;
+      if (!vnPhoneRegex.test(driverForm.driverPhone)) {
+        errors.driverPhone = "Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.";
       }
     }
 
@@ -641,6 +644,9 @@ export const ShipmentRequests = () => {
         <div className="as-sidebar-footer">
           <button className="as-btn-support" onClick={() => showToast("Đang tạo phiếu hỗ trợ kỹ thuật...", "success")}>
             <span className="plus-icon">+</span> Gửi hỗ trợ mới
+          </button>
+          <button className="as-btn-logout" onClick={handleLogout}>
+            <span>🚪</span> Đăng xuất
           </button>
         </div>
       </aside>
@@ -1137,9 +1143,10 @@ export const ShipmentRequests = () => {
                 <input
                   type="tel"
                   className={`driver-form-input ${driverFormErrors.driverPhone ? "input-error" : ""}`}
-                  placeholder="VD: 0901 234 567"
+                  placeholder="VD: 0901234567"
                   value={driverForm.driverPhone}
-                  onChange={(e) => { setDriverForm(f => ({ ...f, driverPhone: e.target.value })); setDriverFormErrors(err => ({ ...err, driverPhone: "" })); }}
+                  onChange={(e) => { setDriverForm(f => ({ ...f, driverPhone: e.target.value.replace(/\D/g, "").slice(0, 10) })); setDriverFormErrors(err => ({ ...err, driverPhone: "" })); }}
+                  maxLength={10}
                 />
                 {driverFormErrors.driverPhone && <span className="driver-form-error">{driverFormErrors.driverPhone}</span>}
               </div>

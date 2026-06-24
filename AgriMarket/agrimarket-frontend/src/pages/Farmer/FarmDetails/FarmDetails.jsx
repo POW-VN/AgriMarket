@@ -5,6 +5,7 @@ import authService from "../../../services/authService";
 import apiClient from "../../../services/apiClient";
 import * as addressService from "../../../services/addressService";
 import { MapPicker } from "../../../components/MapPicker/MapPicker";
+import SearchableSelect from "../../../components/common/SearchableSelect/SearchableSelect";
 import "./FarmDetails.css";
 
 export const FarmDetails = () => {
@@ -529,28 +530,36 @@ export const FarmDetails = () => {
                             <div className="field-row">
                                 <div className="field-group">
                                     <label>Tỉnh / Thành phố <span className="req">*</span></label>
-                                    <select value={selectedProvince.code} onChange={handleProvinceChange}>
-                                        <option value="">Chọn Tỉnh / Thành phố</option>
-                                        {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
-                                    </select>
+                                    <SearchableSelect
+                                        options={provinces}
+                                        value={selectedProvince.code}
+                                        onChange={handleProvinceChange}
+                                        placeholder="Chọn Tỉnh / Thành phố"
+                                    />
                                 </div>
 
                                 <div className="field-group">
                                     <label>Quận / Huyện <span className="req">*</span></label>
-                                    <select value={selectedDistrict.code} onChange={handleDistrictChange} disabled={!selectedProvince.code}>
-                                        <option value="">Chọn Quận / Huyện</option>
-                                        {districts.map(d => <option key={d.code} value={d.code}>{d.name}</option>)}
-                                    </select>
+                                    <SearchableSelect
+                                        options={districts}
+                                        value={selectedDistrict.code}
+                                        onChange={handleDistrictChange}
+                                        disabled={!selectedProvince.code}
+                                        placeholder="Chọn Quận / Huyện"
+                                    />
                                 </div>
                             </div>
 
                             <div className="field-row">
                                 <div className="field-group">
                                     <label>Phường / Xã <span className="req">*</span></label>
-                                    <select value={selectedWard.code} onChange={handleWardChange} disabled={!selectedDistrict.code}>
-                                        <option value="">Chọn Phường / Xã</option>
-                                        {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
-                                    </select>
+                                    <SearchableSelect
+                                        options={wards}
+                                        value={selectedWard.code}
+                                        onChange={handleWardChange}
+                                        disabled={!selectedDistrict.code}
+                                        placeholder="Chọn Phường / Xã"
+                                    />
                                 </div>
 
                                 <div className="field-group">
@@ -896,44 +905,35 @@ export const FarmDetails = () => {
                         <div className="input-row">
                             <div className="input-group">
                                 <label>Tỉnh / Thành phố</label>
-                                <select 
+                                <SearchableSelect
+                                    options={provinces}
                                     value={selectedProvince.code}
                                     onChange={handleProvinceChange}
-                                >
-                                    <option value="">Chọn Tỉnh / Thành phố</option>
-                                    {provinces.map((p) => (
-                                        <option key={p.code} value={p.code}>{p.name}</option>
-                                    ))}
-                                </select>
+                                    placeholder="Chọn Tỉnh / Thành phố"
+                                />
                             </div>
                             <div className="input-group">
                                 <label>Quận / Huyện</label>
-                                <select 
+                                <SearchableSelect
+                                    options={districts}
                                     value={selectedDistrict.code}
                                     onChange={handleDistrictChange}
                                     disabled={!selectedProvince.code}
-                                >
-                                    <option value="">Chọn Quận / Huyện</option>
-                                    {districts.map((d) => (
-                                        <option key={d.code} value={d.code}>{d.name}</option>
-                                    ))}
-                                </select>
+                                    placeholder="Chọn Quận / Huyện"
+                                />
                             </div>
                         </div>
 
                         <div className="input-row">
                             <div className="input-group">
                                 <label>Phường / Xã</label>
-                                <select 
+                                <SearchableSelect
+                                    options={wards}
                                     value={selectedWard.code}
                                     onChange={handleWardChange}
                                     disabled={!selectedDistrict.code}
-                                >
-                                    <option value="">Chọn Phường / Xã</option>
-                                    {wards.map((w) => (
-                                        <option key={w.code} value={w.code}>{w.name}</option>
-                                    ))}
-                                </select>
+                                    placeholder="Chọn Phường / Xã"
+                                />
                             </div>
                             <div className="input-group">
                                 <label>Số nhà / Tên đường</label>

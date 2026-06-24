@@ -45,6 +45,10 @@ const Home = () => {
   useEffect(() => {
     // Check login state
     const currentUser = authService.getCurrentUser();
+    if (currentUser && (currentUser.role === "partner" || currentUser.role === "shipper")) {
+      navigate("/shipper/requests");
+      return;
+    }
     setUser(currentUser);
 
     // Fetch approved products

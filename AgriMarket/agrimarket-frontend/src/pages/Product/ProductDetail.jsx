@@ -126,10 +126,6 @@ export default function ProductDetail() {
     } else if (product.imageUrl) {
       imgs.push(product.imageUrl);
     }
-    // Append organic certificate URL if exists
-    if (product.farmerOrganicUrl && !imgs.includes(product.farmerOrganicUrl)) {
-      imgs.push(product.farmerOrganicUrl);
-    }
     // Append traceability image URL if exists
     if (product.traceabilityImageUrl && !imgs.includes(product.traceabilityImageUrl)) {
       imgs.push(product.traceabilityImageUrl);

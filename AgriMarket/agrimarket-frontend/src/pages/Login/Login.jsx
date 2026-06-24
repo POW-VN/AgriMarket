@@ -55,7 +55,12 @@ export const LoginFarmconnect = () => {
       const response = await authService.login({ email, password, role });
       console.log("Login successful:", response);
       await syncGuestCart();
-      navigate("/");
+      const user = authService.getCurrentUser();
+      if (user && (user.role === "partner" || user.role === "shipper")) {
+        navigate("/shipper/requests");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       const errMsg = typeof err === "string" ? err : (err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
       setError(errMsg);
@@ -76,7 +81,12 @@ export const LoginFarmconnect = () => {
         });
         console.log("Google login successful:", response);
         await syncGuestCart();
-        navigate("/");
+        const user = authService.getCurrentUser();
+        if (user && (user.role === "partner" || user.role === "shipper")) {
+          navigate("/shipper/requests");
+        } else {
+          navigate("/");
+        }
       } catch (err) {
         const errMsg = typeof err === "string" ? err : (err.message || "Đăng nhập bằng Google thất bại. Vui lòng thử lại.");
         setError(errMsg);

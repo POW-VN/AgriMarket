@@ -291,6 +291,11 @@ const OrderManagement = () => {
       showToast("Vui lòng nhập đầy đủ thông tin giao hàng.");
       return;
     }
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(createFormData.phone)) {
+      showToast("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
+      return;
+    }
     
     const payload = {
       customerEmail: createFormData.customerEmail,
@@ -2009,7 +2014,8 @@ const OrderManagement = () => {
                       <input 
                         type="text" 
                         value={createFormData.phone}
-                        onChange={(e) => setCreateFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) => setCreateFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                        maxLength={10}
                         className="form-input-admin" 
                         placeholder="Nhập số điện thoại"
                         required

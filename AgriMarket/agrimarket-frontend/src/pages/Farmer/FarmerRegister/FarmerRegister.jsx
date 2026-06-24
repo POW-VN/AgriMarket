@@ -5,6 +5,7 @@ import authService from "../../../services/authService";
 import apiClient from "../../../services/apiClient";
 import * as addressService from "../../../services/addressService";
 import { MapPicker } from "../../../components/MapPicker/MapPicker";
+import SearchableSelect from "../../../components/common/SearchableSelect/SearchableSelect";
 import "./FarmerRegister.css";
 
 export const FarmerRegister = () => {
@@ -510,47 +511,35 @@ export const FarmerRegister = () => {
                             <div className="input-row">
                                 <div className="input-group">
                                     <label>Tỉnh / Thành phố <span style={{ color: '#ef4444' }}>*</span></label>
-                                    <select 
+                                    <SearchableSelect 
+                                        options={provinces}
                                         value={selectedProvince.code}
                                         onChange={handleProvinceChange}
-                                        required
-                                    >
-                                        <option value="">Chọn Tỉnh / Thành phố</option>
-                                        {provinces.map((p) => (
-                                            <option key={p.code} value={p.code}>{p.name}</option>
-                                        ))}
-                                    </select>
+                                        placeholder="Chọn Tỉnh / Thành phố"
+                                    />
                                 </div>
                                 <div className="input-group">
                                     <label>Quận / Huyện <span style={{ color: '#ef4444' }}>*</span></label>
-                                    <select 
+                                    <SearchableSelect 
+                                        options={districts}
                                         value={selectedDistrict.code}
                                         onChange={handleDistrictChange}
                                         disabled={!selectedProvince.code}
-                                        required
-                                    >
-                                        <option value="">Chọn Quận / Huyện</option>
-                                        {districts.map((d) => (
-                                            <option key={d.code} value={d.code}>{d.name}</option>
-                                        ))}
-                                    </select>
+                                        placeholder="Chọn Quận / Huyện"
+                                    />
                                 </div>
                             </div>
 
                             <div className="input-row">
                                 <div className="input-group">
                                     <label>Phường / Xã <span style={{ color: '#ef4444' }}>*</span></label>
-                                    <select 
+                                    <SearchableSelect 
+                                        options={wards}
                                         value={selectedWard.code}
                                         onChange={handleWardChange}
                                         disabled={!selectedDistrict.code}
-                                        required
-                                    >
-                                        <option value="">Chọn Phường / Xã</option>
-                                        {wards.map((w) => (
-                                            <option key={w.code} value={w.code}>{w.name}</option>
-                                        ))}
-                                    </select>
+                                        placeholder="Chọn Phường / Xã"
+                                    />
                                 </div>
                                 <div className="input-group">
                                     <label>Số nhà / Tên đường <span style={{ color: '#ef4444' }}>*</span></label>
