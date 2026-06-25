@@ -119,11 +119,20 @@ const getTypeInfo = (type) => {
         default:
             return {
                 icon: "🔔",
-                label: "Hệ thống",
+                label: "Thông báo hệ thống",
                 className: "type-system",
             };
     }
 };
+
+const notificationTabs = [
+    { value: "all", label: "Tất cả" },
+    { value: "unread", label: "Chưa đọc" },
+    { value: "order", label: "Đơn hàng" },
+    { value: "payment", label: "Thanh toán" },
+    { value: "farmer", label: "Nhà vườn" },
+    { value: "system", label: "Thông báo hệ thống" },
+];
 
 const formatTime = (dateString) => {
     if (!dateString) {
@@ -264,81 +273,24 @@ const Notifications = () => {
                     </div>
                 </section>
 
-                <section className="notification-summary-grid">
-                    <div className="notification-summary-card">
-                        <span className="summary-icon">🔔</span>
-                        <div>
-                            <p>Tất cả</p>
-                            <strong>{notifications.length}</strong>
-                        </div>
-                    </div>
-
-                    <div className="notification-summary-card unread">
-                        <span className="summary-icon">●</span>
-                        <div>
-                            <p>Chưa đọc</p>
-                            <strong>{unreadCount}</strong>
-                        </div>
-                    </div>
-
-                    <div className="notification-summary-card">
-                        <span className="summary-icon">📦</span>
-                        <div>
-                            <p>Đơn hàng</p>
-                            <strong>{countByType("order")}</strong>
-                        </div>
-                    </div>
-
-                    <div className="notification-summary-card">
-                        <span className="summary-icon">🚜</span>
-                        <div>
-                            <p>Nhà vườn</p>
-                            <strong>{countByType("farmer")}</strong>
-                        </div>
-                    </div>
-                </section>
-
                 <section className="notifications-panel">
                     <div className="notifications-tabs">
-                        <button
-                            className={activeTab === "all" ? "active" : ""}
-                            onClick={() => setActiveTab("all")}
-                        >
-                            Tất cả
-                            <span>{notifications.length}</span>
-                        </button>
-
-                        <button
-                            className={activeTab === "unread" ? "active" : ""}
-                            onClick={() => setActiveTab("unread")}
-                        >
-                            Chưa đọc
-                            <span>{unreadCount}</span>
-                        </button>
-
-                        <button
-                            className={activeTab === "order" ? "active" : ""}
-                            onClick={() => setActiveTab("order")}
-                        >
-                            Đơn hàng
-                            <span>{countByType("order")}</span>
-                        </button>
-
-                        <button
-                            className={activeTab === "payment" ? "active" : ""}
-                            onClick={() => setActiveTab("payment")}
-                        >
-                            Thanh toán
-                            <span>{countByType("payment")}</span>
-                        </button>
-
-                        <button
-                            className={activeTab === "farmer" ? "active" : ""}
-                            onClick={() => setActiveTab("farmer")}
-                        >
-                            Nhà vườn
-                            <span>{countByType("farmer")}</span>
-                        </button>
+                        {notificationTabs.map((tab) => (
+                            <button
+                                key={tab.value}
+                                className={activeTab === tab.value ? "active" : ""}
+                                onClick={() => setActiveTab(tab.value)}
+                            >
+                                {tab.label}
+                                <span>
+                                    {tab.value === "all"
+                                        ? notifications.length
+                                        : tab.value === "unread"
+                                            ? unreadCount
+                                            : countByType(tab.value)}
+                                </span>
+                            </button>
+                        ))}
                     </div>
 
                     <div className="notifications-list">
