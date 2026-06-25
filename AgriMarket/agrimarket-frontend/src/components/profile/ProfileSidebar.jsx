@@ -3,11 +3,13 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import profileService from "../../services/profileService";
 import ProfileAvatar from "./ProfileAvatar";
+import useNotifications from "../../hooks/useNotifications";
 import "../../pages/Profile/Profile.css";
 
 const ProfileSidebar = ({ profile }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount } = useNotifications();
 
   const handleLogout = () => {
     profileService.logout();
@@ -78,15 +80,29 @@ const ProfileSidebar = ({ profile }) => {
 
         {isFarmer && (
           <button
-            className={`sidebar-menu-item ${
-              location.pathname.startsWith("/farmer") ? "active" : ""
-            }`}
+            className={`sidebar-menu-item ${location.pathname.startsWith("/farmer") ? "active" : ""
+              }`}
             onClick={() => navigate("/farmer/dashboard")}
           >
             <span>🚜</span>
             Kênh nhà vườn
           </button>
         )}
+
+        <button
+          className={`sidebar-menu-item sidebar-menu-item-with-badge ${location.pathname === "/profile/notifications" ? "active" : ""
+            }`}
+          onClick={() => navigate("/profile/notifications")}
+        >
+          <span>🔔</span>
+          <span className="sidebar-menu-label">Thông báo</span>
+
+          {unreadCount > 0 && (
+            <span className="sidebar-notification-badge">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </button>
 
 
 
