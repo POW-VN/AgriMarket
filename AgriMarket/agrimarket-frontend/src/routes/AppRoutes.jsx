@@ -38,6 +38,9 @@ import ProductApproval from "../pages/Admin/ProductApproval";
 import OrderManagement from "../pages/Admin/OrderManagement";
 import ProductReview from "../pages/Orders/ProductReview";
 import ProductReviewsView from "../pages/Product/ProductReviewsView";
+import Notifications from "../pages/Profile/Notifications";
+import AdminNotifications from "../pages/Admin/Notifications/AdminNotifications";
+
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -114,6 +117,10 @@ const AppRoutes = () => {
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
+        <Route path="/profile/notifications" element={<Notifications />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
+
       </Routes>
     </BrowserRouter>
   )
