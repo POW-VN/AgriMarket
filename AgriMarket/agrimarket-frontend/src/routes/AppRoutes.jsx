@@ -18,6 +18,7 @@ import { ProductList } from "../pages/Farmer/ProductList/ProductList";
 import { FarmerRegister } from "../pages/Farmer/FarmerRegister/FarmerRegister";
 import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
 import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
+import FarmerProfile from "../pages/Farmer/FarmerProfile/FarmerProfile";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -81,6 +82,7 @@ const AppRoutes = () => {
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/register" element={<FarmerRegister />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
+        <Route path="/farmer-profile/:id" element={<FarmerProfile />} />
 
         <Route path="/farmer" element={<FarmerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />

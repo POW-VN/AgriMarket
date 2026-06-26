@@ -1306,7 +1306,11 @@ export default function ProductDetail() {
             <p className="farmer-desc-text">{product.farmDescription}</p>
 
             <div className="farmer-card-actions" style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-              <button className="btn-view-farm-profile" style={{ flex: 1 }}>
+              <button 
+                className="btn-view-farm-profile" 
+                style={{ flex: 1 }}
+                onClick={() => navigate(`/farmer-profile/${product.farmerId}`)}
+              >
                 Xem hồ sơ nông trại →
               </button>
               <button
