@@ -42,6 +42,12 @@ import ProductReview from "../pages/Orders/ProductReview";
 import ProductReviewsView from "../pages/Product/ProductReviewsView";
 import Notifications from "../pages/Profile/Notifications";
 import AdminNotifications from "../pages/Admin/Notifications/AdminNotifications";
+import SupportHub from "../pages/Profile/Support/SupportHub";
+import CreateSupportRequest from "../pages/Profile/Support/CreateSupportRequest";
+import SupportRequestSuccess from "../pages/Profile/Support/SupportRequestSuccess";
+import MySupportRequests from "../pages/Profile/Support/MySupportRequests";
+import SupportRequestDetail from "../pages/Profile/Support/SupportRequestDetail";
+import AdminComplaints from "../pages/Admin/AdminComplaints";
 
 
 const FarmsRoute = () => {
@@ -124,6 +130,12 @@ const AppRoutes = () => {
 
         <Route path="/profile/notifications" element={<Notifications />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/support" element={<SupportHub />} />
+        <Route path="/support/create" element={<CreateSupportRequest />} />
+        <Route path="/support/success/:id" element={<SupportRequestSuccess />} />
+        <Route path="/support/detail/:id" element={<SupportRequestDetail />} />
+        <Route path="/support/my-requests" element={<MySupportRequests />} />
+        <Route path="/admin/complaints" element={<AdminComplaints />} />
 
       </Routes>
     </BrowserRouter>
