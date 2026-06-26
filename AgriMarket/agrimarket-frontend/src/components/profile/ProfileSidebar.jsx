@@ -122,6 +122,14 @@ const ProfileSidebar = ({ profile }) => {
           <span>🕘</span>
           Đơn hàng của tôi
         </button>
+
+        <button
+          className={`sidebar-menu-item ${location.pathname === "/profile/wishlist" ? "active" : ""}`}
+          onClick={() => navigate("/profile/wishlist")}
+        >
+          <span>❤️</span>
+          Mục yêu thích
+        </button>
       </nav>
 
       <button className="profile-logout-button" onClick={handleLogout}>

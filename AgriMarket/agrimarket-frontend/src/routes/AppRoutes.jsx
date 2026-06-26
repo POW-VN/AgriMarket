@@ -11,6 +11,7 @@ import ChangePassword from '../pages/ChangePassword/ChangePassword'
 
 import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
+import Wishlist from "../pages/Profile/Wishlist";
 import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
 import { AddProduct } from "../pages/Farmer/AddProduct/AddProduct";
 import { ProductList } from "../pages/Farmer/ProductList/ProductList";
@@ -74,6 +75,7 @@ const AppRoutes = () => {
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/profile/orders" element={<MyOrders />} />
+        <Route path="/profile/wishlist" element={<Wishlist />} />
         <Route path="/profile/orders/:orderId/review/:itemIndex" element={<ProductReview />} />
         <Route path="/profile/orders/:id" element={<CustomerOrderDetail />} />
         <Route path="/security" element={<ChangePassword />} />

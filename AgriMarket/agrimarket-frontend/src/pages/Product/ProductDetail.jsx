@@ -7,6 +7,7 @@ import cartService from "../../services/cartService";
 import { getProductById, getAllApprovedProducts } from "../../services/productService";
 import reviewService from "../../services/reviewService";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
+import wishlistService from "../../services/wishlistService";
 import "./ProductDetail.css";
 import Header from "../../components/common/Header/Header";
 
@@ -26,6 +27,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isSaved, setIsSaved] = useState(false);
   const [savedRelatedIds, setSavedRelatedIds] = useState(new Set());
+  const [isFarmerFollowed, setIsFarmerFollowed] = useState(false);
 
   // Lightbox Modal States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -198,6 +200,8 @@ export default function ProductDetail() {
       try {
         const data = await getProductById(id);
         setProduct(data);
+        setIsSaved(wishlistService.isWishlistItem(id));
+        setIsFarmerFollowed(wishlistService.isFarmerFollowed(data.farmerId));
         if (data.images && data.images.length > 0) {
           setActiveImage(data.images[0]);
         } else {
@@ -818,12 +822,27 @@ export default function ProductDetail() {
   }, [product]);
 
   const handleSaveProduct = () => {
-    setIsSaved(!isSaved);
-    if (!isSaved) {
-      triggerToast(`Đã lưu sản phẩm "${product?.name}" vào danh sách yêu thích.`);
-    } else {
-      triggerToast(`Đã xóa sản phẩm "${product?.name}" khỏi danh sách yêu thích.`);
-    }
+    if (!product) return;
+    const res = wishlistService.toggleWishlist(product.id);
+    setIsSaved(res.saved);
+    triggerToast(res.message, res.saved ? "success" : "info");
+  };
+
+  const handleToggleFollowFarmer = () => {
+    if (!product || !product.farmerId) return;
+    const farmerObj = {
+      id: product.farmerId,
+      name: product.farmerName,
+      location: product.farmLocation,
+      description: product.farmDescription,
+      avatarUrl: product.farmerAvatarUrl,
+      vietgapUrl: product.farmerVietgapUrl,
+      globalgapUrl: product.farmerGlobalgapUrl,
+      organicUrl: product.farmerOrganicUrl,
+    };
+    const res = wishlistService.toggleFollowFarmer(farmerObj);
+    setIsFarmerFollowed(res.followed);
+    triggerToast(res.message, res.followed ? "success" : "info");
   };
 
   const toggleFaq = (index) => {
@@ -831,15 +850,15 @@ export default function ProductDetail() {
   };
 
   const handleToggleSaveRelated = (relatedId, relatedName) => {
+    const res = wishlistService.toggleWishlist(relatedId);
     const updated = new Set(savedRelatedIds);
-    if (updated.has(relatedId)) {
-      updated.delete(relatedId);
-      triggerToast(`Đã xóa "${relatedName}" khỏi danh sách yêu thích.`);
-    } else {
+    if (res.saved) {
       updated.add(relatedId);
-      triggerToast(`Đã lưu "${relatedName}" vào danh sách yêu thích.`);
+    } else {
+      updated.delete(relatedId);
     }
     setSavedRelatedIds(updated);
+    triggerToast(res.message, res.saved ? "success" : "info");
   };
 
   const formatPrice = (price) => {
@@ -1286,9 +1305,27 @@ export default function ProductDetail() {
 
             <p className="farmer-desc-text">{product.farmDescription}</p>
 
-            <button className="btn-view-farm-profile">
-              Xem hồ sơ nông trại →
-            </button>
+            <div className="farmer-card-actions" style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+              <button className="btn-view-farm-profile" style={{ flex: 1 }}>
+                Xem hồ sơ nông trại →
+              </button>
+              <button
+                className={`btn-follow-farmer ${isFarmerFollowed ? "followed" : ""}`}
+                onClick={handleToggleFollowFarmer}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  fontWeight: "700",
+                  border: isFarmerFollowed ? "1px solid #e2e8f0" : "none",
+                  backgroundColor: isFarmerFollowed ? "#e2e8f0" : "var(--profile-green, #00412f)",
+                  color: isFarmerFollowed ? "var(--profile-text, #0a2f24)" : "#ffffff",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                {isFarmerFollowed ? "✓ Đang theo dõi" : "＋ Theo dõi"}
+              </button>
+            </div>
           </div>
         </section>
       </main>
