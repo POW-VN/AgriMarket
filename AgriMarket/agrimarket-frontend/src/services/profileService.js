@@ -92,9 +92,20 @@ const deleteAccount = async () => {
   return response.data;
 };
 
+const getFarmerProfile = async (farmerId) => {
+  try {
+    const response = await apiClient.get(`/api/farmers/${farmerId}`);
+    return response.data;
+  } catch (error) {
+    console.warn(`Không thể lấy thông tin nhà vườn từ backend cho id ${farmerId}, sẽ thử lấy từ sản phẩm:`, error);
+    return null;
+  }
+};
+
 const profileService = {
   getCurrentProfile,
   updateProfile,
+  getFarmerProfile,
   changePassword,
   deleteAccount,
   logout,
