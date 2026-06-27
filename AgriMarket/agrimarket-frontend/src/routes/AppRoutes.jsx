@@ -48,6 +48,8 @@ import SupportRequestSuccess from "../pages/Profile/Support/SupportRequestSucces
 import MySupportRequests from "../pages/Profile/Support/MySupportRequests";
 import SupportRequestDetail from "../pages/Profile/Support/SupportRequestDetail";
 import AdminComplaints from "../pages/Admin/AdminComplaints";
+import LiveChat from "../pages/Profile/Support/LiveChat";
+import AdminChat from "../pages/Admin/AdminChat";
 
 
 const FarmsRoute = () => {
@@ -135,7 +137,11 @@ const AppRoutes = () => {
         <Route path="/support/success/:id" element={<SupportRequestSuccess />} />
         <Route path="/support/detail/:id" element={<SupportRequestDetail />} />
         <Route path="/support/my-requests" element={<MySupportRequests />} />
+        <Route path="/support/chat" element={<LiveChat />} />
+        <Route path="/support/chat/:requestId" element={<LiveChat />} />
         <Route path="/admin/complaints" element={<AdminComplaints />} />
+        <Route path="/admin/chat" element={<AdminChat />} />
+        <Route path="/admin/chat/:requestId" element={<AdminChat />} />
 
       </Routes>
     </BrowserRouter>

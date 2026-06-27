@@ -17,7 +17,6 @@ export default function AdminComplaints() {
   const [currentUser, setCurrentUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState("");
-  
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -620,6 +619,38 @@ export default function AdminComplaints() {
                 )}
               </div>
             )}
+
+            {/* Live Chat Action Card */}
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <h4 style={{ margin: "0 0 4px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                💬 Hỗ trợ trực tuyến
+              </h4>
+              <p style={{ margin: 0, fontSize: "13.5px", color: "var(--admin-text-muted)" }}>
+                Hỗ trợ, giải đáp và trao đổi thông tin trực tiếp với khách hàng **{req.senderName}** về yêu cầu hỗ trợ này.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate(`/admin/chat/${req.id}`)}
+                style={{ 
+                  width: "100%",
+                  padding: "12px 20px",
+                  borderRadius: "8px",
+                  border: "none",
+                  backgroundColor: "var(--admin-primary)",
+                  color: "#fff",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 2px 8px rgba(15,118,110,0.2)"
+                }}
+              >
+                <span>💬</span> Trò chuyện với Khách hàng
+              </button>
+            </div>
           </div>
 
           {/* Right Column: Processing Form */}

@@ -217,7 +217,18 @@ export default function SupportHub() {
               <div className="card-icon-wrapper blue-icon">💬</div>
               <h2>Chat trực tiếp</h2>
               <p>Nhận sự trợ giúp ngay lập tức từ các chuyên viên hỗ trợ của chúng tôi cho các thắc mắc khẩn cấp.</p>
-              <button className="support-btn btn-secondary" onClick={() => alert("Tính năng chat trực tiếp đang được phát triển. Vui lòng gửi Yêu cầu Hỗ trợ!")}>
+              <button 
+                className="support-btn btn-secondary" 
+                onClick={() => {
+                  if (!user) {
+                    navigate("/login");
+                  } else if (recentRequests.length > 0) {
+                    navigate("/support/chat");
+                  } else {
+                    navigate("/support/create?autoChat=true");
+                  }
+                }}
+              >
                 Bắt đầu Chat
               </button>
             </div>

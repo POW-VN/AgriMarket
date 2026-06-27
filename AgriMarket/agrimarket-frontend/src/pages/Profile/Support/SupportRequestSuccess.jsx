@@ -187,9 +187,9 @@ export default function SupportRequestSuccess() {
           <div className="success-action-buttons">
             <button 
               className="support-btn btn-primary-green"
-              onClick={() => navigate("/support/create")}
+              onClick={() => navigate(`/support/chat/${request.id}`)}
             >
-              Tạo yêu cầu mới
+              💬 Trò chuyện ngay
             </button>
             <button 
               className="support-btn btn-secondary"

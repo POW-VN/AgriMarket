@@ -34,6 +34,18 @@ const supportRequestService = {
       adminNotes
     });
     return response.data;
+  },
+
+  getMessages: async (requestId) => {
+    const response = await apiClient.get(`/api/support-requests/${requestId}/messages`);
+    return response.data;
+  },
+
+  sendMessage: async (requestId, content) => {
+    const response = await apiClient.post(`/api/support-requests/${requestId}/messages`, {
+      content
+    });
+    return response.data;
   }
 };
 
