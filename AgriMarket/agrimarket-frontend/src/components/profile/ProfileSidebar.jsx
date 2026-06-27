@@ -130,6 +130,14 @@ const ProfileSidebar = ({ profile }) => {
           <span>❤️</span>
           Mục yêu thích
         </button>
+
+        <button
+          className={`sidebar-menu-item ${location.pathname.startsWith("/support") ? "active" : ""}`}
+          onClick={() => navigate("/support")}
+        >
+          <span>🛠️</span>
+          Hỗ trợ & Yêu cầu
+        </button>
       </nav>
 
       <button className="profile-logout-button" onClick={handleLogout}>
