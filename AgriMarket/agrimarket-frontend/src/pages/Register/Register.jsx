@@ -14,6 +14,8 @@ export const RegisterFarmconnect = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -261,7 +263,8 @@ export const RegisterFarmconnect = () => {
                       type="tel" 
                       placeholder="0123456789" 
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      maxLength={10}
                       required
                       style={{ padding: '0 16px', outline: 'none' }}
                     />
@@ -270,30 +273,91 @@ export const RegisterFarmconnect = () => {
                     <div className="div-2">
                       <div className="text-wrapper-2">Mật khẩu</div>
                     </div>
-                    <input 
-                      className="input" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      style={{ padding: '0 16px', outline: 'none' }}
-                    />
+                    <div style={{ position: "relative", width: "100%" }}>
+                      <input 
+                        className="input" 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        style={{ padding: '0 40px 0 16px', outline: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: "absolute",
+                          right: "12px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: 0
+                        }}
+                      >
+                        {showPassword ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="12" r="3" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12A18.45 18.45 0 0 1 6.06 6.06M9.9 4.24A9.12 9.12 0 0 1 12 4C19 4 23 12 23 12A18.5 18.5 0 0 1 19.84 16.81M14.12 14.12A3 3 0 1 1 9.88 9.88" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 1L23 23" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="container-3">
                     <div className="div-2">
                       <div className="text-wrapper-2">Xác nhận mật khẩu</div>
                     </div>
-                    <input 
-                      className="input" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      style={{ padding: '0 16px', outline: 'none' }}
-                    />
+                    <div style={{ position: "relative", width: "100%" }}>
+                      <input 
+                        className="input" 
+                        type={showConfirmPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        style={{ padding: '0 40px 0 16px', outline: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={{
+                          position: "absolute",
+                          right: "12px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: 0
+                        }}
+                      >
+                        {showConfirmPassword ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="12" r="3" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12A18.45 18.45 0 0 1 6.06 6.06M9.9 4.24A9.12 9.12 0 0 1 12 4C19 4 23 12 23 12A18.5 18.5 0 0 1 19.84 16.81M14.12 14.12A3 3 0 1 1 9.88 9.88" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 1L23 23" stroke="#5c655f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
+
                 </div>
                 <div className="container-4" onClick={() => setAgreeTerms(!agreeTerms)} style={{ cursor: 'pointer' }}>
                   <div className="input-2" style={{ backgroundColor: agreeTerms ? 'var(--primary-color)' : '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '12px', fontWeight: 'bold' }}>

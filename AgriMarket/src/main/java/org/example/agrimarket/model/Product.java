@@ -51,9 +51,6 @@ public class Product {
     @Column(name = "expiration_date")
     private LocalDate expirationDate;
 
-    @Column(name = "is_organic")
-    private Boolean isOrganic = false;
-
 
     @Column(name = "traceability_image_url", length = 1000)
     private String traceabilityImageUrl;

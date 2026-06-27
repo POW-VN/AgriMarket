@@ -27,7 +27,6 @@ public class ProductResponse {
     private LocalDate harvestDate;
     private LocalDate expirationDate;
     private LocalDateTime createdAt;
-    private Boolean isOrganic;
     private String traceabilityImageUrl;
     private String thumbnailUrl;
     private List<String> images;

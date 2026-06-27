@@ -11,12 +11,14 @@ import ChangePassword from '../pages/ChangePassword/ChangePassword'
 
 import ViewProfile from "../pages/Profile/ViewProfile";
 import EditProfile from "../pages/Profile/EditProfile";
+import Wishlist from "../pages/Profile/Wishlist";
 import { FarmDetails } from "../pages/Farmer/FarmDetails/FarmDetails";
 import { AddProduct } from "../pages/Farmer/AddProduct/AddProduct";
 import { ProductList } from "../pages/Farmer/ProductList/ProductList";
 import { FarmerRegister } from "../pages/Farmer/FarmerRegister/FarmerRegister";
 import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
 import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
+import FarmerProfile from "../pages/Farmer/FarmerProfile/FarmerProfile";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -38,6 +40,17 @@ import ProductApproval from "../pages/Admin/ProductApproval";
 import OrderManagement from "../pages/Admin/OrderManagement";
 import ProductReview from "../pages/Orders/ProductReview";
 import ProductReviewsView from "../pages/Product/ProductReviewsView";
+import Notifications from "../pages/Profile/Notifications";
+import AdminNotifications from "../pages/Admin/Notifications/AdminNotifications";
+import SupportHub from "../pages/Profile/Support/SupportHub";
+import CreateSupportRequest from "../pages/Profile/Support/CreateSupportRequest";
+import SupportRequestSuccess from "../pages/Profile/Support/SupportRequestSuccess";
+import MySupportRequests from "../pages/Profile/Support/MySupportRequests";
+import SupportRequestDetail from "../pages/Profile/Support/SupportRequestDetail";
+import AdminComplaints from "../pages/Admin/AdminComplaints";
+import LiveChat from "../pages/Profile/Support/LiveChat";
+import AdminChat from "../pages/Admin/AdminChat";
+
 
 const FarmsRoute = () => {
   const user = authService.getCurrentUser();
@@ -71,11 +84,13 @@ const AppRoutes = () => {
         <Route path="/profile" element={<ViewProfile />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/profile/orders" element={<MyOrders />} />
+        <Route path="/profile/wishlist" element={<Wishlist />} />
         <Route path="/profile/orders/:orderId/review/:itemIndex" element={<ProductReview />} />
         <Route path="/profile/orders/:id" element={<CustomerOrderDetail />} />
         <Route path="/security" element={<ChangePassword />} />
         <Route path="/farmer/register" element={<FarmerRegister />} />
         <Route path="/farmer/farm-details" element={<FarmDetails />} />
+        <Route path="/farmer-profile/:id" element={<FarmerProfile />} />
 
         <Route path="/farmer" element={<FarmerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
@@ -114,6 +129,20 @@ const AppRoutes = () => {
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
+        <Route path="/profile/notifications" element={<Notifications />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/support" element={<SupportHub />} />
+        <Route path="/support/create" element={<CreateSupportRequest />} />
+        <Route path="/support/success/:id" element={<SupportRequestSuccess />} />
+        <Route path="/support/detail/:id" element={<SupportRequestDetail />} />
+        <Route path="/support/my-requests" element={<MySupportRequests />} />
+        <Route path="/support/chat" element={<LiveChat />} />
+        <Route path="/support/chat/:requestId" element={<LiveChat />} />
+        <Route path="/admin/complaints" element={<AdminComplaints />} />
+        <Route path="/admin/chat" element={<AdminChat />} />
+        <Route path="/admin/chat/:requestId" element={<AdminChat />} />
+
       </Routes>
     </BrowserRouter>
   )

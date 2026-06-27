@@ -30,7 +30,6 @@ const MOCK_PRODUCT = {
         "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600&auto=format&fit=crop&q=80",
     rating: 4.8,
     reviewsCount: 124,
-    isOrganic: true,
 };
 
 const MOCK_REVIEWS = [
@@ -194,7 +193,7 @@ export default function ProductReviewsView() {
                     imageUrl: productData.imageUrl || productData.images?.[0],
                     rating: (productData.rating !== undefined && productData.rating !== null) ? Number(productData.rating) : 0,
                     reviewsCount: (productData.reviewsCount !== undefined && productData.reviewsCount !== null) ? Number(productData.reviewsCount) : 0,
-                    isOrganic: productData.isOrganic,
+                    farmerOrganicUrl: productData.farmerOrganicUrl,
                 });
 
                 const reviewsData = await reviewService.getReviewsByProductId(id);
@@ -364,7 +363,7 @@ export default function ProductReviewsView() {
                     {/* LEFT PRODUCT CARD */}
                     <aside className="prv-product-card">
                         <div className="prv-product-image-box">
-                            {product.isOrganic && <span className="prv-organic-badge">Hữu cơ</span>}
+                            {product.farmerOrganicUrl && <span className="prv-organic-badge">Hữu cơ</span>}
                             <img src={product.imageUrl} alt={product.name} />
                         </div>
 

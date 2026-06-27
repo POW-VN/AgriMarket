@@ -38,7 +38,7 @@ public class AdminProductController {
         int descLen = pr.getDescription() != null ? pr.getDescription().length() : 0;
         int score = descLen > 200 ? 88 : descLen > 100 ? 68 : 42;
         boolean isHighPrice = pr.getPrice() != null && pr.getPrice() > 100000;
-        int riskScore = Boolean.TRUE.equals(pr.getIsOrganic()) ? 18 : 55;
+        int riskScore = (pr.getFarmerOrganicUrl() != null && !pr.getFarmerOrganicUrl().isEmpty()) ? 18 : 55;
 
         Map<String, Object> insights = new HashMap<>();
         insights.put("productId", pr.getId());
@@ -53,7 +53,7 @@ public class AdminProductController {
         insights.put("explanation", String.format(
                 "Khoảng giá đề xuất dựa trên giá thị trường danh mục \"%s\" đạt chứng nhận %s. Mức giá %s đ/%s của nhà vườn là hoàn toàn phù hợp với thị trường hiện tại.",
                 pr.getCategoryName() != null ? pr.getCategoryName() : "Nông sản",
-                Boolean.TRUE.equals(pr.getIsOrganic()) ? "Hữu cơ (+30%)" : "VietGAP",
+                (pr.getFarmerOrganicUrl() != null && !pr.getFarmerOrganicUrl().isEmpty()) ? "Hữu cơ (+30%)" : "VietGAP",
                 String.format("%,.0f", pr.getPrice()),
                 pr.getUnit() != null ? pr.getUnit() : "kg"
         ));

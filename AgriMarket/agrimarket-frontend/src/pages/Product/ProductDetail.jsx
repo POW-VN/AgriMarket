@@ -7,6 +7,7 @@ import cartService from "../../services/cartService";
 import { getProductById, getAllApprovedProducts } from "../../services/productService";
 import reviewService from "../../services/reviewService";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
+import wishlistService from "../../services/wishlistService";
 import "./ProductDetail.css";
 import Header from "../../components/common/Header/Header";
 
@@ -26,6 +27,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [isSaved, setIsSaved] = useState(false);
   const [savedRelatedIds, setSavedRelatedIds] = useState(new Set());
+  const [isFarmerFollowed, setIsFarmerFollowed] = useState(false);
 
   // Lightbox Modal States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -44,6 +46,8 @@ export default function ProductDetail() {
   // Shipping location state
   const [selectedCity, setSelectedCity] = useState("TP. Hồ Chí Minh");
   const [cartItemsCount, setCartItemsCount] = useState(0);
+  const [activeFaq, setActiveFaq] = useState(null);
+  const [isAddressExpanded, setIsAddressExpanded] = useState(false);
 
   // Reviews and Rating states
   const [reviewsList, setReviewsList] = useState([]);
@@ -124,10 +128,6 @@ export default function ProductDetail() {
     } else if (product.imageUrl) {
       imgs.push(product.imageUrl);
     }
-    // Append organic certificate URL if exists
-    if (product.isOrganic && product.certificateUrl && !imgs.includes(product.certificateUrl)) {
-      imgs.push(product.certificateUrl);
-    }
     // Append traceability image URL if exists
     if (product.traceabilityImageUrl && !imgs.includes(product.traceabilityImageUrl)) {
       imgs.push(product.traceabilityImageUrl);
@@ -200,6 +200,8 @@ export default function ProductDetail() {
       try {
         const data = await getProductById(id);
         setProduct(data);
+        setIsSaved(wishlistService.isWishlistItem(id));
+        setIsFarmerFollowed(wishlistService.isFarmerFollowed(data.farmerId));
         if (data.images && data.images.length > 0) {
           setActiveImage(data.images[0]);
         } else {
@@ -434,177 +436,429 @@ export default function ProductDetail() {
     triggerToast("Gửi nhận xét thành công! Xin cảm ơn phản hồi của bạn.");
   };
 
-  const extendedInfo = useMemo(() => {
+  const agriDetails = useMemo(() => {
     if (!product) return {};
-    const defaults = {
-      whySoughtAfter: "Sản phẩm được trồng thủ công theo phương pháp truyền thống, giữ trọn vẹn hương vị tự nhiên và giá trị dinh dưỡng cao nhất, không hóa chất bảo quản.",
-      origin: "Đà Lạt, Lâm Đồng",
-      method: "Canh tác hữu cơ an toàn",
-      shelfLife: "5 ngày (bảo quản lạnh ở nhiệt độ 5°C)",
-      howToUse: "Rửa sạch dưới vòi nước chảy trong 30 giây trước khi chế biến. Thích hợp ăn trực tiếp, làm các món salad, nấu canh hoặc ép nước uống giải nhiệt.",
-      precautions: "Bảo quản trong ngăn mát tủ lạnh ở nhiệt độ ổn định 4°C. Không dùng sản phẩm nếu có dấu hiệu hư hỏng, dập nát.",
-      shippingInfo: "Giao hàng hỏa tốc trong đúng 2 giờ tại khu vực nội thành. Giao hàng tiêu chuẩn trong đúng 2 ngày đối với tỉnh lân cận.",
-      packaging: "Đóng gói khối lượng chính xác 500g trong bao bì tự phân hủy sinh học bảo vệ môi trường."
-    };
-
     const idStr = String(product.id);
+    const nameLower = product.name.toLowerCase();
 
-    if (idStr === "mock-2" || product.name.toLowerCase().includes("cà rốt")) {
+    // 1. Cà chua (Tomato - mock-1)
+    if (idStr === "mock-1" || nameLower.includes("cà chua") || nameLower.includes("tomato")) {
       return {
-        whySoughtAfter: "Giống cà rốt gia truyền Heirloom nguyên bản giữ được vị ngọt đậm tự nhiên vượt trội, giàu vitamin A và các khoáng chất quý giá. Sản lượng thu hoạch thủ công giới hạn theo đợt gieo trồng tự nhiên.",
-        origin: "Nông trại Green Valley, Đà Lạt",
-        method: "Hữu cơ sinh học 100% (Không thuốc trừ sâu)",
-        shelfLife: "7 ngày (bảo quản lạnh ở nhiệt độ 5°C)",
-        howToUse: "Rất phù hợp làm nước ép detox thanh lọc cơ thể, nấu súp dinh dưỡng cho bé, làm salad giòn mát hoặc chế biến các món xào, luộc.",
-        precautions: "Nên giữ lớp đất bám ngoài nếu chưa ăn ngay. Rửa sạch bằng bàn chải mềm và gọt nhẹ vỏ trước khi ăn trực tiếp.",
-        shippingInfo: "Vận chuyển hỏa tốc trong đúng 2 giờ bằng thùng mát giữ tươi từ nông trại trực tiếp đến tận tay khách hàng.",
-        packaging: "Đóng gói thành 1 bó có trọng lượng chính xác 500g, quấn bằng 1 lớp lá chuối tươi hữu cơ sạch và buộc bằng 1 sợi dây đay tự nhiên."
+        story: {
+          originStory: "Giống cà chua Heirloom cổ điển được canh tác tại trang trại Happy Farm ở Lâm Đồng. Hạt giống được lưu truyền qua nhiều thế hệ giúp quả giữ nguyên hương vị mộc mạc thuở xưa.",
+          farmingMethod: "Trồng trong nhà màng tự nhiên, sử dụng các loài thiên địch để kiểm soát sâu bệnh sinh học, nói không với thuốc trừ sâu hóa học.",
+          growingConditions: "Đón nhận nắng ấm cao nguyên hơn 8 tiếng mỗi ngày cùng đất tơi xốp giàu dinh dưỡng vi sinh.",
+          seasonality: "Được thu hoạch đúng vụ khi quả chín đỏ mọng tự nhiên 100% trên cây, mang lại vị ngon đậm đà nhất.",
+          uniqueness: "Quả có kết cấu nhiều bột mịn cát, mọng nước, vị ngọt dịu xen lẫn chút chua nhẹ rất tự nhiên.",
+          sustainability: "Hệ thống tưới nhỏ giọt tiết kiệm nước và giá thể trồng từ xơ dừa hữu cơ tái chế."
+        },
+        highlights: [
+          { text: "Chín cây tự nhiên", icon: "🍅" },
+          { text: "Nhiều bột mọng nước", icon: "💦" },
+          { text: "Không thuốc trừ sâu", icon: "🌱" },
+          { text: "Hữu cơ sinh học", icon: "🌾" },
+          { text: "Thu hoạch thủ công", icon: "🙌" }
+        ],
+        nutrition: {
+          calories: "18 kcal / 100g",
+          water: "94.5%",
+          fiber: "1.2g",
+          fiberPercent: 5,
+          vitaminC: "13.7mg",
+          vitaminCPercent: 23,
+          potassium: "237mg",
+          potassiumPercent: 5,
+          lycopene: "3025mcg",
+          lycopenePercent: 15
+        },
+        usage: [
+          { text: "Nấu nước sốt mì Ý hoặc sốt cà chua đậm đà", icon: "🍝" },
+          { text: "Làm salad tươi mát giải nhiệt mùa hè", icon: "🥗" },
+          { text: "Xay sinh tố dinh dưỡng đẹp da", icon: "🍹" },
+          { text: "Ăn sống kèm muối ớt hoặc làm món xào", icon: "🍽️" }
+        ],
+        storage: {
+          temp: "18°C - 22°C (Nhiệt độ phòng thoáng mát)",
+          life: "5 - 7 ngày",
+          guide: "Nên xếp cuống cà chua hướng lên trên để quả không bị đè dập. Không để trong tủ lạnh khi quả chưa chín hoàn toàn vì hơi lạnh sẽ làm ngừng quá trình chín tự nhiên, khiến quả bị bở và giảm bớt mùi thơm."
+        },
+        faq: [
+          {
+            q: "Tại sao không nên cất cà chua vào tủ lạnh ngay khi mua về?",
+            a: "Nhiệt độ lạnh dưới 10°C sẽ làm phá hủy màng tế bào của cà chua chưa chín, ngăn cản quá trình tạo ra các chất tạo mùi thơm tự nhiên, làm cà chua bị bở và nhạt vị. Bạn nên để cà chua chín tự nhiên ở nhiệt độ phòng, sau khi chín đỏ đều mới cất tủ lạnh ăn dần trong vòng 2 ngày."
+          },
+          {
+            q: "Sản phẩm có phun thuốc kích thích chín đỏ nhanh không?",
+            a: "Tuyệt đối không. Cà chua tại Happy Farm được cam kết để chín đỏ tự nhiên trên cây và thu hoạch tỉ mỉ bằng tay. Chúng tôi cam kết nói không với hóa chất giấm chín hóa học."
+          },
+          {
+            q: "Làm thế nào để rửa sạch cà chua an toàn?",
+            a: "Bạn chỉ cần rửa nhẹ nhàng dưới vòi nước chảy để loại bỏ lớp bụi mỏng bên ngoài quả. Không nên ngâm trong nước muối quá đậm hoặc quá lâu vì có thể làm mềm vỏ quả và giảm vị ngon ngọt."
+          }
+        ]
       };
     }
 
-    if (idStr === "mock-1" || product.name.toLowerCase().includes("cà chua")) {
+    // 2. Cà rốt (Carrot - mock-2)
+    if (idStr === "mock-2" || nameLower.includes("cà rốt") || nameLower.includes("carrot")) {
       return {
-        whySoughtAfter: "Cà chua được để chín tự nhiên trên cây, vỏ mọng mọc nước, nhiều bột và có vị chua ngọt thanh mát đặc trưng khác biệt hoàn toàn với cà chua chín ép.",
-        origin: "Trang trại Happy Farm, Lâm Đồng",
-        method: "Hữu cơ tuần hoàn tiêu chuẩn VietGAP",
-        shelfLife: "5 ngày (bảo quản ở nhiệt độ 22°C)",
-        howToUse: "Ăn sống kèm salad, làm nước sốt mì Ý thơm ngon, nấu canh chua hoặc xay sinh tố giải nhiệt.",
-        precautions: "Tránh xếp đè nhiều quả lên nhau gây dập nát. Rửa nhẹ tay dưới vòi nước chảy.",
-        shippingInfo: "Giao hỏa tốc nội thành trong đúng 2 giờ, đóng hộp chống sốc chuyên dụng tránh dập nát.",
-        packaging: "Đóng gói trong 1 hộp giấy kraft thân thiện môi trường, khối lượng chính xác 500g, có vách ngăn lót xốp chống dập."
+        story: {
+          originStory: "Cà rốt giống cổ Heirloom được gieo trồng tại thung lũng đất đỏ bazan giàu khoáng chất của nông trại Green Valley tại Đà Lạt, Lâm Đồng. Đất sạch và khí hậu ôn đới lý tưởng giúp củ phát triển khỏe mạnh.",
+          farmingMethod: "Canh tác hữu cơ sinh học hoàn toàn. Sử dụng phân trùn quế tự nhiên để làm giàu dinh dưỡng cho đất mà không sử dụng hóa chất kích thích sinh trưởng.",
+          growingConditions: "Thời gian sinh trưởng dài hơn giúp củ cà rốt tích tụ tối đa hàm lượng vitamin A cùng khoáng chất ngầm từ lòng đất sâu.",
+          seasonality: "Được thu hoạch thủ công vào sáng sớm khi củ đạt độ giòn và mọng nước cao nhất, giữ được độ ngọt đậm đà vốn có.",
+          uniqueness: "Thân củ màu cam đậm đặc trưng nhờ hàm lượng Beta-Carotene vượt trội, lõi nhỏ dẻo, ngọt và không bị xơ cứng.",
+          sustainability: "Phương pháp canh tác bảo vệ lớp đất mặt, đóng gói quấn lá chuối xanh tươi và buộc bằng dây đay thiên nhiên thân thiện môi trường."
+        },
+        highlights: [
+          { text: "Ngọt đậm đà tự nhiên", icon: "🥕" },
+          { text: "Beta-Carotene cao", icon: "✨" },
+          { text: "Không hóa chất bảo quản", icon: "🛡️" },
+          { text: "Trồng đất Bazan Đà Lạt", icon: "⛰️" },
+          { text: "Đóng gói lá chuối", icon: "🍃" }
+        ],
+        nutrition: {
+          calories: "41 kcal / 100g",
+          water: "88.0%",
+          fiber: "2.8g",
+          fiberPercent: 11,
+          vitaminC: "5.9mg",
+          vitaminCPercent: 10,
+          potassium: "320mg",
+          potassiumPercent: 9,
+          vitaminA: "835mcg",
+          vitaminAPercent: 93
+        },
+        usage: [
+          { text: "Ép nước detox kết hợp táo, gừng giúp đẹp da", icon: "🍹" },
+          { text: "Nấu súp dinh dưỡng hoặc cháo ăn dặm cho trẻ em", icon: "🥣" },
+          { text: "Bào sợi trộn nộm salad giòn sần sật", icon: "🥗" },
+          { text: "Ăn sống trực tiếp như một món snack lành mạnh", icon: "🥕" }
+        ],
+        storage: {
+          temp: "3°C - 5°C (Ngăn rau củ của tủ lạnh)",
+          life: "7 - 10 ngày",
+          guide: "Nếu chưa chế biến ngay, hãy giữ nguyên lớp đất đỏ bám quanh củ. Khi cất vào tủ lạnh, cắt bỏ bớt phần lá xanh sát cuống để tránh mất nước, bọc củ bằng giấy báo hoặc khăn giấy khô rồi đặt vào túi kéo kín để hút ẩm thừa."
+        },
+        faq: [
+          {
+            q: "Tại sao cà rốt khi giao tới vẫn còn bám đất đỏ bazan?",
+            a: "Lớp đất bazan tự nhiên bọc ngoài củ hoạt động như một lớp màng sinh học bảo vệ cà rốt khỏi mất nước và ngăn cản sự xâm nhập của vi khuẩn gây thối nhũn. Giữ nguyên đất giúp cà rốt tươi lâu hơn gấp đôi so với cà rốt đã rửa nước sạch."
+          },
+          {
+            q: "Cà rốt này có cần phải gọt sạch vỏ khi nấu ăn không?",
+            a: "Vì được trồng theo phương pháp hữu cơ sinh học an toàn không thuốc trừ sâu, bạn không nhất thiết phải gọt bỏ toàn bộ lớp vỏ. Chỉ cần ngâm rửa và chà sạch đất bằng bàn chải mềm dưới vòi nước là có thể ăn cả vỏ để giữ trọn vẹn chất xơ và Beta-Carotene."
+          },
+          {
+            q: "Giống cà rốt này khác gì so với cà rốt chợ thường?",
+            a: "Cà rốt giống cổ Heirloom của Green Valley có ruột lõi rất nhỏ, kết cấu thịt chắc dẻo, không xơ và có vị ngọt đậm đặc trưng rõ rệt, đặc biệt rất thơm khi xay nước ép tươi."
+          }
+        ]
       };
     }
 
-    if (idStr === "mock-3" || product.name.toLowerCase().includes("táo")) {
+    // 3. Táo (Apple - mock-3)
+    if (idStr === "mock-3" || nameLower.includes("táo") || nameLower.includes("apple")) {
       return {
-        whySoughtAfter: "Táo giống Honeycrisp có kết cấu giòn rụm và vị ngọt đậm pha chút chua nhẹ cực kỳ sảng khoái. Được săn đón nhờ độ tươi ngon vượt trội.",
-        origin: "Vườn táo Orchard House, Đà Lạt",
-        method: "Canh tác công nghệ cao chuẩn GlobalGAP",
-        shelfLife: "14 ngày (bảo quản ở nhiệt độ 4°C)",
-        howToUse: "Ăn trực tiếp làm món tráng miệng giải nhiệt, ép nước nguyên chất, trộn salad hoặc làm nhân bánh táo nướng thơm lừng.",
-        precautions: "Rửa sạch lớp sáp bảo vệ tự nhiên bên ngoài vỏ quả bằng nước muối loãng trước khi ăn cả vỏ.",
-        shippingInfo: "Giao nhanh trong đúng 3 giờ bằng hộp carton giữ lạnh bọc túi khí chống va đập.",
-        packaging: "Đóng gói trong 1 khay giấy bọc màng co thực phẩm, khối lượng chính xác 1000g."
+        story: {
+          originStory: "Những trái táo Honeycrisp giòn ngọt được trồng tại đồi táo công nghệ cao của nhà vườn Orchard House ở Đà Lạt. Cây táo được hấp thụ đầy đủ nắng gió cao nguyên để cho quả đẹp nhất.",
+          farmingMethod: "Áp dụng kỹ thuật bao trái bằng túi sinh học trực tiếp trên cây từ lúc quả non, ngăn chặn côn trùng xâm hại một cách tự nhiên mà không cần phun thuốc hóa học lên vỏ quả.",
+          growingConditions: "Chênh lệch nhiệt độ lớn giữa ngày và đêm ở cao nguyên Đà Lạt kích thích táo tích tụ lượng mật đường tự nhiên xung quanh lõi quả.",
+          seasonality: "Táo được thu hoạch chính vụ vào cuối mùa thu, từng quả được hái tay cẩn thận, đo độ đường đạt chuẩn trước khi phân loại.",
+          uniqueness: "Thịt táo siêu giòn rụm, cắn ngập miệng mọng nước, vị chua nhẹ thanh khiết đan xen vị ngọt đậm đà khó quên.",
+          sustainability: "Dùng phân bón hữu cơ chế biến từ bã thực vật tự nhiên, kết hợp hệ thống tưới nước tiết kiệm bán tự động."
+        },
+        highlights: [
+          { text: "Siêu giòn giòn rụm", icon: "🍎" },
+          { text: "Bao trái sinh học", icon: "🛡️" },
+          { text: "Không sáp bóng hóa học", icon: "✨" },
+          { text: "Tiêu chuẩn GlobalGAP", icon: "🏆" },
+          { text: "Hái tay chọn lọc", icon: "🖐️" }
+        ],
+        nutrition: {
+          calories: "52 kcal / 100g",
+          water: "85.6%",
+          fiber: "2.4g",
+          fiberPercent: 10,
+          vitaminC: "4.6mg",
+          vitaminCPercent: 8,
+          potassium: "107mg",
+          potassiumPercent: 3,
+          antioxidants: "Dồi dào",
+          antioxidantsPercent: 20
+        },
+        usage: [
+          { text: "Tráng miệng ăn tươi nguyên quả giòn mát", icon: "🍎" },
+          { text: "Làm nước ép táo nguyên chất giàu vitamin", icon: "🥤" },
+          { text: "Làm nhân bánh táo nướng hoặc nướng tẩm mật ong", icon: "🥧" },
+          { text: "Cắt lát trộn salad trái cây kèm hạt hạnh nhân", icon: "🥗" }
+        ],
+        storage: {
+          temp: "2°C - 4°C (Ngăn mát tủ lạnh)",
+          life: "14 - 21 ngày",
+          guide: "Cất táo trong túi zip đục lỗ ở tủ lạnh. Tránh để táo sát cạnh các loại rau lá xanh hoặc bông cải vì táo chín sinh ra chất khí ethylene tự nhiên làm thúc đẩy rau bị úa vàng nhanh hơn."
+        },
+        faq: [
+          {
+            q: "Vỏ quả táo có bị phun lớp sáp bóng bảo quản không?",
+            a: "Tuyệt đối không. Lớp phấn mờ trên vỏ táo là lớp sáp tự nhiên do bản thân trái táo tiết ra để tự bảo vệ chống mất nước và côn trùng. Vườn Orchard House cam kết không sử dụng bất kỳ loại sáp nhân tạo hay chất bảo quản hóa học nào lên trái táo."
+          },
+          {
+            q: "Tại sao quả táo đôi khi có những vết trong suốt xung quanh lõi?",
+            a: "Đó gọi là hiện tượng 'táo ngấm mật' (honey core). Đây là hiện tượng sinh lý hoàn toàn tự nhiên khi táo đạt độ chín hoàn hảo, tích tụ hàm lượng đường fructose cô đặc xung quanh lõi. Những vùng thịt quả này ngọt lịm và rất thơm, không phải bị hỏng."
+          }
+        ]
       };
     }
 
-    if (idStr === "mock-4" || product.name.toLowerCase().includes("gạo")) {
+    // 4. Gạo (Rice - mock-4)
+    if (idStr === "mock-4" || nameLower.includes("gạo") || nameLower.includes("rice")) {
       return {
-        whySoughtAfter: "Gạo đặc sản Điện Biên hạt nhỏ đều, thơm dẻo đậm đà ngay cả khi để nguội. Canh tác an toàn tự nhiên.",
-        origin: "Điện Biên",
-        method: "Canh tác truyền thống tự nhiên",
-        shelfLife: "6 tháng (bảo quản nơi khô ráo ở độ ẩm dưới 12%)",
-        howToUse: "Đong gạo, vo nhẹ đúng 2 lần. Nấu với tỷ lệ chuẩn xác là 1 phần gạo kết hợp với đúng 1.1 phần nước. Ăn nóng kèm thức ăn.",
-        precautions: "Bảo quản kín sau khi mở bao bì để tránh mối mọt và mất mùi thơm.",
-        shippingInfo: "Vận chuyển tiêu chuẩn trong đúng 3 ngày, đóng bao đay chắc chắn bên ngoài.",
-        packaging: "Đóng gói trong 1 túi PE hút chân không, khối lượng chính xác 1000g giúp bảo vệ hạt gạo nguyên vẹn và thơm lâu."
+        story: {
+          originStory: "Gạo đặc sản Tám Xoan được thu hoạch từ những cánh đồng lúa nước trù phú của vùng thung lũng lòng chảo Điện Biên. Đất phù sa sông Nậm Rốm bồi đắp mang lại hương vị hạt gạo đặc trưng.",
+          farmingMethod: "Canh tác truyền thống theo mô hình lúa sạch luân canh. Sử dụng nguồn nước mát lành từ dòng suối vùng cao chảy tự nhiên vào ruộng lúa.",
+          growingConditions: "Hạt lúa đón nhận ánh nắng rực rỡ ban ngày và khí trời mát lạnh ban đêm vùng núi Tây Bắc, giúp hạt lúa chín chắc hạt, tích tụ hương thơm đậm.",
+          seasonality: "Mỗi năm chỉ trồng đúng một vụ chiêm/mùa chính, thu hoạch thủ công và phơi nắng tự nhiên trên sân gạch để giữ hương gạo mộc mạc.",
+          uniqueness: "Hạt gạo nhỏ, thon dài, màu trắng đục nhẹ. Khi nấu cho cơm dẻo, thơm ngào ngạt hương nếp cốm non và cơm vẫn dẻo ngọt dù để nguội.",
+          sustainability: "Phương pháp canh tác ruộng bậc thang kết hợp chăn nuôi vịt làm cỏ tự nhiên, cam kết không lạm dụng phân hóa học."
+        },
+        highlights: [
+          { text: "Thơm dẻo cốm non", icon: "🌾" },
+          { text: "Đất phù sa Điện Biên", icon: "🏞️" },
+          { text: "Nguồn nước suối rừng", icon: "💧" },
+          { text: "Không tẩm hương liệu", icon: "🛡" },
+          { text: "Hút chân không bảo vệ", icon: "📦" }
+        ],
+        nutrition: {
+          calories: "348 kcal / 100g",
+          water: "12.0%",
+          carbs: "79.0g",
+          carbsPercent: 26,
+          protein: "6.5g",
+          proteinPercent: 13,
+          potassium: "85mg",
+          potassiumPercent: 2,
+          vitaminB1: "0.12mg",
+          vitaminB1Percent: 8
+        },
+        usage: [
+          { text: "Nấu cơm nóng gia đình dẻo ngọt ăn hàng ngày", icon: "🍚" },
+          { text: "Nấu cháo dinh dưỡng sánh nhuyễn thơm bùi", icon: "🥣" },
+          { text: "Làm cơm cơm cháy chà bông siêu giòn", icon: "🍳" },
+          { text: "Nấu cơm lam ống tre mang vị núi rừng đặc sản", icon: "🪵" }
+        ],
+        storage: {
+          temp: "Nhiệt độ phòng (dưới 28°C), nơi khô ráo thoáng mát",
+          life: "6 tháng",
+          guide: "Tránh ánh nắng mặt trời trực tiếp và nơi ẩm ướt. Sau khi mở túi chân không, nên trút gạo vào thùng kín có nắp đậy chặt (thùng gỗ, nhựa PP sạch) để tránh ẩm mốc và sự xâm nhập của mối mọt."
+        },
+        faq: [
+          {
+            q: "Tại sao gạo nấu cơm dẻo hơn hẳn gạo thông thường?",
+            a: "Gạo Tám Xoan Điện Biên có cấu trúc tinh bột amylose thấp hơn, kết hợp trồng trên thổ nhưỡng thung lũng có chênh lệch nhiệt độ cao giúp cơm dính dẻo tự nhiên, giữ vị ngọt lâu dài ngay cả khi nguội lạnh mà không cần tẩm phụ gia."
+          },
+          {
+            q: "Gạo có chất chống mối mọt hay sấy hóa chất không?",
+            a: "AgriMarket cam kết hạt gạo sạch thô 100%, được đóng gói hút chân không an toàn để bảo quản tự nhiên mà không dùng bất kỳ chất phun sấy diệt côn trùng hay chất chống mốc hóa học nào."
+          }
+        ]
       };
     }
 
-    if (idStr === "mock-5" || product.name.toLowerCase().includes("dâu tây")) {
+    // 5. dâu tây (Strawberry - mock-5)
+    if (idStr === "mock-5" || nameLower.includes("dâu") || nameLower.includes("strawberry")) {
       return {
-        whySoughtAfter: "Dâu tây giống New Zealand trồng thủy canh theo tiêu chuẩn khắt khe, trái to mọng, ngọt thơm đặc trưng.",
-        origin: "Đà Lạt, Lâm Đồng",
-        method: "Canh tác thủy canh an toàn",
-        shelfLife: "3 ngày (bảo quản lạnh ở nhiệt độ 4°C)",
-        howToUse: "Tráng qua nước lọc lạnh, cắt bỏ cuống. Dùng trực tiếp hoặc trộn sữa yogurt, làm sinh tố dâu tây ngon tuyệt.",
-        precautions: "Tránh chạm mạnh làm dập dâu tây, chỉ rửa ngay trước khi ăn.",
-        shippingInfo: "Giao nhanh trong đúng 2 giờ bằng túi cách nhiệt chuyên dụng giữ mát nội thành.",
-        packaging: "Đóng gói trong 1 hộp nhựa PET thoáng khí có khối lượng chính xác 250g, có lót mút xốp dày 5mm giảm chấn bảo vệ."
+        story: {
+          originStory: "Dâu tây giống New Zealand chuẩn A được trồng thủy canh hiện đại tại nông trại BerryLand ở vùng đồi thông Đà Lạt, Lâm Đồng.",
+          farmingMethod: "Hệ thống canh tác trên giàn cao cách mặt đất 1.2m, hoàn toàn tránh được mầm bệnh từ đất. Thụ phấn bằng ong nuôi tự nhiên trong vườn kính.",
+          growingConditions: "Nước tưới được lọc tinh khiết và kiểm soát dinh dưỡng chính xác bằng hệ thống máy tính tự động hóa chuẩn châu Âu.",
+          seasonality: "Dâu cho trái rải rác quanh năm dưới thời tiết nhà màng bảo vệ, quả được tuyển chọn thu hoạch khi đạt đúng 90% độ chín đỏ đẹp.",
+          uniqueness: "Quả dâu tây trái to, thon dài căng mọng, cuống xanh tươi, thịt quả giòn ngọt mát dịu và thơm nồng nàn đặc trưng.",
+          sustainability: "Hệ thống thủy canh tuần hoàn khép kín thu hồi nước thừa, không xả thải hóa chất ra nguồn nước tự nhiên."
+        },
+        highlights: [
+          { text: "Thủy canh giàn cao", icon: "🍓" },
+          { text: "Không mầm bệnh từ đất", icon: "🛡️" },
+          { text: "Giòn thơm New Zealand", icon: "🇳🇿" },
+          { text: "Thụ phấn nhờ ong", icon: "🐝" },
+          { text: "Hộp lót mút chống dập", icon: "📦" }
+        ],
+        nutrition: {
+          calories: "32 kcal / 100g",
+          water: "91.0%",
+          vitaminC: "58.8mg",
+          vitaminCPercent: 98,
+          fiber: "2.0g",
+          fiberPercent: 8,
+          potassium: "153mg",
+          potassiumPercent: 4,
+          folate: "24mcg",
+          folatePercent: 6
+        },
+        usage: [
+          { text: "Dùng trực tiếp tráng miệng tươi ngon mọng nước", icon: "🍓" },
+          { text: "Dầm cùng sữa chua không đường và hạt chia ăn kiêng", icon: "🥣" },
+          { text: "Xay sinh tố kem dâu mát lạnh sảng khoái", icon: "🍹" },
+          { text: "Làm mứt dâu phết bánh mì hoặc làm trà dâu tây", icon: "🍞" }
+        ],
+        storage: {
+          temp: "3°C - 5°C (Ngăn mát tủ lạnh)",
+          life: "3 ngày",
+          guide: "Tránh va chạm mạnh vì dâu rất dễ dập. Chỉ rửa dâu ngay trước khi ăn vì nước bám ngoài sẽ làm dâu nhanh úng thối. Nên lót một lớp khăn giấy dưới đáy hộp đựng dâu để hút ẩm trong tủ lạnh."
+        },
+        faq: [
+          {
+            q: "Tại sao trái dâu có thời gian bảo quản khá ngắn?",
+            a: "Dâu tây là loại quả mọng nước, vỏ siêu mỏng và không có lớp sáp bảo vệ. Chúng tôi hoàn toàn không phun hóa chất ức chế nấm hay chất chống hỏng sau thu hoạch nên dâu cần được ăn tươi sớm trong vòng 3 ngày để đảm bảo vị ngon lành nhất."
+          },
+          {
+            q: "Quả dâu tây này có ngọt hoàn toàn không?",
+            a: "Giống dâu New Zealand tại Đà Lạt có vị ngọt mát hài hòa đi kèm một chút chua thanh nhẹ đặc trưng ở đầu lưỡi, chứ không ngọt lịm hoàn toàn như dâu tẩm hóa chất tạo ngọt. Vị chua thanh này chứng minh quả dâu chín tự nhiên dồi dào Vitamin C."
+          }
+        ]
       };
     }
 
-    if (idStr === "mock-6" || product.name.toLowerCase().includes("mật ong")) {
+    // 6. Mật ong (Honey - mock-6)
+    if (idStr === "mock-6" || nameLower.includes("mật ong") || nameLower.includes("honey")) {
       return {
-        whySoughtAfter: "Mật ong tự nhiên từ hoa nhãn Hưng Yên thơm nồng, sánh đặc, cam kết nguyên chất 100% không pha tạp.",
-        origin: "Khoái Châu, Hưng Yên",
-        method: "Khai thác mật ong hoa nhãn tự nhiên",
-        shelfLife: "2 năm (đậy kín ở nhiệt độ phòng 25°C)",
-        howToUse: "Pha nước ấm uống vào buổi sáng detox, dùng làm gia vị ướp thịt nướng, pha nước cam, chanh giải nhiệt.",
-        precautions: "Không bảo quản mật ong trong tủ lạnh vì dễ bị kết tinh đường. Không dùng cho trẻ dưới 1 tuổi.",
-        shippingInfo: "Giao tiêu chuẩn trong đúng 2 ngày, bọc chống sốc dầy dặn chống bể vỡ.",
-        packaging: "Đóng gói trong 1 chai thủy tinh cao cấp, khối lượng mật ong chính xác là 650g (chứa đúng 500ml mật ong nguyên chất), quấn bọc bằng 1 lớp giấy kraft bảo vệ."
+        story: {
+          originStory: "Mật ong nguyên chất được khai thác từ những cánh rừng nhãn bạt ngàn tại Khoái Châu, Hưng Yên. Đàn ong được đặt trực tiếp dưới những tán cây nhãn cổ thụ trong mùa hoa nở.",
+          farmingMethod: "Khai thác bằng phương pháp quay ly tâm truyền thống vệ sinh, lọc thô bỏ sáp ong, giữ nguyên vẹn các hạt phấn hoa nhãn tự nhiên bổ dưỡng.",
+          growingConditions: "Những giọt mật ong mang hương thơm nhãn đặc trưng được đàn ong mật chăm chỉ tích tụ từ bầu không khí trong lành miền quê sông Hồng.",
+          seasonality: "Chỉ thu hoạch duy nhất vào đợt hoa nhãn nở rộ tháng 3 - tháng 4 âm lịch hàng năm để có chất lượng mật ngon sánh nhất.",
+          uniqueness: "Mật có màu vàng óng ánh hổ phách, đặc sánh, vị ngọt đậm sắc sảo và mang hương thơm ngào ngạt thanh khiết của hoa nhãn chín.",
+          sustainability: "Duy trì mô hình nuôi ong tự nhiên bảo vệ đa dạng sinh học hệ sinh thái cây ăn quả hữu cơ địa phương."
+        },
+        highlights: [
+          { text: "Hoa nhãn nguyên chất", icon: "🐝" },
+          { text: "Màu hổ phách óng ánh", icon: "🍯" },
+          { text: "Không pha trộn đường", icon: "🛡️" },
+          { text: "Quay ly tâm thô sạch", icon: "⚙️" },
+          { text: "Chai thủy tinh cao cấp", icon: "🍾" }
+        ],
+        nutrition: {
+          calories: "304 kcal / 100g",
+          water: "17.1%",
+          carbs: "82.0g",
+          carbsPercent: 27,
+          sugar: "82.0g",
+          antioxidants: "Dồi dào",
+          zinc: "0.22mg",
+          zincPercent: 2
+        },
+        usage: [
+          { text: "Pha cùng nước ấm và chanh tươi uống detox buổi sáng", icon: "🍋" },
+          { text: "Dùng làm gia vị ướp thịt nướng giúp lên màu vàng đẹp", icon: "🥩" },
+          { text: "Rưới lên bánh mì kẹp hoặc bánh pancake tráng miệng", icon: "🥞" },
+          { text: "Hấp tỏi chanh đào trị ho tự nhiên hiệu quả", icon: "🧪" }
+        ],
+        storage: {
+          temp: "18°C - 25°C (Nhiệt độ phòng, bóng mát)",
+          life: "2 năm",
+          guide: "Tránh ánh nắng mặt trời chiếu trực tiếp. Tuyệt đối không cất mật ong trong tủ lạnh vì nhiệt độ lạnh dưới 12°C sẽ kích thích mật ong nguyên chất kết tinh thành các hạt đường đường glucose trắng ở đáy chai, làm giảm chất lượng mật."
+        },
+        faq: [
+          {
+            q: "Tại sao mật ong hoa nhãn nguyên chất bị đóng đường ở đáy khi trời lạnh?",
+            a: "Đây là hiện tượng vật lý hoàn toàn tự nhiên của mật ong thật nguyên chất (kết tinh đường tự nhiên). Mật chứa nhiều hạt phấn hoa nhỏ li ti và hàm lượng glucose tự nhiên cao. Để khắc phục, bạn chỉ cần ngâm chai mật vào nước ấm 60°C trong 15 phút mật sẽ tan chảy sánh mịn lại bình thường."
+          },
+          {
+            q: "Trẻ em có sử dụng được mật ong không?",
+            a: "Tuyệt đối không dùng mật ong cho trẻ dưới 1 tuổi vì hệ tiêu hóa non nớt của bé chưa tự bảo vệ được trước các bào tử vi khuẩn tự nhiên có thể tồn tại trong mật ong sống."
+          }
+        ]
       };
     }
 
-    if (idStr === "mock-7" || product.name.toLowerCase().includes("tiêu")) {
-      return {
-        whySoughtAfter: "Hạt tiêu chín đỏ được hái lượm thủ công, phơi sấy tự nhiên cho hương vị cay nồng nàn thơm lâu đặc biệt.",
-        origin: "Chư Sê, Gia Lai",
-        method: "Phơi sấy tự nhiên sạch bụi bẩn",
-        shelfLife: "18 tháng (bảo quản nơi khô ráo dưới 25°C)",
-        howToUse: "Dùng để ướp các món kho, xào, nướng hoặc rắc lên món ăn chín để tăng hương vị.",
-        precautions: "Nên đậy kín sau khi sử dụng để giữ mùi thơm cay nồng lâu nhất.",
-        shippingInfo: "Giao tiêu chuẩn trong đúng 3 ngày toàn quốc.",
-        packaging: "Đóng gói trong 1 hũ thủy tinh có đầu xay tiện lợi, khối lượng chính xác 100g, tháo nắp bảo vệ để xay trực tiếp vào món ăn."
-      };
-    }
-
-    if (idStr === "mock-8" || product.name.toLowerCase().includes("trà")) {
-      return {
-        whySoughtAfter: "Trà Ô Long tuyển chọn từ búp trà tươi 1 tôm 2 lá vùng chè Cầu Đất, vị tiền chát ngọt hậu kéo dài.",
-        origin: "Cầu Đất, Đà Lạt",
-        method: "Thu hoạch tay thủ công và lên men bán phần",
-        shelfLife: "12 tháng (đậy kín tránh ánh sáng mặt trời)",
-        howToUse: "Tráng nước sôi ấm trà, dùng đúng 5g trà hãm với đúng 150ml nước sôi ở nhiệt độ đúng 90°C trong đúng 45 giây và thưởng thức.",
-        precautions: "Không nên uống trà khi đói hoặc trước khi đi ngủ.",
-        shippingInfo: "Giao nhanh nội thành trong đúng 1 ngày hoặc giao tiêu chuẩn trong đúng 2 ngày.",
-        packaging: "Đóng gói trong 1 túi nhôm hút chân không bảo vệ tối đa hương trà, đặt trong hộp thiếc cao cấp khối lượng chính xác 250g."
-      };
-    }
-
-    if (idStr === "mock-9" || product.name.toLowerCase().includes("thịt")) {
-      return {
-        whySoughtAfter: "Heo rừng lai được chăn thả tự nhiên, thức ăn hữu cơ, thịt chắc, bì giòn ngọt, ít mỡ cực kỳ thơm ngon.",
-        origin: "Trang trại Khánh Hòa",
-        method: "Chăn thả tự nhiên hữu cơ",
-        shelfLife: "3 tháng (bảo quản đông lạnh ở nhiệt độ -18°C)",
-        howToUse: "Rã đông tự nhiên, thái mỏng làm các món hấp sả, xào sả ớt, nướng mọi hoặc giả cầy.",
-        precautions: "Không tái cấp đông sau khi đã rã đông hoàn toàn.",
-        shippingInfo: "Vận chuyển nhanh trong đúng 2 giờ bằng thùng xốp trữ đá mát giữ thịt đông lạnh ổn định.",
-        packaging: "Thịt heo rừng cắt miếng vuông vức, đóng gói trong khay hút chân không khối lượng chính xác 1000g."
-      };
-    }
-
-    if (idStr === "mock-10" || product.name.toLowerCase().includes("xoài")) {
-      return {
-        whySoughtAfter: "Cây giống xoài cát Hòa Lộc chuẩn F1, khỏe mạnh, sạch sâu bệnh, dễ trồng và nhanh ra quả.",
-        origin: "Cái Bè, Tiền Giang",
-        method: "Nhân giống ghép cành tuyển chọn",
-        shelfLife: "Phải trồng xuống đất trong đúng 2 ngày sau khi nhận cây để bảo đảm tỉ lệ sống",
-        howToUse: "Đào hố rộng hơn bầu đất, bóc nhẹ túi nilon bầu, đặt cây xuống, nén nhẹ đất và tưới đẫm nước.",
-        precautions: "Che mát cho cây con trong đúng 14 ngày đầu tiên sau khi hạ thổ.",
-        shippingInfo: "Giao nhanh trong đúng 2 ngày bằng xe chuyên dụng chở cây xanh.",
-        packaging: "Bầu đất xơ dừa bọc bao tải đay bảo vệ rễ khỏe mạnh, buộc tag giống chuẩn F1, chiều cao cây đúng 70cm."
-      };
-    }
-
-    return {
-      ...defaults,
-      origin: product.farmLocation || defaults.origin,
-      packaging: "Đóng gói tiêu chuẩn khối lượng chính xác 500g trong bao bì sinh học tự phân hủy bảo vệ môi trường."
+    // Generic Fallback (for other products)
+    const defaults = {
+      story: {
+        originStory: `Sản phẩm này được thu hoạch từ các hộ nông trại và hợp tác xã liên kết chặt chẽ cùng AgriMarket tại ${product.farmLocation || "Lâm Đồng, Việt Nam"}. Quy trình trồng trọt được theo dõi sát sao từ gieo hạt đến thu hoạch để đảm bảo chất lượng an lành nhất.`,
+        farmingMethod: "Ứng dụng phương pháp sản xuất nông nghiệp tốt (Good Agricultural Practices), sử dụng phân hữu cơ ủ hoai mục và hạn chế tối đa các chế phẩm vô cơ.",
+        growingConditions: "Môi trường đất đai và nguồn nước được xét nghiệm định kỳ đạt chuẩn không chứa kim loại nặng và độc tố hóa học nguy hại.",
+        seasonality: "Sản phẩm được bán theo đúng mùa vụ tự nhiên để quả ngọt tự nhiên nhất và không lạm dụng chất giấm ép chín.",
+        uniqueness: "Nông sản tươi sạch được thu hoạch tươi sống tại vườn và chuyển giao trực tiếp đến tay người tiêu dùng trong thời gian ngắn nhất.",
+        sustainability: "AgriMarket hỗ trợ nông nghiệp bền vững, trả mức giá công bằng cho nông dân và đóng gói sản phẩm thân thiện với thiên nhiên."
+      },
+      highlights: [
+        { text: "Canh tác an toàn", icon: "🌱" },
+        { text: "Không chất bảo quản", icon: "🛡️" },
+        { text: "Thu hoạch tươi sống", icon: "🌾" },
+        { text: "Nguồn gốc rõ ràng", icon: "🔍" },
+        { text: "Hỗ trợ nông dân Việt", icon: "🇻🇳" }
+      ],
+      nutrition: {
+        calories: "35 kcal / 100g",
+        water: "85% - 90%",
+        fiber: "Dồi dào chất xơ",
+        vitaminC: "Nguồn Vitamin C tự nhiên",
+        potassium: "Giàu kali & khoáng chất",
+        naturalPurity: "100% tươi sạch"
+      },
+      usage: [
+        { text: "Chế biến các món xào, luộc ngon miệng trong bữa cơm gia đình", icon: "🍳" },
+        { text: "Ăn sống tươi ngon hoặc trộn salad mát lành giải nhiệt", icon: "🥗" },
+        { text: "Ép nước uống hoặc làm sinh tố bổ dưỡng tăng sức đề kháng", icon: "🍹" }
+      ],
+      storage: {
+        temp: "5°C - 8°C (Ngăn rau tủ lạnh)",
+        life: "3 - 5 ngày",
+        guide: "Nên làm ráo nước sản phẩm trước khi cất giữ. Sử dụng các túi bọc có đục lỗ thoát khí để tránh tích tụ hơi nước làm úng lá héo củ. Tránh đè các vật nặng lên sản phẩm dễ gây dập nát."
+      },
+      faq: [
+        {
+          q: "Làm thế nào để tôi kiểm chứng nguồn gốc sản phẩm này?",
+          a: "Mọi sản phẩm trên AgriMarket đều đính kèm thông tin nhà vườn cụ thể ở phần thông tin phía trên. Bạn có thể nhấn vào để xem chi tiết hồ sơ nông trại, chứng chỉ kiểm định và ảnh chụp truy xuất thực địa tại nông trại."
+        },
+        {
+          q: "Nếu sản phẩm nhận được bị hư hỏng, dập nát thì xử lý như thế nào?",
+          a: "Chính sách của AgriMarket cam kết hoàn tiền 100% hoặc đổi trả miễn phí đối với sản phẩm bị dập nát, hỏng hóc do quá trình vận chuyển. Bạn chỉ cần chụp ảnh sản phẩm lỗi và gửi phản hồi yêu cầu đổi trả trên ứng dụng trong vòng 24 giờ sau khi nhận hàng."
+        }
+      ]
     };
+
+    return defaults;
   }, [product]);
 
   const handleSaveProduct = () => {
-    setIsSaved(!isSaved);
-    if (!isSaved) {
-      triggerToast(`Đã lưu sản phẩm "${product?.name}" vào danh sách yêu thích.`);
-    } else {
-      triggerToast(`Đã xóa sản phẩm "${product?.name}" khỏi danh sách yêu thích.`);
-    }
+    if (!product) return;
+    const res = wishlistService.toggleWishlist(product.id);
+    setIsSaved(res.saved);
+    triggerToast(res.message, res.saved ? "success" : "info");
+  };
+
+  const handleToggleFollowFarmer = () => {
+    if (!product || !product.farmerId) return;
+    const farmerObj = {
+      id: product.farmerId,
+      name: product.farmerName,
+      location: product.farmLocation,
+      description: product.farmDescription,
+      avatarUrl: product.farmerAvatarUrl,
+      vietgapUrl: product.farmerVietgapUrl,
+      globalgapUrl: product.farmerGlobalgapUrl,
+      organicUrl: product.farmerOrganicUrl,
+    };
+    const res = wishlistService.toggleFollowFarmer(farmerObj);
+    setIsFarmerFollowed(res.followed);
+    triggerToast(res.message, res.followed ? "success" : "info");
+  };
+
+  const toggleFaq = (index) => {
+    setActiveFaq(activeFaq === index ? null : index);
   };
 
   const handleToggleSaveRelated = (relatedId, relatedName) => {
+    const res = wishlistService.toggleWishlist(relatedId);
     const updated = new Set(savedRelatedIds);
-    if (updated.has(relatedId)) {
-      updated.delete(relatedId);
-      triggerToast(`Đã xóa "${relatedName}" khỏi danh sách yêu thích.`);
-    } else {
+    if (res.saved) {
       updated.add(relatedId);
-      triggerToast(`Đã lưu "${relatedName}" vào danh sách yêu thích.`);
+    } else {
+      updated.delete(relatedId);
     }
     setSavedRelatedIds(updated);
+    triggerToast(res.message, res.saved ? "success" : "info");
   };
 
   const formatPrice = (price) => {
@@ -616,6 +870,17 @@ export default function ProductDetail() {
       }
     }
     return new Intl.NumberFormat("vi-VN").format(price) + " đ";
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "Đang cập nhật";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   if (loading) {
@@ -688,7 +953,7 @@ export default function ProductDetail() {
           >
             {mainImageError ? (
               <div className="main-image-placeholder-broken">
-                {product.isOrganic && activeImage === product.certificateUrl ? "📜" : "🌾"}
+                {product.farmerOrganicUrl && activeImage === product.farmerOrganicUrl ? "📜" : "🌾"}
                 <p style={{ fontSize: "14px", marginTop: "8px", color: "#6b7280" }}>Hình ảnh không khả dụng</p>
               </div>
             ) : getFileExtension(activeImage) === "pdf" ? (
@@ -711,7 +976,7 @@ export default function ProductDetail() {
           {allImages.length > 1 && (
             <div className="thumbnail-gallery">
               {allImages.map((imgUrl, idx) => {
-                const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                const isCertificate = product.farmerOrganicUrl && imgUrl === product.farmerOrganicUrl;
                 const isTraceability = product.traceabilityImageUrl && imgUrl === product.traceabilityImageUrl;
                 const isPdf = getFileExtension(imgUrl) === "pdf";
                 const isBroken = brokenImages[idx];
@@ -759,7 +1024,7 @@ export default function ProductDetail() {
         <section className="product-info-section">
           <h1 className="product-title">{product.name}</h1>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px", marginBottom: "12px" }}>
-            {(product.isOrganic || product.farmerOrganicUrl) && (
+            {product.farmerOrganicUrl && (
               <span className="tag-pill tag-organic" style={{ 
                 backgroundColor: "#e8f5e9", 
                 color: "#2e7d32", 
@@ -827,6 +1092,33 @@ export default function ProductDetail() {
           <div className="price-display">
             <span className="price-amount">{formatPrice(product.price)}</span>
             <span className="price-unit">/ {product.unit === "bunch" ? "bó" : product.unit === "bag" ? "túi" : product.unit === "3lbs" ? "túi" : product.unit || "bó"}</span>
+          </div>
+
+          {/* Harvest & Origin Metadata Info Bar */}
+          <div className="harvest-meta-spec">
+            <div className="harvest-meta-item">
+              <span className="harvest-meta-icon">📍</span>
+              <div className="harvest-meta-text">
+                <span className="harvest-meta-label">Nơi thu hoạch</span>
+                <span className="harvest-meta-val" title={product.farmLocation || "Lâm Đồng, Việt Nam"}>
+                  {product.farmLocation || "Lâm Đồng, Việt Nam"}
+                </span>
+              </div>
+            </div>
+            <div className="harvest-meta-item">
+              <span className="harvest-meta-icon">📅</span>
+              <div className="harvest-meta-text">
+                <span className="harvest-meta-label">Ngày thu hoạch</span>
+                <span className="harvest-meta-val">{formatDate(product.harvestDate)}</span>
+              </div>
+            </div>
+            <div className="harvest-meta-item">
+              <span className="harvest-meta-icon">⏳</span>
+              <div className="harvest-meta-text">
+                <span className="harvest-meta-label">Hạn sử dụng</span>
+                <span className="harvest-meta-val">{formatDate(product.expirationDate)}</span>
+              </div>
+            </div>
           </div>
 
           <div className="product-desc-box">
@@ -1013,105 +1305,151 @@ export default function ProductDetail() {
 
             <p className="farmer-desc-text">{product.farmDescription}</p>
 
-            <button className="btn-view-farm-profile">
-              Xem hồ sơ nông trại →
-            </button>
+            <div className="farmer-card-actions" style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+              <button 
+                className="btn-view-farm-profile" 
+                style={{ flex: 1 }}
+                onClick={() => navigate(`/farmer-profile/${product.farmerId}`)}
+              >
+                Xem hồ sơ nông trại →
+              </button>
+              <button
+                className={`btn-follow-farmer ${isFarmerFollowed ? "followed" : ""}`}
+                onClick={handleToggleFollowFarmer}
+                style={{
+                  padding: "10px 16px",
+                  borderRadius: "10px",
+                  fontWeight: "700",
+                  border: isFarmerFollowed ? "1px solid #e2e8f0" : "none",
+                  backgroundColor: isFarmerFollowed ? "#e2e8f0" : "var(--profile-green, #00412f)",
+                  color: isFarmerFollowed ? "var(--profile-text, #0a2f24)" : "#ffffff",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                {isFarmerFollowed ? "✓ Đang theo dõi" : "＋ Theo dõi"}
+              </button>
+            </div>
           </div>
         </section>
       </main>
 
-      {/* Detailed Product Info Section */}
-      <section className="product-extended-details-section">
-        <h2 className="extended-section-title">Thông tin chi tiết nông sản</h2>
-
-        <div className="extended-details-grid">
-          {/* Card 1: Vì sao săn tìm */}
-          <div className="extended-card-item highlight-green">
-            <div className="extended-card-header">
-              <span className="extended-icon">🌟</span>
-              <h3>Vì sao được săn đón?</h3>
+      {/* Redesigned Value-Added Product Details Section */}
+      <section className="product-redesigned-details-section">
+        <div className="details-layout-full-width">
+          {/* Full Width: Product Specifications Card */}
+          <div className="details-specifications-card full-width">
+            <h2 className="details-card-title-main">📋 Thông tin chi tiết nông sản</h2>
+            <div className="spec-list-table">
+              <div className="spec-row">
+                <span className="spec-label">Tên sản phẩm</span>
+                <span className="spec-value">{product.name}</span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Danh mục rau củ</span>
+                <span className="spec-value">{product.category || "Rau củ quả tươi"}</span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Nhà vườn sản xuất</span>
+                <span className="spec-value">{product.farmerName || "Nông trại AgriMarket"}</span>
+              </div>
+              <div className="spec-row spec-row-address">
+                <span className="spec-label">Nơi thu hoạch (Địa chỉ)</span>
+                <span className="spec-value spec-value-address">
+                  {product.farmLocation && product.farmLocation.length > 40 ? (
+                    <>
+                      <span className={`address-text ${isAddressExpanded ? "expanded" : "collapsed"}`}>
+                        {isAddressExpanded ? product.farmLocation : `${product.farmLocation.substring(0, 38)}...`}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-toggle-address"
+                        onClick={() => setIsAddressExpanded(!isAddressExpanded)}
+                      >
+                        {isAddressExpanded ? " Rút gọn ▴" : " Xem thêm ▾"}
+                      </button>
+                    </>
+                  ) : (
+                    product.farmLocation || "Lâm Đồng, Việt Nam"
+                  )}
+                </span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Ngày thu hoạch</span>
+                <span className="spec-value">{formatDate(product.harvestDate)}</span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Hạn sử dụng / Ngày hết hạn</span>
+                <span className="spec-value">{formatDate(product.expirationDate)}</span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Quy cách đóng gói</span>
+                <span className="spec-value">{product.unit || "Sản phẩm"}</span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Độ hư hỏng / Vận chuyển</span>
+                <span className="spec-value" style={{ textTransform: "capitalize" }}>
+                  {product.perishability || "Khô (Giao toàn quốc)"}
+                </span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Khoảng cách giao tối đa</span>
+                <span className="spec-value">
+                  {product.limitDistance ? `${product.limitDistance} km` : "Không giới hạn (Giao toàn quốc)"}
+                </span>
+              </div>
+              <div className="spec-row">
+                <span className="spec-label">Tiêu chuẩn chất lượng</span>
+                <span className="spec-value">
+                  {product.farmerOrganicUrl ? "Hữu cơ (Organic)" : product.farmerVietgapUrl ? "Tiêu chuẩn VietGAP" : product.farmerGlobalgapUrl ? "Tiêu chuẩn GlobalGAP" : "Nông sản sạch an toàn"}
+                </span>
+              </div>
             </div>
-            <p>{extendedInfo.whySoughtAfter}</p>
           </div>
 
-          {/* Card 2: Thông tin sản phẩm */}
-          <div className="extended-card-item">
-            <div className="extended-card-header">
-              <span className="extended-icon">📋</span>
-              <h3>Thông tin sản phẩm</h3>
-            </div>
-            <ul className="extended-specs-list">
-              <li>
-                <strong>Nguồn gốc:</strong> <span>{extendedInfo.origin}</span>
-              </li>
-              <li>
-                <strong>Canh tác:</strong> <span>{extendedInfo.method}</span>
-              </li>
-              {product.harvestDate ? (
-                <li>
-                  <strong>Ngày thu hoạch/đóng gói:</strong> <span>{product.harvestDate}</span>
-                </li>
-              ) : (
-                <li>
-                  <strong>Ngày thu hoạch/đóng gói:</strong> <span>Chưa xác định</span>
-                </li>
-              )}
-              {product.expirationDate ? (
-                <li>
-                  <strong>Hạn sử dụng:</strong> <span>{product.expirationDate}</span>
-                </li>
-              ) : (
-                <li>
-                  <strong>Hạn bảo quản:</strong> <span>{extendedInfo.shelfLife}</span>
-                </li>
-              )}
-              {product.traceabilityImageUrl && (
-                <li>
-                  <strong>Truy xuất nguồn gốc:</strong>{" "}
-                  <a href={product.traceabilityImageUrl} target="_blank" rel="noreferrer" style={{ color: "var(--primary-color)", fontWeight: "600", textDecoration: "underline" }}>
-                    Xem ảnh truy xuất
-                  </a>
-                </li>
-              )}
+          {/* Quality Commitment from AgriMarket */}
+          <div className="agrimarket-commitment-box-redesigned full-width">
+            <h4>🤝 Cam kết từ AgriMarket</h4>
+            <ul className="commitment-list-small">
+              <li><span>✅</span> 100% Tươi sạch tự nhiên, thu hoạch tại vườn</li>
+              <li><span>✅</span> Đền bù hoàn tiền nếu nông sản dập nát, hỏng lỗi</li>
+              <li><span>✅</span> Nhà vườn được xác minh uy tín & kiểm định thực địa</li>
+              <li><span>✅</span> Quy trình vận chuyển an toàn giữ nguyên dưỡng chất</li>
             </ul>
           </div>
+        </div>
 
-          {/* Card 3: Cách sử dụng */}
-          <div className="extended-card-item">
-            <div className="extended-card-header">
-              <span className="extended-icon">🍽️</span>
-              <h3>Hướng dẫn sử dụng</h3>
-            </div>
-            <p>{extendedInfo.howToUse}</p>
-          </div>
-
-          {/* Card 4: Lưu ý */}
-          <div className="extended-card-item">
-            <div className="extended-card-header">
-              <span className="extended-icon">⚠️</span>
-              <h3>Lưu ý bảo quản</h3>
-            </div>
-            <p>{extendedInfo.precautions}</p>
-          </div>
-
-          {/* Card 5: Đóng gói */}
-          <div className="extended-card-item">
-            <div className="extended-card-header">
-              <span className="extended-icon">📦</span>
-              <h3>Quy cách đóng gói</h3>
-            </div>
-            <p>{extendedInfo.packaging}</p>
-          </div>
-
-          {/* Card 6: Vận chuyển */}
-          <div className="extended-card-item">
-            <div className="extended-card-header">
-              <span className="extended-icon">🚚</span>
-              <h3>Địa điểm vận chuyển</h3>
-            </div>
-            <p>{extendedInfo.shippingInfo}</p>
+        {/* Section 8: FAQ Accordion */}
+        <div className="details-faq-accordion-section">
+          <h2 className="faq-section-title-main">💬 Câu hỏi thường gặp (FAQ)</h2>
+          <div className="faq-accordion-container">
+            {agriDetails.faq.map((faqItem, idx) => {
+              const isOpen = activeFaq === idx;
+              return (
+                <div key={idx} className={`faq-accordion-item ${isOpen ? "open" : ""}`}>
+                  <button 
+                    className="faq-accordion-question" 
+                    onClick={() => toggleFaq(idx)}
+                    aria-expanded={isOpen}
+                  >
+                    <span>{faqItem.q}</span>
+                    <span className="faq-arrow-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </span>
+                  </button>
+                  <div className="faq-accordion-answer">
+                    <div className="faq-answer-inner">
+                      <p>{faqItem.a}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
+
       </section>
 
       {/* Reviews Section */}
@@ -1389,7 +1727,7 @@ export default function ProductDetail() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="lightbox-counter">
-              {product.isOrganic && allImages[lightboxIndex] === product.certificateUrl ? (
+              {product.farmerOrganicUrl && allImages[lightboxIndex] === product.farmerOrganicUrl ? (
                 <span>🌱 Giấy chứng nhận hữu cơ ({lightboxIndex + 1} / {allImages.length})</span>
               ) : (
                 <span>Hình ảnh sản phẩm ({lightboxIndex + 1} / {allImages.length})</span>
@@ -1399,7 +1737,7 @@ export default function ProductDetail() {
             {allImages.length > 1 && (
               <div className="lightbox-thumbnails-strip">
                 {allImages.map((imgUrl, idx) => {
-                  const isCertificate = product.isOrganic && product.certificateUrl && imgUrl === product.certificateUrl;
+                  const isCertificate = product.farmerOrganicUrl && imgUrl === product.farmerOrganicUrl;
                   const isPdf = getFileExtension(imgUrl) === "pdf";
 
                   return (

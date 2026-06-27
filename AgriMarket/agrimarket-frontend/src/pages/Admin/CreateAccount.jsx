@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
 import * as addressService from "../../services/addressService";
+import SearchableSelect from "../../components/common/SearchableSelect/SearchableSelect";
+import { MapPicker } from "../../components/MapPicker/MapPicker";
 import "./AdminStyles.css";
 
 const CreateAccount = () => {
@@ -34,7 +36,9 @@ const CreateAccount = () => {
   const [farmName, setFarmName] = useState("");
   const [farmAddress, setFarmAddress] = useState("");
   const [farmDescription, setFarmDescription] = useState("");
-  const [farmCategories, setFarmCategories] = useState(["Fruits", "Organic"]);
+  const [maxDeliveryDistance, setMaxDeliveryDistance] = useState(50.0);
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
 
   // Detailed address states for farmer (matching FarmerRegister.jsx)
   const [provinces, setProvinces] = useState([]);
@@ -124,6 +128,8 @@ const CreateAccount = () => {
       setSelectedDistrict({ code: "", name: "" });
       setSelectedWard({ code: "", name: "" });
       setWards([]);
+      setLatitude(null);
+      setLongitude(null);
       try {
         const districtData = await addressService.getDistricts(provinceCode);
         setDistricts(districtData);
@@ -136,6 +142,8 @@ const CreateAccount = () => {
       setSelectedWard({ code: "", name: "" });
       setDistricts([]);
       setWards([]);
+      setLatitude(null);
+      setLongitude(null);
     }
   };
 
@@ -145,6 +153,8 @@ const CreateAccount = () => {
     if (districtObj) {
       setSelectedDistrict({ code: districtCode, name: districtObj.name });
       setSelectedWard({ code: "", name: "" });
+      setLatitude(null);
+      setLongitude(null);
       try {
         const wardData = await addressService.getWards(districtCode);
         setWards(wardData);
@@ -155,6 +165,8 @@ const CreateAccount = () => {
       setSelectedDistrict({ code: "", name: "" });
       setSelectedWard({ code: "", name: "" });
       setWards([]);
+      setLatitude(null);
+      setLongitude(null);
     }
   };
 
@@ -163,8 +175,16 @@ const CreateAccount = () => {
     const wardObj = wards.find(w => w.code === parseInt(wardCode));
     if (wardObj) {
       setSelectedWard({ code: wardCode, name: wardObj.name });
+      if (!latitude || !longitude) {
+        setLatitude(null);
+        setLongitude(null);
+      }
     } else {
       setSelectedWard({ code: "", name: "" });
+      if (!latitude || !longitude) {
+        setLatitude(null);
+        setLongitude(null);
+      }
     }
   };
 
@@ -224,15 +244,138 @@ const CreateAccount = () => {
     }
   };
 
-  // Category tags manipulation
-  const handleRemoveCategory = (tag) => {
-    setFarmCategories(farmCategories.filter(c => c !== tag));
-  };
+  const handleMapLocationChange = async (lat, lng, isGeocodedFromAddress = false) => {
+    setLatitude(lat);
+    setLongitude(lng);
 
-  const handleAddCategory = () => {
-    const newTag = window.prompt("Nhập danh mục sản phẩm của trang trại:");
-    if (newTag && newTag.trim() && !farmCategories.includes(newTag.trim())) {
-      setFarmCategories([...farmCategories, newTag.trim()]);
+    if (isGeocodedFromAddress) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
+        headers: {
+          "User-Agent": "AgriMarket-Application/1.0",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.address) {
+          const addr = data.address;
+          const streetName = addr.road || addr.suburb || addr.neighbourhood || "";
+          const houseNo = addr.house_number || "";
+          const streetValue = houseNo ? `${houseNo} ${streetName}` : streetName;
+          
+          if (streetValue) {
+            setStreet(streetValue);
+          }
+
+          // Match Province/City
+          const provinceCandidates = [
+            addr.city,
+            addr.province,
+            addr.state
+          ].filter(Boolean);
+
+          let provinceMatch = null;
+          if (provinces.length > 0) {
+            for (const candidate of provinceCandidates) {
+              const normProv = addressService.normalizeName(candidate);
+              provinceMatch = provinces.find(
+                (p) => addressService.normalizeName(p.name) === normProv
+              );
+              if (provinceMatch) break;
+            }
+          }
+
+          if (provinceMatch) {
+            const provCode = provinceMatch.code;
+            const isProvinceChanged = selectedProvince.code !== String(provCode);
+            if (isProvinceChanged) {
+              setSelectedProvince({ code: String(provCode), name: provinceMatch.name });
+            }
+
+            // Load and Match District
+            let dists = districts;
+            if (isProvinceChanged || dists.length === 0) {
+              dists = await addressService.getDistricts(provCode);
+              setDistricts(dists);
+            }
+
+            const districtCandidates = [
+              addr.district,
+              addr.city_district,
+              addr.county,
+              addr.suburb,
+              addr.town
+            ].filter(Boolean);
+
+            let districtMatch = null;
+            if (dists.length > 0) {
+              for (const candidate of districtCandidates) {
+                const normDist = addressService.normalizeName(candidate);
+                districtMatch = dists.find(
+                  (d) => addressService.normalizeName(d.name) === normDist
+                );
+                if (districtMatch) break;
+              }
+            }
+
+            if (districtMatch) {
+              const distCode = districtMatch.code;
+              const isDistrictChanged = selectedDistrict.code !== String(distCode);
+              if (isDistrictChanged || isProvinceChanged) {
+                setSelectedDistrict({ code: String(distCode), name: districtMatch.name });
+              }
+
+              // Load and Match Ward
+              let wds = wards;
+              if (isDistrictChanged || isProvinceChanged || wds.length === 0) {
+                wds = await addressService.getWards(distCode);
+                setWards(wds);
+              }
+
+              const wardCandidates = [
+                addr.quarter,
+                addr.suburb,
+                addr.village,
+                addr.town,
+                addr.neighbourhood,
+                addr.subdistrict,
+                addr.hamlet
+              ].filter(Boolean);
+
+              let wardMatch = null;
+              if (wds.length > 0) {
+                for (const candidate of wardCandidates) {
+                  const normWard = addressService.normalizeName(candidate);
+                  wardMatch = wds.find(
+                    (w) => addressService.normalizeName(w.name) === normWard
+                  );
+                  if (wardMatch) break;
+                }
+              }
+
+              if (wardMatch) {
+                setSelectedWard({ code: String(wardMatch.code), name: wardMatch.name });
+              } else {
+                if (isDistrictChanged || isProvinceChanged) {
+                  setSelectedWard({ code: "", name: "" });
+                }
+              }
+            } else {
+              if (isProvinceChanged) {
+                setSelectedDistrict({ code: "", name: "" });
+                setSelectedWard({ code: "", name: "" });
+                setWards([]);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Reverse geocoding failed: ", err);
+      alert("Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu (Rate Limit/CORS). Vui lòng điền địa chỉ thủ công hoặc thử lại sau 1-2 phút.");
     }
   };
 
@@ -285,6 +428,10 @@ const CreateAccount = () => {
     if (role === "farmer") {
       if (!farmName.trim()) {
         setErrorMsg("Vui lòng điền tên trang trại.");
+        return;
+      }
+      if (!maxDeliveryDistance) {
+        setErrorMsg("Vui lòng nhập bán kính giao hàng tối đa.");
         return;
       }
       if (!identityCard.trim()) {
@@ -343,12 +490,14 @@ const CreateAccount = () => {
         farmName: farmName.trim(),
         farmAddress: finalFarmAddress,
         description: farmDescription.trim(),
-        categories: farmCategories,
         identityCard: identityCard.trim(),
         businessRegistrationUrl: businessRegistrationUrl || null,
         vietgapUrl: hasVietgap ? vietgapUrl : null,
         globalgapUrl: hasGlobalgap ? globalgapUrl : null,
-        organicUrl: hasOrganic ? organicUrl : null
+        organicUrl: hasOrganic ? organicUrl : null,
+        maxDeliveryDistance: parseFloat(maxDeliveryDistance) || 50.0,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null
       }),
       ...(role === "customer" && {
         customerAddress,
@@ -466,12 +615,14 @@ const CreateAccount = () => {
         farmName: farmName.trim(),
         farmAddress: finalFarmAddress,
         description: farmDescription.trim(),
-        categories: farmCategories,
         identityCard: identityCard.trim(),
         businessRegistrationUrl: businessRegistrationUrl || null,
         vietgapUrl: hasVietgap ? vietgapUrl : null,
         globalgapUrl: hasGlobalgap ? globalgapUrl : null,
-        organicUrl: hasOrganic ? organicUrl : null
+        organicUrl: hasOrganic ? organicUrl : null,
+        maxDeliveryDistance: parseFloat(maxDeliveryDistance) || 50.0,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null
       }),
       ...(role === "customer" && {
         customerAddress,
@@ -601,9 +752,21 @@ const CreateAccount = () => {
             </span>
             Giao dịch
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
             <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
+            Hỗ trợ
+          </button>
+          <button className="admin-nav-item" onClick={() => alert("Tính năng quản lý khiếu nại đang phát triển.")}>
+            <span className="admin-nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
             </span>
             Khiếu nại
           </button>
@@ -705,7 +868,8 @@ const CreateAccount = () => {
                         className="form-control"
                         placeholder="0123456789"
                         value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        maxLength={10}
                         required
                         style={{ paddingRight: "36px" }}
                       />
@@ -751,7 +915,17 @@ const CreateAccount = () => {
                         className="btn-toggle-password"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? "👁️" : "👁️‍🗨️"}
+                        {showPassword ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12A18.45 18.45 0 0 1 6.06 6.06M9.9 4.24A9.12 9.12 0 0 1 12 4C19 4 23 12 23 12A18.5 18.5 0 0 1 19.84 16.81M14.12 14.12A3 3 0 1 1 9.88 9.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 1L23 23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
                       </button>
                     </div>
                     {/* Password Strength Indicator */}
@@ -858,16 +1032,30 @@ const CreateAccount = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>Số CCCD / CMND *</label>
+                      <label>Bán kính giao hàng tối đa (km) *</label>
                       <input
-                        type="text"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
                         className="form-control"
-                        placeholder="Nhập số CCCD hoặc CMND của bạn"
-                        value={identityCard}
-                        onChange={(e) => setIdentityCard(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="Ví dụ: 50"
+                        value={maxDeliveryDistance}
+                        onChange={(e) => setMaxDeliveryDistance(e.target.value)}
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Số CCCD / CMND *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Nhập số CCCD hoặc CMND của bạn"
+                      value={identityCard}
+                      onChange={(e) => setIdentityCard(e.target.value.replace(/[^0-9]/g, ''))}
+                      required
+                    />
                   </div>
 
                   <div className="section-title-register">Địa chỉ trang trại</div>
@@ -875,51 +1063,36 @@ const CreateAccount = () => {
                   <div className="form-grid-2">
                     <div className="form-group">
                       <label>Tỉnh / Thành phố *</label>
-                      <select
-                        className="form-control"
+                      <SearchableSelect
+                        options={provinces}
                         value={selectedProvince.code}
                         onChange={handleProvinceChange}
-                        required
-                      >
-                        <option value="">Chọn Tỉnh / Thành phố</option>
-                        {provinces.map((p) => (
-                          <option key={p.code} value={p.code}>{p.name}</option>
-                        ))}
-                      </select>
+                        placeholder="Chọn Tỉnh / Thành phố"
+                      />
                     </div>
                     
                     <div className="form-group">
                       <label>Quận / Huyện *</label>
-                      <select
-                        className="form-control"
+                      <SearchableSelect
+                        options={districts}
                         value={selectedDistrict.code}
                         onChange={handleDistrictChange}
                         disabled={!selectedProvince.code}
-                        required
-                      >
-                        <option value="">Chọn Quận / Huyện</option>
-                        {districts.map((d) => (
-                          <option key={d.code} value={d.code}>{d.name}</option>
-                        ))}
-                      </select>
+                        placeholder="Chọn Quận / Huyện"
+                      />
                     </div>
                   </div>
 
                   <div className="form-grid-2">
                     <div className="form-group">
                       <label>Phường / Xã *</label>
-                      <select
-                        className="form-control"
+                      <SearchableSelect
+                        options={wards}
                         value={selectedWard.code}
                         onChange={handleWardChange}
                         disabled={!selectedDistrict.code}
-                        required
-                      >
-                        <option value="">Chọn Phường / Xã</option>
-                        {wards.map((w) => (
-                          <option key={w.code} value={w.code}>{w.name}</option>
-                        ))}
-                      </select>
+                        placeholder="Chọn Phường / Xã"
+                      />
                     </div>
 
                     <div className="form-group">
@@ -929,7 +1102,13 @@ const CreateAccount = () => {
                         className="form-control"
                         placeholder="Số 123, đường..."
                         value={street}
-                        onChange={(e) => setStreet(e.target.value)}
+                        onChange={(e) => {
+                          setStreet(e.target.value);
+                          if (latitude || longitude) {
+                            setLatitude(null);
+                            setLongitude(null);
+                          }
+                        }}
                         required
                       />
                     </div>
@@ -948,45 +1127,17 @@ const CreateAccount = () => {
                     ></textarea>
                   </div>
 
-                  <div className="form-group">
-                    <label>Danh mục sản phẩm (Chọn nhiều)</label>
-                    <div className="category-tags-row" style={{ marginTop: "8px" }}>
-                      {farmCategories.map((cat) => (
-                        <div key={cat} className="category-tag">
-                          {cat}
-                          <button type="button" className="btn-tag-remove" onClick={() => handleRemoveCategory(cat)}>
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                      {isAddingFarmCat ? (
-                        <div style={{ display: "inline-flex", gap: "4px" }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Nhập và ấn enter..."
-                            style={{ padding: "4px 8px", fontSize: "12px", height: "28px", width: "110px" }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                const val = e.target.value.trim();
-                                if (val && !farmCategories.includes(val)) {
-                                  setFarmCategories([...farmCategories, val]);
-                                }
-                                setIsAddingFarmCat(false);
-                              }
-                            }}
-                            onBlur={() => setIsAddingFarmCat(false)}
-                            autoFocus
-                          />
-                        </div>
-                      ) : (
-                        <button type="button" className="btn-tag-add" onClick={() => setIsAddingFarmCat(true)}>
-                          + Thêm
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <MapPicker
+                    latitude={latitude}
+                    longitude={longitude}
+                    onChange={handleMapLocationChange}
+                    defaultAddress={addressService.formatAddress({
+                      street: street.trim(),
+                      ward: selectedWard.name,
+                      district: selectedDistrict.name,
+                      province: selectedProvince.name
+                    })}
+                  />
 
                   <div className="form-group">
                     <label>Ảnh Trang trại</label>

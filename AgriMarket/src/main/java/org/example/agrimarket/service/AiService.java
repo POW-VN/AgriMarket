@@ -45,7 +45,7 @@ public class AiService {
         }
     }
 
-    public String generateProductDescription(String productName, String category, Boolean isOrganic, String harvestDate, String expirationDate, String farmerEmail) {
+    public String generateProductDescription(String productName, String category, String harvestDate, String expirationDate, String farmerEmail) {
         if (productName == null || productName.trim().isEmpty()) {
             return "Vui lòng nhập tên sản phẩm để AI có thể gợi ý mô tả chi tiết nhất.";
         }
@@ -86,9 +86,7 @@ public class AiService {
                     .append("- Tên sản phẩm: ").append(productName.trim()).append("\n")
                     .append("- Danh mục: ").append(category != null ? category.trim() : "Nông sản").append("\n");
 
-            if (isOrganic != null && isOrganic) {
-                promptBuilder.append("- Chứng nhận hữu cơ của sản phẩm: Có (Đạt tiêu chuẩn hữu cơ)\n");
-            }
+
             if (harvestDate != null && !harvestDate.trim().isEmpty()) {
                 promptBuilder.append("- Ngày thu hoạch: ").append(harvestDate).append("\n");
             }
@@ -164,7 +162,7 @@ public class AiService {
         }
     }
 
-    public AiPriceResponse suggestProductPrice(String productName, String category, Boolean isOrganic, String unit, String harvestDate, String expirationDate, String farmerEmail) {
+    public AiPriceResponse suggestProductPrice(String productName, String category, String unit, String harvestDate, String expirationDate, String farmerEmail) {
         if (productName == null || productName.trim().isEmpty()) {
             throw new RuntimeException("Tên sản phẩm trống.");
         }
@@ -204,9 +202,7 @@ public class AiService {
                     .append("- Danh mục: ").append(category != null ? category.trim() : "Nông sản").append("\n")
                     .append("- Đơn vị tính: ").append(unit != null ? unit.trim() : "kg").append("\n");
 
-            if (isOrganic != null && isOrganic) {
-                promptBuilder.append("- Chứng nhận hữu cơ của sản phẩm: Có (Đạt tiêu chuẩn hữu cơ)\n");
-            }
+
             if (harvestDate != null && !harvestDate.trim().isEmpty()) {
                 promptBuilder.append("- Ngày thu hoạch: ").append(harvestDate).append("\n");
             }

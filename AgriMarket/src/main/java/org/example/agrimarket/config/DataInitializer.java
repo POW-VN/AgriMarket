@@ -130,6 +130,25 @@ public class DataInitializer implements CommandLineRunner {
             System.err.println(">>> DataInitializer: Could not update product table limit_distance: " + e.getMessage());
         }
 
+        // Clean up redundant legacy column is_organic in product table
+        try {
+            // Drop default constraints if any
+            jdbcTemplate.execute(
+                    "DECLARE @ConstraintName nvarchar(200)\n" +
+                            "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
+                            "WHERE parent_object_id = OBJECT_ID('product') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('product'), 'is_organic', 'ColumnId')\n" +
+                            "IF @ConstraintName IS NOT NULL\n" +
+                            "    EXEC('ALTER TABLE product DROP CONSTRAINT ' + @ConstraintName);");
+
+            // Drop column
+            jdbcTemplate.execute(
+                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'is_organic')\n" +
+                            "    ALTER TABLE product DROP COLUMN is_organic;");
+            System.out.println(">>> DataInitializer: Dropped is_organic column from product table.");
+        } catch (Exception e) {
+            System.err.println(">>> DataInitializer: Could not drop is_organic column from product table: " + e.getMessage());
+        }
+
         // Clean up redundant legacy columns in orders table
         String[] ordersCols = { "checkout_id", "total_price", "shipping_address" };
         for (String col : ordersCols) {

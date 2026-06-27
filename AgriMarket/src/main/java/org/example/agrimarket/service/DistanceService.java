@@ -43,13 +43,7 @@ public class DistanceService {
             return calculateFallbackDistance(fromAddress, toAddress);
         }
 
-        // Get routing distance from OSRM
-        Double routeDistance = getOSRMRouteDistance(fromCoord, toCoord);
-        if (routeDistance != null) {
-            return routeDistance;
-        }
-
-        // Fallback to Haversine distance if OSRM routing fails
+        // Use Haversine distance directly as primary to align with frontend straight-line calculation
         return calculateHaversineDistance(fromCoord, toCoord);
     }
 

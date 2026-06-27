@@ -148,7 +148,6 @@ CREATE TABLE product (
     status VARCHAR(20) CHECK(status IN ('draft','pending','approved','rejected','hidden','sold_out')) DEFAULT 'draft',
     harvest_date DATE,
     expiration_date DATE,
-    is_organic BIT DEFAULT 0,
     traceability_image_url NVARCHAR(1000),
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME NULL,

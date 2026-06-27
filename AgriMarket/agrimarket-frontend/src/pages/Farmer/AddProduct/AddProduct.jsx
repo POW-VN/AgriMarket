@@ -17,6 +17,56 @@ const CATEGORIES = [
 
 const UNITS = ["kg", "bó", "thùng", "cái", "lít"];
 
+const toDisplayDate = (isoDate) => {
+  if (!isoDate) return "";
+  const parts = isoDate.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return isoDate;
+};
+
+const toIsoDate = (displayDate) => {
+  if (!displayDate) return "";
+  const parts = displayDate.split("/");
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    if (day && month && year && year.length === 4) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+  return "";
+};
+
+const isValidDateStr = (dateStr) => {
+  if (!dateStr) return false;
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false;
+  const parts = dateStr.split("/");
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+  
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  
+  const dateObj = new Date(year, month - 1, day);
+  return dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day;
+};
+
+const handleDateInputChange = (value, setter) => {
+  let clean = value.replace(/[^0-9/]/g, "");
+  if (clean.length === 2 && !clean.includes("/")) {
+    clean = clean + "/";
+  } else if (clean.length === 5 && clean.split("/").length === 2) {
+    clean = clean + "/";
+  }
+  if (clean.length <= 10) {
+    setter(clean);
+  }
+};
+
 export const AddProduct = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -121,8 +171,8 @@ export const AddProduct = () => {
               setCategory("Khác");
               setCustomCategory(prod.category || "");
             }
-            setHarvestDate(prod.harvestDate ? prod.harvestDate.substring(0, 10) : "");
-            setExpirationDate(prod.expirationDate ? prod.expirationDate.substring(0, 10) : "");
+            setHarvestDate(prod.harvestDate ? toDisplayDate(prod.harvestDate.substring(0, 10)) : "");
+            setExpirationDate(prod.expirationDate ? toDisplayDate(prod.expirationDate.substring(0, 10)) : "");
             setDescription(prod.description || "");
             setBasePrice(prod.price || "");
             
@@ -183,8 +233,8 @@ export const AddProduct = () => {
       const response = await apiClient.post("/api/ai/generate-description", {
         productName: productName.trim(),
         category: category === "Khác" ? customCategory.trim() : category,
-        harvestDate: harvestDate || null,
-        expirationDate: expirationDate || null
+        harvestDate: harvestDate ? toIsoDate(harvestDate) : null,
+        expirationDate: expirationDate ? toIsoDate(expirationDate) : null
       });
 
       if (response.data && response.data.description) {
@@ -218,8 +268,8 @@ export const AddProduct = () => {
         productName: productName.trim(),
         category: category === "Khác" ? customCategory.trim() : category,
         unit: selectedUnit,
-        harvestDate: harvestDate || null,
-        expirationDate: expirationDate || null
+        harvestDate: harvestDate ? toIsoDate(harvestDate) : null,
+        expirationDate: expirationDate ? toIsoDate(expirationDate) : null
       });
 
       if (response.data && response.data.recommendedPrice) {
@@ -292,6 +342,42 @@ export const AddProduct = () => {
     if (productImages.length === 0) {
       newErrors.images = "Hình ảnh sản phẩm là bắt buộc. Vui lòng chọn ít nhất một hình ảnh.";
     }
+
+    // Harvest date is required and must be valid dd/mm/yyyy
+    if (!harvestDate) {
+      newErrors.harvestDate = "Vui lòng nhập ngày thu hoạch.";
+    } else if (!isValidDateStr(harvestDate)) {
+      newErrors.harvestDate = "Định dạng ngày thu hoạch không hợp lệ (dd/mm/yyyy).";
+    } else {
+      const harvestIso = toIsoDate(harvestDate);
+      if (harvestIso) {
+        const harvest = new Date(harvestIso);
+        harvest.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (harvest > today) {
+          newErrors.harvestDate = "Ngày thu hoạch phải là ngày ở quá khứ hoặc hôm nay.";
+        }
+      }
+    }
+
+    // Expiration date must be valid and after harvest date
+    if (expirationDate) {
+      if (!isValidDateStr(expirationDate)) {
+        newErrors.expirationDate = "Định dạng hạn sử dụng không hợp lệ (dd/mm/yyyy).";
+      } else if (harvestDate && isValidDateStr(harvestDate)) {
+        const harvestIso = toIsoDate(harvestDate);
+        const expIso = toIsoDate(expirationDate);
+        if (harvestIso && expIso) {
+          const harvest = new Date(harvestIso);
+          const expiration = new Date(expIso);
+          if (expiration <= harvest) {
+            newErrors.expirationDate = "Ngày hạn sử dụng phải sau ngày thu hoạch.";
+          }
+        }
+      }
+    }
+
     setErrors(newErrors);
 
     const isValid = Object.keys(newErrors).length === 0;
@@ -314,8 +400,8 @@ export const AddProduct = () => {
         stockQuantity: parseInt(stockQty),
         unit: selectedUnit,
         status: "pending",
-        harvestDate: harvestDate || null,
-        expirationDate: expirationDate || null,
+        harvestDate: harvestDate ? toIsoDate(harvestDate) : null,
+        expirationDate: expirationDate ? toIsoDate(expirationDate) : null,
         traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
         traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
@@ -351,8 +437,8 @@ export const AddProduct = () => {
         stockQuantity: stockQty ? parseInt(stockQty) : 0,
         unit: selectedUnit,
         status: "draft",
-        harvestDate: harvestDate || null,
-        expirationDate: expirationDate || null,
+        harvestDate: harvestDate ? toIsoDate(harvestDate) : null,
+        expirationDate: expirationDate ? toIsoDate(expirationDate) : null,
         traceabilityImageBase64: traceabilityFile ? traceabilityFile.url : null,
         traceabilityImageName: traceabilityFile ? traceabilityFile.name : null,
         images: productImages.map((img) => img.url),
@@ -602,23 +688,29 @@ export const AddProduct = () => {
 
               <div className="ap-grid-3col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                 <div className="ap-field-group" style={{ marginBottom: 0 }}>
-                  <label className="ap-label">Ngày thu hoạch/đóng gói</label>
+                  <label className="ap-label">
+                    Ngày thu hoạch/đóng gói <span className="ap-required">*</span>
+                  </label>
                   <input
-                    type="date"
-                    className="ap-input"
+                    type="text"
+                    className={`ap-input ${errors.harvestDate ? "ap-input-error" : ""}`}
+                    placeholder="dd/mm/yyyy"
                     value={harvestDate}
-                    onChange={(e) => setHarvestDate(e.target.value)}
+                    onChange={(e) => handleDateInputChange(e.target.value, setHarvestDate)}
                   />
+                  {errors.harvestDate && <span className="ap-error-msg">{errors.harvestDate}</span>}
                 </div>
 
                 <div className="ap-field-group" style={{ marginBottom: 0 }}>
                   <label className="ap-label">Hạn sử dụng</label>
                   <input
-                    type="date"
-                    className="ap-input"
+                    type="text"
+                    className={`ap-input ${errors.expirationDate ? "ap-input-error" : ""}`}
+                    placeholder="dd/mm/yyyy"
                     value={expirationDate}
-                    onChange={(e) => setExpirationDate(e.target.value)}
+                    onChange={(e) => handleDateInputChange(e.target.value, setExpirationDate)}
                   />
+                  {errors.expirationDate && <span className="ap-error-msg">{errors.expirationDate}</span>}
                 </div>
 
                 <div className="ap-field-group" style={{ marginBottom: 0 }}>

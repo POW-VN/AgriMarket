@@ -12,6 +12,7 @@ import { buildProfileUpdatePayload } from "../../utils/profileMapper";
 import apiClient from "../../services/apiClient";
 import * as addressService from "../../services/addressService";
 import { MapPicker } from "../../components/MapPicker/MapPicker";
+import SearchableSelect from "../../components/common/SearchableSelect/SearchableSelect";
 import "./Profile.css";
 
 const EditProfile = () => {
@@ -48,9 +49,13 @@ const EditProfile = () => {
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
 
-  const handleMapLocationChange = async (lat, lng) => {
+  const handleMapLocationChange = async (lat, lng, isGeocodedFromAddress = false) => {
     setLatitude(lat);
     setLongitude(lng);
+
+    if (isGeocodedFromAddress) {
+      return;
+    }
 
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`, {
@@ -90,11 +95,17 @@ const EditProfile = () => {
 
           if (provinceMatch) {
             const provCode = provinceMatch.code;
-            setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+            const isProvinceChanged = addrProvince.code !== String(provCode);
+            if (isProvinceChanged) {
+              setAddrProvince({ code: String(provCode), name: provinceMatch.name });
+            }
 
             // Load and Match District
-            const dists = await addressService.getDistricts(provCode);
-            setDistricts(dists);
+            let dists = districts;
+            if (isProvinceChanged || dists.length === 0) {
+              dists = await addressService.getDistricts(provCode);
+              setDistricts(dists);
+            }
 
             const districtCandidates = [
               addr.district,
@@ -117,11 +128,17 @@ const EditProfile = () => {
 
             if (districtMatch) {
               const distCode = districtMatch.code;
-              setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+              const isDistrictChanged = addrDistrict.code !== String(distCode);
+              if (isDistrictChanged || isProvinceChanged) {
+                setAddrDistrict({ code: String(distCode), name: districtMatch.name });
+              }
 
               // Load and Match Ward
-              const wds = await addressService.getWards(distCode);
-              setWards(wds);
+              let wds = wards;
+              if (isDistrictChanged || isProvinceChanged || wds.length === 0) {
+                wds = await addressService.getWards(distCode);
+                setWards(wds);
+              }
 
               const wardCandidates = [
                 addr.quarter,
@@ -147,28 +164,23 @@ const EditProfile = () => {
               if (wardMatch) {
                 setAddrWard({ code: String(wardMatch.code), name: wardMatch.name });
               } else {
-                setAddrWard((prev) => {
-                  const isSameDistrict = addrDistrict.name && districtMatch.name &&
-                    addressService.normalizeName(addrDistrict.name) === addressService.normalizeName(districtMatch.name);
-                  return isSameDistrict && prev.code ? prev : { code: "", name: "" };
-                });
+                if (isDistrictChanged || isProvinceChanged) {
+                  setAddrWard({ code: "", name: "" });
+                }
               }
             } else {
-              setAddrDistrict({ code: "", name: "" });
-              setAddrWard({ code: "", name: "" });
-              setWards([]);
+              if (isProvinceChanged) {
+                setAddrDistrict({ code: "", name: "" });
+                setAddrWard({ code: "", name: "" });
+                setWards([]);
+              }
             }
-          } else {
-            setAddrProvince({ code: "", name: "" });
-            setAddrDistrict({ code: "", name: "" });
-            setAddrWard({ code: "", name: "" });
-            setDistricts([]);
-            setWards([]);
           }
         }
       }
     } catch (err) {
       console.error("Reverse geocoding failed: ", err);
+      alert("Không thể tự động đồng bộ địa chỉ từ bản đồ do giới hạn yêu cầu (Rate Limit/CORS). Vui lòng điền địa chỉ thủ công hoặc thử lại sau 1-2 phút.");
     }
   };
 
@@ -185,10 +197,18 @@ const EditProfile = () => {
   useEffect(() => {
     if (!profile || provinces.length === 0) return;
 
-    const rawAddress = profile.addresses?.[0]?.address || "";
+    const isFarmer = profile.role === USER_ROLES.FARMER;
+    const rawAddress = isFarmer 
+      ? (profile.farmAddress || "") 
+      : (profile.addresses?.[0]?.address || "");
 
-    const initLat = profile.addresses?.[0]?.latitude || null;
-    const initLon = profile.addresses?.[0]?.longitude || null;
+    const initLat = isFarmer 
+      ? (profile.latitude || null) 
+      : (profile.addresses?.[0]?.latitude || null);
+    const initLon = isFarmer 
+      ? (profile.longitude || null) 
+      : (profile.addresses?.[0]?.longitude || null);
+    
     setLatitude(initLat);
     setLongitude(initLon);
 
@@ -345,7 +365,11 @@ const EditProfile = () => {
   }, [profile, navigate]);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    let { name, value } = event.target;
+
+    if (name === "phone") {
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -401,6 +425,14 @@ const EditProfile = () => {
     event.preventDefault();
 
     if (!profile) return;
+
+    if (formData.phone) {
+      const phoneRegex = /^0\d{9}$/;
+      if (!phoneRegex.test(formData.phone)) {
+        setFormMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
+        return;
+      }
+    }
 
     if (addrProvince.code || addrDistrict.code || addrWard.code || addrStreet.trim()) {
       if (!addrProvince.name || !addrDistrict.name || !addrWard.name || !addrStreet.trim()) {
@@ -542,6 +574,7 @@ const EditProfile = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                maxLength={10}
                 placeholder="Nhập số điện thoại"
               />
             </div>
@@ -550,49 +583,34 @@ const EditProfile = () => {
               <>
                 <div className="form-group">
                   <label>Tỉnh / Thành phố</label>
-                  <select
+                  <SearchableSelect
+                    options={provinces}
                     value={addrProvince.code}
                     onChange={handleProvinceChange}
-                  >
-                    <option value="">Chọn Tỉnh / Thành phố</option>
-                    {provinces.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn Tỉnh / Thành phố"
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Quận / Huyện</label>
-                  <select
+                  <SearchableSelect
+                    options={districts}
                     value={addrDistrict.code}
                     onChange={handleDistrictChange}
                     disabled={!addrProvince.code}
-                  >
-                    <option value="">Chọn Quận / Huyện</option>
-                    {districts.map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn Quận / Huyện"
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Phường / Xã</label>
-                  <select
+                  <SearchableSelect
+                    options={wards}
                     value={addrWard.code}
                     onChange={handleWardChange}
                     disabled={!addrDistrict.code}
-                  >
-                    <option value="">Chọn Phường / Xã</option>
-                    {wards.map((w) => (
-                      <option key={w.code} value={w.code}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Chọn Phường / Xã"
+                  />
                 </div>
 
                 <div className="form-group">

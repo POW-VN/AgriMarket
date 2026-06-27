@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
@@ -122,7 +122,7 @@ const ProductApproval = () => {
     setChecklist({
       vietgapVerified: !!product.certificateUrl || !!product.farmerVietgapUrl,
       globalgapVerified: !!product.farmerGlobalgapUrl,
-      organicVerified: !!product.isOrganic || !!product.farmerOrganicUrl,
+      organicVerified: !!product.farmerOrganicUrl,
       traceabilityVerified: !!product.traceabilityImageUrl,
     });
     setProductAuditLogs([]);
@@ -136,6 +136,11 @@ const ProductApproval = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 4000);
   };
+
+  // Memoized toggle to prevent re-rendering ALL checklist items on every click
+  const handleChecklistToggle = useCallback((key) => {
+    setChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -279,7 +284,7 @@ const ProductApproval = () => {
     {
       id: 101, name: "Cam sành hữu cơ loại 1", categoryName: "Trái cây",
       farmerName: "Trang trại Cam Sạch Tiền Giang", price: 35000, unit: "kg",
-      status: "pending", isOrganic: true, harvestDate: "2026-06-08", expirationDate: "2026-06-25",
+      status: "pending", harvestDate: "2026-06-08", expirationDate: "2026-06-25",
       description: "Cam sành chín tự nhiên, không phun thuốc kích chín hay hóa chất bảo quản. Cam vỏ mỏng, mọng nước, ngọt đậm. Phù hợp vắt nước uống giải nhiệt cực tốt cho mùa hè nóng bức.",
       certificateUrl: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500",
       traceabilityImageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500",
@@ -289,7 +294,7 @@ const ProductApproval = () => {
     {
       id: 102, name: "Khoai tây VietGAP Đà Lạt", categoryName: "Rau củ quả",
       farmerName: "Hợp tác xã nông nghiệp Đà Lạt Xanh", price: 28000, unit: "kg",
-      status: "pending", isOrganic: false, harvestDate: "2026-06-05", expirationDate: "2026-07-05",
+      status: "pending", harvestDate: "2026-06-05", expirationDate: "2026-07-05",
       description: "Khoai tây vỏ vàng, ruột vàng bở dẻo ngọt, đạt chứng nhận VietGAP số hiệu 52/VietGAP. Phù hợp nấu canh xương, chiên khoai tây lắc.",
       certificateUrl: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=500",
       traceabilityImageUrl: "", stockQuantity: 1200,
@@ -299,7 +304,7 @@ const ProductApproval = () => {
     {
       id: 103, name: "Dâu tây New Zealand ngọt thơm", categoryName: "Trái cây",
       farmerName: "Dâu Tây Organic Mộc Châu", price: 240000, unit: "hộp 500g",
-      status: "approved", isOrganic: true, harvestDate: "2026-06-07", expirationDate: "2026-06-14",
+      status: "approved", harvestDate: "2026-06-07", expirationDate: "2026-06-14",
       description: "Dâu tây giống New Zealand canh tác nhà màng hữu cơ tại Mộc Châu. Quả dâu đỏ mọng, giòn ngọt thanh và tỏa hương thơm dịu tự nhiên đặc trưng.",
       certificateUrl: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500",
       traceabilityImageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=500",
@@ -309,7 +314,7 @@ const ProductApproval = () => {
     {
       id: 104, name: "Rau muống sạch VietGAP", categoryName: "Rau lá",
       farmerName: "Hợp tác xã Rau Sạch Long An", price: 15000, unit: "bó",
-      status: "pending", isOrganic: false, harvestDate: "2026-06-10", expirationDate: "2026-06-12",
+      status: "pending", harvestDate: "2026-06-10", expirationDate: "2026-06-12",
       description: "Rau muống trồng theo tiêu chuẩn VietGAP, không thuốc trừ sâu, thu hoạch mỗi sáng sớm.",
       certificateUrl: "", traceabilityImageUrl: "", stockQuantity: 300,
       thumbnailUrl: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=500",
@@ -318,7 +323,7 @@ const ProductApproval = () => {
     {
       id: 105, name: "Bơ sáp Đắk Lắk loại A", categoryName: "Trái cây",
       farmerName: "Trang trại Bơ Buôn Ma Thuột", price: 85000, unit: "kg",
-      status: "rejected", isOrganic: false, harvestDate: "2026-06-01", expirationDate: "2026-06-20",
+      status: "rejected", harvestDate: "2026-06-01", expirationDate: "2026-06-20",
       description: "Bơ sáp Đắk Lắk loại A, thịt vàng mịn béo ngậy. Bơ già cây, ăn ngay hoặc để 2-3 ngày.",
       certificateUrl: "", traceabilityImageUrl: "", stockQuantity: 200,
       thumbnailUrl: "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=500",
@@ -329,8 +334,7 @@ const ProductApproval = () => {
   const generateMockAiInsights = (product) => {
     const descLen = product.description?.length ?? 0;
     const score = descLen > 200 ? 88 : descLen > 100 ? 68 : 42;
-    const isHighPrice = product.price > 100000;
-    const riskScore = product.isOrganic ? 18 : product.certificateUrl ? 30 : 55;
+    const riskScore = product.farmerOrganicUrl ? 18 : product.certificateUrl ? 30 : 55;
     return {
       productId: product.id,
       score,
@@ -341,7 +345,7 @@ const ProductApproval = () => {
       recommendedPrice: product.price,
       minPrice: Math.round(product.price * 0.85),
       maxPrice: Math.round(product.price * 1.15),
-      explanation: `Khoảng giá đề xuất dựa trên giá thị trường danh mục "${product.categoryName}" đạt chứng nhận ${product.isOrganic ? "Hữu cơ (+30%)" : "VietGAP"}. Mức giá ${product.price?.toLocaleString("vi-VN")} đ/kg của nhà vườn là hoàn toàn phù hợp với thị trường hiện tại.`,
+      explanation: `Khoảng giá đề xuất dựa trên giá thị trường danh mục "${product.categoryName}" đạt chứng nhận ${product.farmerOrganicUrl ? "Hữu cơ (+30%)" : "VietGAP"}. Mức giá ${product.price?.toLocaleString("vi-VN")} đ/kg của nhà vườn là hoàn toàn phù hợp với thị trường hiện tại.`,
       suggestedDescription: `Gợi ý mô tả lại cho sản phẩm ${product.name} chuẩn SEO:\n1. Giới thiệu: Nông sản tươi ngon cao cấp thu hoạch trực tiếp từ ${product.farmLocation ?? "vùng trồng đạt chuẩn"}.\n2. Đặc sắc: Canh tác an toàn tự nhiên giữ trọn hương vị đặc trưng, giàu vitamin và khoáng chất thiết yếu.\n3. Bảo quản: Giữ ngăn mát tủ lạnh từ 3–7°C, sử dụng trong vòng ${product.unit === "bó" ? "2–3 ngày" : "7–10 ngày"}.`,
     };
   };
@@ -405,9 +409,21 @@ const ProductApproval = () => {
           </span>
           Giao dịch
         </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng khiếu nại đang phát triển.")}>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
           <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </span>
+          Hỗ trợ
+        </button>
+        <button className="admin-nav-item" onClick={() => showToast("Tính năng quản lý khiếu nại đang phát triển.")}>
+          <span className="admin-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
           </span>
           Khiếu nại
         </button>
@@ -568,7 +584,7 @@ const ProductApproval = () => {
               <span className={`details-role-status-badge ${prod.status}`} style={{ position: "absolute", top: "14px", left: "14px", margin: 0, fontSize: "12px" }}>
                 {getStatusLabel(prod.status)}
               </span>
-              {prod.isOrganic && (
+              {prod.farmerOrganicUrl && (
                 <span style={{ position: "absolute", top: "14px", right: "14px", backgroundColor: "#064e3b", color: "#fff", borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "700" }}>
                   🌿 Hữu cơ
                 </span>
@@ -608,7 +624,7 @@ const ProductApproval = () => {
                 {[
                   { label: "Tên nhà vườn / Hộ sản xuất", value: prod.farmerName },
                   { label: "Địa điểm trồng trọt", value: prod.farmLocation },
-                  { label: "Loại canh tác", value: prod.isOrganic ? "Hữu cơ (Organic)" : "Canh tác thường / VietGAP" },
+                  { label: "Loại canh tác", value: prod.farmerOrganicUrl ? "Hữu cơ (Organic)" : "Canh tác thường / VietGAP" },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: "16px", paddingBottom: "8px", borderBottom: "1px solid #f3f4f6" }}>
                     <span style={{ fontSize: "13px", color: "#6b7280", flexShrink: 0 }}>{label}</span>
@@ -673,12 +689,12 @@ const ProductApproval = () => {
                     <div
                       key={key}
                       className={`checklist-item${isChecked && !disabled ? " checklist-item-checked" : ""}${disabled ? " checklist-item-disabled" : ""}`}
-                      onClick={() => !disabled && setChecklist({ ...checklist, [key]: !isChecked })}
+                      onClick={() => !disabled && handleChecklistToggle(key)}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={(e) => !disabled && setChecklist({ ...checklist, [key]: e.target.checked })}
+                        onChange={() => !disabled && handleChecklistToggle(key)}
                         disabled={disabled}
                         onClick={(e) => e.stopPropagation()}
                         style={{ accentColor: "#064e3b", width: "16px", height: "16px", flexShrink: 0, cursor: disabled ? "not-allowed" : "pointer" }}

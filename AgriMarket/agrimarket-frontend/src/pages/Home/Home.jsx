@@ -45,6 +45,10 @@ const Home = () => {
   useEffect(() => {
     // Check login state
     const currentUser = authService.getCurrentUser();
+    if (currentUser && (currentUser.role === "partner" || currentUser.role === "shipper")) {
+      navigate("/shipper/requests");
+      return;
+    }
     setUser(currentUser);
 
     // Fetch approved products
@@ -190,7 +194,7 @@ const Home = () => {
             {p.name}
           </h3>
           <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginTop: "4px", marginBottom: "4px" }}>
-            {(p.isOrganic || p.farmerOrganicUrl) && (
+            {p.farmerOrganicUrl && (
               <span className="tag-pill tag-organic" style={{ 
                 backgroundColor: "#e8f5e9", 
                 color: "#2e7d32", 

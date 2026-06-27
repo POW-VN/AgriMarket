@@ -41,6 +41,7 @@ export const MapPicker = ({ latitude, longitude, onChange, defaultAddress }) => 
   const defaultCenter = [10.8231, 106.6297]; // HCMC coordinates as default
   const [position, setPosition] = useState(null);
   const markerRef = useRef(null);
+  const hasAutoGeocodedRef = useRef(false);
 
   // Initialize position from props
   useEffect(() => {
@@ -102,6 +103,8 @@ export const MapPicker = ({ latitude, longitude, onChange, defaultAddress }) => 
     }
 
     const fallbackQueries = [...new Set(queries)].filter(Boolean);
+    let success = false;
+    let rateLimited = false;
 
     for (const queryText of fallbackQueries) {
       try {
@@ -111,29 +114,47 @@ export const MapPicker = ({ latitude, longitude, onChange, defaultAddress }) => 
             "User-Agent": "AgriMarket-Application/1.0",
           },
         });
+        if (res.status === 429) {
+          rateLimited = true;
+          break;
+        }
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
             const lat = parseFloat(data[0].lat);
             const lon = parseFloat(data[0].lon);
-            onChange(lat, lon);
+            onChange(lat, lon, true);
+            success = true;
             return; // Successful geocoding, exit loop
           }
         }
       } catch (err) {
         console.error(`Geocoding query "${queryText}" failed: `, err);
+        // Note: Nominatim blocks CORS on 429 errors, which triggers a fetch TypeError (Failed to fetch).
+        // If we catch a fetch failure, we set rateLimited = true to suggest the user click directly.
+        rateLimited = true;
+      }
+    }
+
+    if (!success) {
+      if (rateLimited) {
+        alert("Định vị thất bại do máy chủ bản đồ giới hạn số lượng yêu cầu (Rate Limit/CORS). Vui lòng ghim trực tiếp trên bản đồ bằng cách nhấp chuột hoặc thử lại sau 1-2 phút.");
+      } else {
+        alert("Không thể tìm thấy tọa độ khớp với địa chỉ đã nhập. Vui lòng nhấp trực tiếp vào bản đồ để chọn vị trí chính xác.");
       }
     }
   }, [defaultAddress, onChange]);
 
-  // Auto-geocode address if coordinates are empty/null and defaultAddress changes
+  // Auto-geocode address ONCE on mount if coordinates are empty/null and defaultAddress is present
   useEffect(() => {
     if (latitude && longitude) return;
+    if (hasAutoGeocodedRef.current) return;
 
     if (!defaultAddress || defaultAddress.trim() === "" || defaultAddress.includes("Not updated") || defaultAddress.includes("Chưa có địa chỉ")) {
       return;
     }
 
+    hasAutoGeocodedRef.current = true;
     const timer = setTimeout(() => {
       geocodeAddressText(defaultAddress);
     }, 1200);
@@ -149,7 +170,7 @@ export const MapPicker = ({ latitude, longitude, onChange, defaultAddress }) => 
           <button
             type="button"
             className="map-geocode-btn"
-            onClick={geocodeAddressText}
+            onClick={() => geocodeAddressText(defaultAddress)}
             title="Định vị nhanh dựa vào địa chỉ chữ đã nhập"
           >
             Định vị theo địa chỉ đã nhập

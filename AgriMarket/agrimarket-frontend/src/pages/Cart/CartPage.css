@@ -449,8 +449,13 @@
     gap: 12px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 14.5px;
+    font-size: 14px;
     user-select: none;
+}
+
+.cart-selected-info {
+    font-size: 14px;
+    color: #617364;
 }
 
 .cart-select-all-label input[type="checkbox"] {
@@ -543,6 +548,96 @@
 }
 
 .farmer-select-all-label input[type="checkbox"]:checked + .custom-checkbox-span::after {
+    content: "✓";
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.farmer-icon {
+    font-size: 18px;
+}
+
+.farmer-name {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #103314;
+}
+
+.farmer-badge {
+    font-size: 11px;
+    background-color: #e8f5e9;
+    color: #1b5e20;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.farmer-items-list {
+    background-color: white;
+}
+
+/* Cart Item Stock Details */
+.cart-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.cart-item-stock-badge {
+    font-size: 11.5px;
+    color: #2e7d32;
+    background-color: #e8f5e9;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    letter-spacing: 0.2px;
+}
+
+.cart-item-stock-badge.out-of-stock {
+    color: #c62828;
+    background-color: #ffebee;
+}
+
+.farmer-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background-color: #f8faf7;
+    border-bottom: 1px solid #eef2ee;
+}
+
+.farmer-select-all-label,
+.cart-item-select-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.farmer-select-all-label input[type="checkbox"],
+.cart-item-select-label input[type="checkbox"] {
+    display: none;
+}
+
+.farmer-select-all-label input[type="checkbox"]:checked + .custom-checkbox-span,
+.cart-item-select-label input[type="checkbox"]:checked + .custom-checkbox-span {
+    background-color: #1b5e20;
+    border-color: #1b5e20;
+}
+
+.farmer-select-all-label input[type="checkbox"]:checked + .custom-checkbox-span::after,
+.cart-item-select-label input[type="checkbox"]:checked + .custom-checkbox-span::after {
     content: "✓";
     color: white;
     font-size: 12px;
@@ -725,8 +820,9 @@
 }
 
 .qty-btn {
-    width: 34px;
-    height: 32px;
+    width: 34px !important;
+    height: 32px !important;
+    flex-shrink: 0 !important;
     background: transparent;
     font-size: 16px;
     font-weight: 700;
@@ -755,21 +851,26 @@
 }
 
 .qty-input {
-    width: 38px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: #103314;
-    font-family: inherit;
-    outline: none;
-    padding: 0;
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    flex-shrink: 0 !important;
+    height: 32px !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    text-align: center !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #103314 !important;
+    font-family: inherit !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .qty-input:focus {
-    background-color: #eef5eb;
+    background-color: #eef5eb !important;
 }
 
 .cart-item-total-col {
@@ -1046,6 +1147,37 @@
         top: 24px;
         opacity: 1;
     }
+}
+
+/* Delivery range warning alert box styling */
+.cart-item-delivery-warning {
+    grid-column: 1 / -1;
+    background-color: #fff5f5;
+    border: 1px solid #fee2e2;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.02);
+}
+
+.cart-item-delivery-warning .warning-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.cart-item-delivery-warning .warning-text {
+    line-height: 1.4;
+    text-align: left;
+}
+
+.cart-item-delivery-warning .warning-text strong {
+    font-weight: 700;
 }
 
 /* ── RESPONSIVE DESIGN ── */

@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 public class AiDescriptionRequest {
     private String productName;
     private String category;
-    private Boolean isOrganic;
     private String harvestDate;
     private String expirationDate;
 }

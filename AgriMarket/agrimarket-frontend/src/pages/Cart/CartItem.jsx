@@ -60,12 +60,15 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
         <div className="cart-item-row">
             <div className="cart-item-info">
                 <div className="cart-item-checkbox">
-                    <input
-                        type="checkbox"
-                        checked={item.checked || false}
-                        onChange={() => onSelectItem(item.id)}
-                        aria-label={`Chọn ${item.name}`}
-                    />
+                    <label className="cart-item-select-label">
+                        <input
+                            type="checkbox"
+                            checked={item.checked || false}
+                            onChange={() => onSelectItem(item.id)}
+                            aria-label={`Chọn ${item.name}`}
+                        />
+                        <span className="custom-checkbox-span"></span>
+                    </label>
                 </div>
                 <div className="cart-item-image">
                     {imageError || !item.imageUrl ? (
@@ -88,19 +91,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                             </span>
                         )}
                     </div>
-                    {item.isWithinDeliveryRange === false && (
-                        <div className="cart-item-delivery-warning" style={{
-                            color: "#d93838",
-                            fontSize: "0.85rem",
-                            fontWeight: "500",
-                            marginTop: "6px",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px"
-                        }}>
-                            <span>⚠️</span> Ngoài phạm vi giao hàng của nhà vườn ({item.distance != null ? item.distance.toFixed(1) : "?"} km / tối đa {item.maxDeliveryRange != null ? item.maxDeliveryRange.toFixed(1) : "?"} km)
-                        </div>
-                    )}
+
                     <span className="cart-item-price-mobile">{formatVND(item.price)}</span>
                 </div>
             </div>
@@ -167,6 +158,15 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                     </svg>
                 </button>
             </div>
+
+            {item.isWithinDeliveryRange === false && (
+                <div className="cart-item-delivery-warning">
+                    <span className="warning-icon">⚠️</span>
+                    <span className="warning-text">
+                        Ngoài phạm vi giao hàng của nhà vườn (Khoảng cách: <strong>{item.distance != null ? item.distance.toFixed(1) : "?"} km</strong> / phạm vi tối đa: <strong>{item.maxDeliveryRange != null ? item.maxDeliveryRange.toFixed(1) : "?"} km</strong>)
+                    </span>
+                </div>
+            )}
         </div>
     );
 }

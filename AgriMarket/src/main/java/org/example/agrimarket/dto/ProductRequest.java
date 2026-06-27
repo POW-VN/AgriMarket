@@ -24,7 +24,6 @@ public class ProductRequest {
     private LocalDate expirationDate;
 
     // Organic fields
-    private Boolean isOrganic;
     private String certificateFileBase64; // base64 string
     private String certificateFileName;
 

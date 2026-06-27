@@ -24,7 +24,7 @@ const UserAccounts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [selectedUserIds, setSelectedUserIds] = useState([]);
-  
+
   // Advanced filters state
   const [filterRole, setFilterRole] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -88,7 +88,7 @@ const UserAccounts = () => {
     actionType: "", // "delete" | "reset_password" | "toggle_status" | "bulk_suspend"
     user: null
   });
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -120,7 +120,7 @@ const UserAccounts = () => {
 
   const renderAccountDetailsDashboard = (user) => {
     const isLocked = user.status === "suspended" || user.status === "banned" || user.status === "locked";
-    
+
     const getRoleLabel = (r) => {
       switch (r) {
         case "admin": return "Quản trị viên";
@@ -217,14 +217,14 @@ const UserAccounts = () => {
           <div className="details-action-buttons">
             {user.status === "pending" && (
               <>
-                <button 
+                <button
                   className="btn-detail-action approve"
                   onClick={() => handleApproveUser(user)}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   Duyệt (Approve)
                 </button>
-                <button 
+                <button
                   className="btn-detail-action reject"
                   onClick={() => triggerToggleStatusConfirm(user)}
                 >
@@ -236,7 +236,7 @@ const UserAccounts = () => {
 
             {user.role !== "admin" && (
               isLocked ? (
-                <button 
+                <button
                   className="btn-detail-action unblock"
                   onClick={() => triggerToggleStatusConfirm(user)}
                 >
@@ -244,7 +244,7 @@ const UserAccounts = () => {
                   Mở khóa (Unblock)
                 </button>
               ) : (
-                <button 
+                <button
                   className="btn-detail-action block"
                   onClick={() => triggerToggleStatusConfirm(user)}
                 >
@@ -262,10 +262,10 @@ const UserAccounts = () => {
           <div className="details-left-card">
             <div className="details-avatar-container">
               {user.avatarUrl ? (
-                <img 
-                  src={getFullImageUrl(user.avatarUrl)} 
-                  alt={user.fullName} 
-                  className="details-avatar-large" 
+                <img
+                  src={getFullImageUrl(user.avatarUrl)}
+                  alt={user.fullName}
+                  className="details-avatar-large"
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
@@ -330,14 +330,14 @@ const UserAccounts = () => {
               <div className="details-tabs-header">
                 {user.role === "farmer" ? (
                   <>
-                    <button 
+                    <button
                       className={`details-tab-btn ${detailActiveTab === "sales_history" ? "active" : ""}`}
                       onClick={() => setDetailActiveTab("sales_history")}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
                       Lịch sử bán hàng
                     </button>
-                    <button 
+                    <button
                       className={`details-tab-btn ${detailActiveTab === "purchase_history" ? "active" : ""}`}
                       onClick={() => setDetailActiveTab("purchase_history")}
                     >
@@ -346,7 +346,7 @@ const UserAccounts = () => {
                     </button>
                   </>
                 ) : (
-                  <button 
+                  <button
                     className={`details-tab-btn ${detailActiveTab === "history" || detailActiveTab === "sales_history" || detailActiveTab === "purchase_history" ? "active" : ""}`}
                     onClick={() => setDetailActiveTab(user.role === "customer" ? "purchase_history" : "history")}
                   >
@@ -355,7 +355,7 @@ const UserAccounts = () => {
                   </button>
                 )}
                 {(user.role === "farmer" || user.role === "partner" || user.role === "admin") && (
-                  <button 
+                  <button
                     className={`details-tab-btn ${detailActiveTab === "profile" ? "active" : ""}`}
                     onClick={() => setDetailActiveTab("profile")}
                   >
@@ -363,7 +363,7 @@ const UserAccounts = () => {
                     Hồ sơ chi tiết
                   </button>
                 )}
-                <button 
+                <button
                   className={`details-tab-btn ${detailActiveTab === "security" ? "active" : ""}`}
                   onClick={() => setDetailActiveTab("security")}
                 >
@@ -377,12 +377,12 @@ const UserAccounts = () => {
                   <div>
                     <div className="recent-orders-header">
                       <h3>
-                        {detailActiveTab === "sales_history" 
-                          ? "Đơn hàng đã bán gần đây" 
-                          : detailActiveTab === "purchase_history" 
-                            ? "Đơn hàng đã mua gần đây" 
-                            : user.role === "partner" 
-                              ? "Các chuyến hàng gần đây" 
+                        {detailActiveTab === "sales_history"
+                          ? "Đơn hàng đã bán gần đây"
+                          : detailActiveTab === "purchase_history"
+                            ? "Đơn hàng đã mua gần đây"
+                            : user.role === "partner"
+                              ? "Các chuyến hàng gần đây"
                               : "Các hoạt động hệ thống gần đây"}
                       </h3>
                       <div className="recent-orders-actions">
@@ -434,7 +434,7 @@ const UserAccounts = () => {
                                 const isRealData = item.id && typeof item.id === 'string' && item.id.startsWith("FH-");
                                 const transactionId = isRealData ? item.id : item.id;
                                 const dateFormatted = isRealData ? `${item.date} ${item.time || ''}` : item.date;
-                                
+
                                 let detailsSummary = "";
                                 if (isRealData && item.items) {
                                   detailsSummary = item.items.map(it => `${it.name} (${it.qty}${it.productUnit || 'kg'})`).join(" + ");
@@ -442,7 +442,7 @@ const UserAccounts = () => {
                                   detailsSummary = item.details;
                                 }
 
-                                const amountFormatted = isRealData 
+                                const amountFormatted = isRealData
                                   ? (item.amount ? item.amount.toLocaleString("vi-VN") + " đ" : "0 đ")
                                   : item.amount;
 
@@ -460,7 +460,7 @@ const UserAccounts = () => {
                                       return "in-transit";
                                   }
                                 };
-                                  
+
                                 const statusText = isRealData ? item.statusLabel : item.statusLabel;
                                 const statusClass = isRealData ? getStatusClass(item.status) : item.status;
 
@@ -503,7 +503,7 @@ const UserAccounts = () => {
                           <span className="details-field-value">{user.farmAddress || "Chưa cung cấp"}</span>
                         </div>
                         <div className="details-field-item" style={{ gridColumn: "span 2" }}>
-                           <span className="details-field-label">Mô tả trang trại</span>
+                          <span className="details-field-label">Mô tả trang trại</span>
                           <span className="details-field-value" style={{ fontWeight: "normal", fontSize: "13.5px" }}>
                             {user.description || "Chưa cung cấp"}
                           </span>
@@ -644,20 +644,20 @@ const UserAccounts = () => {
                     <div className="profile-tab-section">
                       <h4>Hành động bảo mật hệ thống</h4>
                       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                        <button 
-                          className="btn-orders-action" 
+                        <button
+                          className="btn-orders-action"
                           style={{ borderColor: "#ef4444", color: "#ef4444" }}
                           onClick={() => triggerResetPasswordConfirm(user)}
                         >
                           Reset mật khẩu về mặc định
                         </button>
-                        <button 
+                        <button
                           className="btn-orders-action"
                           onClick={() => showToast("Đã gửi mã xác nhận kích hoạt 2FA đến email người dùng.")}
                         >
                           Yêu cầu kích hoạt 2FA
                         </button>
-                        <button 
+                        <button
                           className="btn-orders-action"
                           onClick={() => showToast("Đã đăng xuất tài khoản này khỏi tất cả các thiết bị khác thành công.")}
                         >
@@ -781,7 +781,7 @@ const UserAccounts = () => {
         console.error("Error parsing stored users in UserAccounts:", e);
       }
     }
-    
+
     localStorage.setItem("agri_users", JSON.stringify(defaultUsers));
     return defaultUsers;
   };
@@ -795,7 +795,7 @@ const UserAccounts = () => {
     } catch (err) {
       console.error("Lỗi khi tải danh sách user:", err);
       setError("Không thể kết nối đến máy chủ. Đang hiển thị dữ liệu mô phỏng.");
-      
+
       const localUsers = getInitialMockUsers();
       setUsers(localUsers);
     } finally {
@@ -870,7 +870,7 @@ const UserAccounts = () => {
   const getFilteredUsers = () => {
     return users.filter(user => {
       // Search matches (by name, email, or phone)
-      const matchesSearch = 
+      const matchesSearch =
         user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (user.phone && user.phone.includes(searchQuery));
@@ -899,7 +899,7 @@ const UserAccounts = () => {
   };
 
   const filteredUsers = getFilteredUsers();
-  
+
   // Pagination calculation
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -950,7 +950,7 @@ const UserAccounts = () => {
     setConfirmModal({
       isOpen: true,
       title: isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản",
-      message: isLocked 
+      message: isLocked
         ? `Bạn có chắc chắn muốn kích hoạt lại tài khoản của ${user.fullName} (${user.email})?`
         : `Bạn có chắc chắn muốn tạm khóa tài khoản của ${user.fullName} (${user.email})?`,
       actionType: "toggle_status",
@@ -1043,7 +1043,7 @@ const UserAccounts = () => {
           console.error(`Lỗi bulk suspend ${key}:`, err);
         }
       }
-      
+
       // Fallback for mock if all failed
       if (successCount === 0 && selectedUserIds.length > 0) {
         const updatedUsers = users.map(u => {
@@ -1088,10 +1088,10 @@ const UserAccounts = () => {
 
   // Export Users (Mock action)
   const handleExport = () => {
-    const csvContent = "data:text/csv;charset=utf-8," 
+    const csvContent = "data:text/csv;charset=utf-8,"
       + ["ID,Name,Email,Phone,Role,Status"].join(",") + "\n"
       + filteredUsers.map(u => `${u.id},${u.fullName},${u.email},${u.phone || ""},${u.role},${u.status}`).join("\n");
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -1174,9 +1174,21 @@ const UserAccounts = () => {
             </span>
             Giao dịch
           </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng khiếu nại đang phát triển.")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
             <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
+            Hỗ trợ
+          </button>
+          <button className="admin-nav-item" onClick={() => showToast("Tính năng quản lý khiếu nại đang phát triển.")}>
+            <span className="admin-nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
             </span>
             Khiếu nại
           </button>
@@ -1192,7 +1204,7 @@ const UserAccounts = () => {
             </span>
             Giám sát AI
           </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng thông báo đang phát triển.")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             </span>
@@ -1211,7 +1223,7 @@ const UserAccounts = () => {
             Cài đặt
           </button>
         </nav>
-        
+
         {/* Sidebar Footer */}
         <div className="admin-sidebar-footer">
           <img
@@ -1273,313 +1285,313 @@ const UserAccounts = () => {
             <>
               {/* Title row */}
               <div className="admin-page-title-row">
-            <div className="admin-page-title-info">
-              <h2>Quản lý tài khoản</h2>
-              <p>Quản lý khách hàng, nông dân và tài khoản quản trị trên toàn hệ thống.</p>
-            </div>
-            
-            <div className="admin-page-actions">
-              {/* Create New User button - requested explicitly! */}
-              <button 
-                className="btn-admin-primary" 
-                onClick={() => navigate("/admin/users/create")}
-                style={{ padding: "10px 16px" }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Tạo người dùng mới
-              </button>
+                <div className="admin-page-title-info">
+                  <h2>Quản lý tài khoản</h2>
+                  <p>Quản lý khách hàng, nông dân và tài khoản quản trị trên toàn hệ thống.</p>
+                </div>
 
-              <button className="btn-admin-outline" onClick={handleExport}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Xuất dữ liệu
-              </button>
-              
-              <button 
-                className="btn-admin-danger" 
-                onClick={triggerBulkSuspendConfirm}
-                disabled={selectedUserIds.length === 0}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                Khóa tài khoản chọn
-              </button>
-            </div>
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="admin-tabs-row">
-            {["Tất cả", "Khách hàng", "Nông dân", "Quản trị viên", "Đã khóa"].map((tab) => (
-              <button
-                key={tab}
-                className={`admin-tab ${activeTab === tab ? "active" : ""}`}
-                onClick={() => handleTabClick(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {/* Advanced Filters & Search Bar */}
-          <div className="admin-filters-bar">
-            <div className="filter-search-wrapper">
-              <span className="filter-search-icon">🔍</span>
-              <input
-                type="text"
-                placeholder="Tìm theo tên, email hoặc SĐT..."
-                className="filter-search-input"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-
-            <div className="filter-selects">
-              <div className="filter-select-wrapper">
-                <label htmlFor="role-filter">Vai trò</label>
-                <select
-                  id="role-filter"
-                  value={filterRole}
-                  onChange={(e) => handleRoleFilterChange(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="All">Tất cả vai trò</option>
-                  <option value="admin">Quản trị (Admin)</option>
-                  <option value="customer">Khách hàng (Customer)</option>
-                  <option value="farmer">Nông dân (Farmer)</option>
-                  <option value="partner">Đơn vị vận chuyển (Partner)</option>
-                </select>
-              </div>
-
-              <div className="filter-select-wrapper">
-                <label htmlFor="status-filter">Trạng thái</label>
-                <select
-                  id="status-filter"
-                  value={filterStatus}
-                  onChange={(e) => handleStatusFilterChange(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="All">Tất cả trạng thái</option>
-                  <option value="active">Active (Hoạt động)</option>
-                  <option value="suspended">Locked (Đã khóa)</option>
-                  <option value="pending">Pending (Chờ duyệt)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Table Card */}
-          <div className="admin-table-card">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "40px" }}>
-                    <input
-                      type="checkbox"
-                      className="admin-table-checkbox"
-                      onChange={handleSelectAll}
-                      checked={
-                        currentItems.length > 0 &&
-                        currentItems.every(user => selectedUserIds.includes(`${user.role}_${user.id}`))
-                      }
-                    />
-                  </th>
-                  <th>Tên người dùng</th>
-                  <th>Email</th>
-                  <th>Vai trò</th>
-                  <th>Trạng thái</th>
-                  <th style={{ textAlign: "right" }}>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>
-                      Đang tải danh sách tài khoản...
-                    </td>
-                  </tr>
-                ) : currentItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>
-                      Không tìm thấy tài khoản nào phù hợp.
-                    </td>
-                  </tr>
-                ) : (
-                  currentItems.map((user) => {
-                    const isSelected = selectedUserIds.includes(`${user.role}_${user.id}`);
-                    const userInitial = user.fullName ? user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "U";
-                    const isLocked = user.status === "suspended" || user.status === "banned" || user.status === "locked";
-                    
-                    return (
-                      <tr key={`${user.role}_${user.id}`} style={{ backgroundColor: isSelected ? "#f0fdf4" : "transparent" }}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="admin-table-checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectUser(user.role, user.id)}
-                          />
-                        </td>
-                        <td>
-                          <div 
-                            className="user-cell-info clickable-avatar" 
-                            style={{ cursor: "pointer" }}
-                            onClick={() => handleSelectUserForDetails(user)}
-                            title="Xem chi tiết tài khoản"
-                          >
-                            {user.avatarUrl ? (
-                              <img 
-                                src={getFullImageUrl(user.avatarUrl)} 
-                                alt={user.fullName} 
-                                className="user-cell-avatar" 
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
-                                }}
-                              />
-                            ) : (
-                              <div className={`user-cell-avatar avatar-color-${user.id % 5}`}>
-                                {userInitial}
-                              </div>
-                            )}
-                            <div>
-                              <p className="user-cell-name">{user.fullName}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <p className="user-cell-email" style={{ margin: 0, fontSize: "14px", color: "var(--admin-text-main)" }}>
-                            {user.email}
-                          </p>
-                        </td>
-                        <td>
-                          <span className={`badge-role ${user.role}`}>
-                            {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role === "partner" ? "Đơn vị vận chuyển" : user.role}
-                          </span>
-                        </td>
-                        <td style={{ verticalAlign: "middle" }}>
-                          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-                            <span className={`badge-status ${isLocked ? "suspended" : user.status}`}>
-                              {!isLocked && user.status === "active" ? (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                  Hoạt động
-                                </>
-                              ) : isLocked ? (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line></svg>
-                                  Đã khóa
-                                </>
-                              ) : (
-                                <>
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                  Chờ duyệt
-                                </>
-                              )}
-                            </span>
-                            {user.role === "farmer" && user.status === "active" && (
-                              <span className="badge-verified" style={{ margin: 0 }}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                Đã xác minh
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <div className="action-buttons-cell">
-                            {user.role !== "admin" ? (
-                              <div className="direct-actions-wrapper" style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                                {/* Nút Mở khóa (nếu tài khoản đang bị khóa) */}
-                                {isLocked ? (
-                                  <button
-                                    title="Mở khóa tài khoản"
-                                    className="btn-action-direct unlock"
-                                    onClick={() => triggerToggleStatusConfirm(user)}
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
-                                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                      <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                                    </svg>
-                                  </button>
-                                ) : (
-                                  <>
-                                    {/* Nút Duyệt (nếu ở trạng thái chờ duyệt) */}
-                                    {user.status === "pending" && (
-                                      <button
-                                        title="Duyệt tài khoản"
-                                        className="btn-action-direct approve"
-                                        onClick={() => handleApproveUser(user)}
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
-                                          <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                      </button>
-                                    )}
-
-                                    {/* Nút Khóa tài khoản (nếu đang hoạt động hoặc chờ duyệt) */}
-                                    <button
-                                      title="Khóa tài khoản"
-                                      className="btn-action-direct lock"
-                                      onClick={() => triggerToggleStatusConfirm(user)}
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#f59e0b" }}>
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                      </svg>
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            ) : (
-                              <span style={{ fontSize: "12px", color: "var(--admin-text-muted)", fontStyle: "italic" }}>
-                                Hệ thống
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-
-            {/* Pagination Controls */}
-            <div className="admin-pagination-row">
-              <div className="admin-pagination-info">
-                Hiển thị từ {indexOfFirstItem + 1} đến {Math.min(indexOfLastItem, filteredUsers.length)} trong tổng số {filteredUsers.length} tài khoản
-              </div>
-
-              <div className="admin-pagination-controls">
-                <button
-                  className="btn-pagination-nav"
-                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
-
-                {[...Array(totalPages).keys()].map((p) => (
+                <div className="admin-page-actions">
+                  {/* Create New User button - requested explicitly! */}
                   <button
-                    key={p + 1}
-                    className={`btn-pagination-page ${currentPage === p + 1 ? "active" : ""}`}
-                    onClick={() => setCurrentPage(p + 1)}
+                    className="btn-admin-primary"
+                    onClick={() => navigate("/admin/users/create")}
+                    style={{ padding: "10px 16px" }}
                   >
-                    {p + 1}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Tạo người dùng mới
+                  </button>
+
+                  <button className="btn-admin-outline" onClick={handleExport}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Xuất dữ liệu
+                  </button>
+
+                  <button
+                    className="btn-admin-danger"
+                    onClick={triggerBulkSuspendConfirm}
+                    disabled={selectedUserIds.length === 0}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                    Khóa tài khoản chọn
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="admin-tabs-row">
+                {["Tất cả", "Khách hàng", "Nông dân", "Quản trị viên", "Đã khóa"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`admin-tab ${activeTab === tab ? "active" : ""}`}
+                    onClick={() => handleTabClick(tab)}
+                  >
+                    {tab}
                   </button>
                 ))}
-
-                <button
-                  className="btn-pagination-nav"
-                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
               </div>
-            </div>
-          </div>
-          </>
+
+              {/* Advanced Filters & Search Bar */}
+              <div className="admin-filters-bar">
+                <div className="filter-search-wrapper">
+                  <span className="filter-search-icon">🔍</span>
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên, email hoặc SĐT..."
+                    className="filter-search-input"
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="filter-selects">
+                  <div className="filter-select-wrapper">
+                    <label htmlFor="role-filter">Vai trò</label>
+                    <select
+                      id="role-filter"
+                      value={filterRole}
+                      onChange={(e) => handleRoleFilterChange(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="All">Tất cả vai trò</option>
+                      <option value="admin">Quản trị (Admin)</option>
+                      <option value="customer">Khách hàng (Customer)</option>
+                      <option value="farmer">Nông dân (Farmer)</option>
+                      <option value="partner">Đơn vị vận chuyển (Partner)</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-select-wrapper">
+                    <label htmlFor="status-filter">Trạng thái</label>
+                    <select
+                      id="status-filter"
+                      value={filterStatus}
+                      onChange={(e) => handleStatusFilterChange(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="All">Tất cả trạng thái</option>
+                      <option value="active">Active (Hoạt động)</option>
+                      <option value="suspended">Locked (Đã khóa)</option>
+                      <option value="pending">Pending (Chờ duyệt)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table Card */}
+              <div className="admin-table-card">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "40px" }}>
+                        <input
+                          type="checkbox"
+                          className="admin-table-checkbox"
+                          onChange={handleSelectAll}
+                          checked={
+                            currentItems.length > 0 &&
+                            currentItems.every(user => selectedUserIds.includes(`${user.role}_${user.id}`))
+                          }
+                        />
+                      </th>
+                      <th>Tên người dùng</th>
+                      <th>Email</th>
+                      <th>Vai trò</th>
+                      <th>Trạng thái</th>
+                      <th style={{ textAlign: "right" }}>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>
+                          Đang tải danh sách tài khoản...
+                        </td>
+                      </tr>
+                    ) : currentItems.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>
+                          Không tìm thấy tài khoản nào phù hợp.
+                        </td>
+                      </tr>
+                    ) : (
+                      currentItems.map((user) => {
+                        const isSelected = selectedUserIds.includes(`${user.role}_${user.id}`);
+                        const userInitial = user.fullName ? user.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "U";
+                        const isLocked = user.status === "suspended" || user.status === "banned" || user.status === "locked";
+
+                        return (
+                          <tr key={`${user.role}_${user.id}`} style={{ backgroundColor: isSelected ? "#f0fdf4" : "transparent" }}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                className="admin-table-checkbox"
+                                checked={isSelected}
+                                onChange={() => handleSelectUser(user.role, user.id)}
+                              />
+                            </td>
+                            <td>
+                              <div
+                                className="user-cell-info clickable-avatar"
+                                style={{ cursor: "pointer" }}
+                                onClick={() => handleSelectUserForDetails(user)}
+                                title="Xem chi tiết tài khoản"
+                              >
+                                {user.avatarUrl ? (
+                                  <img
+                                    src={getFullImageUrl(user.avatarUrl)}
+                                    alt={user.fullName}
+                                    className="user-cell-avatar"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
+                                    }}
+                                  />
+                                ) : (
+                                  <div className={`user-cell-avatar avatar-color-${user.id % 5}`}>
+                                    {userInitial}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="user-cell-name">{user.fullName}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <p className="user-cell-email" style={{ margin: 0, fontSize: "14px", color: "var(--admin-text-main)" }}>
+                                {user.email}
+                              </p>
+                            </td>
+                            <td>
+                              <span className={`badge-role ${user.role}`}>
+                                {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role === "partner" ? "Đơn vị vận chuyển" : user.role}
+                              </span>
+                            </td>
+                            <td style={{ verticalAlign: "middle" }}>
+                              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                                <span className={`badge-status ${isLocked ? "suspended" : user.status}`}>
+                                  {!isLocked && user.status === "active" ? (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                      Hoạt động
+                                    </>
+                                  ) : isLocked ? (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                                      Đã khóa
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                      Chờ duyệt
+                                    </>
+                                  )}
+                                </span>
+                                {user.role === "farmer" && user.status === "active" && (
+                                  <span className="badge-verified" style={{ margin: 0 }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "4px" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Đã xác minh
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: "right" }}>
+                              <div className="action-buttons-cell">
+                                {user.role !== "admin" ? (
+                                  <div className="direct-actions-wrapper" style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                    {/* Nút Mở khóa (nếu tài khoản đang bị khóa) */}
+                                    {isLocked ? (
+                                      <button
+                                        title="Mở khóa tài khoản"
+                                        className="btn-action-direct unlock"
+                                        onClick={() => triggerToggleStatusConfirm(user)}
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
+                                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                                        </svg>
+                                      </button>
+                                    ) : (
+                                      <>
+                                        {/* Nút Duyệt (nếu ở trạng thái chờ duyệt) */}
+                                        {user.status === "pending" && (
+                                          <button
+                                            title="Duyệt tài khoản"
+                                            className="btn-action-direct approve"
+                                            onClick={() => handleApproveUser(user)}
+                                          >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
+                                              <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                          </button>
+                                        )}
+
+                                        {/* Nút Khóa tài khoản (nếu đang hoạt động hoặc chờ duyệt) */}
+                                        <button
+                                          title="Khóa tài khoản"
+                                          className="btn-action-direct lock"
+                                          onClick={() => triggerToggleStatusConfirm(user)}
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#f59e0b" }}>
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                          </svg>
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: "12px", color: "var(--admin-text-muted)", fontStyle: "italic" }}>
+                                    Hệ thống
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+
+                {/* Pagination Controls */}
+                <div className="admin-pagination-row">
+                  <div className="admin-pagination-info">
+                    Hiển thị từ {indexOfFirstItem + 1} đến {Math.min(indexOfLastItem, filteredUsers.length)} trong tổng số {filteredUsers.length} tài khoản
+                  </div>
+
+                  <div className="admin-pagination-controls">
+                    <button
+                      className="btn-pagination-nav"
+                      onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+
+                    {[...Array(totalPages).keys()].map((p) => (
+                      <button
+                        key={p + 1}
+                        className={`btn-pagination-page ${currentPage === p + 1 ? "active" : ""}`}
+                        onClick={() => setCurrentPage(p + 1)}
+                      >
+                        {p + 1}
+                      </button>
+                    ))}
+
+                    <button
+                      className="btn-pagination-nav"
+                      onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </main>
       </div>
@@ -1599,7 +1611,7 @@ const UserAccounts = () => {
               <button className="btn-modal-cancel" onClick={closeConfirmModal}>
                 Hủy bỏ
               </button>
-              <button 
+              <button
                 className={`btn-modal-confirm ${confirmModal.actionType === 'delete' ? 'delete' : confirmModal.actionType === 'reset_password' ? 'reset' : 'toggle'}`}
                 onClick={handleExecuteAction}
               >

@@ -58,21 +58,9 @@ const updateProfile = async (profileData) => {
   }
 
   if (normalizedUser.role === USER_ROLES.FARMER) {
-    // If the update payload has farm-specific fields, update the farmer profile
-    if (profileData.farmName !== undefined || profileData.farmAddress !== undefined) {
-      const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
-      saveLocalUser(response.data);
-      return normalizeProfileData(response.data);
-    } else {
-      // Otherwise, it's a personal/customer profile and address update
-      const response = await apiClient.put(`/api/customers/${normalizedUser.id}`, profileData);
-      const updatedData = {
-        ...response.data,
-        role: "farmer", // Preserve farmer role in localStorage
-      };
-      saveLocalUser(updatedData);
-      return normalizeProfileData(updatedData);
-    }
+    const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
+    saveLocalUser(response.data);
+    return normalizeProfileData(response.data);
   }
 
   const updatedUser = {
@@ -104,9 +92,20 @@ const deleteAccount = async () => {
   return response.data;
 };
 
+const getFarmerProfile = async (farmerId) => {
+  try {
+    const response = await apiClient.get(`/api/farmers/${farmerId}`);
+    return response.data;
+  } catch (error) {
+    console.warn(`Không thể lấy thông tin nhà vườn từ backend cho id ${farmerId}, sẽ thử lấy từ sản phẩm:`, error);
+    return null;
+  }
+};
+
 const profileService = {
   getCurrentProfile,
   updateProfile,
+  getFarmerProfile,
   changePassword,
   deleteAccount,
   logout,

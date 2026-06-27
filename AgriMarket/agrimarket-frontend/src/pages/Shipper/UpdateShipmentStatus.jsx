@@ -73,6 +73,11 @@ const UpdateShipmentStatus = () => {
     setTimestamp(formatDateTime(new Date()));
   }, [orderCode]);
 
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   // Show Toast
   const showToast = (message) => {
     setToastMessage(message);
@@ -274,6 +279,9 @@ const UpdateShipmentStatus = () => {
         <div className="as-sidebar-footer">
           <button className="as-btn-support" onClick={() => showToast("Đang tạo phiếu hỗ trợ kỹ thuật...", "success")}>
             <span className="plus-icon">+</span> Gửi hỗ trợ mới
+          </button>
+          <button className="as-btn-logout" onClick={handleLogout}>
+            <span>🚪</span> Đăng xuất
           </button>
         </div>
       </aside>

@@ -97,14 +97,16 @@ public class OrderService {
                     && product.getFarmer() != null && product.getFarmer().getFarmAddress() != null) {
                 String farmAddr = product.getFarmer().getFarmAddress();
                 if (!farmAddr.isBlank() && !farmAddr.equalsIgnoreCase("Not updated") && !farmAddr.equalsIgnoreCase("Chưa có địa chỉ")) {
-                    Double customerLat = null;
-                    Double customerLon = null;
-                    if (customer.getAddresses() != null) {
-                        for (CustomerAddress addr : customer.getAddresses()) {
-                            if (addr.getAddress() != null && addr.getAddress().equalsIgnoreCase(request.getAddress())) {
-                                customerLat = addr.getLatitude();
-                                customerLon = addr.getLongitude();
-                                break;
+                    Double customerLat = request.getLatitude();
+                    Double customerLon = request.getLongitude();
+                    if (customerLat == null || customerLon == null) {
+                        if (customer.getAddresses() != null) {
+                            for (CustomerAddress addr : customer.getAddresses()) {
+                                if (addr.getAddress() != null && addr.getAddress().equalsIgnoreCase(request.getAddress())) {
+                                    customerLat = addr.getLatitude();
+                                    customerLon = addr.getLongitude();
+                                    break;
+                                }
                             }
                         }
                     }

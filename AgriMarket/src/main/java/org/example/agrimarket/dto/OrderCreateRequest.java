@@ -15,5 +15,7 @@ public class OrderCreateRequest {
     private Double serviceFee;
     private Double discount;
     private Double amount;
+    private Double latitude;
+    private Double longitude;
     private List<OrderItemRequest> items;
 }
