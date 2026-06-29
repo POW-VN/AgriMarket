@@ -32,6 +32,9 @@ public class Notification {
     @Column(name = "is_read")
     private Boolean isRead = false;
 
+    @Column(name = "broadcast_id")
+    private Long broadcastId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

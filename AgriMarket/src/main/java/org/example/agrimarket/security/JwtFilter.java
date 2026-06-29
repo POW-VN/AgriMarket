@@ -56,6 +56,9 @@ public class JwtFilter extends OncePerRequestFilter {
                     java.util.List<org.springframework.security.core.authority.SimpleGrantedAuthority> authorities = new java.util.ArrayList<>();
                     if (role != null) {
                         authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+                        if (role.equalsIgnoreCase("FARMER")) {
+                            authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_CUSTOMER"));
+                        }
                     }
 
                     UsernamePasswordAuthenticationToken authToken =

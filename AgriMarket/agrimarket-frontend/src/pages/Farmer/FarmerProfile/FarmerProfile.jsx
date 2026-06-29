@@ -8,6 +8,20 @@ import wishlistService from "../../../services/wishlistService";
 import chatLogo from "../../../assets/images/chat-logo.png";
 import "./FarmerProfile.css";
 
+const formatDate = (dateString) => {
+  if (!dateString) return "Chưa cập nhật";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return dateString;
+  }
+};
+
 export default function FarmerProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,7 +66,7 @@ export default function FarmerProfile() {
             organicUrl: first.farmerOrganicUrl,
             ratingAverage: first.rating || 4.8,
             reviewsCount: first.reviewsCount || 120,
-            joinedDate: "Tháng 3, 2021",
+            joinedDate: first.createdAt || first.created_at || "Tháng 3, 2021",
             responseRate: "88% (Thường trả lời trong 1h)"
           };
         }
@@ -75,12 +89,13 @@ export default function FarmerProfile() {
           organicUrl: farmerData.organicUrl || "",
           ratingAverage: farmerData.ratingAverage || farmerData.rating || 4.8,
           reviewsCount: farmerData.reviewsCount || farmerData.totalReviews || 120,
-          joinedDate: farmerData.joinedDate || "Tháng 3, 2021",
+          joinedDate: formatDate(farmerData.createdAt || farmerData.created_at || farmerData.joinedDate),
           responseRate: farmerData.responseRate || "88% (Thường trả lời trong 1h)"
         };
 
         setFarmer(finalFarmer);
-        setIsFollowed(wishlistService.isFarmerFollowed(finalFarmer.id));
+        const followStatus = await wishlistService.isFarmerFollowed(finalFarmer.id);
+        setIsFollowed(followStatus);
 
         // If no products were found, populate with mock products for visual completeness
         if (farmerProds.length === 0) {
@@ -99,10 +114,11 @@ export default function FarmerProfile() {
     loadProfileData();
   }, [id]);
 
-  const handleToggleFollow = () => {
+  const handleToggleFollow = async () => {
     if (!farmer) return;
-    wishlistService.toggleFollowFarmer(farmer);
-    setIsFollowed(wishlistService.isFarmerFollowed(farmer.id));
+    await wishlistService.toggleFollowFarmer(farmer);
+    const followStatus = await wishlistService.isFarmerFollowed(farmer.id);
+    setIsFollowed(followStatus);
   };
 
   const handleChat = () => {
@@ -239,21 +255,9 @@ export default function FarmerProfile() {
                   <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </h2>
-              <p className="farmer-farm-tagline">{farmer.farmName}</p>
               
-              <div className="verified-badge">
-                <span className="badge-icon">✓</span>
-                <span className="badge-text">Nhà vườn uy tín</span>
-              </div>
-              
-              <div className="rating-summary-row">
-                <span className="rating-star">★</span>
-                <span className="rating-val">
-                  {Number(farmer.ratingAverage).toFixed(1)}
-                </span>
-                <span className="rating-count">
-                  ({farmer.reviewsCount} đánh giá)
-                </span>
+              <div className="farmer-sidebar-desc">
+                {farmer.description || "Nhà vườn liên kết chuyên canh nông sản hữu cơ, đảm bảo an toàn sinh học và nguồn hàng tươi sạch mỗi ngày."}
               </div>
               
               <div className="sidebar-action-buttons">

@@ -593,12 +593,7 @@ export default function AdminChat() {
                       </div>
                     )}
 
-                    <div className="admin-details-row">
-                      <span className="admin-details-label">Mức độ ưu tiên</span>
-                      <span className="admin-details-value">
-                        {selectedRequest.priority === "high" ? "🚨 Cao" : selectedRequest.priority === "low" ? "Thấp" : "Trung bình"}
-                      </span>
-                    </div>
+
                   </div>
                 </div>
 
@@ -608,12 +603,32 @@ export default function AdminChat() {
                   <form className="admin-chat-action-form" onSubmit={handleUpdateTicketStatus}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <label>Trạng thái:</label>
-                      <select value={updatingStatus} onChange={(e) => setUpdatingStatus(e.target.value)}>
-                        <option value="pending">Chờ duyệt</option>
-                        <option value="assigned">Đã phân công</option>
-                        <option value="processing">Đang xử lý</option>
-                        <option value="resolved">Đã giải quyết</option>
-                        <option value="rejected">Từ chối</option>
+                      <select 
+                        value={updatingStatus} 
+                        onChange={(e) => setUpdatingStatus(e.target.value)}
+                        disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
+                      >
+                        {selectedRequest.status === "pending" && (
+                          <>
+                            <option value="pending">Chờ duyệt</option>
+                            <option value="processing">Đang xử lý</option>
+                            <option value="resolved">Đã giải quyết</option>
+                            <option value="rejected">Từ chối</option>
+                          </>
+                        )}
+                        {selectedRequest.status === "processing" && (
+                          <>
+                            <option value="processing">Đang xử lý</option>
+                            <option value="resolved">Đã giải quyết</option>
+                            <option value="rejected">Từ chối</option>
+                          </>
+                        )}
+                        {selectedRequest.status === "resolved" && (
+                          <option value="resolved">Đã giải quyết</option>
+                        )}
+                        {selectedRequest.status === "rejected" && (
+                          <option value="rejected">Từ chối</option>
+                        )}
                       </select>
                     </div>
 
@@ -624,13 +639,25 @@ export default function AdminChat() {
                         placeholder="Nhập ghi chú hoặc lý do giải quyết..."
                         value={adminNotes}
                         onChange={(e) => setAdminNotes(e.target.value)}
+                        disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
                         required
                       />
                     </div>
 
-                    <button type="submit" className="admin-chat-action-btn" disabled={isSubmitting}>
+                    <button 
+                      type="submit" 
+                      className="admin-chat-action-btn" 
+                      disabled={isSubmitting || selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
+                      style={{ backgroundColor: (selectedRequest.status === "resolved" || selectedRequest.status === "rejected") ? "#cbd5e1" : undefined }}
+                    >
                       {isSubmitting ? "Đang cập nhật..." : "Cập nhật phiếu"}
                     </button>
+
+                    {(selectedRequest.status === "resolved" || selectedRequest.status === "rejected") && (
+                      <div style={{ marginTop: "8px", padding: "8px", backgroundColor: "#f3f4f6", borderRadius: "6px", color: "#475569", fontSize: "12px", fontWeight: "600", textAlign: "center" }}>
+                        🔒 Yêu cầu đã đóng. Không thể cập nhật.
+                      </div>
+                    )}
                   </form>
                 </div>
               </div>

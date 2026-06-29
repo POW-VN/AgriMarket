@@ -826,13 +826,13 @@ export default function CheckoutPage() {
                     fullName: profileData.fullName || recipientName,
                     phone: recipientPhone,
                     avatarUrl: profileData.avatarUrl,
-                    address: profileData.role === "customer" ? (profileData.addresses?.[0]?.address || "") : (profileData.addresses?.[0]?.address || ""),
-                    farmAddress: profileData.role === "farmer" ? (profileData.farmAddress || "") : (profileData.farmAddress || ""),
-                    farmName: profileData.farmName || "",
-                    description: profileData.description || ""
+                    address: profileData.addresses?.[0]?.address || "",
+                    farmAddress: "",
+                    farmName: "",
+                    description: ""
                 };
-                const payload = buildProfileUpdatePayload(profileData.role, updatedFormData);
-                await profileService.updateProfile(payload);
+                const payload = buildProfileUpdatePayload("customer", updatedFormData);
+                await profileService.updateProfile(payload, "customer");
             } catch (err) {
                 console.error("Lỗi khi cập nhật số điện thoại hồ sơ:", err);
             }

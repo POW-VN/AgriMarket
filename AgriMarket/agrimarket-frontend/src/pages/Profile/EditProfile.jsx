@@ -197,17 +197,10 @@ const EditProfile = () => {
   useEffect(() => {
     if (!profile || provinces.length === 0) return;
 
-    const isFarmer = profile.role === USER_ROLES.FARMER;
-    const rawAddress = isFarmer 
-      ? (profile.farmAddress || "") 
-      : (profile.addresses?.[0]?.address || "");
+    const rawAddress = profile.addresses?.[0]?.address || "";
 
-    const initLat = isFarmer 
-      ? (profile.latitude || null) 
-      : (profile.addresses?.[0]?.latitude || null);
-    const initLon = isFarmer 
-      ? (profile.longitude || null) 
-      : (profile.addresses?.[0]?.longitude || null);
+    const initLat = profile.addresses?.[0]?.latitude || null;
+    const initLon = profile.addresses?.[0]?.longitude || null;
     
     setLatitude(initLat);
     setLongitude(initLon);
@@ -459,9 +452,9 @@ const EditProfile = () => {
     };
 
     try {
-      const payload = buildProfileUpdatePayload(profile.role, updatedFormData);
+      const payload = buildProfileUpdatePayload(USER_ROLES.CUSTOMER, updatedFormData);
 
-      await updateProfile(payload);
+      await updateProfile(payload, USER_ROLES.CUSTOMER);
 
       setFormMessage("Cập nhật hồ sơ thành công.");
 

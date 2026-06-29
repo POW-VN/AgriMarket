@@ -200,8 +200,17 @@ export default function ProductDetail() {
       try {
         const data = await getProductById(id);
         setProduct(data);
-        setIsSaved(wishlistService.isWishlistItem(id));
-        setIsFarmerFollowed(wishlistService.isFarmerFollowed(data.farmerId));
+        
+        const [savedStatus, followStatus, savedIds] = await Promise.all([
+          wishlistService.isWishlistItem(id),
+          wishlistService.isFarmerFollowed(data.farmerId),
+          wishlistService.getWishlistIds()
+        ]);
+        
+        setIsSaved(savedStatus);
+        setIsFarmerFollowed(followStatus);
+        setSavedRelatedIds(new Set(savedIds.map(String)));
+
         if (data.images && data.images.length > 0) {
           setActiveImage(data.images[0]);
         } else {
@@ -821,14 +830,14 @@ export default function ProductDetail() {
     return defaults;
   }, [product]);
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (!product) return;
-    const res = wishlistService.toggleWishlist(product.id);
+    const res = await wishlistService.toggleWishlist(product.id);
     setIsSaved(res.saved);
     triggerToast(res.message, res.saved ? "success" : "info");
   };
 
-  const handleToggleFollowFarmer = () => {
+  const handleToggleFollowFarmer = async () => {
     if (!product || !product.farmerId) return;
     const farmerObj = {
       id: product.farmerId,
@@ -840,7 +849,7 @@ export default function ProductDetail() {
       globalgapUrl: product.farmerGlobalgapUrl,
       organicUrl: product.farmerOrganicUrl,
     };
-    const res = wishlistService.toggleFollowFarmer(farmerObj);
+    const res = await wishlistService.toggleFollowFarmer(farmerObj);
     setIsFarmerFollowed(res.followed);
     triggerToast(res.message, res.followed ? "success" : "info");
   };
@@ -849,13 +858,13 @@ export default function ProductDetail() {
     setActiveFaq(activeFaq === index ? null : index);
   };
 
-  const handleToggleSaveRelated = (relatedId, relatedName) => {
-    const res = wishlistService.toggleWishlist(relatedId);
+  const handleToggleSaveRelated = async (relatedId, relatedName) => {
+    const res = await wishlistService.toggleWishlist(relatedId);
     const updated = new Set(savedRelatedIds);
     if (res.saved) {
-      updated.add(relatedId);
+      updated.add(String(relatedId));
     } else {
-      updated.delete(relatedId);
+      updated.delete(String(relatedId));
     }
     setSavedRelatedIds(updated);
     triggerToast(res.message, res.saved ? "success" : "info");

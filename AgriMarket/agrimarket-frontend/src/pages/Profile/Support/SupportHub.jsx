@@ -196,21 +196,6 @@ export default function SupportHub() {
               </button>
             </div>
 
-            {/* Card 2 */}
-            <div className="support-card glass-card">
-              <div className="card-icon-wrapper red-icon">🛡️</div>
-              <h2>Báo cáo Vi phạm</h2>
-              <p>Báo cáo các hoạt động nghi vấn, gian lận hoặc vi phạm chính sách của thị trường.</p>
-              <button 
-                className="support-btn btn-secondary" 
-                onClick={() => {
-                  if (!user) navigate("/login");
-                  else navigate("/support/create?category=Báo cáo Vi phạm");
-                }}
-              >
-                Báo cáo ngay
-              </button>
-            </div>
 
             {/* Card 3 */}
             <div className="support-card glass-card">

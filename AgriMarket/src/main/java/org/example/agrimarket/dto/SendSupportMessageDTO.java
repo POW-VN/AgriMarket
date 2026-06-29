@@ -6,6 +6,6 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SendChatMessageDTO {
+public class SendSupportMessageDTO {
     private String content;
 }

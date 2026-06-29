@@ -15,7 +15,6 @@ export default function CreateSupportRequest() {
   const [category, setCategory] = useState("Khác");
   const [orderCode, setOrderCode] = useState("");
   const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState("medium");
   const [description, setDescription] = useState("");
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
@@ -137,7 +136,6 @@ export default function CreateSupportRequest() {
         category,
         orderCode: orderCode.trim() || null,
         title: title.trim(),
-        priority,
         description: description.trim(),
         attachmentUrl: attachmentUrl || null
       };
@@ -183,7 +181,6 @@ export default function CreateSupportRequest() {
                     <option value="Thanh toán & Hóa đơn">💳 Thanh toán & Hóa đơn</option>
                     <option value="Tài khoản & Bảo mật">👤 Tài khoản & Bảo mật</option>
                     <option value="Hỗ trợ Kỹ thuật">🛠️ Hỗ trợ Kỹ thuật</option>
-                    <option value="Báo cáo Vi phạm">🛡️ Báo cáo Vi phạm</option>
                     <option value="Khác">⚙️ Khác</option>
                   </select>
                 </div>
@@ -213,41 +210,6 @@ export default function CreateSupportRequest() {
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Mức độ ưu tiên</label>
-              <div className="priority-radio-group">
-                <label className={`priority-radio-btn ${priority === "low" ? "selected" : ""}`}>
-                  <input 
-                    type="radio" 
-                    name="priority" 
-                    value="low" 
-                    checked={priority === "low"} 
-                    onChange={() => setPriority("low")}
-                  />
-                  <span>Thấp</span>
-                </label>
-                <label className={`priority-radio-btn ${priority === "medium" ? "selected" : ""}`}>
-                  <input 
-                    type="radio" 
-                    name="priority" 
-                    value="medium" 
-                    checked={priority === "medium"} 
-                    onChange={() => setPriority("medium")}
-                  />
-                  <span>Trung bình</span>
-                </label>
-                <label className={`priority-radio-btn ${priority === "high" ? "selected" : ""}`}>
-                  <input 
-                    type="radio" 
-                    name="priority" 
-                    value="high" 
-                    checked={priority === "high"} 
-                    onChange={() => setPriority("high")}
-                  />
-                  <span>Cao</span>
-                </label>
-              </div>
-            </div>
 
             <div className="form-group">
               <label className="form-label required-label">Mô tả chi tiết</label>

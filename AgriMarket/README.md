@@ -9,6 +9,7 @@ Edit profile
 Quên mật khẩu
 Gửi yêu cầu hỗ trợ đến admin
 Gửi báo cáo vi phạm 
+
 Người nông dân: 
 Đăng sản phẩm nông sản
 Cập nhật số lượng tồn kho
@@ -44,7 +45,6 @@ Sửa/Xoá đánh giá
 Xem lịch sử mua hàng
 Chat với nông dân
 Đặt trước mùa vụ
-Thêm sản phẩm vào wishlist
 Thêm sản phẩm yêu thích
 Xóa sản phẩm yêu thích
 Xem danh sách yêu thích

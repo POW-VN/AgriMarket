@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatMessageResponseDTO {
+public class SupportMessageResponseDTO {
     private Long id;
     private Long supportRequestId;
     private Long senderId;

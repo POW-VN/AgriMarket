@@ -31,6 +31,16 @@ public class FarmerController {
         }
     }
 
+    @Autowired
+    private org.example.agrimarket.repository.FarmerRepository farmerRepository;
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getFarmerProfile(@PathVariable Long id) {
+        return farmerRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Farmer> updateProfile(@PathVariable Long id, @RequestBody UpdateFarmerProfileRequest request) {
         return ResponseEntity.ok(farmerService.updateProfile(id, request));

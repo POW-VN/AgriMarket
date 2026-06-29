@@ -56,6 +56,11 @@ const audienceOptions = [
         label: "Đơn vị vận chuyển",
         description: "Các tài khoản shipper hoặc transport partner",
     },
+    {
+        value: "single",
+        label: "Gửi riêng 1 user",
+        description: "Gửi thông báo tới một người dùng cụ thể",
+    },
 ];
 
 const channelOptions = [
@@ -81,6 +86,8 @@ const initialForm = {
     channels: ["in_app"],
     sendMode: "now",
     scheduledAt: "",
+    targetUserId: "",
+    targetUserType: "",
 };
 
 const getAudienceLabel = (value) => {
@@ -119,6 +126,47 @@ const AdminNotifications = () => {
     const [currentUser, setCurrentUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [form, setForm] = useState(initialForm);
+    const [users, setUsers] = useState([]);
+    const [userSearchQuery, setUserSearchQuery] = useState("");
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [selectedUsers, setSelectedUsers] = useState([]);
+
+    const handleToggleUser = (user) => {
+        setSelectedUsers((prev) => {
+            const exists = prev.some((u) => u.id === user.id && u.type === user.type);
+            if (exists) {
+                return prev.filter((u) => !(u.id === user.id && u.type === user.type));
+            } else {
+                return [...prev, user];
+            }
+        });
+    };
+
+    const filteredUsers = useMemo(() => {
+        if (!userSearchQuery.trim()) {
+            return users;
+        }
+        const q = userSearchQuery.toLowerCase();
+        return users.filter(u => 
+            String(u.id).includes(q) ||
+            u.fullName.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q) ||
+            (u.extraInfo && u.extraInfo.toLowerCase().includes(q)) ||
+            u.type.toLowerCase().includes(q)
+        );
+    }, [users, userSearchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showUserDropdown && !event.target.closest(".single-user-selector-container")) {
+                setShowUserDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showUserDropdown]);
     const [stats, setStats] = useState({
         totalSent: 0,
         scheduled: 0,
@@ -173,8 +221,12 @@ const AdminNotifications = () => {
             return false;
         }
 
+        if (form.targetAudience === "single" && selectedUsers.length === 0) {
+            return false;
+        }
+
         return true;
-    }, [form]);
+    }, [form, selectedUsers]);
 
     useEffect(() => {
         const user = authService.getCurrentUser();
@@ -185,13 +237,15 @@ const AdminNotifications = () => {
     const loadAdminNotificationData = async () => {
         setLoadingPage(true);
 
-        const [statsData, broadcastsData] = await Promise.all([
+        const [statsData, broadcastsData, usersData] = await Promise.all([
             adminNotificationService.getNotificationStats(),
             adminNotificationService.getRecentBroadcasts(),
+            adminNotificationService.getSimplifiedUsers(),
         ]);
 
         setStats(statsData);
         setRecentBroadcasts(broadcastsData);
+        setUsers(usersData || []);
         setLoadingPage(false);
     };
 
@@ -236,14 +290,10 @@ const AdminNotifications = () => {
             targetAudience: form.targetAudience,
             channels: form.channels,
             sendMode,
-
-            /*
-              TODO BACKEND:
-              Nếu sendMode = "schedule" thì backend dùng scheduledAt để hẹn giờ gửi.
-              Nếu sendMode = "now" thì có thể bỏ qua scheduledAt.
-              Nếu sendMode = "draft" thì lưu nháp, chưa gửi cho người dùng.
-            */
             scheduledAt: sendMode === "schedule" ? form.scheduledAt : null,
+            targetUsers: form.targetAudience === "single" 
+                ? selectedUsers.map(u => `${u.type}:${u.id}`).join(",") 
+                : null
         };
 
         const result = await adminNotificationService.createNotification(payload);
@@ -269,6 +319,8 @@ const AdminNotifications = () => {
         });
 
         setForm(initialForm);
+        setSelectedUsers([]);
+        setUserSearchQuery("");
 
         /*
           TODO BACKEND:
@@ -574,6 +626,163 @@ const AdminNotifications = () => {
                                             </label>
                                         ))}
                                     </div>
+
+                                    {form.targetAudience === "single" && (
+                                        <div className="single-user-selector-container" style={{ marginTop: "16px", position: "relative" }}>
+                                            <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px", color: "var(--admin-text-dark, #333)" }}>
+                                                Chọn một hoặc nhiều người nhận cụ thể *
+                                            </label>
+                                            <div 
+                                                className="searchable-dropdown-trigger"
+                                                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                                                style={{
+                                                    padding: "10px 14px",
+                                                    border: "1px solid var(--admin-border, #e0e0e0)",
+                                                    borderRadius: "8px",
+                                                    backgroundColor: "#fff",
+                                                    cursor: "pointer",
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    alignItems: "center",
+                                                    minHeight: "42px",
+                                                    flexWrap: "wrap",
+                                                    gap: "6px"
+                                                }}
+                                            >
+                                                {selectedUsers.length > 0 ? (
+                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", width: "90%" }}>
+                                                        {selectedUsers.map(u => (
+                                                            <span 
+                                                                key={`${u.type}-${u.id}`} 
+                                                                style={{
+                                                                    padding: "4px 8px",
+                                                                    borderRadius: "6px",
+                                                                    backgroundColor: u.type === "farmer" ? "#eef9f1" : u.type === "customer" ? "#e8f4fd" : "#f1f1f1",
+                                                                    color: u.type === "farmer" ? "#2e7d32" : u.type === "customer" ? "#1565c0" : "#616161",
+                                                                    fontSize: "12px",
+                                                                    fontWeight: "600",
+                                                                    display: "inline-flex",
+                                                                    alignItems: "center",
+                                                                    gap: "4px"
+                                                                }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleToggleUser(u);
+                                                                }}
+                                                            >
+                                                                {u.fullName}
+                                                                <span style={{ cursor: "pointer", marginLeft: "4px", color: "#888", fontWeight: "bold" }}>×</span>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: "#888", fontSize: "14px" }}>
+                                                        Chọn người dùng từ danh sách...
+                                                    </span>
+                                                )}
+                                                <span style={{ fontSize: "12px", color: "#888" }}>▼</span>
+                                            </div>
+
+                                            {showUserDropdown && (
+                                                <div 
+                                                    className="searchable-dropdown-menu"
+                                                    style={{
+                                                        position: "absolute",
+                                                        top: "100%",
+                                                        left: 0,
+                                                        right: 0,
+                                                        backgroundColor: "#fff",
+                                                        border: "1px solid var(--admin-border, #e0e0e0)",
+                                                        borderRadius: "8px",
+                                                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                                        zIndex: 99,
+                                                        marginTop: "4px",
+                                                        maxHeight: "300px",
+                                                        display: "flex",
+                                                        flexDirection: "column"
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Nhập tên, email hoặc ID để tìm kiếm..."
+                                                        value={userSearchQuery}
+                                                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        style={{
+                                                            padding: "10px 12px",
+                                                            border: "none",
+                                                            borderBottom: "1px solid #eee",
+                                                            outline: "none",
+                                                            fontSize: "14px",
+                                                            width: "100%",
+                                                            boxSizing: "border-box",
+                                                            borderRadius: "8px 8px 0 0"
+                                                        }}
+                                                        autoFocus
+                                                    />
+                                                    <div style={{ overflowY: "auto", flex: 1, maxHeight: "240px" }}>
+                                                        {filteredUsers.length === 0 ? (
+                                                            <div style={{ padding: "12px", textAlign: "center", color: "#888", fontSize: "14px" }}>
+                                                                Không tìm thấy người dùng nào
+                                                            </div>
+                                                        ) : (
+                                                            filteredUsers.map((u) => {
+                                                                const isChecked = selectedUsers.some(su => su.id === u.id && su.type === u.type);
+                                                                return (
+                                                                    <div
+                                                                        key={`${u.type}-${u.id}`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleToggleUser(u);
+                                                                        }}
+                                                                        style={{
+                                                                            padding: "10px 12px",
+                                                                            cursor: "pointer",
+                                                                            fontSize: "13.5px",
+                                                                            borderBottom: "1px solid #fafafa",
+                                                                            transition: "background-color 0.15s",
+                                                                            textAlign: "left",
+                                                                            display: "flex",
+                                                                            alignItems: "center",
+                                                                            gap: "10px"
+                                                                        }}
+                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f5f5f5"}
+                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                                                    >
+                                                                        <input 
+                                                                            type="checkbox"
+                                                                            checked={isChecked}
+                                                                            readOnly
+                                                                            style={{ cursor: "pointer" }}
+                                                                        />
+                                                                        <div style={{ flex: 1 }}>
+                                                                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                                                                                <strong>{u.fullName}</strong>
+                                                                                <span style={{ 
+                                                                                    fontSize: "11px", 
+                                                                                    padding: "2px 6px", 
+                                                                                    borderRadius: "4px", 
+                                                                                    backgroundColor: u.type === "farmer" ? "#eef9f1" : u.type === "customer" ? "#e8f4fd" : "#f1f1f1",
+                                                                                    color: u.type === "farmer" ? "#2e7d32" : u.type === "customer" ? "#1565c0" : "#616161",
+                                                                                    fontWeight: "600"
+                                                                                }}>
+                                                                                    {u.type === "farmer" ? "NHÀ VƯỜN" : u.type === "customer" ? "KHÁCH HÀNG" : "VẬN CHUYỂN"}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div style={{ color: "#666", fontSize: "12px" }}>
+                                                                                Email: {u.email} | ID: {u.id}
+                                                                                {u.type === "farmer" && u.extraInfo && ` | Tên farm: ${u.extraInfo}`}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="form-section">

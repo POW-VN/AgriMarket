@@ -46,7 +46,7 @@ const getDefaultImage = (category, name) => {
     return "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600"; // General fallback (carrot)
 };
 
-const normalizeProduct = (item) => {
+export const normalizeProduct = (item) => {
     const categoryName =
         item.category_name ||
         item.categoryName ||

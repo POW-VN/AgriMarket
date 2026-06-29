@@ -70,7 +70,7 @@ export default function SupportRequestSuccess() {
     // Step 0: Đã tiếp nhận (always complete if request exists)
     if (stepIndex === 0) return "completed";
     
-    // Step 1: Đã phân công (complete if assigned, processing, or resolved)
+    // Step 1: Đang xử lý (complete if assigned, processing, or resolved)
     if (stepIndex === 1) {
       if (status === "assigned" || status === "processing" || status === "resolved") {
         return "completed";
@@ -78,16 +78,8 @@ export default function SupportRequestSuccess() {
       return "waiting";
     }
     
-    // Step 2: Đang xử lý (complete if processing or resolved)
+    // Step 2: Hoàn thành (complete if resolved)
     if (stepIndex === 2) {
-      if (status === "processing" || status === "resolved") {
-        return "completed";
-      }
-      return "waiting";
-    }
-    
-    // Step 3: Hoàn thành (complete if resolved)
-    if (stepIndex === 3) {
       if (status === "resolved") return "completed";
       if (status === "rejected") return "rejected";
       return "waiting";

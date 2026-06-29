@@ -14,16 +14,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Farmer extends User {
+public class Farmer extends Customer {
 
     @Transient
     private String role = "farmer";
-
-    @Transient
-    private java.util.List<CustomerAddress> addresses;
-
-    @Column(name = "password_set")
-    private Boolean passwordSet = true;
     
     @Column(name = "farm_name", columnDefinition = "nvarchar(255)")
     private String farmName;

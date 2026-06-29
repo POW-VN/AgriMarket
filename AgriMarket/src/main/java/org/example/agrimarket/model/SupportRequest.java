@@ -36,8 +36,6 @@ public class SupportRequest {
     @Column(name = "order_code", length = 100)
     private String orderCode;
 
-    @Column(length = 20)
-    private String priority = "medium"; // low, medium, high
 
     @Column(name = "attachment_url", length = 1000)
     private String attachmentUrl;
@@ -58,9 +56,6 @@ public class SupportRequest {
         }
         if (status == null) {
             status = "pending";
-        }
-        if (priority == null) {
-            priority = "medium";
         }
     }
 

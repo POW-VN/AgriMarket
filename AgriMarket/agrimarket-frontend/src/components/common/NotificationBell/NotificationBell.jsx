@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import notificationService from "../../../services/notificationService";
 import "./NotificationBell.css";
 
 const NotificationBell = ({ user }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all"); // "all" or "unread"
@@ -57,13 +59,14 @@ const NotificationBell = ({ user }) => {
     }
   };
 
-  const handleMarkAsRead = async (id, e) => {
+  const handleMarkAsRead = async (id, e, currentIsRead) => {
     e.stopPropagation();
+    if (currentIsRead) return;
     try {
       await notificationService.markAsRead(id);
       // Update local state
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: !n.isRead } : n))
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
       // Recalculate unread count
       setNotifications((latest) => {
@@ -297,7 +300,7 @@ const NotificationBell = ({ user }) => {
                   <div
                     key={n.id}
                     className={`notification-item ${!n.isRead ? "unread" : ""}`}
-                    onClick={(e) => handleMarkAsRead(n.id, e)}
+                    onClick={(e) => handleMarkAsRead(n.id, e, n.isRead)}
                   >
                     {/* Left Icon */}
                     <div
@@ -319,11 +322,12 @@ const NotificationBell = ({ user }) => {
                       {!n.isRead && <span className="unread-dot"></span>}
 
                       <div className="action-buttons-hover">
-                        <button
-                          className="action-circle-btn"
-                          title={n.isRead ? "Đánh dấu là chưa đọc" : "Đánh dấu là đã đọc"}
-                          onClick={(e) => handleMarkAsRead(n.id, e)}
-                        >
+                        {!n.isRead && (
+                          <button
+                            className="action-circle-btn"
+                            title="Đánh dấu là đã đọc"
+                            onClick={(e) => handleMarkAsRead(n.id, e, n.isRead)}
+                          >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
@@ -338,6 +342,7 @@ const NotificationBell = ({ user }) => {
                             <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
                         </button>
+                        )}
                         <button
                           className="action-circle-btn delete-btn"
                           title="Xóa thông báo"
@@ -367,7 +372,7 @@ const NotificationBell = ({ user }) => {
           </div>
 
           <div className="dropdown-footer">
-            <button className="see-all-btn" onClick={() => { setIsOpen(false); setShowFullModal(true); }}>
+            <button className="see-all-btn" onClick={() => { setIsOpen(false); navigate("/profile/notifications"); }}>
               Xem tất cả thông báo
             </button>
           </div>
@@ -420,7 +425,7 @@ const NotificationBell = ({ user }) => {
                     <div
                       key={n.id}
                       className={`modal-item ${!n.isRead ? "unread" : ""}`}
-                      onClick={(e) => handleMarkAsRead(n.id, e)}
+                      onClick={(e) => handleMarkAsRead(n.id, e, n.isRead)}
                     >
                       <div
                         className="modal-icon-wrapper"
@@ -437,13 +442,15 @@ const NotificationBell = ({ user }) => {
 
                       <div className="modal-item-actions">
                         {!n.isRead && <span className="modal-unread-dot"></span>}
-                        <button
-                          className="modal-action-btn"
-                          title={n.isRead ? "Đánh dấu chưa đọc" : "Đánh dấu đã đọc"}
-                          onClick={(e) => handleMarkAsRead(n.id, e)}
-                        >
-                          {n.isRead ? "Đánh dấu chưa đọc" : "Đánh dấu đã đọc"}
-                        </button>
+                        {!n.isRead && (
+                          <button
+                            className="modal-action-btn"
+                            title="Đánh dấu đã đọc"
+                            onClick={(e) => handleMarkAsRead(n.id, e, n.isRead)}
+                          >
+                            Đánh dấu đã đọc
+                          </button>
+                        )}
                         <button
                           className="modal-action-btn delete"
                           title="Xóa"
