@@ -23,10 +23,10 @@ public class Notification {
     @Column(name = "receiver_id")
     private Long receiverId;
 
-    @Column(columnDefinition = "nvarchar(255)")
+    @Column(length = 255, columnDefinition = "TEXT")
     private String title;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "is_read")

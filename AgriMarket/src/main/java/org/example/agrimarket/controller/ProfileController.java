@@ -28,9 +28,14 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
+import org.example.agrimarket.service.SupabaseStorageService;
+
 @RestController
 @RequestMapping("/api/profile")
 public class ProfileController {
+
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
 
     @Autowired
     private CustomerRepository customerRepository;
@@ -442,39 +447,14 @@ public class ProfileController {
     }
 
     private void deletePhysicalAvatarFile(String avatarUrl) {
-        if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
-            try {
-                String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
-                java.io.File fileToDelete = new java.io.File("uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
-                if (fileToDelete.exists()) {
-                    fileToDelete.delete();
-                }
-            } catch (Exception e) {
-                System.err.println("Failed to delete avatar file: " + e.getMessage());
-            }
+        if (avatarUrl != null && !avatarUrl.isEmpty() && avatarUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(avatarUrl);
         }
     }
 
     private void deletePhysicalFile(String fileUrl, String subFolder) {
-        if (fileUrl == null) return;
-        String normalizedUrl = fileUrl.replace("\\", "/");
-        if (normalizedUrl.contains("/uploads/" + subFolder + "/")) {
-            try {
-                String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File("uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
-
-                boolean deleted = false;
-                if (fileInParent.exists()) {
-                    deleted = fileInParent.delete();
-                    System.out.println(">>> ProfileController: Deleted physical file in parent: " + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
-                } else if (fileInSub.exists()) {
-                    deleted = fileInSub.delete();
-                    System.out.println(">>> ProfileController: Deleted physical file in subfolder: " + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
-                }
-            } catch (Exception e) {
-                System.err.println(">>> ProfileController: Failed to delete physical file: " + fileUrl + ", error: " + e.getMessage());
-            }
+        if (fileUrl != null && !fileUrl.isEmpty() && fileUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(fileUrl);
         }
     }
 }

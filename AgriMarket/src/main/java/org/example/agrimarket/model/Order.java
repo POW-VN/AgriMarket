@@ -36,7 +36,7 @@ public class Order {
     @JoinColumn(name = "farmer_id", nullable = false)
     private Farmer farmer;
 
-    @Column(name = "shipping_note", columnDefinition = "nvarchar(1000)")
+    @Column(name = "shipping_note", length = 1000, columnDefinition = "TEXT")
     private String shippingNote;
 
     @Column(name = "payment_status", nullable = false)
@@ -63,7 +63,7 @@ public class Order {
     @Column(name = "tracking_number")
     private String trackingNumber;
 
-    @Column(name = "cancel_reason", columnDefinition = "nvarchar(1000)")
+    @Column(name = "cancel_reason", length = 1000, columnDefinition = "TEXT")
     private String cancelReason;
 
     @Column(name = "cancel_by")
@@ -76,29 +76,29 @@ public class Order {
     @JoinColumn(name = "partner_id")
     private Partner partner;
 
-    @Column(name = "shipper_notes", columnDefinition = "nvarchar(1000)")
+    @Column(name = "shipper_notes", length = 1000, columnDefinition = "TEXT")
     private String shipperNotes;
 
     @Lob
-    @Column(name = "pod_photo", columnDefinition = "nvarchar(max)")
+    @Column(name = "pod_photo", columnDefinition = "TEXT")
     private String podPhoto;
 
     @Column(name = "detailed_status")
     private String detailedStatus;
 
-    @Column(name = "driver_name", columnDefinition = "nvarchar(255)")
+    @Column(name = "driver_name", length = 255, columnDefinition = "TEXT")
     private String driverName;
 
-    @Column(name = "driver_code", columnDefinition = "nvarchar(100)")
+    @Column(name = "driver_code", length = 100)
     private String driverCode;
 
-    @Column(name = "driver_phone", columnDefinition = "nvarchar(50)")
+    @Column(name = "driver_phone", length = 50)
     private String driverPhone;
 
-    @Column(name = "vehicle_type", columnDefinition = "nvarchar(100)")
+    @Column(name = "vehicle_type", length = 100, columnDefinition = "TEXT")
     private String vehicleType;
 
-    @Column(name = "license_plate", columnDefinition = "nvarchar(50)")
+    @Column(name = "license_plate", length = 50)
     private String licensePlate;
 
     @Column(name = "created_at")

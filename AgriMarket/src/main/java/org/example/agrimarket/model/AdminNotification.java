@@ -17,10 +17,10 @@ public class AdminNotification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(columnDefinition = "nvarchar(255)")
+    @Column(length = 255, columnDefinition = "TEXT")
     private String title;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "notification_type")
@@ -47,7 +47,7 @@ public class AdminNotification {
     @Column(name = "target_user_type")
     private String targetUserType; // "customer", "farmer", "partner"
 
-    @Column(name = "target_users", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "target_users", columnDefinition = "TEXT")
     private String targetUsers; // e.g. "farmer:13,customer:15,partner:2"
 
     @Column(name = "created_at")

@@ -27,7 +27,7 @@ public class User {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "full_name", columnDefinition = "nvarchar(255)", nullable = false)
+    @Column(name = "full_name", length = 255, nullable = false, columnDefinition = "TEXT")
     private String fullName;
 
     @Column(name = "phone")

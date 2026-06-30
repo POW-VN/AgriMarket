@@ -18,14 +18,14 @@ public class CustomerAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "receiver_name", columnDefinition = "nvarchar(255)")
+    @Column(name = "receiver_name", length = 255, columnDefinition = "TEXT")
     private String receiverName;
-    
+
     private String phone;
-    
-    @Column(columnDefinition = "nvarchar(1000)")
+
+    @Column(length = 1000, columnDefinition = "TEXT")
     private String address;
-    
+
     @Column(name = "is_default")
     private Boolean isDefault;
 

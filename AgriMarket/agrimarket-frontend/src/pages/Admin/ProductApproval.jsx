@@ -211,11 +211,40 @@ const ProductApproval = () => {
       actionType: "unhide", reason: "", feedback: "",
     });
 
+  const handleBulkApprove = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Xác nhận phê duyệt hàng loạt",
+      message: `Bạn có chắc chắn muốn phê duyệt nhanh ${selectedProductIds.length} sản phẩm đã chọn? Các sản phẩm này sẽ ngay lập tức hiển thị công khai trên AgriMarket.`,
+      actionType: "bulk-approve",
+      reason: "",
+      feedback: "",
+    });
+  };
+
   const executeAction = async () => {
     const { actionType, reason, feedback } = confirmModal;
-    const prodId = selectedProduct.id;
     setConfirmModal({ ...confirmModal, isOpen: false });
 
+    if (actionType === "bulk-approve") {
+      try {
+        await apiClient.post("/api/admin/products/bulk-approve", selectedProductIds);
+        showToast(`✅ Đã phê duyệt nhanh ${selectedProductIds.length} sản phẩm thành công.`);
+        setSelectedProductIds([]);
+        fetchProducts();
+      } catch (err) {
+        setProducts((prev) =>
+          prev.map((p) =>
+            selectedProductIds.includes(p.id) ? { ...p, status: "approved" } : p
+          )
+        );
+        showToast(`✅ Đã phê duyệt nhanh ${selectedProductIds.length} sản phẩm (Chế độ mô phỏng).`);
+        setSelectedProductIds([]);
+      }
+      return;
+    }
+
+    const prodId = selectedProduct.id;
     try {
       let res;
       if (actionType === "approve") {
@@ -770,6 +799,14 @@ const ProductApproval = () => {
           <p>Duyệt, từ chối hoặc yêu cầu sửa đổi sản phẩm từ nông dân trước khi hiển thị trên chợ.</p>
         </div>
         <div className="admin-page-actions">
+          {selectedProductIds.length >= 2 && (
+            <button className="btn-admin-primary" onClick={handleBulkApprove} style={{ marginRight: "10px", padding: "10px 20px" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Duyệt nhanh ({selectedProductIds.length})
+            </button>
+          )}
           <button className="btn-admin-outline" onClick={handleExport}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -982,7 +1019,7 @@ const ProductApproval = () => {
         <div className="confirm-modal-overlay" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
           <div className="confirm-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="confirm-modal-header">
-              <span className="confirm-modal-icon">{confirmModal.actionType === "approve" ? "✅" : (confirmModal.actionType === "reject" || confirmModal.actionType === "hide") ? "❌" : "✏️"}</span>
+              <span className="confirm-modal-icon">{(confirmModal.actionType === "approve" || confirmModal.actionType === "bulk-approve") ? "✅" : (confirmModal.actionType === "reject" || confirmModal.actionType === "hide") ? "❌" : "✏️"}</span>
               <h3>{confirmModal.title}</h3>
             </div>
             <div className="confirm-modal-body">

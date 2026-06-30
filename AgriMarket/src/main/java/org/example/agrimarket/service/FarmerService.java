@@ -30,6 +30,9 @@ public class FarmerService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
+
     @Transactional
     public AuthResponse registerAsFarmer(String email, FarmerRegistrationRequest request) {
         if (farmerRepository.findByEmail(email).isPresent()) {
@@ -43,7 +46,7 @@ public class FarmerService {
 
         // Bước 1: Cập nhật user_type trong bảng users thành FARMER
         jdbcTemplate.update(
-                "UPDATE users SET user_type = 'FARMER', status = 'pending', updated_at = GETDATE() WHERE id = ?",
+                "UPDATE users SET user_type = 'FARMER', status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 userId);
 
         // Bước 2: Insert vào bảng farmer với cùng id
@@ -208,50 +211,14 @@ public class FarmerService {
     }
 
     private void deletePhysicalAvatarFile(String avatarUrl) {
-        if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
-            try {
-                String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
-                java.io.File fileToDelete = new java.io.File(
-                        "uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
-                if (fileToDelete.exists()) {
-                    boolean deleted = fileToDelete.delete();
-                    System.out.println(">>> FarmerService: Deleted avatar file: " + fileToDelete.getAbsolutePath()
-                            + " (success: " + deleted + ")");
-                }
-            } catch (Exception e) {
-                System.err.println("Failed to delete old avatar file: " + e.getMessage());
-            }
+        if (avatarUrl != null && !avatarUrl.isEmpty() && avatarUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(avatarUrl);
         }
     }
 
     private void deletePhysicalDocumentFile(String fileUrl) {
-        if (fileUrl == null)
-            return;
-        String normalizedUrl = fileUrl.replace("\\", "/");
-        if (normalizedUrl.contains("/uploads/documents/")) {
-            try {
-                String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File(
-                        "uploads" + java.io.File.separator + "documents" + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads"
-                        + java.io.File.separator + "documents" + java.io.File.separator + fileName);
-
-                boolean deleted = false;
-                if (fileInParent.exists()) {
-                    deleted = fileInParent.delete();
-                    System.out.println(">>> FarmerService: Deleted document file: " + fileInParent.getAbsolutePath()
-                            + " (success: " + deleted + ")");
-                } else if (fileInSub.exists()) {
-                    deleted = fileInSub.delete();
-                    System.out.println(">>> FarmerService: Deleted document file: " + fileInSub.getAbsolutePath()
-                            + " (success: " + deleted + ")");
-                } else {
-                    System.out.println(">>> FarmerService: Document file not found on disk: " + fileUrl);
-                }
-            } catch (Exception e) {
-                System.err.println(
-                        ">>> FarmerService: Failed to delete document file: " + fileUrl + ", error: " + e.getMessage());
-            }
+        if (fileUrl != null && !fileUrl.isEmpty() && fileUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(fileUrl);
         }
     }
 }

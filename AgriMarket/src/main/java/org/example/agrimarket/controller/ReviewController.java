@@ -18,9 +18,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import org.example.agrimarket.service.SupabaseStorageService;
+
 @RestController
 @RequestMapping("/api")
 public class ReviewController {
+
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
 
     @Autowired
     private OrderRepository orderRepository;
@@ -325,37 +330,20 @@ public class ReviewController {
         }
 
         String extension = ".jpg"; // default
+        String contentType = "image/jpeg";
         if (header.contains("image/png")) {
             extension = ".png";
+            contentType = "image/png";
         } else if (header.contains("image/gif")) {
             extension = ".gif";
+            contentType = "image/gif";
         } else if (header.contains("image/webp")) {
             extension = ".webp";
+            contentType = "image/webp";
         }
 
         byte[] decodedBytes = java.util.Base64.getDecoder().decode(data.trim());
 
-        String uploadDir = "uploads" + File.separator + subFolder;
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        String fileName = UUID.randomUUID().toString() + extension;
-        File file = new File(dir.getAbsolutePath() + File.separator + fileName);
-
-        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file)) {
-            fos.write(decodedBytes);
-        }
-
-        try {
-            return ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/uploads/")
-                    .path(subFolder + "/")
-                    .path(fileName)
-                    .toUriString();
-        } catch (Exception e) {
-            return "/uploads/" + subFolder + "/" + fileName;
-        }
+        return supabaseStorageService.uploadFileBytes(decodedBytes, "file" + extension, contentType, subFolder);
     }
 }

@@ -29,7 +29,7 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         // Skip auth and public resource endpoints
-        if (path.startsWith("/auth") || path.startsWith("/uploads")) {
+        if (path.startsWith("/auth")) {
             filterChain.doFilter(request, response);
             return;
         }

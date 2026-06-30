@@ -24,13 +24,13 @@ public class SupportMessage {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    @Column(name = "sender_name", length = 255, columnDefinition = "NVARCHAR(255)")
+    @Column(name = "sender_name", length = 255, columnDefinition = "TEXT")
     private String senderName;
 
     @Column(name = "sender_role", length = 50)
     private String senderRole; // "customer", "admin"
 
-    @Column(name = "content", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "created_at")

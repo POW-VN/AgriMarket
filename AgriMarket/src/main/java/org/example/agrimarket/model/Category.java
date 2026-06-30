@@ -17,10 +17,10 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "nvarchar(255)")
+    @Column(nullable = false, length = 255, columnDefinition = "TEXT")
     private String name;
 
-    @Column(columnDefinition = "nvarchar(max)")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "parent_id")
