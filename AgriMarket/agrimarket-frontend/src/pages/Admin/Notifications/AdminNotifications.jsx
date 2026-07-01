@@ -628,50 +628,27 @@ const AdminNotifications = () => {
                                     </div>
 
                                     {form.targetAudience === "single" && (
-                                        <div className="single-user-selector-container" style={{ marginTop: "16px", position: "relative" }}>
-                                            <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px", color: "var(--admin-text-dark, #333)" }}>
+                                        <div className="single-user-selector-container">
+                                            <label>
                                                 Chọn một hoặc nhiều người nhận cụ thể *
                                             </label>
                                             <div 
                                                 className="searchable-dropdown-trigger"
                                                 onClick={() => setShowUserDropdown(!showUserDropdown)}
-                                                style={{
-                                                    padding: "10px 14px",
-                                                    border: "1px solid var(--admin-border, #e0e0e0)",
-                                                    borderRadius: "8px",
-                                                    backgroundColor: "#fff",
-                                                    cursor: "pointer",
-                                                    display: "flex",
-                                                    justifyContent: "space-between",
-                                                    alignItems: "center",
-                                                    minHeight: "42px",
-                                                    flexWrap: "wrap",
-                                                    gap: "6px"
-                                                }}
                                             >
                                                 {selectedUsers.length > 0 ? (
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", width: "90%" }}>
                                                         {selectedUsers.map(u => (
                                                             <span 
                                                                 key={`${u.type}-${u.id}`} 
-                                                                style={{
-                                                                    padding: "4px 8px",
-                                                                    borderRadius: "6px",
-                                                                    backgroundColor: u.type === "farmer" ? "#eef9f1" : u.type === "customer" ? "#e8f4fd" : "#f1f1f1",
-                                                                    color: u.type === "farmer" ? "#2e7d32" : u.type === "customer" ? "#1565c0" : "#616161",
-                                                                    fontSize: "12px",
-                                                                    fontWeight: "600",
-                                                                    display: "inline-flex",
-                                                                    alignItems: "center",
-                                                                    gap: "4px"
-                                                                }}
+                                                                className={`dropdown-selected-pill ${u.type}`}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     handleToggleUser(u);
                                                                 }}
                                                             >
                                                                 {u.fullName}
-                                                                <span style={{ cursor: "pointer", marginLeft: "4px", color: "#888", fontWeight: "bold" }}>×</span>
+                                                                <span style={{ marginLeft: "4px", color: "inherit", fontWeight: "bold" }}>×</span>
                                                             </span>
                                                         ))}
                                                     </div>
@@ -684,43 +661,17 @@ const AdminNotifications = () => {
                                             </div>
 
                                             {showUserDropdown && (
-                                                <div 
-                                                    className="searchable-dropdown-menu"
-                                                    style={{
-                                                        position: "absolute",
-                                                        top: "100%",
-                                                        left: 0,
-                                                        right: 0,
-                                                        backgroundColor: "#fff",
-                                                        border: "1px solid var(--admin-border, #e0e0e0)",
-                                                        borderRadius: "8px",
-                                                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                                                        zIndex: 99,
-                                                        marginTop: "4px",
-                                                        maxHeight: "300px",
-                                                        display: "flex",
-                                                        flexDirection: "column"
-                                                    }}
-                                                >
+                                                <div className="searchable-dropdown-menu">
                                                     <input
                                                         type="text"
                                                         placeholder="Nhập tên, email hoặc ID để tìm kiếm..."
                                                         value={userSearchQuery}
                                                         onChange={(e) => setUserSearchQuery(e.target.value)}
                                                         onClick={(e) => e.stopPropagation()}
-                                                        style={{
-                                                            padding: "10px 12px",
-                                                            border: "none",
-                                                            borderBottom: "1px solid #eee",
-                                                            outline: "none",
-                                                            fontSize: "14px",
-                                                            width: "100%",
-                                                            boxSizing: "border-box",
-                                                            borderRadius: "8px 8px 0 0"
-                                                        }}
+                                                        className="searchable-dropdown-search-input"
                                                         autoFocus
                                                     />
-                                                    <div style={{ overflowY: "auto", flex: 1, maxHeight: "240px" }}>
+                                                    <div className="searchable-user-list-wrapper">
                                                         {filteredUsers.length === 0 ? (
                                                             <div style={{ padding: "12px", textAlign: "center", color: "#888", fontSize: "14px" }}>
                                                                 Không tìm thấy người dùng nào
@@ -735,25 +686,12 @@ const AdminNotifications = () => {
                                                                             e.stopPropagation();
                                                                             handleToggleUser(u);
                                                                         }}
-                                                                        style={{
-                                                                            padding: "10px 12px",
-                                                                            cursor: "pointer",
-                                                                            fontSize: "13.5px",
-                                                                            borderBottom: "1px solid #fafafa",
-                                                                            transition: "background-color 0.15s",
-                                                                            textAlign: "left",
-                                                                            display: "flex",
-                                                                            alignItems: "center",
-                                                                            gap: "10px"
-                                                                        }}
-                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f5f5f5"}
-                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                                                                        className="searchable-user-item"
                                                                     >
                                                                         <input 
                                                                             type="checkbox"
                                                                             checked={isChecked}
                                                                             readOnly
-                                                                            style={{ cursor: "pointer" }}
                                                                         />
                                                                         <div style={{ flex: 1 }}>
                                                                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
