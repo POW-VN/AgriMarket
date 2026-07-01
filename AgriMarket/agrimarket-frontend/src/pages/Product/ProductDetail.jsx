@@ -48,6 +48,7 @@ export default function ProductDetail() {
   const [cartItemsCount, setCartItemsCount] = useState(0);
   const [activeFaq, setActiveFaq] = useState(null);
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   // Reviews and Rating states
   const [reviewsList, setReviewsList] = useState([]);
@@ -892,6 +893,16 @@ export default function ProductDetail() {
     }
   };
 
+  const formatPerishability = (val) => {
+    if (!val) return "Khô";
+    const v = val.toLowerCase().trim();
+    if (v === "khô") return "Khô";
+    if (v === "trung bình") return "Trung bình";
+    if (v === "dễ hư" || v === "dễ hư hỏng") return "Dễ hư hỏng";
+    if (v === "rất dễ hư" || v === "rất dễ hư hỏng") return "Rất dễ hư hỏng";
+    return val.charAt(0).toUpperCase() + val.slice(1);
+  };
+
   if (loading) {
     return (
       <div className="product-detail-page">
@@ -951,7 +962,7 @@ export default function ProductDetail() {
         <section className="product-image-section">
           <div
             className="main-image-wrapper"
-            style={{ cursor: mainImageError || getFileExtension(activeImage) === "pdf" ? "default" : "zoom-in" }}
+            style={{ cursor: mainImageError || getFileExtension(activeImage) === "pdf" ? "default" : "zoom-in", position: "relative" }}
             onClick={() => {
               if (getFileExtension(activeImage) !== "pdf" && !mainImageError) {
                 const idx = allImages.indexOf(activeImage);
@@ -980,6 +991,26 @@ export default function ProductDetail() {
             <div className="badge-overlay">
               {product.isLocal && <span className="badge-tag local-tag">Địa phương</span>}
             </div>
+
+            {/* Gallery Navigation Arrows */}
+            {allImages.length > 1 && (
+              <>
+                <button
+                  className="gallery-nav-btn gallery-nav-prev"
+                  onClick={(e) => { e.stopPropagation(); const cur = allImages.indexOf(activeImage); setActiveImage(allImages[(cur - 1 + allImages.length) % allImages.length]); }}
+                  aria-label="Previous image"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button
+                  className="gallery-nav-btn gallery-nav-next"
+                  onClick={(e) => { e.stopPropagation(); const cur = allImages.indexOf(activeImage); setActiveImage(allImages[(cur + 1) % allImages.length]); }}
+                  aria-label="Next image"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+              </>
+            )}
           </div>
 
           {allImages.length > 1 && (
@@ -1128,10 +1159,6 @@ export default function ProductDetail() {
                 <span className="harvest-meta-val">{formatDate(product.expirationDate)}</span>
               </div>
             </div>
-          </div>
-
-          <div className="product-desc-box">
-            <p style={{ whiteSpace: "pre-line" }}>{product.description || "Được canh tác trong lòng đất giàu dinh dưỡng hoàn toàn tự nhiên, không sử dụng thuốc trừ sâu hóa học. Nông sản hữu cơ mang hương vị ngọt thanh đặc trưng, thích hợp cho bữa ăn lành mạnh hàng ngày."}</p>
           </div>
 
           {/* Purchase Option Box */}
@@ -1314,10 +1341,9 @@ export default function ProductDetail() {
 
             <p className="farmer-desc-text">{product.farmDescription}</p>
 
-            <div className="farmer-card-actions" style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
-              <button 
-                className="btn-view-farm-profile" 
-                style={{ flex: 1 }}
+            <div className="farmer-card-actions">
+              <button
+                className="btn-view-farm-profile"
                 onClick={() => navigate(`/farmer-profile/${product.farmerId}`)}
               >
                 Xem hồ sơ nông trại →
@@ -1325,16 +1351,6 @@ export default function ProductDetail() {
               <button
                 className={`btn-follow-farmer ${isFarmerFollowed ? "followed" : ""}`}
                 onClick={handleToggleFollowFarmer}
-                style={{
-                  padding: "10px 16px",
-                  borderRadius: "10px",
-                  fontWeight: "700",
-                  border: isFarmerFollowed ? "1px solid #e2e8f0" : "none",
-                  backgroundColor: isFarmerFollowed ? "#e2e8f0" : "var(--profile-green, #00412f)",
-                  color: isFarmerFollowed ? "var(--profile-text, #0a2f24)" : "#ffffff",
-                  cursor: "pointer",
-                  transition: "all 0.2s"
-                }}
               >
                 {isFarmerFollowed ? "✓ Đang theo dõi" : "＋ Theo dõi"}
               </button>
@@ -1343,92 +1359,239 @@ export default function ProductDetail() {
         </section>
       </main>
 
-      {/* Redesigned Value-Added Product Details Section */}
-      <section className="product-redesigned-details-section">
-        <div className="details-layout-full-width">
-          {/* Full Width: Product Specifications Card */}
-          <div className="details-specifications-card full-width">
-            <h2 className="details-card-title-main">📋 Thông tin chi tiết nông sản</h2>
-            <div className="spec-list-table">
-              <div className="spec-row">
-                <span className="spec-label">Tên sản phẩm</span>
-                <span className="spec-value">{product.name}</span>
+      {/* Premium Product Details Section */}
+      <section className="premium-details-section">
+        <h2 className="premium-main-title">📋 Thông tin chi tiết nông sản</h2>
+
+        <div className="premium-grid-container">
+          {/* CARD 1 - THÔNG TIN CƠ BẢN */}
+          <div className="premium-card basic-card">
+            <div className="premium-card-header">
+              <div className="premium-header-icon-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
               </div>
-              <div className="spec-row">
-                <span className="spec-label">Danh mục rau củ</span>
-                <span className="spec-value">{product.category || "Rau củ quả tươi"}</span>
+              <div className="premium-header-title-box">
+                <h3 className="premium-card-title">Thông tin cơ bản</h3>
+                <p className="premium-card-subtitle">Thông tin tổng quan về sản phẩm</p>
               </div>
-              <div className="spec-row">
-                <span className="spec-label">Nhà vườn sản xuất</span>
-                <span className="spec-value">{product.farmerName || "Nông trại AgriMarket"}</span>
+            </div>
+            <div className="premium-header-green-line"></div>
+            <div className="premium-card-content">
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">🏷️</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Tên sản phẩm</span>
+                  <span className="premium-info-value">{product.name}</span>
+                </div>
               </div>
-              <div className="spec-row spec-row-address">
-                <span className="spec-label">Nơi thu hoạch (Địa chỉ)</span>
-                <span className="spec-value spec-value-address">
-                  {product.farmLocation && product.farmLocation.length > 40 ? (
-                    <>
-                      <span className={`address-text ${isAddressExpanded ? "expanded" : "collapsed"}`}>
-                        {isAddressExpanded ? product.farmLocation : `${product.farmLocation.substring(0, 38)}...`}
-                      </span>
-                      <button
-                        type="button"
-                        className="btn-toggle-address"
-                        onClick={() => setIsAddressExpanded(!isAddressExpanded)}
-                      >
-                        {isAddressExpanded ? " Rút gọn ▴" : " Xem thêm ▾"}
-                      </button>
-                    </>
-                  ) : (
-                    product.farmLocation || "Lâm Đồng, Việt Nam"
-                  )}
-                </span>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">📦</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Danh mục</span>
+                  <span className="premium-info-value">{product.category || "Rau củ quả tươi"}</span>
+                </div>
               </div>
-              <div className="spec-row">
-                <span className="spec-label">Ngày thu hoạch</span>
-                <span className="spec-value">{formatDate(product.harvestDate)}</span>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">👨‍🌾</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Nhà vườn sản xuất</span>
+                  <span className="premium-info-value">{product.farmerName || "Nông trại AgriMarket"}</span>
+                </div>
               </div>
-              <div className="spec-row">
-                <span className="spec-label">Hạn sử dụng / Ngày hết hạn</span>
-                <span className="spec-value">{formatDate(product.expirationDate)}</span>
-              </div>
-              <div className="spec-row">
-                <span className="spec-label">Quy cách đóng gói</span>
-                <span className="spec-value">{product.unit || "Sản phẩm"}</span>
-              </div>
-              <div className="spec-row">
-                <span className="spec-label">Độ hư hỏng / Vận chuyển</span>
-                <span className="spec-value" style={{ textTransform: "capitalize" }}>
-                  {product.perishability || "Khô (Giao toàn quốc)"}
-                </span>
-              </div>
-              <div className="spec-row">
-                <span className="spec-label">Khoảng cách giao tối đa</span>
-                <span className="spec-value">
-                  {product.limitDistance ? `${product.limitDistance} km` : "Không giới hạn (Giao toàn quốc)"}
-                </span>
-              </div>
-              <div className="spec-row">
-                <span className="spec-label">Tiêu chuẩn chất lượng</span>
-                <span className="spec-value">
-                  {product.farmerOrganicUrl ? "Hữu cơ (Organic)" : product.farmerVietgapUrl ? "Tiêu chuẩn VietGAP" : product.farmerGlobalgapUrl ? "Tiêu chuẩn GlobalGAP" : "Nông sản sạch an toàn"}
-                </span>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">⚖️</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Quy cách đóng gói</span>
+                  <span className="premium-info-value">{product.unit || "Sản phẩm"}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Quality Commitment from AgriMarket */}
-          <div className="agrimarket-commitment-box-redesigned full-width">
-            <h4>🤝 Cam kết từ AgriMarket</h4>
-            <ul className="commitment-list-small">
-              <li><span>✅</span> 100% Tươi sạch tự nhiên, thu hoạch tại vườn</li>
-              <li><span>✅</span> Đền bù hoàn tiền nếu nông sản dập nát, hỏng lỗi</li>
-              <li><span>✅</span> Nhà vườn được xác minh uy tín & kiểm định thực địa</li>
-              <li><span>✅</span> Quy trình vận chuyển an toàn giữ nguyên dưỡng chất</li>
-            </ul>
+          {/* CARD 2 - THÔNG TIN CHI TIẾT */}
+          <div className="premium-card detail-card">
+            <div className="premium-card-header">
+              <div className="premium-header-icon-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  <path d="M9 12l2 2 4-4"></path>
+                </svg>
+              </div>
+              <div className="premium-header-title-box">
+                <h3 className="premium-card-title">Thông tin chi tiết sản phẩm</h3>
+                <p className="premium-card-subtitle">Nguồn gốc và thông tin sản phẩm</p>
+              </div>
+            </div>
+            <div className="premium-header-green-line"></div>
+            <div className="premium-card-content">
+              <div className={`premium-info-block premium-address-block`}>
+                <div className="premium-info-icon-wrapper">📍</div>
+                <div className="premium-info-text-box premium-address-text-box">
+                  <span className="premium-info-label">Nơi thu hoạch</span>
+                  <span className="premium-info-value premium-address-value">
+                    {product.farmLocation && product.farmLocation.length > 40 ? (
+                      <>
+                        <span className="premium-address-text-display">
+                          {isAddressExpanded ? product.farmLocation : `${product.farmLocation.substring(0, 38)}...`}
+                        </span>
+                        <button type="button" className="premium-btn-toggle-address" onClick={() => setIsAddressExpanded(!isAddressExpanded)}>
+                          {isAddressExpanded ? "Rút gọn ▴" : "Xem thêm ▾"}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="premium-address-text-display">{product.farmLocation || "Lâm Đồng, Việt Nam"}</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">📅</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Ngày thu hoạch</span>
+                  <span className="premium-info-value">{formatDate(product.harvestDate)}</span>
+                </div>
+              </div>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">⏳</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Hạn sử dụng</span>
+                  <span className="premium-info-value">{formatDate(product.expirationDate)}</span>
+                </div>
+              </div>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">🚚</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Độ hư hỏng / Vận chuyển</span>
+                  <span className="premium-info-value">{formatPerishability(product.perishability)}</span>
+                </div>
+              </div>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">🌍</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Khoảng cách giao</span>
+                  <span className="premium-info-value">
+                    {product.limitDistance ? `${product.limitDistance} km` : "Toàn quốc"}
+                  </span>
+                </div>
+              </div>
+              <div className="premium-info-block">
+                <div className="premium-info-icon-wrapper">⭐</div>
+                <div className="premium-info-text-box">
+                  <span className="premium-info-label">Tiêu chuẩn chất lượng</span>
+                  <span className="premium-info-value">
+                    {product.farmerOrganicUrl ? "Hữu cơ (Organic)" : product.farmerVietgapUrl ? "Tiêu chuẩn VietGAP" : product.farmerGlobalgapUrl ? "Tiêu chuẩn GlobalGAP" : "Nông sản sạch an toàn"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 3 - CAM KẾT AGRIMARKET */}
+          <div className="premium-commitment-card">
+            <div className="premium-commitment-header">
+              <div className="premium-header-icon-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
+                  <circle cx="12" cy="8" r="6"></circle>
+                  <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
+                  <path d="m9 8 2 2 4-4"></path>
+                </svg>
+              </div>
+              <div className="premium-header-title-box">
+                <h3 className="premium-commitment-title">Cam kết từ AgriMarket</h3>
+                <p className="premium-commitment-subtitle">Chúng tôi cam kết mang đến sản phẩm tốt nhất.</p>
+              </div>
+            </div>
+
+            <div className="premium-commitment-content">
+              <div className="premium-sub-commitment-card">
+                <div className="premium-check-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div className="premium-commitment-text-box">
+                  <h4 className="premium-sub-title">100% Tươi sạch tự nhiên</h4>
+                  <p className="premium-sub-desc">Không chất bảo quản, không hóa chất.</p>
+                </div>
+              </div>
+              <div className="premium-sub-commitment-card">
+                <div className="premium-check-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div className="premium-commitment-text-box">
+                  <h4 className="premium-sub-title">Đền bù nếu nông sản dập nát</h4>
+                  <p className="premium-sub-desc">Hoàn tiền 100% nếu sản phẩm lỗi.</p>
+                </div>
+              </div>
+              <div className="premium-sub-commitment-card">
+                <div className="premium-check-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div className="premium-commitment-text-box">
+                  <h4 className="premium-sub-title">Nhà vườn được xác minh</h4>
+                  <p className="premium-sub-desc">Đảm bảo nguồn gốc rõ ràng.</p>
+                </div>
+              </div>
+              <div className="premium-sub-commitment-card">
+                <div className="premium-check-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <div className="premium-commitment-text-box">
+                  <h4 className="premium-sub-title">Quy trình vận chuyển an toàn</h4>
+                  <p className="premium-sub-desc">Giữ nguyên chất lượng sản phẩm.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="premium-vector-footer">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" className="hills-vector">
+                <path fill="#16A34A" fillOpacity="1" d="M0,224L60,202.7C120,181,240,139,360,144C480,149,600,203,720,202.7C840,203,960,149,1080,138.7C1200,128,1320,160,1380,176L1440,192L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+              </svg>
+            </div>
           </div>
         </div>
 
-        {/* Section 8: FAQ Accordion */}
+        {/* CARD 4 - MÔ TẢ SẢN PHẨM (Full-width) */}
+        <div className="premium-card description-card-full">
+          <div className="premium-card-header">
+            <div className="premium-header-icon-circle">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </div>
+            <div className="premium-header-title-box">
+              <h3 className="premium-card-title">Mô tả sản phẩm</h3>
+              <p className="premium-card-subtitle">Chi tiết về đặc điểm và cách sử dụng</p>
+            </div>
+          </div>
+          <div className="premium-header-green-line"></div>
+          <div className="premium-card-content">
+            <div className={`description-content-wrapper ${isDescExpanded ? 'expanded' : 'collapsed'}`}>
+              <p className="description-text" style={{ whiteSpace: "pre-line" }}>
+                {product.description || "Được canh tác trong lòng đất giàu dinh dưỡng hoàn toàn tự nhiên, không sử dụng thuốc trừ sâu hóa học. Nông sản hữu cơ mang hương vị ngọt thanh đặc trưng, thích hợp cho bữa ăn lành mạnh hàng ngày."}
+              </p>
+              {!isDescExpanded && <div className="description-fade-overlay"></div>}
+            </div>
+            <button type="button" className="btn-toggle-description" onClick={() => setIsDescExpanded(!isDescExpanded)}>
+              {isDescExpanded ? "Thu gọn mô tả ▴" : "Xem thêm mô tả ▾"}
+            </button>
+          </div>
+        </div>
+
+        {/* FAQ Accordion */}
         <div className="details-faq-accordion-section">
           <h2 className="faq-section-title-main">💬 Câu hỏi thường gặp (FAQ)</h2>
           <div className="faq-accordion-container">
@@ -1436,11 +1599,7 @@ export default function ProductDetail() {
               const isOpen = activeFaq === idx;
               return (
                 <div key={idx} className={`faq-accordion-item ${isOpen ? "open" : ""}`}>
-                  <button 
-                    className="faq-accordion-question" 
-                    onClick={() => toggleFaq(idx)}
-                    aria-expanded={isOpen}
-                  >
+                  <button className="faq-accordion-question" onClick={() => toggleFaq(idx)} aria-expanded={isOpen}>
                     <span>{faqItem.q}</span>
                     <span className="faq-arrow-icon">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1449,9 +1608,7 @@ export default function ProductDetail() {
                     </span>
                   </button>
                   <div className="faq-accordion-answer">
-                    <div className="faq-answer-inner">
-                      <p>{faqItem.a}</p>
-                    </div>
+                    <div className="faq-answer-inner"><p>{faqItem.a}</p></div>
                   </div>
                 </div>
               );
