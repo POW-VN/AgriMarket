@@ -771,8 +771,8 @@
 .single-user-selector-container label {
     display: block;
     margin-bottom: 8px;
-    fontWeight: 600;
-    fontSize: 14px;
+    font-weight: 600;
+    font-size: 14px;
     color: var(--admin-text-dark, #333);
 }
 
