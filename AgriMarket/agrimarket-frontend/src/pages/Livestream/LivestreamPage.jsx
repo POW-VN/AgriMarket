@@ -26,6 +26,11 @@ const LivestreamPage = () => {
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
+  // Shop Direct Chat state
+  const [isShopChatOpen, setIsShopChatOpen] = useState(false);
+  const [shopChatInput, setShopChatInput] = useState("");
+  const [shopChatMessages, setShopChatMessages] = useState([]);
+
   // Chat state
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([
@@ -202,6 +207,38 @@ const LivestreamPage = () => {
     } else {
       showToast("Đã hủy theo dõi nhà vườn Thomas Miller.", "info");
     }
+  };
+
+  // Shop direct message handlers
+  const handleOpenShopChat = () => {
+    setIsShopChatOpen(true);
+    if (shopChatMessages.length === 0) {
+      setShopChatMessages([
+        {
+          sender: "shop",
+          text: "Xin chào! Tôi là Thomas Miller từ trang trại Sun Valley Organics. Rất vui được hỗ trợ bạn. Bạn cần tư vấn thêm về sản phẩm mật ong hay cà rốt sạch đang live ạ?"
+        }
+      ]);
+    }
+  };
+
+  const handleSendShopChatMessage = (e) => {
+    e.preventDefault();
+    if (!shopChatInput.trim()) return;
+
+    const userText = shopChatInput.trim();
+    setShopChatMessages((prev) => [...prev, { sender: "user", text: userText }]);
+    setShopChatInput("");
+
+    setTimeout(() => {
+      setShopChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "shop",
+          text: "Cảm ơn bạn! Mật ong hoa rừng bên mình hoàn toàn nguyên chất và đang áp dụng giảm giá 20% độc quyền trên live. Bạn có thể bấm nút 'Mua' ở phần sản phẩm nổi bật nhé. Mình sẽ đóng gói và gửi sớm nhất cho bạn!"
+        }
+      ]);
+    }, 1200);
   };
 
   // Submit comment in live chat
@@ -407,12 +444,12 @@ const LivestreamPage = () => {
             <div className="farmer-voucher-cards-row">
               
               {/* Farmer Info Card */}
-              <div className="farmer-profile-card">
+              <div className="livestream-farmer-card">
                 <div className="profile-details-left">
-                  <img src={farmerAvatarImg} alt="Thomas Miller" className="farmer-avatar-circle" />
-                  <div className="farmer-meta-text">
-                    <h3 className="farmer-name-heading">Thomas Miller</h3>
-                    <p className="farm-brand-name">Sun Valley Organics</p>
+                  <img src={farmerAvatarImg} alt="Thomas Miller" className="livestream-farmer-avatar" />
+                  <div className="livestream-farmer-meta">
+                    <h3 className="livestream-farmer-name">Thomas Miller</h3>
+                    <p className="livestream-farmer-brand">Sun Valley Organics</p>
                     <span className="verified-badge-label">
                       <svg className="verified-badge-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                         <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
@@ -421,21 +458,28 @@ const LivestreamPage = () => {
                     </span>
                   </div>
                 </div>
-                <button 
-                  className={`follow-toggle-btn ${isFollowing ? "following-state" : "unfollowed-state"}`}
-                  onClick={handleFollowToggle}
-                >
-                  {isFollowing ? (
-                    <>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "4px" }}>
-                        <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-                      </svg>
-                      Đang theo dõi
-                    </>
-                  ) : (
-                    "+ Theo dõi"
-                  )}
-                </button>
+                <div className="farmer-actions-group">
+                  <button 
+                    className={`follow-toggle-btn ${isFollowing ? "following-state" : "unfollowed-state"}`}
+                    onClick={handleFollowToggle}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "4px" }}>
+                          <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+                        </svg>
+                        Đang theo dõi
+                      </>
+                    ) : (
+                      "+ Theo dõi"
+                    )}
+                  </button>
+                  <button className="btn-chat-shop" onClick={handleOpenShopChat} title="Nhắn tin riêng với shop">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                      <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Live Voucher Coupon Card */}
@@ -560,6 +604,54 @@ const LivestreamPage = () => {
 
         </div>
       </main>
+
+      {/* Floating Shop Chat Widget */}
+      {isShopChatOpen && (
+        <div className="shop-chat-widget">
+          <div className="shop-chat-header">
+            <div className="shop-chat-header-user">
+              <img src={farmerAvatarImg} alt="Thomas Miller" className="shop-chat-avatar" />
+              <div className="shop-chat-header-info">
+                <span className="shop-chat-name">
+                  Thomas Miller
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" className="verified-tick-icon chat-verified-tick" title="Nhà vườn uy tín">
+                    <circle cx="12" cy="12" r="10" fill="#0095F6" />
+                    <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="shop-chat-status">
+                  <span className="shop-status-dot"></span> Đang trực tuyến
+                </span>
+              </div>
+            </div>
+            <button className="shop-chat-close-btn" onClick={() => setIsShopChatOpen(false)}>&times;</button>
+          </div>
+          
+          <div className="shop-chat-body">
+            {shopChatMessages.map((msg, idx) => (
+              <div key={idx} className={`shop-chat-msg-row ${msg.sender}`}>
+                <div className="shop-chat-msg-bubble">
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <form className="shop-chat-footer" onSubmit={handleSendShopChatMessage}>
+            <input 
+              type="text" 
+              placeholder="Nhập tin nhắn..." 
+              value={shopChatInput}
+              onChange={(e) => setShopChatInput(e.target.value)}
+            />
+            <button type="submit" aria-label="Gửi">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Stacked Toasts Container */}
       {toast.show && (
