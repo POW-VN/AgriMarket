@@ -22,7 +22,7 @@ Hệ thống hỗ trợ 4 vai trò chính:
 - **Core Framework**: Java 21, Spring Boot 3.3.0
 - **Security**: Spring Security & JWT (Json Web Token) bảo mật stateless API. Hashing mật khẩu bằng [BCryptPasswordEncoder](file:///d:/POW/Learn/FPT%20University/Ki_5/SWP391/Project/AgriMarket/AgriMarket/src/main/java/org/example/agrimarket/security/SecurityConfig.java#L30).
 - **Data Access**: Spring Data JPA & Hibernate.
-- **Database**: Microsoft SQL Server (tên database mặc định: `AgriMarketplace`).
+- **Database**: PostgreSQL (Được lưu trữ trực tuyến và quản lý qua **Supabase Cloud**).
 - **Email**: Spring Mail (SMTP) hỗ trợ gửi mã OTP và thư thông báo.
 - **API Documentation**: Springdoc OpenAPI / Swagger (`/swagger-ui/index.html`).
 - **Tiện ích**: Lombok giảm thiểu code mẫu.
@@ -35,6 +35,7 @@ Hệ thống hỗ trợ 4 vai trò chính:
 - **Styling**: Vanilla CSS.
 
 ### Các tích hợp bên thứ ba (Third-party Integrations)
+- **Supabase Cloud (PostgreSQL & Storage)**: Lưu trữ cơ sở dữ liệu PostgreSQL và cung cấp Cloud Object Storage để tải lên/xóa các tệp tin hình ảnh/tài liệu (ảnh đại diện, chứng nhận VietGAP/GlobalGAP, ảnh nông sản, ảnh bằng chứng giao hàng POD).
 - **Google Gemini API**: Model `gemini-3.1-flash-lite` phục vụ việc viết mô tả tự động và phân tích định giá nông sản.
 - **VNPay Sandbox**: Cổng thanh toán trực tuyến của Việt Nam.
 - **Nominatim OpenStreetMap**: Geocoding địa chỉ (chuyển đổi chuỗi địa chỉ thành tọa độ Vĩ độ/Kinh độ).
@@ -218,16 +219,25 @@ agrimarket-frontend/
 ## 6. Hướng dẫn Thiết lập & Chạy dưới Local
 
 ### Bước 1: Chuẩn bị Cơ sở dữ liệu
-Hệ thống sử dụng **Microsoft SQL Server**.
-1. Tạo một cơ sở dữ liệu mới tên là `AgriMarketplace`.
-2. (Tùy chọn) Chạy mã SQL trong [Agrimarket-system.sql](file:///d:/POW/Learn/FPT%20University/Ki_5/SWP391/Project/AgriMarket/AgriMarket/docs/Agrimarket-system.sql) để khởi tạo các bảng và chèn vai trò mặc định. 
-   *(Lưu ý: Nếu không chạy thủ công, Spring Boot cũng tự tạo và đồng bộ hóa lại cấu trúc các bảng khi khởi động nhờ cơ chế `ddl-auto=update` và `DataInitializer`)*.
+Hệ thống sử dụng **PostgreSQL** được lưu trữ trực tuyến qua **Supabase**.
+1. Tạo một dự án mới trên Supabase hoặc chuẩn bị một cơ sở dữ liệu PostgreSQL trống. Lấy thông tin chuỗi kết nối kết nối (Host, DB Name, User, Password).
+2. (Tùy chọn) Chạy mã SQL trong [Agrimarket-system-postgres.sql](file:///d:/POW/Learn/FPT%20University/Ki_5/SWP391/Project/AgriMarket/AgriMarket/docs/Agrimarket-system-postgres.sql) để tạo sẵn cấu trúc bảng và vai trò.
+   *(Lưu ý: Nếu không chạy thủ công, Spring Boot nhờ cơ chế `ddl-auto=update` của Hibernate cũng tự động tạo và đồng bộ các bảng từ JPA entity sang PostgreSQL khi ứng dụng khởi chạy lần đầu, sau đó `DataInitializer` sẽ tự động seed tài khoản admin và các danh mục)*.
 
 ### Bước 2: Cấu hình ứng dụng Backend
-Mở file [application.properties](file:///d:/POW/Learn/FPT%20University/Ki_5/SWP391/Project/AgriMarket/AgriMarket/src/main/resources/application.properties) và điều chỉnh các thông số sau hoặc đặt chúng qua biến môi trường:
-- Cấu hình kết nối SQL Server: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`.
-- Cấu hình API Key Gemini: `gemini.api.key`.
-- Cấu hình Email gửi OTP: `spring.mail.username` và `spring.mail.password` (sử dụng Google App Password).
+Mở file [application.properties](file:///d:/POW/Learn/FPT%20University/Ki_5/SWP391/Project/AgriMarket/AgriMarket/src/main/resources/application.properties) và điều chỉnh các thông số sau hoặc thiết lập chúng qua biến môi trường:
+- **Cấu hình kết nối PostgreSQL / Supabase DB**:
+  - `spring.datasource.url`: Chuỗi JDBC kết nối PostgreSQL (ví dụ: `jdbc:postgresql://db.supabase.co:5432/postgres`)
+  - `spring.datasource.username`: Tên người dùng của database.
+  - `spring.datasource.password`: Mật khẩu kết nối database.
+  - `spring.datasource.driver-class-name`: `org.postgresql.Driver`
+  - `spring.jpa.properties.hibernate.dialect`: `org.hibernate.dialect.PostgreSQLDialect`
+- **Cấu hình Supabase Object Storage**:
+  - `supabase.url`: URL của dự án Supabase (ví dụ: `https://igqxplizbdyozagsaajg.supabase.co`).
+  - `supabase.key`: Khóa API (anon key hoặc service role) có quyền ghi/đọc bucket.
+  - `supabase.bucket`: Tên bucket đã tạo trên Supabase (ví dụ: `agrimarket`).
+- **Cấu hình API Key Gemini**: `gemini.api.key`.
+- **Cấu hình Email gửi OTP**: `spring.mail.username` và `spring.mail.password` (sử dụng Google App Password).
 
 ### Bước 3: Khởi chạy Backend
 Tại thư mục `AgriMarket`, thực hiện biên dịch và chạy bằng Maven:
