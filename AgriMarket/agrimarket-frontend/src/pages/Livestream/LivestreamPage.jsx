@@ -26,34 +26,39 @@ const LivestreamPage = () => {
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
+  // Shop Direct Chat state
+  const [isShopChatOpen, setIsShopChatOpen] = useState(false);
+  const [shopChatInput, setShopChatInput] = useState("");
+  const [shopChatMessages, setShopChatMessages] = useState([]);
+
   // Chat state
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([
     {
       id: 1,
       user: "Sarah J.",
-      text: "Are the carrots sweet this season?",
+      text: "Cà rốt vụ này ngọt không nhà vườn?",
       isBot: false,
       avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"
     },
     {
       id: 2,
       user: "Mike L.",
-      text: "Just bought 2 jars of honey! 🍯",
+      text: "Vừa đặt mua 2 hũ mật ong! 🍯",
       isBot: false,
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
     },
     {
       id: 3,
-      user: "FarmConnect Bot",
-      text: "Don't forget to claim the 20% off voucher before the stream ends!",
+      user: "Hệ thống AgriMarket",
+      text: "Đừng quên nhận voucher giảm giá 20% trước khi phiên livestream kết thúc nhé!",
       isBot: true,
       avatar: ""
     },
     {
       id: 4,
       user: "Elena U.",
-      text: "When is the next harvest?",
+      text: "Khi nào thì có đợt thu hoạch tiếp theo vậy?",
       isBot: false,
       avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100"
     }
@@ -133,7 +138,7 @@ const LivestreamPage = () => {
       
       const newMsg = {
         id: Date.now(),
-        user: isBot ? "FarmConnect Bot" : randomUser.name,
+        user: isBot ? "Hệ thống AgriMarket" : randomUser.name,
         text: isBot 
           ? "💡 Hãy nhanh tay nhấn 'Nhận Voucher' để được giảm giá 20% trực tiếp trên livestream này!" 
           : randomComment,
@@ -204,6 +209,38 @@ const LivestreamPage = () => {
     }
   };
 
+  // Shop direct message handlers
+  const handleOpenShopChat = () => {
+    setIsShopChatOpen(true);
+    if (shopChatMessages.length === 0) {
+      setShopChatMessages([
+        {
+          sender: "shop",
+          text: "Xin chào! Tôi là Thomas Miller từ trang trại Sun Valley Organics. Rất vui được hỗ trợ bạn. Bạn cần tư vấn thêm về sản phẩm mật ong hay cà rốt sạch đang live ạ?"
+        }
+      ]);
+    }
+  };
+
+  const handleSendShopChatMessage = (e) => {
+    e.preventDefault();
+    if (!shopChatInput.trim()) return;
+
+    const userText = shopChatInput.trim();
+    setShopChatMessages((prev) => [...prev, { sender: "user", text: userText }]);
+    setShopChatInput("");
+
+    setTimeout(() => {
+      setShopChatMessages((prev) => [
+        ...prev,
+        {
+          sender: "shop",
+          text: "Cảm ơn bạn! Mật ong hoa rừng bên mình hoàn toàn nguyên chất và đang áp dụng giảm giá 20% độc quyền trên live. Bạn có thể bấm nút 'Mua' ở phần sản phẩm nổi bật nhé. Mình sẽ đóng gói và gửi sớm nhất cho bạn!"
+        }
+      ]);
+    }, 1200);
+  };
+
   // Submit comment in live chat
   const handleSendChat = (e) => {
     e.preventDefault();
@@ -258,9 +295,9 @@ const LivestreamPage = () => {
   const featuredProducts = [
     {
       id: "mock-honey-1",
-      name: "Raw Wildflower Honey",
+      name: "Mật ong hoa rừng nguyên chất",
       price: 12.99,
-      unit: "500g Jar",
+      unit: "Hũ 500g",
       imageUrl: honeyImg,
       farmerId: 1,
       farmerName: "Thomas Miller (Sun Valley Organics)",
@@ -268,9 +305,9 @@ const LivestreamPage = () => {
     },
     {
       id: "mock-carrots-1",
-      name: "Organic Rainbow Carrots",
+      name: "Cà rốt bảy sắc hữu cơ",
       price: 4.50,
-      unit: "1 lb Bunch",
+      unit: "Bó 500g",
       imageUrl: carrotsImg,
       farmerId: 1,
       farmerName: "Thomas Miller (Sun Valley Organics)",
@@ -295,7 +332,7 @@ const LivestreamPage = () => {
               <div className="video-viewport" onClick={togglePlay}>
                 <img 
                   src={farmerVideoImg} 
-                  alt="Live Farm Stream" 
+                  alt="Livestream nông trại" 
                   className={`video-background-img ${isPlaying ? "playing" : "paused"}`}
                 />
                 
@@ -318,13 +355,13 @@ const LivestreamPage = () => {
                 <div className="video-top-overlays">
                   <span className="live-status-badge">
                     <span className="live-dot"></span>
-                    LIVE
+                    TRỰC TIẾP
                   </span>
                   <span className="viewers-count-badge">
                     <svg className="viewer-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                       <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
                     </svg>
-                    1.2k watching
+                    1.2k đang xem
                   </span>
                 </div>
 
@@ -407,46 +444,53 @@ const LivestreamPage = () => {
             <div className="farmer-voucher-cards-row">
               
               {/* Farmer Info Card */}
-              <div className="farmer-profile-card">
+              <div className="livestream-farmer-card">
                 <div className="profile-details-left">
-                  <img src={farmerAvatarImg} alt="Thomas Miller" className="farmer-avatar-circle" />
-                  <div className="farmer-meta-text">
-                    <h3 className="farmer-name-heading">Thomas Miller</h3>
-                    <p className="farm-brand-name">Sun Valley Organics</p>
+                  <img src={farmerAvatarImg} alt="Thomas Miller" className="livestream-farmer-avatar" />
+                  <div className="livestream-farmer-meta">
+                    <h3 className="livestream-farmer-name">Thomas Miller</h3>
+                    <p className="livestream-farmer-brand">Sun Valley Organics</p>
                     <span className="verified-badge-label">
                       <svg className="verified-badge-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                         <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                       </svg>
-                      Verified Farm
+                      Nhà vườn đã xác minh
                     </span>
                   </div>
                 </div>
-                <button 
-                  className={`follow-toggle-btn ${isFollowing ? "following-state" : "unfollowed-state"}`}
-                  onClick={handleFollowToggle}
-                >
-                  {isFollowing ? (
-                    <>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "4px" }}>
-                        <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-                      </svg>
-                      Following
-                    </>
-                  ) : (
-                    "+ Follow"
-                  )}
-                </button>
+                <div className="farmer-actions-group">
+                  <button 
+                    className={`follow-toggle-btn ${isFollowing ? "following-state" : "unfollowed-state"}`}
+                    onClick={handleFollowToggle}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "4px" }}>
+                          <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+                        </svg>
+                        Đang theo dõi
+                      </>
+                    ) : (
+                      "+ Theo dõi"
+                    )}
+                  </button>
+                  <button className="btn-chat-shop" onClick={handleOpenShopChat} title="Nhắn tin riêng với shop">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                      <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Live Voucher Coupon Card */}
               <div className="live-voucher-deal-card">
                 <div className="voucher-details-left">
                   <div className="deal-status-badge">
-                    LIVE ONLY DEAL
+                    ƯU ĐÃI TRÊN LIVE
                   </div>
-                  <h4 className="voucher-promo-text">20% Off Fresh Honey</h4>
+                  <h4 className="voucher-promo-text">Giảm 20% Mật ong rừng</h4>
                   <div className="voucher-timer-countdown">
-                    Ends in <span className="timer-digits-monospace">{formatVoucherTime(voucherTime)}</span>
+                    Kết thúc sau <span className="timer-digits-monospace">{formatVoucherTime(voucherTime)}</span>
                   </div>
                 </div>
                 <button 
@@ -457,7 +501,7 @@ const LivestreamPage = () => {
                   <svg className="voucher-ticket-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                     <path d="M20 12c0-1.1.9-2 2-2V8c0-1.1-.9-2-2-2H4c-1.1 0-1.99.9-1.99 2v2c1.1 0 1.99.9 1.99 2s-.89 2-2 2v2c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-2c-1.1 0-2-.9-2-2zm-9 1.5H9v-3h2v3zm4 0h-2v-3h2v3z"/>
                   </svg>
-                  {voucherClaimed ? "Claimed" : "Claim Voucher"}
+                  {voucherClaimed ? "Đã nhận" : "Nhận Voucher"}
                 </button>
               </div>
 
@@ -473,7 +517,7 @@ const LivestreamPage = () => {
                 <svg className="chat-bubble-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                   <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
                 </svg>
-                <h3 className="chat-title-heading">Live Chat</h3>
+                <h3 className="chat-title-heading">Trò chuyện trực tiếp</h3>
               </div>
 
               {/* Scrollable chat messages container */}
@@ -514,7 +558,7 @@ const LivestreamPage = () => {
               <form onSubmit={handleSendChat} className="chat-input-row-form">
                 <input
                   type="text"
-                  placeholder="Say hello..."
+                  placeholder="Nhập tin nhắn..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="chat-text-input-field"
@@ -533,7 +577,7 @@ const LivestreamPage = () => {
                 <svg className="shopping-bag-status-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                   <path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12z"/>
                 </svg>
-                <h3 className="products-title-heading">Featured in Stream</h3>
+                <h3 className="products-title-heading">Sản phẩm trong Live</h3>
               </div>
 
               <div className="products-list-scrollable">
@@ -549,7 +593,7 @@ const LivestreamPage = () => {
                       className="product-purchase-action-btn"
                       onClick={() => handleBuyProduct(prod)}
                     >
-                      Buy
+                      Mua
                     </button>
                   </div>
                 ))}
@@ -560,6 +604,54 @@ const LivestreamPage = () => {
 
         </div>
       </main>
+
+      {/* Floating Shop Chat Widget */}
+      {isShopChatOpen && (
+        <div className="shop-chat-widget">
+          <div className="shop-chat-header">
+            <div className="shop-chat-header-user">
+              <img src={farmerAvatarImg} alt="Thomas Miller" className="shop-chat-avatar" />
+              <div className="shop-chat-header-info">
+                <span className="shop-chat-name">
+                  Thomas Miller
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" className="verified-tick-icon chat-verified-tick" title="Nhà vườn uy tín">
+                    <circle cx="12" cy="12" r="10" fill="#0095F6" />
+                    <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="shop-chat-status">
+                  <span className="shop-status-dot"></span> Đang trực tuyến
+                </span>
+              </div>
+            </div>
+            <button className="shop-chat-close-btn" onClick={() => setIsShopChatOpen(false)}>&times;</button>
+          </div>
+          
+          <div className="shop-chat-body">
+            {shopChatMessages.map((msg, idx) => (
+              <div key={idx} className={`shop-chat-msg-row ${msg.sender}`}>
+                <div className="shop-chat-msg-bubble">
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <form className="shop-chat-footer" onSubmit={handleSendShopChatMessage}>
+            <input 
+              type="text" 
+              placeholder="Nhập tin nhắn..." 
+              value={shopChatInput}
+              onChange={(e) => setShopChatInput(e.target.value)}
+            />
+            <button type="submit" aria-label="Gửi">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Stacked Toasts Container */}
       {toast.show && (
