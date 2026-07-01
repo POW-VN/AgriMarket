@@ -446,17 +446,7 @@ const ProductApproval = () => {
           </span>
           Hỗ trợ
         </button>
-        <button className="admin-nav-item" onClick={() => showToast("Tính năng quản lý khiếu nại đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-              <line x1="12" y1="9" x2="12" y2="13"></line>
-              <line x1="12" y1="17" x2="12.01" y2="17"></line>
-            </svg>
-          </span>
-          Khiếu nại
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng báo cáo đang phát triển.")}>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
           <span className="admin-nav-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
           </span>
@@ -510,11 +500,11 @@ const ProductApproval = () => {
     const prod = selectedProduct;
 
     const statusColors = {
-      pending:          { bg: "#fff7ed", text: "#92400e", border: "#fcd34d" },
-      approved:         { bg: "#ecfdf5", text: "#065f46", border: "#6ee7b7" },
-      rejected:         { bg: "#fef2f2", text: "#991b1b", border: "#fca5a5" },
-      request_changes:  { bg: "#fffbeb", text: "#92400e", border: "#fcd34d" },
-      hidden:           { bg: "#fffbeb", text: "#b45309", border: "#fcd34d" },
+      pending: { bg: "#fff7ed", text: "#92400e", border: "#fcd34d" },
+      approved: { bg: "#ecfdf5", text: "#065f46", border: "#6ee7b7" },
+      rejected: { bg: "#fef2f2", text: "#991b1b", border: "#fca5a5" },
+      request_changes: { bg: "#fffbeb", text: "#92400e", border: "#fcd34d" },
+      hidden: { bg: "#fffbeb", text: "#b45309", border: "#fcd34d" },
     };
     const sc = statusColors[prod.status] ?? { bg: "#f3f4f6", text: "#374151", border: "#e5e7eb" };
 
@@ -544,15 +534,15 @@ const ProductApproval = () => {
             {prod.status === "pending" && (
               <>
                 <button onClick={triggerApprove} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 20px", borderRadius: "10px", border: "none", backgroundColor: "#064e3b", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: "pointer", boxShadow: "0 2px 8px rgba(6,78,59,0.25)" }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                   Phê duyệt
                 </button>
                 <button onClick={triggerReject} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "10px", border: "1.5px solid #fca5a5", backgroundColor: "#fff5f5", color: "#dc2626", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /></svg>
                   Từ chối
                 </button>
                 <button onClick={triggerRequestChanges} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "10px", border: "1.5px solid #fcd34d", backgroundColor: "#fffbeb", color: "#92400e", fontWeight: "700", fontSize: "14px", cursor: "pointer" }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                   Yêu cầu sửa đổi
                 </button>
               </>
@@ -569,7 +559,7 @@ const ProductApproval = () => {
             {prod.status === "hidden" && (
               <button onClick={triggerUnhide} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "10px 20px", borderRadius: "10px", border: "none", backgroundColor: "#064e3b", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: "pointer", boxShadow: "0 2px 8px rgba(6,78,59,0.25)" }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                 </svg>
                 Hiện sản phẩm
               </button>
@@ -628,19 +618,19 @@ const ProductApproval = () => {
               <InfoCard label="Tồn kho" value={prod.stockQuantity ? `${prod.stockQuantity} ${prod.unit}` : "—"} />
               <InfoCard label="Ngày thu hoạch" value={prod.harvestDate || "—"} />
               <InfoCard label="Hạn sử dụng" value={prod.expirationDate || "—"} />
-              <InfoCard 
-                label="Độ hư hỏng / Vận chuyển" 
+              <InfoCard
+                label="Độ hư hỏng / Vận chuyển"
                 value={
                   prod.perishability === "rất dễ hư" ? "Rất dễ hư (Nội tỉnh)" :
-                  prod.perishability === "dễ hư" ? "Dễ hư hỏng (Giao nhanh)" :
-                  prod.perishability === "trung bình" ? "Trung bình (Liên tỉnh)" :
-                  prod.perishability === "khô" ? "Khô (Toàn quốc)" : 
-                  (prod.perishability || "—")
-                } 
+                    prod.perishability === "dễ hư" ? "Dễ hư hỏng (Giao nhanh)" :
+                      prod.perishability === "trung bình" ? "Trung bình (Liên tỉnh)" :
+                        prod.perishability === "khô" ? "Khô (Toàn quốc)" :
+                          (prod.perishability || "—")
+                }
               />
-              <InfoCard 
-                label="Bán kính giới hạn" 
-                value={prod.limitDistance !== undefined && prod.limitDistance !== null ? `${prod.limitDistance} km` : "Không giới hạn"} 
+              <InfoCard
+                label="Bán kính giới hạn"
+                value={prod.limitDistance !== undefined && prod.limitDistance !== null ? `${prod.limitDistance} km` : "Không giới hạn"}
               />
             </div>
 
@@ -802,14 +792,14 @@ const ProductApproval = () => {
           {selectedProductIds.length >= 2 && (
             <button className="btn-admin-primary" onClick={handleBulkApprove} style={{ marginRight: "10px", padding: "10px 20px" }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
-                <polyline points="20 6 9 17 4 12"/>
+                <polyline points="20 6 9 17 4 12" />
               </svg>
               Duyệt nhanh ({selectedProductIds.length})
             </button>
           )}
           <button className="btn-admin-outline" onClick={handleExport}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             Xuất dữ liệu
           </button>
@@ -893,11 +883,11 @@ const ProductApproval = () => {
                       <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>mỗi {prod.unit}</span>
                     </td>
                     <td>
-                      <span style={{ 
-                        display: "inline-block", 
-                        padding: "4px 10px", 
-                        borderRadius: "20px", 
-                        fontSize: "12px", 
+                      <span style={{
+                        display: "inline-block",
+                        padding: "4px 10px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
                         fontWeight: "600",
                         backgroundColor: "#f3f4f6",
                         color: "#4b5563",
@@ -913,7 +903,7 @@ const ProductApproval = () => {
                       <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                         <button title="Xem chi tiết & Kiểm duyệt" className="btn-action-direct unlock" onClick={() => handleSelectProduct(prod)}>
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--admin-primary)" }}>
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                           </svg>
                         </button>
                         {prod.status === "pending" && (
@@ -921,12 +911,12 @@ const ProductApproval = () => {
                             <button title="Phê duyệt nhanh" className="btn-action-direct unlock"
                               style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
                               onClick={() => { handleSelectProduct(prod); setTimeout(triggerApprove, 100); }}>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                             </button>
                             <button title="Từ chối nhanh" className="btn-action-direct"
                               style={{ backgroundColor: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
                               onClick={() => { handleSelectProduct(prod); setTimeout(triggerReject, 100); }}>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </button>
                           </>
                         )}
@@ -945,7 +935,7 @@ const ProductApproval = () => {
                             style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
                             onClick={() => { handleSelectProduct(prod); setTimeout(triggerUnhide, 100); }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                             </svg>
                           </button>
                         )}
@@ -965,7 +955,7 @@ const ProductApproval = () => {
           </div>
           <div className="admin-pagination-controls">
             <button className="btn-pagination-nav" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             {[...Array(totalPages).keys()].map((p) => (
               <button key={p + 1} className={`btn-pagination-page ${currentPage === p + 1 ? "active" : ""}`} onClick={() => setCurrentPage(p + 1)}>
@@ -973,7 +963,7 @@ const ProductApproval = () => {
               </button>
             ))}
             <button className="btn-pagination-nav" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
           </div>
         </div>
