@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "../../../components/common/Header/Header";
+import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
 import apiClient from "../../../services/apiClient";
 import authService from "../../../services/authService";
@@ -345,16 +346,8 @@ export default function CreateSupportRequest() {
         </div>
       </div>
 
-      {/* Support Footer */}
-      <footer className="support-footer">
-        <div className="support-footer-links">
-          <span>Về chúng tôi</span>
-          <span>Điều khoản</span>
-          <span>Bảo mật</span>
-          <span className="active">Trợ giúp</span>
-        </div>
-        <p className="support-copyright">© 2026 AgriMarketplace. Tất cả quyền được bảo lưu.</p>
-      </footer>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
