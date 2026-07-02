@@ -362,6 +362,43 @@ export default function ProductDetail() {
     navigate("/cart");
   };
 
+  const handlePreorderCheckoutDirect = () => {
+    if (!product) return;
+    const qtyToUse = parseInt(quantity, 10) || 1;
+    const itemSubtotal = product.price * qtyToUse;
+    const fee = 15000;
+    const total = itemSubtotal + fee;
+
+    const preorderCheckoutData = {
+      selectedItems: [
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          unit: product.unit,
+          imageUrl: product.imageUrl,
+          quantity: qtyToUse,
+          checked: true,
+          stockQuantity: product.stock || 45,
+          farmerId: product.farmerId || 1,
+          farmerName: product.farmerName || "Nông trại Green Valley",
+          isPreorder: true,
+          expectedHarvest: product.expectedHarvest || "Cuối tháng 08, 2026",
+          deliveryWindow: product.deliveryWindow || "Từ 01/09 đến 07/09/2026"
+        }
+      ],
+      subtotal: itemSubtotal,
+      serviceFee: 0,
+      shippingFee: fee,
+      discountAmount: 0,
+      totalAmount: total,
+      isPreorder: true
+    };
+
+    localStorage.setItem("agrimarket_checkout", JSON.stringify(preorderCheckoutData));
+    navigate("/preorder-checkout");
+  };
+
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (attachedImages.length + files.length > 3) {
@@ -989,7 +1026,8 @@ export default function ProductDetail() {
               />
             )}
             <div className="badge-overlay">
-              {product.isLocal && <span className="badge-tag local-tag">Địa phương</span>}
+              {product.isPreorder && <span className="badge-tag preorder-tag" style={{ backgroundColor: "#15803d", color: "#ffffff", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: "700", textTransform: "uppercase" }}>ĐẶT TRƯỚC</span>}
+              {product.isLocal && !product.isPreorder && <span className="badge-tag local-tag">Địa phương</span>}
             </div>
 
             {/* Gallery Navigation Arrows */}
@@ -1273,32 +1311,50 @@ export default function ProductDetail() {
             </div>
 
             <div className="action-buttons-group">
-              <button 
-                className="btn-buy-now" 
-                onClick={handleBuyNow}
-                disabled={product.stock === 0}
-                style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-                Mua ngay
-              </button>
+              {product.isPreorder ? (
+                <button 
+                  className="btn-buy-now btn-preorder-action" 
+                  onClick={handlePreorderCheckoutDirect}
+                  style={{ backgroundColor: "#15803d", borderColor: "#15803d", flex: "1 1 auto" }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "8px" }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  Đặt trước ngay (Preorder)
+                </button>
+              ) : (
+                <>
+                  <button 
+                    className="btn-buy-now" 
+                    onClick={handleBuyNow}
+                    disabled={product.stock === 0}
+                    style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                    Mua ngay
+                  </button>
 
-              <button 
-                className="btn-add-to-cart" 
-                onClick={handleAddToCart}
-                disabled={product.stock === 0}
-                style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                Thêm vào giỏ hàng
-              </button>
+                  <button 
+                    className="btn-add-to-cart" 
+                    onClick={handleAddToCart}
+                    disabled={product.stock === 0}
+                    style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="9" cy="21" r="1"></circle>
+                      <circle cx="20" cy="21" r="1"></circle>
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    Thêm vào giỏ hàng
+                  </button>
+                </>
+              )}
 
               <button
                 className={`btn-save-later ${isSaved ? "saved" : ""}`}

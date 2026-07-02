@@ -75,6 +75,7 @@ const Header = ({ activeTab }) => {
         <>
           <Link to="/" className={`nav-link ${activeTab === "home" ? "active" : ""}`}>Trang chủ</Link>
           <Link to="/farms" className={`nav-link ${activeTab === "farms" ? "active" : ""}`}>Nông trại</Link>
+          <Link to="/preorder-checkout" className={`nav-link ${activeTab === "preorder" ? "active" : ""}`}>Đặt trước</Link>
           <Link to="/livestream" className={`nav-link ${activeTab === "live" ? "active" : ""}`}>Phiên Live</Link>
           <Link to="/support" className={`nav-link ${activeTab === "support" ? "active" : ""}`}>Hỗ trợ</Link>
         </>
