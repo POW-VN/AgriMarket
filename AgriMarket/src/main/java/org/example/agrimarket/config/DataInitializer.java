@@ -2,8 +2,10 @@ package org.example.agrimarket.config;
 
 import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Category;
+import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CategoryRepository;
+import org.example.agrimarket.repository.FarmerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -20,6 +23,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private FarmerRepository farmerRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -43,6 +49,35 @@ public class DataInitializer implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode("admin123"));
             adminRepository.save(admin);
             System.out.println(">>> DataInitializer: Reset admin password for: " + adminEmail);
+        }
+
+        // ========== Ensure Farmer Bùi Khắc Hưng account exists ==========
+        String farmerEmail = "hungquynh0404@gmail.com";
+        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(farmerEmail);
+        if (farmerOpt.isEmpty()) {
+            Farmer farmer = new Farmer();
+            farmer.setFullName("Bùi Khắc Hưng");
+            farmer.setEmail(farmerEmail);
+            farmer.setPassword(passwordEncoder.encode("Baohung7112005@"));
+            farmer.setPhone("0912345678");
+            farmer.setStatus("active");
+            farmer.setVerificationStatus("verified");
+            farmer.setFarmName("Nông trại Bùi Khắc Hưng");
+            farmer.setFarmAddress("Đà Lạt, Lâm Đồng");
+            farmer.setDescription("Chuyên cung cấp các loại nông sản sạch chất lượng cao.");
+            farmer.setRatingAverage(5.0);
+            farmer.setTotalProducts(3);
+            farmer.setCreatedAt(LocalDateTime.now());
+            farmerRepository.save(farmer);
+            System.out.println(">>> DataInitializer: Created default farmer account: " + farmerEmail);
+        } else {
+            // Cập nhật lại mật khẩu và trạng thái hoạt động để đảm bảo người dùng đăng nhập được
+            Farmer farmer = farmerOpt.get();
+            farmer.setPassword(passwordEncoder.encode("Baohung7112005@"));
+            farmer.setStatus("active");
+            farmer.setVerificationStatus("verified");
+            farmerRepository.save(farmer);
+            System.out.println(">>> DataInitializer: Reset farmer password and status for: " + farmerEmail);
         }
 
         // ========== Ensure the 7 main categories exist ==========

@@ -1399,6 +1399,23 @@ export default function ProductDetail() {
 
             <div className="farmer-card-actions">
               <button
+                className="btn-contact-farmer-detail"
+                onClick={() => {
+                  const event = new CustomEvent("open_agrimarket_chat", {
+                    detail: {
+                      farmId: product.farmerId || "farm-xanh",
+                      farmName: product.farmerName || "Nông trại Xanh",
+                      farmAvatar: product.farmerAvatarUrl || product.farmerAvatar || "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=150",
+                      phone: product.farmerPhone || "0912 345 678",
+                      farmAddress: product.farmLocation || "Đà Lạt, Lâm Đồng"
+                    }
+                  });
+                  window.dispatchEvent(event);
+                }}
+              >
+                Nhắn tin
+              </button>
+              <button
                 className="btn-view-farm-profile"
                 onClick={() => navigate(`/farmer-profile/${product.farmerId}`)}
               >

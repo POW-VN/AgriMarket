@@ -983,3 +983,33 @@
   white-space: pre-line;
 }
 
+.btn-call-farmer,
+.btn-zalo-farmer {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.btn-call-farmer {
+  background-color: transparent;
+  color: var(--primary-color, #1B5E20);
+  border: 1.5px solid var(--primary-color, #1B5E20);
+  box-shadow: none;
+}
+
+.btn-call-farmer:hover {
+  background-color: #f4f8f3;
+  color: #113f15;
+  border-color: #113f15;
+  transform: translateY(-1px);
+}
+

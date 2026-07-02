@@ -122,15 +122,16 @@ export default function FarmerProfile() {
   };
 
   const handleChat = () => {
-    setIsChatOpen(true);
-    if (chatMessages.length === 0) {
-      setChatMessages([
-        {
-          sender: "farmer",
-          text: `Xin chào! Tôi là ${farmer?.fullName || "nhà vườn"}. Tôi có thể giúp gì cho bạn về các sản phẩm nông sản sạch của nông trại chúng tôi?`
-        }
-      ]);
-    }
+    const event = new CustomEvent("open_agrimarket_chat", {
+      detail: {
+        farmId: farmer?.id || id,
+        farmName: farmer?.farmName || farmer?.fullName || "Nông trại Xanh",
+        farmAvatar: farmer?.avatarUrl || "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=150",
+        phone: farmer?.phone || "0912 345 678",
+        farmAddress: farmer?.farmAddress || "Đà Lạt, Lâm Đồng"
+      }
+    });
+    window.dispatchEvent(event);
   };
 
   const handleSendChatMessage = (e) => {
@@ -262,29 +263,19 @@ export default function FarmerProfile() {
               
               <div className="sidebar-action-buttons">
                 <button className="btn-chat-farmer" onClick={handleChat}>
-                  <img src={chatLogo} alt="Chat Icon" className="farmer-btn-icon chat-btn-logo-img" />
-                  Nhắn tin
+                  Nhắn tin ngay
                 </button>
+
+                <a 
+                  className="btn-call-farmer" 
+                  href={`tel:${farmer.phone || '0337222769'}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  Gọi điện: {farmer.phone || '0337 222 769'}
+                </a>
                 
                 <button className={`btn-follow-farmer ${isFollowed ? "followed" : ""}`} onClick={handleToggleFollow}>
-                  {isFollowed ? (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="farmer-btn-icon">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                      </svg>
-                      Đang theo dõi
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="farmer-btn-icon">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="8.5" cy="7" r="4"></circle>
-                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                      </svg>
-                      Theo dõi
-                    </>
-                  )}
+                  {isFollowed ? "Đang theo dõi" : "Theo dõi"}
                 </button>
               </div>
             </div>
@@ -449,60 +440,6 @@ export default function FarmerProfile() {
         </div>
       )}
 
-      {/* Dynamic Chat Widget in the bottom-right corner */}
-      {isChatOpen && (
-        <div className="farmer-chat-widget">
-          <div className="chat-widget-header">
-            <div className="chat-header-user">
-              <div className="chat-header-avatar">
-                {farmer.avatarUrl ? (
-                  <img src={farmer.avatarUrl} alt={farmer.fullName} />
-                ) : (
-                  <img src={chatLogo} alt="Chat Logo" />
-                )}
-              </div>
-              <div className="chat-header-info">
-                <span className="chat-header-name">
-                  {farmer.fullName}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" className="verified-tick-icon chat-verified-tick" title="Nhà vườn uy tín">
-                    <circle cx="12" cy="12" r="10" fill="#0095F6" />
-                    <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span className="chat-header-status">
-                  <span className="status-dot"></span> Đang trực tuyến
-                </span>
-              </div>
-            </div>
-            <button className="chat-widget-close" onClick={() => setIsChatOpen(false)}>&times;</button>
-          </div>
-          
-          <div className="chat-widget-body">
-            {chatMessages.map((msg, idx) => (
-              <div key={idx} className={`chat-msg-row ${msg.sender}`}>
-                <div className="chat-msg-bubble">
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <form className="chat-widget-footer" onSubmit={handleSendChatMessage}>
-            <input 
-              type="text" 
-              placeholder="Nhập tin nhắn..." 
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-            />
-            <button type="submit" aria-label="Gửi">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

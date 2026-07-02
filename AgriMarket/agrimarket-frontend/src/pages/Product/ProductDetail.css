@@ -2589,4 +2589,31 @@
   .description-card-full {
     padding: 20px;
   }
+}
+
+.btn-contact-farmer-detail {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  box-sizing: border-box;
+  background-color: var(--primary-color, #1B5E20);
+  color: #ffffff;
+  border: 1.5px solid transparent;
+  box-shadow: 0 4px 10px rgba(27, 94, 32, 0.15);
+}
+
+.btn-contact-farmer-detail:hover {
+  background-color: #114214;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(27, 94, 32, 0.2);
 }
