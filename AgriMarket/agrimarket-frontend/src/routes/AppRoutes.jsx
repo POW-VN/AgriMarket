@@ -30,6 +30,7 @@ import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
 import CheckoutPage from "../pages/Checkout/CheckoutPage";
+import PreorderCheckout from "../pages/Product/PreorderCheckout";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import VNPayCallbackPage from "../pages/Payment/VNPayCallbackPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
@@ -51,8 +52,6 @@ import AdminComplaints from "../pages/Admin/AdminComplaints";
 import LiveChat from "../pages/Profile/Support/LiveChat";
 import AdminChat from "../pages/Admin/AdminChat";
 import LivestreamPage from "../pages/Livestream/LivestreamPage";
-import ReportViolation from "../pages/Profile/Support/ReportViolation";
-import ViolationReports from "../pages/Admin/ViolationReports";
 
 
 const FarmsRoute = () => {
@@ -112,6 +111,7 @@ const AppRoutes = () => {
 
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/preorder-checkout" element={<PreorderCheckout />} />
         <Route path="/livestream" element={<LivestreamPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment/vnpay-callback" element={<VNPayCallbackPage />} />
@@ -146,9 +146,6 @@ const AppRoutes = () => {
         <Route path="/admin/complaints" element={<AdminComplaints />} />
         <Route path="/admin/chat" element={<AdminChat />} />
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
-
-        <Route path="/support/report" element={<ReportViolation />} />
-        <Route path="/admin/reports" element={<ViolationReports />} />
 
       </Routes>
     </BrowserRouter>
