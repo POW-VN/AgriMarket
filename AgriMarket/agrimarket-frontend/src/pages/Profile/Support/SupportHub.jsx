@@ -95,26 +95,26 @@ export default function SupportHub() {
             <div className="support-illustration-wrapper">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350" className="support-svg-illustration">
                 {/* Soft Background circles */}
-                <circle cx="250" cy="175" r="160" fill="#e8f5e9" opacity="0.3"/>
-                <circle cx="380" cy="120" r="70" fill="#c8e6c9" opacity="0.2"/>
+                <circle cx="250" cy="175" r="160" fill="#e8f5e9" opacity="0.3" />
+                <circle cx="380" cy="120" r="70" fill="#c8e6c9" opacity="0.2" />
 
                 {/* Foliage/Leaves on the Left (Background) */}
-                <path d="M 40,240 C 20,200 30,120 80,100 C 70,140 60,190 40,240 Z" fill="#81c784" opacity="0.7"/>
-                <path d="M 60,260 C 40,220 50,150 95,130 C 85,170 80,210 60,260 Z" fill="#a5d6a7" opacity="0.8"/>
-                <path d="M 30,180 C 10,150 20,100 55,90 C 45,120 40,150 30,180 Z" fill="#c8e6c9" opacity="0.5"/>
+                <path d="M 40,240 C 20,200 30,120 80,100 C 70,140 60,190 40,240 Z" fill="#81c784" opacity="0.7" />
+                <path d="M 60,260 C 40,220 50,150 95,130 C 85,170 80,210 60,260 Z" fill="#a5d6a7" opacity="0.8" />
+                <path d="M 30,180 C 10,150 20,100 55,90 C 45,120 40,150 30,180 Z" fill="#c8e6c9" opacity="0.5" />
 
                 {/* Foliage/Leaves on the Right (Background) */}
-                <path d="M 460,240 C 480,200 470,120 420,100 C 430,140 440,190 460,240 Z" fill="#81c784" opacity="0.7"/>
-                <path d="M 440,260 C 460,220 450,150 405,130 C 415,170 420,210 440,260 Z" fill="#a5d6a7" opacity="0.8"/>
+                <path d="M 460,240 C 480,200 470,120 420,100 C 430,140 440,190 460,240 Z" fill="#81c784" opacity="0.7" />
+                <path d="M 440,260 C 460,220 450,150 405,130 C 415,170 420,210 440,260 Z" fill="#a5d6a7" opacity="0.8" />
 
                 {/* Browser Card Mockup */}
-                <rect x="90" y="60" width="320" height="210" rx="16" fill="#ffffff" stroke="#e0e0e0" strokeWidth="1" filter="drop-shadow(0px 8px 24px rgba(0,0,0,0.06))"/>
-                
+                <rect x="90" y="60" width="320" height="210" rx="16" fill="#ffffff" stroke="#e0e0e0" strokeWidth="1" filter="drop-shadow(0px 8px 24px rgba(0,0,0,0.06))" />
+
                 {/* Browser top dots */}
                 <circle cx="115" cy="78" r="4" fill="#a5d6a7" />
                 <circle cx="127" cy="78" r="4" fill="#a5d6a7" />
                 <circle cx="139" cy="78" r="4" fill="#a5d6a7" />
-                <line x1="155" y1="78" x2="385" y2="78" stroke="#f0f0f0" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="155" y1="78" x2="385" y2="78" stroke="#f0f0f0" strokeWidth="2" strokeLinecap="round" />
 
                 {/* Center Text (FARMING MARKETPLACE SUPPORT) */}
                 <text x="250" y="130" fill="#1b5e20" fontWeight="900" fontSize="22" fontFamily="'Outfit', 'Inter', sans-serif" textAnchor="middle" letterSpacing="0.5">FARMING</text>
@@ -122,60 +122,60 @@ export default function SupportHub() {
                 <text x="250" y="186" fill="#1b5e20" fontWeight="900" fontSize="22" fontFamily="'Outfit', 'Inter', sans-serif" textAnchor="middle" letterSpacing="0.5">SUPPORT</text>
 
                 {/* HELP CENTER Button */}
-                <rect x="190" y="208" width="120" height="24" rx="12" fill="#81c784"/>
+                <rect x="190" y="208" width="120" height="24" rx="12" fill="#81c784" />
                 <text x="250" y="224" fill="#ffffff" fontWeight="bold" fontSize="9" fontFamily="'Inter', sans-serif" textAnchor="middle" letterSpacing="0.5">HELP CENTER</text>
 
                 {/* Handshake Graphic (Bottom Left) */}
                 <g transform="translate(45, 200)">
-                  <circle cx="45" cy="45" r="32" fill="#ffffff" stroke="#e8f5e9" strokeWidth="2" filter="drop-shadow(0px 4px 10px rgba(0,0,0,0.04))"/>
-                  
+                  <circle cx="45" cy="45" r="32" fill="#ffffff" stroke="#e8f5e9" strokeWidth="2" filter="drop-shadow(0px 4px 10px rgba(0,0,0,0.04))" />
+
                   {/* Left sleeve */}
-                  <path d="M 20,52 L 32,45 L 35,50 L 23,57 Z" fill="#81c784"/>
+                  <path d="M 20,52 L 32,45 L 35,50 L 23,57 Z" fill="#81c784" />
                   {/* Right sleeve */}
-                  <path d="M 70,52 L 58,45 L 55,50 L 67,57 Z" fill="#81c784"/>
-                  
+                  <path d="M 70,52 L 58,45 L 55,50 L 67,57 Z" fill="#81c784" />
+
                   {/* Shaking Hands Paths */}
-                  <path d="M 32,45 C 38,40 45,45 47,48 C 49,50 51,51 53,49 C 55,47 52,43 47,40" stroke="#2e7d32" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                  <path d="M 58,45 C 52,40 45,45 43,48 C 41,50 39,51 37,49 C 35,47 38,43 43,40" stroke="#2e7d32" strokeWidth="3" fill="none" strokeLinecap="round"/>
-                  <path d="M 40,48 L 50,48" stroke="#2e7d32" strokeWidth="3" strokeLinecap="round"/>
-                  <path d="M 42,52 L 48,52" stroke="#2e7d32" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M 32,45 C 38,40 45,45 47,48 C 49,50 51,51 53,49 C 55,47 52,43 47,40" stroke="#2e7d32" strokeWidth="3" fill="none" strokeLinecap="round" />
+                  <path d="M 58,45 C 52,40 45,45 43,48 C 41,50 39,51 37,49 C 35,47 38,43 43,40" stroke="#2e7d32" strokeWidth="3" fill="none" strokeLinecap="round" />
+                  <path d="M 40,48 L 50,48" stroke="#2e7d32" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M 42,52 L 48,52" stroke="#2e7d32" strokeWidth="2" strokeLinecap="round" />
                 </g>
 
                 {/* Tractor Graphic (Bottom Right) */}
                 <g transform="translate(290, 190)">
                   {/* Tractor body */}
-                  <path d="M 50,40 L 85,40 L 85,55 L 40,55 L 40,48 Z" fill="#2e7d32"/>
-                  <rect x="52" y="32" width="22" height="10" fill="#a5d6a7"/>
+                  <path d="M 50,40 L 85,40 L 85,55 L 40,55 L 40,48 Z" fill="#2e7d32" />
+                  <rect x="52" y="32" width="22" height="10" fill="#a5d6a7" />
                   {/* Cabin */}
-                  <path d="M 50,30 L 78,30 L 78,40 L 48,40 Z" fill="none" stroke="#2e7d32" strokeWidth="3" strokeLinejoin="round"/>
-                  <rect x="54" y="27" width="22" height="3" fill="#2e7d32" rx="1"/>
+                  <path d="M 50,30 L 78,30 L 78,40 L 48,40 Z" fill="none" stroke="#2e7d32" strokeWidth="3" strokeLinejoin="round" />
+                  <rect x="54" y="27" width="22" height="3" fill="#2e7d32" rx="1" />
                   {/* Exhaust pipe */}
-                  <line x1="80" y1="20" x2="80" y2="40" stroke="#333333" strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M 80,20 Q 83,18 85,20" fill="none" stroke="#333333" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="80" y1="20" x2="80" y2="40" stroke="#333333" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M 80,20 Q 83,18 85,20" fill="none" stroke="#333333" strokeWidth="2" strokeLinecap="round" />
                   {/* Big Wheel */}
-                  <circle cx="48" cy="55" r="16" fill="#1b5e20" stroke="#ffffff" strokeWidth="2"/>
-                  <circle cx="48" cy="55" r="7" fill="#ffffff"/>
-                  <circle cx="48" cy="55" r="3" fill="#1b5e20"/>
+                  <circle cx="48" cy="55" r="16" fill="#1b5e20" stroke="#ffffff" strokeWidth="2" />
+                  <circle cx="48" cy="55" r="7" fill="#ffffff" />
+                  <circle cx="48" cy="55" r="3" fill="#1b5e20" />
                   {/* Small Wheel */}
-                  <circle cx="85" cy="59" r="11" fill="#1b5e20" stroke="#ffffff" strokeWidth="2"/>
-                  <circle cx="85" cy="59" r="4" fill="#ffffff"/>
+                  <circle cx="85" cy="59" r="11" fill="#1b5e20" stroke="#ffffff" strokeWidth="2" />
+                  <circle cx="85" cy="59" r="4" fill="#ffffff" />
                   {/* Mudguard */}
-                  <path d="M 30,52 C 30,38 64,38 64,52" fill="none" stroke="#1b5e20" strokeWidth="3" strokeLinecap="round"/>
+                  <path d="M 30,52 C 30,38 64,38 64,52" fill="none" stroke="#1b5e20" strokeWidth="3" strokeLinecap="round" />
                 </g>
 
                 {/* Speech Bubble "?" (Top Right) */}
                 <g transform="translate(370, 40)">
-                  <path d="M 12,28 L 6,36 L 20,32 Z" fill="#81c784"/>
-                  <circle cx="20" cy="18" r="18" fill="#81c784" filter="drop-shadow(0px 3px 6px rgba(0,0,0,0.06))"/>
+                  <path d="M 12,28 L 6,36 L 20,32 Z" fill="#81c784" />
+                  <circle cx="20" cy="18" r="18" fill="#81c784" filter="drop-shadow(0px 3px 6px rgba(0,0,0,0.06))" />
                   <text x="20" y="24" fill="#ffffff" fontWeight="bold" fontSize="18" fontFamily="sans-serif" textAnchor="middle">?</text>
                 </g>
-                
+
                 {/* Additional chat bubbles (Top Right secondary) */}
                 <g transform="translate(390, 80)">
-                  <rect x="10" y="5" width="28" height="18" rx="5" fill="#a5d6a7" opacity="0.8"/>
-                  <path d="M 15,23 L 13,27 L 19,23 Z" fill="#a5d6a7" opacity="0.8"/>
-                  <line x1="16" y1="11" x2="32" y2="11" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="16" y1="16" x2="26" y2="16" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round"/>
+                  <rect x="10" y="5" width="28" height="18" rx="5" fill="#a5d6a7" opacity="0.8" />
+                  <path d="M 15,23 L 13,27 L 19,23 Z" fill="#a5d6a7" opacity="0.8" />
+                  <line x1="16" y1="11" x2="32" y2="11" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="16" y1="16" x2="26" y2="16" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
                 </g>
               </svg>
             </div>
@@ -197,14 +197,36 @@ export default function SupportHub() {
               </button>
             </div>
 
+            {/* Card 2 */}
+            <div className="support-card glass-card">
+              <div className="card-icon-wrapper red-icon">🛡️</div>
+              <h2>Báo cáo Vi phạm</h2>
+              <p>
+                Báo cáo các hoạt động nghi vấn, gian lận hoặc vi phạm chính sách
+                của thị trường.
+              </p>
+              <button
+                className="support-btn btn-secondary"
+                onClick={() => {
+                  if (!user) {
+                    navigate("/login");
+                  } else {
+                    navigate("/support/report");
+                  }
+                }}
+              >
+                Báo cáo ngay
+              </button>
+            </div>
+
 
             {/* Card 3 */}
             <div className="support-card glass-card">
               <div className="card-icon-wrapper blue-icon">💬</div>
               <h2>Chat trực tiếp</h2>
               <p>Nhận sự trợ giúp ngay lập tức từ các chuyên viên hỗ trợ của chúng tôi cho các thắc mắc khẩn cấp.</p>
-              <button 
-                className="support-btn btn-secondary" 
+              <button
+                className="support-btn btn-secondary"
                 onClick={() => {
                   if (!user) {
                     navigate("/login");
@@ -286,8 +308,8 @@ export default function SupportHub() {
             ) : (
               <div className="activity-timeline">
                 {recentRequests.map((req) => (
-                  <div 
-                    key={req.id} 
+                  <div
+                    key={req.id}
                     className="activity-item"
                     onClick={() => navigate(`/support/detail/${req.id}`)}
                   >

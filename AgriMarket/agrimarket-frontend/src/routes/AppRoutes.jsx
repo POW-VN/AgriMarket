@@ -51,6 +51,8 @@ import AdminComplaints from "../pages/Admin/AdminComplaints";
 import LiveChat from "../pages/Profile/Support/LiveChat";
 import AdminChat from "../pages/Admin/AdminChat";
 import LivestreamPage from "../pages/Livestream/LivestreamPage";
+import ReportViolation from "../pages/Profile/Support/ReportViolation";
+import ViolationReports from "../pages/Admin/ViolationReports";
 
 
 const FarmsRoute = () => {
@@ -144,6 +146,9 @@ const AppRoutes = () => {
         <Route path="/admin/complaints" element={<AdminComplaints />} />
         <Route path="/admin/chat" element={<AdminChat />} />
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
+
+        <Route path="/support/report" element={<ReportViolation />} />
+        <Route path="/admin/reports" element={<ViolationReports />} />
 
       </Routes>
     </BrowserRouter>
