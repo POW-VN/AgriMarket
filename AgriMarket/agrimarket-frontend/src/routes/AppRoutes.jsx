@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import authService from '../services/authService'
 import AuthLayout from '../layouts/AuthLayout'
+import ChatPopup from '../components/common/ChatPopup/ChatPopup'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
 import ForgotPassword from '../pages/ForgotPassword/ForgotPassword'
@@ -19,6 +20,7 @@ import { FarmerRegister } from "../pages/Farmer/FarmerRegister/FarmerRegister";
 import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
 import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
 import FarmerProfile from "../pages/Farmer/FarmerProfile/FarmerProfile";
+import { FarmerChat } from "../pages/Farmer/FarmerChat/FarmerChat";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -103,6 +105,7 @@ const AppRoutes = () => {
           <Route path="orders" element={<OrderHistory />} />
           <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
           <Route path="farm-profile" element={<FarmDetails />} />
+          <Route path="chat" element={<FarmerChat />} />
         </Route>
 
         <Route path="/products" element={<ProductPage />} />
@@ -148,6 +151,7 @@ const AppRoutes = () => {
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
 
       </Routes>
+      <ChatPopup />
     </BrowserRouter>
   )
 }
