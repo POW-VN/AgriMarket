@@ -33,7 +33,6 @@ public class SupportRequestService {
                 .category(dto.getCategory())
                 .orderCode(dto.getOrderCode())
                 .title(dto.getTitle())
-                .priority(dto.getPriority())
                 .description(dto.getDescription())
                 .attachmentUrl(dto.getAttachmentUrl())
                 .status("pending")
@@ -96,6 +95,18 @@ public class SupportRequestService {
         SupportRequest request = supportRequestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu hỗ trợ"));
 
+        String currentStatus = request.getStatus() != null ? request.getStatus().toLowerCase() : "pending";
+        String newStatus = dto.getStatus() != null ? dto.getStatus().toLowerCase() : "pending";
+
+        if (!currentStatus.equals(newStatus)) {
+            if ("resolved".equals(currentStatus) || "rejected".equals(currentStatus)) {
+                throw new RuntimeException("Yêu cầu hỗ trợ đã kết thúc, không thể thay đổi trạng thái");
+            }
+            if ("processing".equals(currentStatus) && "pending".equals(newStatus)) {
+                throw new RuntimeException("Không thể chuyển trạng thái từ Đang xử lý về Chờ duyệt");
+            }
+        }
+
         request.setStatus(dto.getStatus());
         request.setAdminNotes(dto.getAdminNotes());
         
@@ -112,7 +123,6 @@ public class SupportRequestService {
                 .category(req.getCategory())
                 .orderCode(req.getOrderCode())
                 .title(req.getTitle())
-                .priority(req.getPriority())
                 .description(req.getDescription())
                 .attachmentUrl(req.getAttachmentUrl())
                 .status(req.getStatus())

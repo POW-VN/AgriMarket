@@ -20,6 +20,9 @@ public class CustomerService {
     @Autowired
     private FarmerRepository farmerRepository;
 
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
+
     public Customer register(Customer customer) {
         customer.setPassword(new BCryptPasswordEncoder().encode(customer.getPassword()));
         customer.setCreatedAt(LocalDateTime.now());
@@ -110,11 +113,21 @@ public class CustomerService {
                 customerExisting.getAddresses().clear();
             } else {
                 CustomerAddress newAddrInput = updatedCustomer.getAddresses().get(0);
+                
+                String resolvedPhone = newAddrInput.getPhone();
+                if (resolvedPhone == null || resolvedPhone.trim().isEmpty()) {
+                    resolvedPhone = customerExisting.getPhone();
+                }
+                if (resolvedPhone == null || resolvedPhone.trim().isEmpty()) {
+                    throw new RuntimeException("Số điện thoại là bắt buộc đối với địa chỉ giao hàng.");
+                }
+                resolvedPhone = resolvedPhone.trim();
+
                 if (!customerExisting.getAddresses().isEmpty()) {
                     CustomerAddress existingAddr = customerExisting.getAddresses().get(0);
                     existingAddr.setAddress(newAddrInput.getAddress());
                     existingAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName() : customerExisting.getFullName());
-                    existingAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone() : customerExisting.getPhone());
+                    existingAddr.setPhone(resolvedPhone);
                     existingAddr.setLatitude(newAddrInput.getLatitude());
                     existingAddr.setLongitude(newAddrInput.getLongitude());
                     existingAddr.setIsDefault(true);
@@ -122,7 +135,7 @@ public class CustomerService {
                     CustomerAddress newAddr = new CustomerAddress();
                     newAddr.setAddress(newAddrInput.getAddress());
                     newAddr.setReceiverName(newAddrInput.getReceiverName() != null ? newAddrInput.getReceiverName() : customerExisting.getFullName());
-                    newAddr.setPhone(newAddrInput.getPhone() != null ? newAddrInput.getPhone() : customerExisting.getPhone());
+                    newAddr.setPhone(resolvedPhone);
                     newAddr.setLatitude(newAddrInput.getLatitude());
                     newAddr.setLongitude(newAddrInput.getLongitude());
                     newAddr.setIsDefault(true);
@@ -194,16 +207,8 @@ public class CustomerService {
     }
 
     private void deletePhysicalAvatarFile(String avatarUrl) {
-        if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
-            try {
-                String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
-                java.io.File fileToDelete = new java.io.File("uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
-                if (fileToDelete.exists()) {
-                    fileToDelete.delete();
-                }
-            } catch (Exception e) {
-                System.err.println("Failed to delete old avatar file: " + e.getMessage());
-            }
+        if (avatarUrl != null && !avatarUrl.isEmpty() && avatarUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(avatarUrl);
         }
     }
 }

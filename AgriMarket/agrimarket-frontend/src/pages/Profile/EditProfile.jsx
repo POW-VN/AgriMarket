@@ -197,17 +197,10 @@ const EditProfile = () => {
   useEffect(() => {
     if (!profile || provinces.length === 0) return;
 
-    const isFarmer = profile.role === USER_ROLES.FARMER;
-    const rawAddress = isFarmer 
-      ? (profile.farmAddress || "") 
-      : (profile.addresses?.[0]?.address || "");
+    const rawAddress = profile.addresses?.[0]?.address || "";
 
-    const initLat = isFarmer 
-      ? (profile.latitude || null) 
-      : (profile.addresses?.[0]?.latitude || null);
-    const initLon = isFarmer 
-      ? (profile.longitude || null) 
-      : (profile.addresses?.[0]?.longitude || null);
+    const initLat = profile.addresses?.[0]?.latitude || null;
+    const initLon = profile.addresses?.[0]?.longitude || null;
     
     setLatitude(initLat);
     setLongitude(initLon);
@@ -426,17 +419,28 @@ const EditProfile = () => {
 
     if (!profile) return;
 
-    if (formData.phone) {
-      const phoneRegex = /^0\d{9}$/;
-      if (!phoneRegex.test(formData.phone)) {
-        setFormMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
-        return;
-      }
+    if (!formData.fullName.trim()) {
+      setFormMessage("Họ và tên không được để trống.");
+      return;
     }
 
-    if (addrProvince.code || addrDistrict.code || addrWard.code || addrStreet.trim()) {
-      if (!addrProvince.name || !addrDistrict.name || !addrWard.name || !addrStreet.trim()) {
+    if (!formData.phone) {
+      setFormMessage("Số điện thoại không được để trống.");
+      return;
+    }
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setFormMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
+      return;
+    }
+
+    if (profile.role === USER_ROLES.CUSTOMER || profile.role === USER_ROLES.FARMER) {
+      if (!addrProvince.code || !addrDistrict.code || !addrWard.code || !addrStreet.trim()) {
         setFormMessage("Vui lòng nhập đầy đủ địa chỉ 4 cấp (Tỉnh/Thành phố, Quận/Huyện, Phường/Xã, Số nhà/Tên đường).");
+        return;
+      }
+      if (!latitude || !longitude) {
+        setFormMessage("Vui lòng chọn vị trí trên bản đồ.");
         return;
       }
     }
@@ -459,9 +463,9 @@ const EditProfile = () => {
     };
 
     try {
-      const payload = buildProfileUpdatePayload(profile.role, updatedFormData);
+      const payload = buildProfileUpdatePayload(USER_ROLES.CUSTOMER, updatedFormData);
 
-      await updateProfile(payload);
+      await updateProfile(payload, USER_ROLES.CUSTOMER);
 
       setFormMessage("Cập nhật hồ sơ thành công.");
 

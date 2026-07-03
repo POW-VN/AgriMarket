@@ -225,13 +225,7 @@ export default function AdminComplaints() {
           </span>
           Hỗ trợ
         </button>
-        <button className="admin-nav-item" onClick={() => showToast("Tính năng quản lý khiếu nại đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          </span>
-          Khiếu nại
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng báo cáo đang phát triển.")}>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
           <span className="admin-nav-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
           </span>
@@ -380,7 +374,6 @@ export default function AdminComplaints() {
                 <th>Tiêu đề</th>
                 <th>Người gửi</th>
                 <th>Danh mục</th>
-                <th>Độ ưu tiên</th>
                 <th>Trạng thái</th>
                 <th>Ngày gửi</th>
                 <th style={{ textAlign: "right", width: "100px" }}>Thao tác</th>
@@ -421,15 +414,6 @@ export default function AdminComplaints() {
                     <td>
                       <span style={{ display: "inline-block", padding: "4px 8px", borderRadius: "12px", fontSize: "11.5px", fontWeight: "600", backgroundColor: "#f1f5f9", color: "#475569" }}>
                         {req.category}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ 
-                        fontWeight: "700", 
-                        fontSize: "12px",
-                        color: req.priority === "high" ? "#dc2626" : req.priority === "low" ? "#64748b" : "#d97706"
-                      }}>
-                        {req.priority === "high" ? "🚨 Cao" : req.priority === "low" ? "Thấp" : "Trung bình"}
                       </span>
                     </td>
                     <td>
@@ -552,7 +536,7 @@ export default function AdminComplaints() {
           {/* Left Column: Details */}
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {/* Meta cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "12px" }}>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", padding: "12px 16px", backgroundColor: "#fff" }}>
                 <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "var(--admin-text-muted)", textTransform: "uppercase", fontWeight: "700" }}>Mã yêu cầu</p>
                 <strong style={{ fontSize: "15px", color: "var(--admin-text-main)" }}>#REQ-{req.id}</strong>
@@ -560,12 +544,6 @@ export default function AdminComplaints() {
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", padding: "12px 16px", backgroundColor: "#fff" }}>
                 <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "var(--admin-text-muted)", textTransform: "uppercase", fontWeight: "700" }}>Danh mục hỗ trợ</p>
                 <strong style={{ fontSize: "15px", color: "var(--admin-text-main)" }}>{req.category || "Chung"}</strong>
-              </div>
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", padding: "12px 16px", backgroundColor: "#fff" }}>
-                <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "var(--admin-text-muted)", textTransform: "uppercase", fontWeight: "700" }}>Độ ưu tiên</p>
-                <strong style={{ fontSize: "15px", color: req.priority === "high" ? "#dc2626" : req.priority === "low" ? "#64748b" : "#d97706" }}>
-                  {req.priority === "high" ? "🚨 Cao" : req.priority === "low" ? "Thấp" : "Trung bình"}
-                </strong>
               </div>
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "10px", padding: "12px 16px", backgroundColor: "#fff" }}>
                 <p style={{ margin: "0 0 4px 0", fontSize: "11px", color: "var(--admin-text-muted)", textTransform: "uppercase", fontWeight: "700" }}>Thời gian gửi</p>
@@ -667,12 +645,29 @@ export default function AdminComplaints() {
                   onChange={(e) => setUpdatingStatus(e.target.value)}
                   style={{ padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", backgroundColor: "#fff" }}
                   required
+                  disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
                 >
-                  <option value="pending">Chờ duyệt (Pending)</option>
-                  <option value="assigned">Đã phân công (Assigned)</option>
-                  <option value="processing">Đang xử lý (Processing)</option>
-                  <option value="resolved">Đã giải quyết (Resolved)</option>
-                  <option value="rejected">Từ chối (Rejected)</option>
+                  {selectedRequest.status === "pending" && (
+                    <>
+                      <option value="pending">Chờ duyệt (Pending)</option>
+                      <option value="processing">Đang xử lý (Processing)</option>
+                      <option value="resolved">Đã giải quyết (Resolved)</option>
+                      <option value="rejected">Từ chối (Rejected)</option>
+                    </>
+                  )}
+                  {selectedRequest.status === "processing" && (
+                    <>
+                      <option value="processing">Đang xử lý (Processing)</option>
+                      <option value="resolved">Đã giải quyết (Resolved)</option>
+                      <option value="rejected">Từ chối (Rejected)</option>
+                    </>
+                  )}
+                  {selectedRequest.status === "resolved" && (
+                    <option value="resolved">Đã giải quyết (Resolved)</option>
+                  )}
+                  {selectedRequest.status === "rejected" && (
+                    <option value="rejected">Từ chối (Rejected)</option>
+                  )}
                 </select>
               </div>
 
@@ -685,16 +680,23 @@ export default function AdminComplaints() {
                   placeholder="Nhập hướng giải quyết, lý do từ chối hoặc phản hồi chi tiết..."
                   style={{ padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: "8px", fontSize: "14px", outline: "none", resize: "none" }}
                   required
+                  disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
                 ></textarea>
               </div>
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                style={{ width: "100%", padding: "12px 20px", border: "none", borderRadius: "8px", backgroundColor: "var(--admin-primary)", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: isSubmitting ? "not-allowed" : "pointer", boxShadow: "0 2px 8px rgba(15,118,110,0.25)", transition: "background-color 0.15s" }}
+                disabled={isSubmitting || selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
+                style={{ width: "100%", padding: "12px 20px", border: "none", borderRadius: "8px", backgroundColor: (selectedRequest.status === "resolved" || selectedRequest.status === "rejected") ? "#cbd5e1" : "var(--admin-primary)", color: "#fff", fontWeight: "700", fontSize: "14px", cursor: (isSubmitting || selectedRequest.status === "resolved" || selectedRequest.status === "rejected") ? "not-allowed" : "pointer", boxShadow: (selectedRequest.status === "resolved" || selectedRequest.status === "rejected") ? "none" : "0 2px 8px rgba(15,118,110,0.25)", transition: "background-color 0.15s" }}
               >
                 {isSubmitting ? "Đang xử lý..." : "Cập nhật & Gửi phản hồi"}
               </button>
+
+              {(selectedRequest.status === "resolved" || selectedRequest.status === "rejected") && (
+                <div style={{ marginTop: "12px", padding: "10px", backgroundColor: "#f3f4f6", borderRadius: "6px", color: "#475569", fontSize: "12.5px", fontWeight: "600", textAlign: "center" }}>
+                  🔒 Yêu cầu đã đóng. Không thể cập nhật trạng thái.
+                </div>
+              )}
             </form>
           </div>
         </div>

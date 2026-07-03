@@ -51,7 +51,6 @@ public class SecurityConfig {
                         // Public APIs
                         .requestMatchers(
                                 "/auth/**",
-                                "/uploads/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/error",

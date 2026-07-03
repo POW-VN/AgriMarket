@@ -21,28 +21,26 @@ public class SupportRequest {
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
-    @Column(columnDefinition = "NVARCHAR(255)")
+    @Column(length = 255, columnDefinition = "TEXT")
     private String title;
 
-    @Column(columnDefinition = "NVARCHAR(MAX)")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(length = 50)
     private String status = "pending"; // pending, assigned, processing, resolved, rejected
 
-    @Column(columnDefinition = "NVARCHAR(100)")
-    private String category; // Theo dõi Giao hàng, Thanh toán & Hóa đơn, Tài khoản & Bảo mật, Hỗ trợ Kỹ thuật, Báo cáo Vi phạm, Khác
+    @Column(length = 100, columnDefinition = "TEXT")
+    private String category; // Theo dõi Giao hàng, Thanh toán & Hóa đơn, Tài khoản & Bảo mật, Hỗ trợ Kỹ
+                             // thuật, Báo cáo Vi phạm, Khác
 
     @Column(name = "order_code", length = 100)
     private String orderCode;
 
-    @Column(length = 20)
-    private String priority = "medium"; // low, medium, high
-
     @Column(name = "attachment_url", length = 1000)
     private String attachmentUrl;
 
-    @Column(name = "admin_notes", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "admin_notes", columnDefinition = "TEXT")
     private String adminNotes;
 
     @Column(name = "created_at")
@@ -58,9 +56,6 @@ public class SupportRequest {
         }
         if (status == null) {
             status = "pending";
-        }
-        if (priority == null) {
-            priority = "medium";
         }
     }
 

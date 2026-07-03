@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import authService from '../services/authService'
 import AuthLayout from '../layouts/AuthLayout'
+import ChatPopup from '../components/common/ChatPopup/ChatPopup'
 import Login from '../pages/Login/Login'
 import Register from '../pages/Register/Register'
 import ForgotPassword from '../pages/ForgotPassword/ForgotPassword'
@@ -19,6 +20,7 @@ import { FarmerRegister } from "../pages/Farmer/FarmerRegister/FarmerRegister";
 import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
 import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
 import FarmerProfile from "../pages/Farmer/FarmerProfile/FarmerProfile";
+import { FarmerChat } from "../pages/Farmer/FarmerChat/FarmerChat";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -30,6 +32,7 @@ import MyOrders from "../pages/Orders/MyOrders";
 import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
 import CheckoutPage from "../pages/Checkout/CheckoutPage";
+import PreorderCheckout from "../pages/Product/PreorderCheckout";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import VNPayCallbackPage from "../pages/Payment/VNPayCallbackPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
@@ -50,6 +53,7 @@ import SupportRequestDetail from "../pages/Profile/Support/SupportRequestDetail"
 import AdminComplaints from "../pages/Admin/AdminComplaints";
 import LiveChat from "../pages/Profile/Support/LiveChat";
 import AdminChat from "../pages/Admin/AdminChat";
+import LivestreamPage from "../pages/Livestream/LivestreamPage";
 
 
 const FarmsRoute = () => {
@@ -101,6 +105,7 @@ const AppRoutes = () => {
           <Route path="orders" element={<OrderHistory />} />
           <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
           <Route path="farm-profile" element={<FarmDetails />} />
+          <Route path="chat" element={<FarmerChat />} />
         </Route>
 
         <Route path="/products" element={<ProductPage />} />
@@ -109,6 +114,8 @@ const AppRoutes = () => {
 
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/preorder-checkout" element={<PreorderCheckout />} />
+        <Route path="/livestream" element={<LivestreamPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment/vnpay-callback" element={<VNPayCallbackPage />} />
 
@@ -144,6 +151,7 @@ const AppRoutes = () => {
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
 
       </Routes>
+      <ChatPopup />
     </BrowserRouter>
   )
 }

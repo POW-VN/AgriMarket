@@ -46,7 +46,7 @@ const getDefaultImage = (category, name) => {
     return "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600"; // General fallback (carrot)
 };
 
-const normalizeProduct = (item) => {
+export const normalizeProduct = (item) => {
     const categoryName =
         item.category_name ||
         item.categoryName ||
@@ -396,6 +396,9 @@ const MOCK_PRODUCTS = [
         price: 112500, // Tương đương $4.50
         unit: "bó",
         isLocal: true,
+        isPreorder: true,
+        expectedHarvest: "Cuối tháng 08, 2026",
+        deliveryWindow: "Từ 01/09 đến 07/09/2026",
         imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",
         images: [
             "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",

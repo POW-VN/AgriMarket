@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../components/common/Header/Header";
+import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
 import authService from "../../../services/authService";
 import "./MySupportRequests.css";
@@ -300,9 +301,8 @@ export default function MySupportRequests() {
         </button>
       </div>
 
-      <footer className="support-footer">
-        <p className="support-copyright">© 2026 AgriMarketplace. Bảo lưu mọi quyền.</p>
-      </footer>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

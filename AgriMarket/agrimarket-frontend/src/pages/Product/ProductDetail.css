@@ -649,21 +649,71 @@
   line-height: 1.5;
 }
 
-.btn-view-farm-profile {
+/* Farmer card actions container */
+.farmer-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.btn-view-farm-profile,
+.btn-follow-farmer {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 700;
-  color: var(--primary-color);
-  background: transparent;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
   display: flex;
   align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  transition: gap 0.2s ease, color 0.2s ease;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.btn-view-farm-profile {
+  background-color: transparent;
+  color: var(--primary-color, #1b5e20);
+  border: 1.5px solid var(--primary-color, #1b5e20);
 }
 
 .btn-view-farm-profile:hover {
-  color: #134617;
-  gap: 6px;
+  background-color: #f4f8f3;
+  color: #114214;
+  border-color: #114214;
+  transform: translateY(-1px);
+}
+
+.btn-follow-farmer {
+  background-color: #1b5e20;
+  color: #ffffff;
+  border: 1.5px solid transparent;
+  box-shadow: 0 4px 10px rgba(27, 94, 32, 0.15);
+}
+
+.btn-follow-farmer:hover {
+  background-color: #114214;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(27, 94, 32, 0.2);
+}
+
+.btn-follow-farmer.followed {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: none;
+}
+
+.btn-follow-farmer.followed:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
 }
 
 /* Related Products Section */
@@ -2132,3 +2182,438 @@
   color: #047857;
   text-decoration: underline;
 }
+
+/* ============================================================
+   GALLERY NAVIGATION ARROWS
+   ============================================================ */
+.gallery-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f2937;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+  opacity: 0.75;
+  pointer-events: auto;
+}
+
+.main-image-wrapper:hover .gallery-nav-btn {
+  opacity: 1;
+}
+
+.gallery-nav-btn:hover {
+  background-color: #ffffff;
+  color: #16A34A;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.2);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.gallery-nav-prev { left: 16px; }
+.gallery-nav-next { right: 16px; }
+
+.gallery-nav-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.5;
+}
+
+/* ============================================================
+   PREMIUM DETAILS SECTION
+   ============================================================ */
+.premium-details-section {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto 48px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.premium-main-title {
+  font-family: 'Plus Jakarta Sans', var(--font-family);
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+/* 3-column grid */
+.premium-grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* CARD BASE */
+.premium-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+}
+
+.premium-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.premium-header-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #16A34A;
+  flex-shrink: 0;
+}
+
+.premium-header-title-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.premium-card-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', var(--font-family);
+}
+
+.premium-card-subtitle {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin: 3px 0 0 0;
+}
+
+.premium-header-green-line {
+  height: 2px;
+  background: linear-gradient(90deg, #16A34A, #BBF7D0);
+  border-radius: 2px;
+  margin: 14px 0;
+}
+
+.premium-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Info blocks inside cards */
+.premium-info-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #F9FAFB;
+}
+
+.premium-info-block:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.premium-info-icon-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #ECFDF5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.premium-info-text-box {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.premium-info-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9CA3AF;
+  margin-bottom: 3px;
+  display: block;
+}
+
+.premium-info-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+}
+
+.premium-address-block { align-items: flex-start; }
+.premium-address-text-box { padding-top: 2px; }
+.premium-address-value { line-height: 1.4; }
+
+.premium-address-text-display {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.premium-btn-toggle-address {
+  background: none;
+  border: none;
+  color: #16A34A;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  display: inline-block;
+  margin-left: 6px;
+  font-family: inherit;
+  transition: color 0.2s ease;
+}
+
+.premium-btn-toggle-address:hover { color: #15803d; }
+
+/* CARD 3 - CAM KET */
+.premium-commitment-card {
+  background: linear-gradient(180deg, #F8FFF9 0%, #F2FFF5 100%);
+  border: 1px solid #A7F3D0;
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.premium-commitment-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06);
+}
+
+.premium-commitment-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.premium-commitment-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', var(--font-family);
+}
+
+.premium-commitment-subtitle {
+  font-size: 12px;
+  color: #6B7280;
+  margin: 3px 0 0 0;
+}
+
+.premium-commitment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.premium-sub-commitment-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.03);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s ease;
+}
+
+.premium-sub-commitment-card:hover { transform: translateX(4px); }
+
+.premium-check-circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #ECFDF5;
+  color: #16A34A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.premium-commitment-text-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.premium-sub-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.premium-sub-desc {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 2px 0 0 0;
+  line-height: 1.35;
+}
+
+.premium-vector-footer {
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  overflow: hidden;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hills-vector { width: 100%; height: 100%; }
+
+/* CARD 4 - MO TA FULL WIDTH */
+.description-card-full {
+  background-color: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 20px rgba(0,0,0,.03);
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.description-content-wrapper {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.description-content-wrapper.collapsed { max-height: 200px; }
+.description-content-wrapper.expanded { max-height: 2000px; }
+
+.description-fade-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+  pointer-events: none;
+}
+
+.description-text {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #374151;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.btn-toggle-description {
+  background: none;
+  border: 1px dashed #16A34A;
+  color: #16A34A;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 16px auto 0 auto;
+  padding: 8px 24px;
+  border-radius: 30px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-toggle-description:hover {
+  background-color: #ECFDF5;
+  color: #15803D;
+  border-style: solid;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+  .premium-grid-container {
+    grid-template-columns: 1fr 1fr;
+  }
+  .premium-commitment-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 576px) {
+  .premium-details-section {
+    padding: 0 16px;
+    margin-bottom: 40px;
+  }
+  .premium-grid-container {
+    grid-template-columns: 1fr;
+  }
+  .description-card-full {
+    padding: 20px;
+  }
+}
+
+.btn-contact-farmer-detail {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  box-sizing: border-box;
+  background-color: var(--primary-color, #1B5E20);
+  color: #ffffff;
+  border: 1.5px solid transparent;
+  box-shadow: 0 4px 10px rgba(27, 94, 32, 0.15);
+}
+
+.btn-contact-farmer-detail:hover {
+  background-color: #114214;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(27, 94, 32, 0.2);
+}

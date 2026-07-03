@@ -1,6 +1,6 @@
 // src/pages/Profile/Notifications.jsx
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useNotifications from "../../hooks/useNotifications";
@@ -185,6 +185,10 @@ const Notifications = () => {
     } = useNotifications();
 
     const [activeTab, setActiveTab] = useState("all");
+
+    useEffect(() => {
+        loadNotifications();
+    }, []);
 
     const filteredNotifications = useMemo(() => {
         if (activeTab === "all") {

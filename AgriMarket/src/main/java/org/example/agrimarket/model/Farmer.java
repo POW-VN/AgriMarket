@@ -14,24 +14,18 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Farmer extends User {
+public class Farmer extends Customer {
 
     @Transient
     private String role = "farmer";
 
-    @Transient
-    private java.util.List<CustomerAddress> addresses;
-
-    @Column(name = "password_set")
-    private Boolean passwordSet = true;
-    
-    @Column(name = "farm_name", columnDefinition = "nvarchar(255)")
+    @Column(name = "farm_name", length = 255, columnDefinition = "TEXT")
     private String farmName;
-    
-    @Column(name = "farm_address", columnDefinition = "nvarchar(1000)")
+
+    @Column(name = "farm_address", length = 1000, columnDefinition = "TEXT")
     private String farmAddress;
-    
-    @Column(columnDefinition = "nvarchar(max)")
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "identity_card")
@@ -48,13 +42,13 @@ public class Farmer extends User {
 
     @Column(name = "organic_url")
     private String organicUrl;
-    
+
     @Column(name = "verification_status")
     private String verificationStatus; // pending, verified, rejected
-    
+
     @Column(name = "rating_average")
     private Double ratingAverage;
-    
+
     @Column(name = "total_products")
     private Integer totalProducts;
 

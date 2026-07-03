@@ -710,7 +710,7 @@ const CreateAccount = () => {
         </div>
 
         <nav className="admin-nav-menu">
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng Bảng điều khiển đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
             </span>
@@ -722,7 +722,7 @@ const CreateAccount = () => {
             </span>
             Quản lý tài khoản
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng quản lý nông dân đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
             </span>
@@ -734,7 +734,7 @@ const CreateAccount = () => {
             </span>
             Duyệt sản phẩm
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng quản lý danh mục đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
             </span>
@@ -746,7 +746,7 @@ const CreateAccount = () => {
             </span>
             Đơn hàng
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng giao dịch đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
             </span>
@@ -760,41 +760,31 @@ const CreateAccount = () => {
             </span>
             Hỗ trợ
           </button>
-          <button className="admin-nav-item" onClick={() => alert("Tính năng quản lý khiếu nại đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-            </span>
-            Khiếu nại
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             </span>
             Báo cáo
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng AI Monitoring đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
             </span>
             Giám sát AI
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
             </span>
             Thông báo
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng thống kê hệ thống đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
             </span>
             Thống kê hệ thống
           </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
+          <button className="admin-nav-item" onClick={() => alert("Chức năng cài đặt đang phát triển.")}>
             <span className="admin-nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </span>

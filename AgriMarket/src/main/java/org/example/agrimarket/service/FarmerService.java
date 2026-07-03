@@ -30,6 +30,9 @@ public class FarmerService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
+
     @Transactional
     public AuthResponse registerAsFarmer(String email, FarmerRegistrationRequest request) {
         if (farmerRepository.findByEmail(email).isPresent()) {
@@ -41,22 +44,18 @@ public class FarmerService {
 
         Long userId = customer.getId();
 
-        // Bước 1: Xóa record trong bảng customer (giữ nguyên record trong users)
-        jdbcTemplate.update("DELETE FROM customer WHERE id = ?", userId);
-
-        // Bước 2: Cập nhật user_type trong bảng users thành FARMER
+        // Bước 1: Cập nhật user_type trong bảng users thành FARMER
         jdbcTemplate.update(
-                "UPDATE users SET user_type = 'FARMER', status = 'pending', updated_at = GETDATE() WHERE id = ?",
+                "UPDATE users SET user_type = 'FARMER', status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 userId);
 
-        // Bước 3: Insert vào bảng farmer với cùng id
+        // Bước 2: Insert vào bảng farmer với cùng id
         jdbcTemplate.update(
-                "INSERT INTO farmer (id, password_set, farm_name, farm_address, description, identity_card, " +
+                "INSERT INTO farmer (id, farm_name, farm_address, description, identity_card, " +
                         "business_registration_url, vietgap_url, globalgap_url, organic_url, verification_status, " +
                         "rating_average, total_products, max_delivery_distance, latitude, longitude) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0.0, 0, ?, ?, ?)",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0.0, 0, ?, ?, ?)",
                 userId,
-                true,
                 request.getFarmName(),
                 request.getFarmAddress(),
                 request.getDescription(),
@@ -69,7 +68,7 @@ public class FarmerService {
                 request.getLatitude(),
                 request.getLongitude());
 
-        // Bước 4: Build Farmer object thủ công để tránh JPA cache conflict
+        // Bước 3: Build Farmer object thủ công để tránh JPA cache conflict
         // (sau JDBC native SQL, EntityManager vẫn cache entity cũ nên findById không hoạt động đúng)
         Farmer savedFarmer = new Farmer();
         savedFarmer.setId(userId);
@@ -212,50 +211,14 @@ public class FarmerService {
     }
 
     private void deletePhysicalAvatarFile(String avatarUrl) {
-        if (avatarUrl != null && avatarUrl.contains("/uploads/avatars/")) {
-            try {
-                String fileName = avatarUrl.substring(avatarUrl.lastIndexOf("/") + 1);
-                java.io.File fileToDelete = new java.io.File(
-                        "uploads" + java.io.File.separator + "avatars" + java.io.File.separator + fileName);
-                if (fileToDelete.exists()) {
-                    boolean deleted = fileToDelete.delete();
-                    System.out.println(">>> FarmerService: Deleted avatar file: " + fileToDelete.getAbsolutePath()
-                            + " (success: " + deleted + ")");
-                }
-            } catch (Exception e) {
-                System.err.println("Failed to delete old avatar file: " + e.getMessage());
-            }
+        if (avatarUrl != null && !avatarUrl.isEmpty() && avatarUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(avatarUrl);
         }
     }
 
     private void deletePhysicalDocumentFile(String fileUrl) {
-        if (fileUrl == null)
-            return;
-        String normalizedUrl = fileUrl.replace("\\", "/");
-        if (normalizedUrl.contains("/uploads/documents/")) {
-            try {
-                String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File(
-                        "uploads" + java.io.File.separator + "documents" + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads"
-                        + java.io.File.separator + "documents" + java.io.File.separator + fileName);
-
-                boolean deleted = false;
-                if (fileInParent.exists()) {
-                    deleted = fileInParent.delete();
-                    System.out.println(">>> FarmerService: Deleted document file: " + fileInParent.getAbsolutePath()
-                            + " (success: " + deleted + ")");
-                } else if (fileInSub.exists()) {
-                    deleted = fileInSub.delete();
-                    System.out.println(">>> FarmerService: Deleted document file: " + fileInSub.getAbsolutePath()
-                            + " (success: " + deleted + ")");
-                } else {
-                    System.out.println(">>> FarmerService: Document file not found on disk: " + fileUrl);
-                }
-            } catch (Exception e) {
-                System.err.println(
-                        ">>> FarmerService: Failed to delete document file: " + fileUrl + ", error: " + e.getMessage());
-            }
+        if (fileUrl != null && !fileUrl.isEmpty() && fileUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(fileUrl);
         }
     }
 }

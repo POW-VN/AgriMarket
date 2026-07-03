@@ -38,7 +38,7 @@ const getCurrentProfile = async () => {
   return normalizeProfileData(localUser);
 };
 
-const updateProfile = async (profileData) => {
+const updateProfile = async (profileData, targetRole = null) => {
   const currentUser = getLocalUser();
 
   if (!currentUser) {
@@ -46,18 +46,19 @@ const updateProfile = async (profileData) => {
   }
 
   const normalizedUser = normalizeProfileData(currentUser);
+  const role = targetRole || normalizedUser.role;
 
   if (normalizedUser.role === USER_ROLES.ADMIN) {
     throw new Error("Admin không được chỉnh sửa hồ sơ.");
   }
 
-  if (normalizedUser.role === USER_ROLES.CUSTOMER) {
+  if (role === USER_ROLES.CUSTOMER) {
     const response = await apiClient.put(`/api/customers/${normalizedUser.id}`, profileData);
     saveLocalUser(response.data);
     return normalizeProfileData(response.data);
   }
 
-  if (normalizedUser.role === USER_ROLES.FARMER) {
+  if (role === USER_ROLES.FARMER) {
     const response = await apiClient.put(`/api/farmers/${normalizedUser.id}`, profileData);
     saveLocalUser(response.data);
     return normalizeProfileData(response.data);

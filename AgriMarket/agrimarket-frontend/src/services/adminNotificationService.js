@@ -198,6 +198,27 @@ const adminNotificationService = {
             return [];
         }
     },
+
+    getSimplifiedUsers: async () => {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/admin/notifications/users`,
+                {
+                    method: "GET",
+                    headers: getAuthHeaders(),
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Không thể tải danh sách người dùng");
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error("Lỗi tải danh sách người dùng:", error);
+            return [];
+        }
+    },
 };
 
 export default adminNotificationService;

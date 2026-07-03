@@ -292,13 +292,7 @@ export default function AdminChat() {
           </span>
           Hỗ trợ
         </button>
-        <button className="admin-nav-item" onClick={() => showToast("Tính năng quản lý khiếu nại đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          </span>
-          Khiếu nại
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng báo cáo đang phát triển.")}>
+        <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
           <span className="admin-nav-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
           </span>
@@ -593,12 +587,7 @@ export default function AdminChat() {
                       </div>
                     )}
 
-                    <div className="admin-details-row">
-                      <span className="admin-details-label">Mức độ ưu tiên</span>
-                      <span className="admin-details-value">
-                        {selectedRequest.priority === "high" ? "🚨 Cao" : selectedRequest.priority === "low" ? "Thấp" : "Trung bình"}
-                      </span>
-                    </div>
+
                   </div>
                 </div>
 
@@ -608,12 +597,32 @@ export default function AdminChat() {
                   <form className="admin-chat-action-form" onSubmit={handleUpdateTicketStatus}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <label>Trạng thái:</label>
-                      <select value={updatingStatus} onChange={(e) => setUpdatingStatus(e.target.value)}>
-                        <option value="pending">Chờ duyệt</option>
-                        <option value="assigned">Đã phân công</option>
-                        <option value="processing">Đang xử lý</option>
-                        <option value="resolved">Đã giải quyết</option>
-                        <option value="rejected">Từ chối</option>
+                      <select 
+                        value={updatingStatus} 
+                        onChange={(e) => setUpdatingStatus(e.target.value)}
+                        disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
+                      >
+                        {selectedRequest.status === "pending" && (
+                          <>
+                            <option value="pending">Chờ duyệt</option>
+                            <option value="processing">Đang xử lý</option>
+                            <option value="resolved">Đã giải quyết</option>
+                            <option value="rejected">Từ chối</option>
+                          </>
+                        )}
+                        {selectedRequest.status === "processing" && (
+                          <>
+                            <option value="processing">Đang xử lý</option>
+                            <option value="resolved">Đã giải quyết</option>
+                            <option value="rejected">Từ chối</option>
+                          </>
+                        )}
+                        {selectedRequest.status === "resolved" && (
+                          <option value="resolved">Đã giải quyết</option>
+                        )}
+                        {selectedRequest.status === "rejected" && (
+                          <option value="rejected">Từ chối</option>
+                        )}
                       </select>
                     </div>
 
@@ -624,13 +633,25 @@ export default function AdminChat() {
                         placeholder="Nhập ghi chú hoặc lý do giải quyết..."
                         value={adminNotes}
                         onChange={(e) => setAdminNotes(e.target.value)}
+                        disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
                         required
                       />
                     </div>
 
-                    <button type="submit" className="admin-chat-action-btn" disabled={isSubmitting}>
+                    <button 
+                      type="submit" 
+                      className="admin-chat-action-btn" 
+                      disabled={isSubmitting || selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
+                      style={{ backgroundColor: (selectedRequest.status === "resolved" || selectedRequest.status === "rejected") ? "#cbd5e1" : undefined }}
+                    >
                       {isSubmitting ? "Đang cập nhật..." : "Cập nhật phiếu"}
                     </button>
+
+                    {(selectedRequest.status === "resolved" || selectedRequest.status === "rejected") && (
+                      <div style={{ marginTop: "8px", padding: "8px", backgroundColor: "#f3f4f6", borderRadius: "6px", color: "#475569", fontSize: "12px", fontWeight: "600", textAlign: "center" }}>
+                        🔒 Yêu cầu đã đóng. Không thể cập nhật.
+                      </div>
+                    )}
                   </form>
                 </div>
               </div>

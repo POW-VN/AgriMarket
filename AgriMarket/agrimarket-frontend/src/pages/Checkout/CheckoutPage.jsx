@@ -826,13 +826,13 @@ export default function CheckoutPage() {
                     fullName: profileData.fullName || recipientName,
                     phone: recipientPhone,
                     avatarUrl: profileData.avatarUrl,
-                    address: profileData.role === "customer" ? (profileData.addresses?.[0]?.address || "") : (profileData.addresses?.[0]?.address || ""),
-                    farmAddress: profileData.role === "farmer" ? (profileData.farmAddress || "") : (profileData.farmAddress || ""),
-                    farmName: profileData.farmName || "",
-                    description: profileData.description || ""
+                    address: profileData.addresses?.[0]?.address || "",
+                    farmAddress: "",
+                    farmName: "",
+                    description: ""
                 };
-                const payload = buildProfileUpdatePayload(profileData.role, updatedFormData);
-                await profileService.updateProfile(payload);
+                const payload = buildProfileUpdatePayload("customer", updatedFormData);
+                await profileService.updateProfile(payload, "customer");
             } catch (err) {
                 console.error("Lỗi khi cập nhật số điện thoại hồ sơ:", err);
             }
@@ -845,6 +845,64 @@ export default function CheckoutPage() {
         const ampm = hours >= 12 ? 'CH' : 'SA';
         const displayHours = hours % 12 || 12;
         const formattedTime = `${displayHours}:${minutes} ${ampm}`;
+
+        if (checkoutData.isPreorder) {
+            const randomCode = "PO-2026-" + Math.floor(1000 + Math.random() * 9000);
+            const depositAmount = checkoutData.totalAmount * 0.20;
+            const newPreorder = {
+              id: randomCode,
+              orderCode: randomCode,
+              status: "paid",
+              statusLabel: "Đã đặt cọc (20%)",
+              date: formattedDate,
+              time: formattedTime,
+              amount: checkoutData.totalAmount,
+              depositPaid: depositAmount,
+              isUSD: false,
+              itemCount: checkoutData.selectedItems.reduce((sum, item) => sum + item.quantity, 0),
+              expectedHarvestDate: checkoutData.selectedItems[0]?.expectedHarvest || "Cuối tháng 08, 2026",
+              provider: {
+                name: checkoutData.selectedItems[0]?.farmerName || "Nông trại Green Valley",
+                avatarText: checkoutData.selectedItems[0]?.farmerName ? checkoutData.selectedItems[0].farmerName.substring(0, 2).toUpperCase() : "GV",
+                avatarBg: "#1b5e20",
+              },
+              thumbnails: [checkoutData.selectedItems[0]?.imageUrl || ""],
+              hasMoreItems: 0,
+              recipient: recipientName,
+              phone: recipientPhone,
+              address: formattedAddress,
+              paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
+              specialInstructions: shippingNote
+            };
+
+            const existing = JSON.parse(localStorage.getItem("agrimarket_preorders")) || [];
+            localStorage.setItem("agrimarket_preorders", JSON.stringify([newPreorder, ...existing]));
+
+            window.dispatchEvent(new Event("preordersUpdated"));
+
+            setPlacedOrder({
+                id: randomCode,
+                date: formattedDate,
+                time: formattedTime,
+                recipient: recipientName,
+                phone: recipientPhone,
+                address: formattedAddress,
+                paymentMethod: paymentMethod === "cod" ? "COD (Đặt cọc 20%)" : "VNPAY (Đặt cọc 20%)",
+                trackingNumber: `PO-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
+                items: checkoutData.selectedItems.map(item => ({
+                    name: item.name + " (Đặt trước - Preorder)",
+                    qty: item.quantity,
+                    price: item.price
+                })),
+                amount: depositAmount,
+                isPreorder: true
+            });
+
+            setIsSuccess(true);
+            localStorage.removeItem("agrimarket_checkout");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
 
         const subtotal = checkoutData.subtotal;
         const shippingFee = checkoutData.shippingFee;
@@ -1047,15 +1105,17 @@ export default function CheckoutPage() {
                             <div className="success-checkmark-line">✓</div>
                         </div>
 
-                        <h2>Đặt hàng thành công!</h2>
+                        <h2>{placedOrder.isPreorder ? "Đặt trước thành công!" : "Đặt hàng thành công!"}</h2>
                         <p className="success-desc-text">
-                            Cảm ơn bạn đã mua hàng tại AgriMarket. Đơn hàng của bạn đang được chuyển đến nhà vườn để xử lý.
+                            {placedOrder.isPreorder 
+                              ? "Cảm ơn bạn đã đặt trước nông sản tại AgriMarket. Khoản đặt cọc 20% của bạn đã được ghi nhận để đảm bảo giữ chỗ sản phẩm khi thu hoạch."
+                              : "Cảm ơn bạn đã mua hàng tại AgriMarket. Đơn hàng của bạn đang được chuyển đến nhà vườn để xử lý."}
                         </p>
 
                         <div className="success-order-details-box">
                             <div className="receipt-header">
-                                <h3>HÓA ĐƠN ĐƠN HÀNG</h3>
-                                <span className="receipt-id">MÃ ĐƠN: #{placedOrder.id}</span>
+                                <h3>{placedOrder.isPreorder ? "HÓA ĐƠN ĐẶT TRƯỚC" : "HÓA ĐƠN ĐƠN HÀNG"}</h3>
+                                <span className="receipt-id">{placedOrder.isPreorder ? "MÃ ĐẶT TRƯỚC" : "MÃ ĐƠN"}: #{placedOrder.id}</span>
                             </div>
 
                             <div className="receipt-body">
@@ -1099,7 +1159,7 @@ export default function CheckoutPage() {
                                 <hr className="receipt-divider" />
 
                                 <div className="receipt-row receipt-total">
-                                    <span>Tổng thanh toán</span>
+                                    <span>{placedOrder.isPreorder ? "Khoản đặt cọc đã trả (20%)" : "Tổng thanh toán"}</span>
                                     <span>{formatVND(placedOrder.amount)}</span>
                                 </div>
                             </div>
@@ -1454,12 +1514,20 @@ export default function CheckoutPage() {
                                 {/* Dynamic Details according to selection */}
                                 {paymentMethod === "cod" && (
                                     <div className="method-detail-box cod-box">
-                                        <p>📦 Bạn sẽ thanh toán tổng số tiền là <strong>{formatVND(checkoutData.totalAmount)}</strong> cho nhân viên giao hàng khi đơn hàng được giao đến. Vui lòng chuẩn bị sẵn số tiền mặt để thuận tiện giao dịch.</p>
+                                        {checkoutData.isPreorder ? (
+                                            <p>📦 Bạn sẽ thanh toán khoản cọc giữ chỗ 20% trị giá <strong>{formatVND(checkoutData.totalAmount * 0.20)}</strong> và thanh toán 80% còn lại khi nhận nông sản thu hoạch.</p>
+                                        ) : (
+                                            <p>📦 Bạn sẽ thanh toán tổng số tiền là <strong>{formatVND(checkoutData.totalAmount)}</strong> cho nhân viên giao hàng khi đơn hàng được giao đến. Vui lòng chuẩn bị sẵn số tiền mặt để thuận tiện giao dịch.</p>
+                                        )}
                                     </div>
                                 )}
                                 {paymentMethod === "vnpay" && (
                                     <div className="method-detail-box cod-box">
-                                        <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount)}</strong>.</p>
+                                        {checkoutData.isPreorder ? (
+                                            <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch đặt cọc trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount * 0.20)}</strong>.</p>
+                                        ) : (
+                                            <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount)}</strong>.</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1494,10 +1562,12 @@ export default function CheckoutPage() {
                                         <span>Tạm tính</span>
                                         <span>{formatVND(checkoutData.subtotal)}</span>
                                     </div>
-                                    <div className="summary-row">
-                                        <span>Phí dịch vụ</span>
-                                        <span>{formatVND(checkoutData.serviceFee)}</span>
-                                    </div>
+                                    {checkoutData.serviceFee > 0 && (
+                                        <div className="summary-row">
+                                            <span>Phí dịch vụ</span>
+                                            <span>{formatVND(checkoutData.serviceFee)}</span>
+                                        </div>
+                                    )}
                                     <div className="summary-row">
                                         <span>Phí vận chuyển</span>
                                         <span className={checkoutData.shippingFee === 0 ? "free-txt" : ""}>
@@ -1506,17 +1576,29 @@ export default function CheckoutPage() {
                                     </div>
                                     <hr className="summary-divider" />
                                     <div className="summary-row total-row">
-                                        <span>Tổng thanh toán</span>
+                                        <span>{checkoutData.isPreorder ? "Tổng thanh toán dự kiến" : "Tổng thanh toán"}</span>
                                         <span className="grand-total-val">{formatVND(checkoutData.totalAmount)}</span>
                                     </div>
+
+                                    {checkoutData.isPreorder && (
+                                        <div className="checkout-deposit-highlight-box" style={{ backgroundColor: "#e8f5e9", border: "1px solid #c8e6c9", padding: "12px", borderRadius: "8px", marginTop: "12px" }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700", color: "#2e7d32", fontSize: "14px" }}>
+                                                <span>Đặt cọc yêu cầu (20%)</span>
+                                                <span>{formatVND(checkoutData.totalAmount * 0.20)}</span>
+                                            </div>
+                                            <span style={{ fontSize: "11px", color: "#558b2f", display: "block", marginTop: "4px" }}>Thanh toán hôm nay để xác nhận giữ chỗ nông sản.</span>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <button type="submit" className="btn-confirm-order">
+                                <button type="submit" className="btn-confirm-order" style={checkoutData.isPreorder ? { backgroundColor: "#15803d" } : {}}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16" style={{ marginRight: "8px" }}>
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                                     </svg>
-                                    {paymentMethod === "cod" ? "Xác nhận đặt hàng" : "Tiến hành thanh toán"}
+                                    {checkoutData.isPreorder 
+                                      ? (paymentMethod === "cod" ? "Xác nhận đặt trước (Cọc 20%)" : "Thanh toán cọc 20%") 
+                                      : (paymentMethod === "cod" ? "Xác nhận đặt hàng" : "Tiến hành thanh toán")}
                                 </button>
 
                                 <button type="button" className="btn-return-to-cart" onClick={() => navigate("/cart")}>

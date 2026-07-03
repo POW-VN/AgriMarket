@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../../components/common/Header/Header";
+import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
 import authService from "../../../services/authService";
 import "./SupportRequestDetail.css";
@@ -70,7 +71,7 @@ export default function SupportRequestDetail() {
     // Step 0: Đã tiếp nhận (always complete if request exists)
     if (stepIndex === 0) return "completed";
     
-    // Step 1: Đã phân công (complete if assigned, processing, or resolved)
+    // Step 1: Đang xử lý (complete if assigned, processing, or resolved)
     if (stepIndex === 1) {
       if (status === "assigned" || status === "processing" || status === "resolved") {
         return "completed";
@@ -78,16 +79,8 @@ export default function SupportRequestDetail() {
       return "waiting";
     }
     
-    // Step 2: Đang xử lý (complete if processing or resolved)
+    // Step 2: Hoàn thành (complete if resolved)
     if (stepIndex === 2) {
-      if (status === "processing" || status === "resolved") {
-        return "completed";
-      }
-      return "waiting";
-    }
-    
-    // Step 3: Hoàn thành (complete if resolved)
-    if (stepIndex === 3) {
       if (status === "resolved") return "completed";
       if (status === "rejected") return "rejected";
       return "waiting";
@@ -199,25 +192,13 @@ export default function SupportRequestDetail() {
                 <span className="stepper-line"></span>
               </div>
               <div className="stepper-text-content">
-                <h4>Đã phân công</h4>
-                <p>Chuyên viên hỗ trợ đang được chỉ định.</p>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className={`stepper-node-row ${getStepStatus(2)}`}>
-              <div className="stepper-dot-indicator">
-                <span className="stepper-dot"></span>
-                <span className="stepper-line"></span>
-              </div>
-              <div className="stepper-text-content">
                 <h4>Đang xử lý</h4>
                 <p>Chúng tôi đang xem xét chi tiết vấn đề.</p>
               </div>
             </div>
 
-            {/* Step 4 */}
-            <div className={`stepper-node-row ${getStepStatus(3)}`}>
+            {/* Step 3 */}
+            <div className={`stepper-node-row ${getStepStatus(2)}`}>
               <div className="stepper-dot-indicator">
                 <span className="stepper-dot"></span>
               </div>
@@ -244,7 +225,6 @@ export default function SupportRequestDetail() {
               <p><strong>Tiêu đề:</strong> {request.title}</p>
               <p><strong>Danh mục:</strong> {request.category}</p>
               {request.orderCode && <p><strong>Mã đơn hàng liên quan:</strong> {request.orderCode}</p>}
-              <p><strong>Mức độ ưu tiên:</strong> {request.priority === "high" ? "Cao" : request.priority === "low" ? "Thấp" : "Trung bình"}</p>
               <p className="ticket-desc-text"><strong>Nội dung:</strong> {request.description}</p>
               {request.attachmentUrl && (
                 <div className="ticket-attachment-info">
@@ -275,9 +255,8 @@ export default function SupportRequestDetail() {
         </div>
       </div>
 
-      <footer className="support-footer">
-        <p className="support-copyright">© 2026 AgriMarketplace. Tất cả quyền được bảo lưu.</p>
-      </footer>
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

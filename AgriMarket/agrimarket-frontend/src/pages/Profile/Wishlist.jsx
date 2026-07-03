@@ -44,7 +44,7 @@ export default function Wishlist() {
       const prods = await wishlistService.getWishlistProducts();
       setProducts(prods);
 
-      const farmers = wishlistService.getFollowedFarmers();
+      const farmers = await wishlistService.getFollowedFarmers();
       setFollowedFarmers(farmers);
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu yêu thích:", err);
@@ -72,14 +72,14 @@ export default function Wishlist() {
   };
 
   // Handle product removal
-  const handleRemoveProduct = (productId, productName) => {
+  const handleRemoveProduct = async (productId, productName) => {
     setRemovingIds((prev) => {
       const next = new Set(prev);
       next.add(productId);
       return next;
     });
 
-    wishlistService.toggleWishlist(productId);
+    await wishlistService.toggleWishlist(productId);
 
     setTimeout(() => {
       setProducts((prev) => prev.filter((p) => p.id !== productId));
@@ -94,14 +94,14 @@ export default function Wishlist() {
   };
 
   // Handle farmer unfollow
-  const handleUnfollowFarmer = (farmerId, farmerName) => {
+  const handleUnfollowFarmer = async (farmerId, farmerName) => {
     setRemovingFarmerIds((prev) => {
       const next = new Set(prev);
       next.add(farmerId);
       return next;
     });
 
-    wishlistService.toggleFollowFarmer({ id: farmerId });
+    await wishlistService.toggleFollowFarmer({ id: farmerId });
 
     setTimeout(() => {
       setFollowedFarmers((prev) => prev.filter((f) => f.id !== farmerId));
@@ -298,7 +298,11 @@ export default function Wishlist() {
                       key={p.id}
                       className={`wishlist-prod-card ${isRemoving ? "removing-anim" : ""}`}
                     >
-                      <div className="wishlist-img-container">
+                      <div 
+                        className="wishlist-img-container"
+                        onClick={() => navigate(`/products/${p.id}`)}
+                        style={{ cursor: "pointer" }}
+                      >
                         {p.imageUrl ? (
                           <img src={p.imageUrl} alt={p.name} className="wishlist-prod-img" />
                         ) : (
@@ -316,6 +320,7 @@ export default function Wishlist() {
                           className="wishlist-heart-btn"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             handleRemoveProduct(p.id, p.name);
                           }}
                           title="Xóa khỏi mục yêu thích"
@@ -465,7 +470,7 @@ export default function Wishlist() {
                       <button
                         className="wishlist-visit-farm-btn"
                         onClick={() => {
-                          showToast(`Chào mừng bạn ghé thăm nhà vườn ${f.name}!`, "success");
+                          navigate(`/farmer-profile/${f.id}`);
                         }}
                       >
                         Ghé thăm nhà vườn ➔

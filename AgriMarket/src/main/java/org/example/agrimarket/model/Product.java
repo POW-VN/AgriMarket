@@ -28,10 +28,10 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(nullable = false, columnDefinition = "nvarchar(255)")
+    @Column(nullable = false, length = 255, columnDefinition = "TEXT")
     private String name;
 
-    @Column(columnDefinition = "nvarchar(max)")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
@@ -40,7 +40,7 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity = 0;
 
-    @Column(columnDefinition = "nvarchar(255)")
+    @Column(length = 255, columnDefinition = "TEXT")
     private String unit;
 
     private String status; // draft, pending, approved, rejected, hidden, sold_out
@@ -51,17 +51,16 @@ public class Product {
     @Column(name = "expiration_date")
     private LocalDate expirationDate;
 
-
     @Column(name = "traceability_image_url", length = 1000)
     private String traceabilityImageUrl;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "rejection_reason", columnDefinition = "nvarchar(max)")
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
-    @Column(name = "admin_notes", columnDefinition = "nvarchar(max)")
+    @Column(name = "admin_notes", columnDefinition = "TEXT")
     private String adminNotes;
 
     @Column(name = "perishability")

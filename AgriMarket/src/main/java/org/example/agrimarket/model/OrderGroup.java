@@ -43,16 +43,16 @@ public class OrderGroup {
     @Column(name = "grand_total", nullable = false)
     private Double grandTotal;
 
-    @Column(name = "recipient_name", nullable = false, columnDefinition = "nvarchar(255)")
+    @Column(name = "recipient_name", nullable = false, length = 255, columnDefinition = "TEXT")
     private String recipientName;
 
     @Column(name = "recipient_phone", nullable = false)
     private String recipientPhone;
 
-    @Column(name = "delivery_address", nullable = false, columnDefinition = "nvarchar(1000)")
+    @Column(name = "delivery_address", nullable = false, length = 1000, columnDefinition = "TEXT")
     private String deliveryAddress;
 
-    @Column(name = "payment_method", nullable = false, columnDefinition = "nvarchar(100)")
+    @Column(name = "payment_method", nullable = false, length = 100, columnDefinition = "TEXT")
     private String paymentMethod;
 
     @Column(name = "payment_status")

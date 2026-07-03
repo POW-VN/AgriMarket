@@ -259,15 +259,13 @@ const LiveChat = () => {
               <>
                 <div className="chat-area-header">
                   <div className="chat-header-user-info">
-                    <img 
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150" 
-                      alt="Sarah Jenkins" 
-                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} 
-                    />
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#0f6244', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '15px', flexShrink: 0 }}>
+                      AD
+                    </div>
                     <div>
-                      <h3>Sarah Jenkins</h3>
+                      <h3>Ban quản trị AgriMarket</h3>
                       <div className="chat-area-header-subtitle-row">
-                        <span className="chat-area-header-role">Chuyên viên Hỗ trợ Khách hàng</span>
+                        <span className="chat-area-header-role">Hỗ trợ Hệ thống</span>
                         <span className="chat-area-header-status-badge">
                           <span style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>
                           Đang hoạt động
@@ -301,14 +299,12 @@ const LiveChat = () => {
 
                   {/* System greeting message */}
                   <div className="message-bubble incoming">
-                    <img 
-                      src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150" 
-                      alt="Sarah" 
-                      className="message-avatar-circle" 
-                    />
+                    <div className="message-avatar-circle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f6244', color: '#fff', fontWeight: 'bold', fontSize: '11px' }}>
+                      AD
+                    </div>
                     <div className="message-content-wrapper">
                       <div className="message-content">
-                        Chào bạn! Cảm ơn bạn đã liên hệ Hỗ trợ FarmConnect. Tôi là Sarah, tôi có thể giúp gì cho trạng thái phiếu **"{selectedRequest.title}"** của bạn?
+                        Chào bạn! Cảm ơn bạn đã liên hệ Hỗ trợ AgriMarket. Chúng tôi có thể giúp gì cho yêu cầu **"{selectedRequest.title}"** của bạn?
                       </div>
                       <span className="message-time">{formatTime(selectedRequest.createdAt)}</span>
                     </div>
@@ -320,11 +316,9 @@ const LiveChat = () => {
                     return (
                       <div key={msg.id} className={`message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`}>
                         {!isOutgoing && (
-                          <img 
-                            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150" 
-                            alt="Agent" 
-                            className="message-avatar-circle" 
-                          />
+                          <div className="message-avatar-circle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f6244', color: '#fff', fontWeight: 'bold', fontSize: '11px' }}>
+                            AD
+                          </div>
                         )}
                         <div className="message-content-wrapper">
                           <div className="message-content">{msg.content}</div>
@@ -419,35 +413,13 @@ const LiveChat = () => {
           {/* Column 3: Details Panel */}
           {selectedRequest && (
             <div className="chat-details-panel">
-              {/* Card 1: Agent profile */}
-              <div className="details-card agent-profile-card">
-                <img 
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150" 
-                  alt="Sarah Jenkins" 
-                  className="agent-big-avatar" 
-                />
-                <h4>Sarah Jenkins</h4>
-                <p>Chuyên viên Logistics</p>
-                
-                <div className="agent-stats-badges">
-                  <div className="agent-stat-badge">
-                    <span className="agent-stat-value">⭐ 4.9</span>
-                    <span className="agent-stat-label">Đánh giá</span>
-                  </div>
-                  <div className="agent-stat-badge">
-                    <span className="agent-stat-value">~5p</span>
-                    <span className="agent-stat-label">Phản hồi</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Ticket details */}
+              {/* Card 1: Ticket details */}
               <div className="details-card">
                 <h3>Chi tiết hỗ trợ</h3>
                 <div className="ticket-details-list">
                   <div className="ticket-details-item">
                     <span className="ticket-details-label">Mã hỗ trợ</span>
-                    <span className="ticket-details-value code">#TCK-{selectedRequest.id}</span>
+                    <span className="ticket-details-value code">#REQ-{selectedRequest.id}</span>
                   </div>
                   
                   {selectedRequest.orderCode && (

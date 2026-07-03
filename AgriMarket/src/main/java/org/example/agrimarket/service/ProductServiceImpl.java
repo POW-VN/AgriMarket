@@ -46,6 +46,9 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private OrderItemRepository orderItemRepository;
 
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
+
     @Override
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
         List<Product> products = productRepository.findByFarmerEmailOrderByCreatedAtDesc(email);
@@ -167,34 +170,8 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void deletePhysicalFile(String fileUrl, String subFolder) {
-        if (fileUrl == null)
-            return;
-        String normalizedUrl = fileUrl.replace("\\", "/");
-        if (normalizedUrl.contains("/uploads/" + subFolder + "/")) {
-            try {
-                String fileName = normalizedUrl.substring(normalizedUrl.lastIndexOf("/") + 1);
-                java.io.File fileInParent = new java.io.File(
-                        "uploads" + java.io.File.separator + subFolder + java.io.File.separator + fileName);
-                java.io.File fileInSub = new java.io.File("AgriMarket" + java.io.File.separator + "uploads"
-                        + java.io.File.separator + subFolder + java.io.File.separator + fileName);
-
-                boolean deleted = false;
-                if (fileInParent.exists()) {
-                    deleted = fileInParent.delete();
-                    System.out.println(">>> ProductServiceImpl: Deleted physical file in parent: "
-                            + fileInParent.getAbsolutePath() + " (success: " + deleted + ")");
-                } else if (fileInSub.exists()) {
-                    deleted = fileInSub.delete();
-                    System.out.println(">>> ProductServiceImpl: Deleted physical file in subfolder: "
-                            + fileInSub.getAbsolutePath() + " (success: " + deleted + ")");
-                } else {
-                    System.out.println(">>> ProductServiceImpl: File not found at parent: "
-                            + fileInParent.getAbsolutePath() + " or subfolder: " + fileInSub.getAbsolutePath());
-                }
-            } catch (Exception e) {
-                System.err.println(">>> ProductServiceImpl: Failed to delete physical file: " + fileUrl + ", error: "
-                        + e.getMessage());
-            }
+        if (fileUrl != null && !fileUrl.isEmpty() && fileUrl.contains("/storage/v1/object/public/")) {
+            supabaseStorageService.deleteFileByUrl(fileUrl);
         }
     }
 
@@ -371,45 +348,28 @@ public class ProductServiceImpl implements ProductService {
             header = parts[0];
             data = parts[1];
         } else {
-            // Check if it's raw base64 or has header without comma (unlikely)
             data = base64Str;
         }
 
         String extension = ".jpg"; // default
+        String contentType = "image/jpeg";
         if (header.contains("image/png")) {
             extension = ".png";
+            contentType = "image/png";
         } else if (header.contains("image/gif")) {
             extension = ".gif";
+            contentType = "image/gif";
         } else if (header.contains("image/webp")) {
             extension = ".webp";
+            contentType = "image/webp";
         } else if (header.contains("application/pdf")) {
             extension = ".pdf";
+            contentType = "application/pdf";
         }
 
         byte[] decodedBytes = java.util.Base64.getDecoder().decode(data.trim());
 
-        String uploadDir = "uploads" + File.separator + subFolder;
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        String fileName = UUID.randomUUID().toString() + extension;
-        File file = new File(dir.getAbsolutePath() + File.separator + fileName);
-
-        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(file)) {
-            fos.write(decodedBytes);
-        }
-
-        try {
-            return ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/uploads/")
-                    .path(subFolder + "/")
-                    .path(fileName)
-                    .toUriString();
-        } catch (Exception e) {
-            return "/uploads/" + subFolder + "/" + fileName;
-        }
+        return supabaseStorageService.uploadFileBytes(decodedBytes, "file" + extension, contentType, subFolder);
     }
 
     @Override

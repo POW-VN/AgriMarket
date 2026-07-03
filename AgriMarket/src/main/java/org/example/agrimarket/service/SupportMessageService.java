@@ -1,11 +1,11 @@
 package org.example.agrimarket.service;
 
-import org.example.agrimarket.dto.ChatMessageResponseDTO;
-import org.example.agrimarket.dto.SendChatMessageDTO;
-import org.example.agrimarket.model.ChatMessage;
+import org.example.agrimarket.dto.SupportMessageResponseDTO;
+import org.example.agrimarket.dto.SendSupportMessageDTO;
+import org.example.agrimarket.model.SupportMessage;
 import org.example.agrimarket.model.SupportRequest;
 import org.example.agrimarket.model.User;
-import org.example.agrimarket.repository.ChatMessageRepository;
+import org.example.agrimarket.repository.SupportMessageRepository;
 import org.example.agrimarket.repository.SupportRequestRepository;
 import org.example.agrimarket.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +17,10 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class ChatMessageService {
+public class SupportMessageService {
 
     @Autowired
-    private ChatMessageRepository chatMessageRepository;
+    private SupportMessageRepository supportMessageRepository;
 
     @Autowired
     private SupportRequestRepository supportRequestRepository;
@@ -28,7 +28,7 @@ public class ChatMessageService {
     @Autowired
     private UserRepository userRepository;
 
-    public ChatMessageResponseDTO sendMessage(Long requestId, String email, String senderRole, SendChatMessageDTO dto) {
+    public SupportMessageResponseDTO sendMessage(Long requestId, String email, String senderRole, SendSupportMessageDTO dto) {
         SupportRequest request = supportRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu hỗ trợ"));
 
@@ -41,7 +41,7 @@ public class ChatMessageService {
             throw new RuntimeException("Bạn không có quyền gửi tin nhắn trong yêu cầu hỗ trợ này");
         }
 
-        ChatMessage message = ChatMessage.builder()
+        SupportMessage message = SupportMessage.builder()
                 .supportRequest(request)
                 .sender(sender)
                 .senderName(sender.getFullName())
@@ -49,12 +49,12 @@ public class ChatMessageService {
                 .content(dto.getContent())
                 .build();
 
-        ChatMessage saved = chatMessageRepository.save(message);
+        SupportMessage saved = supportMessageRepository.save(message);
         return convertToResponseDTO(saved);
     }
 
     @Transactional(readOnly = true)
-    public List<ChatMessageResponseDTO> getMessages(Long requestId, String email, String userRole) {
+    public List<SupportMessageResponseDTO> getMessages(Long requestId, String email, String userRole) {
         SupportRequest request = supportRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu hỗ trợ"));
 
@@ -64,14 +64,14 @@ public class ChatMessageService {
             throw new RuntimeException("Bạn không có quyền xem cuộc trò chuyện này");
         }
 
-        return chatMessageRepository.findBySupportRequestIdOrderByCreatedAtAsc(requestId)
+        return supportMessageRepository.findBySupportRequestIdOrderByCreatedAtAsc(requestId)
                 .stream()
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    private ChatMessageResponseDTO convertToResponseDTO(ChatMessage msg) {
-        return ChatMessageResponseDTO.builder()
+    private SupportMessageResponseDTO convertToResponseDTO(SupportMessage msg) {
+        return SupportMessageResponseDTO.builder()
                 .id(msg.getId())
                 .supportRequestId(msg.getSupportRequest().getId())
                 .senderId(msg.getSender().getId())

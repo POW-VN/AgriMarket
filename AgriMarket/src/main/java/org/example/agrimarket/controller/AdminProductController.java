@@ -137,4 +137,20 @@ public class AdminProductController {
         
         return ResponseEntity.ok(productService.getProductById(id));
     }
+
+    @PostMapping("/bulk-approve")
+    public ResponseEntity<?> bulkApproveProducts(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().body("Danh sách ID sản phẩm không được rỗng.");
+        }
+        for (Long id : ids) {
+            Product product = productRepository.findById(id).orElse(null);
+            if (product != null) {
+                product.setStatus("approved");
+                product.setRejectionReason(null);
+                productRepository.save(product);
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "Đã duyệt thành công " + ids.size() + " sản phẩm."));
+    }
 }

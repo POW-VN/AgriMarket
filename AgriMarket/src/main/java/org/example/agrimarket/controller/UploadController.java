@@ -11,11 +11,15 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
+import org.example.agrimarket.service.SupabaseStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
+
 @RestController
 @RequestMapping("/api/upload")
 public class UploadController {
 
-    private static final String UPLOAD_DIR = "uploads" + File.separator + "avatars";
+    @Autowired
+    private SupabaseStorageService supabaseStorageService;
 
     @PostMapping("/avatar")
     public ResponseEntity<?> uploadAvatar(@RequestParam("avatar") MultipartFile file) {
@@ -24,33 +28,9 @@ public class UploadController {
         }
 
         try {
-            // Create uploads directory if it does not exist
-            File directory = new File(UPLOAD_DIR);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            // Generate a unique file name
-            String originalFileName = file.getOriginalFilename();
-            String extension = "";
-            if (originalFileName != null && originalFileName.contains(".")) {
-                extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-            }
-            String newFileName = UUID.randomUUID().toString() + extension;
-
-            // Save the file
-            File destinationFile = new File(directory.getAbsolutePath() + File.separator + newFileName);
-            file.transferTo(destinationFile);
-
-            // Construct the public URL of the uploaded image
-            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/uploads/avatars/")
-                    .path(newFileName)
-                    .toUriString();
-
+            String fileUrl = supabaseStorageService.uploadMultipartFile(file, "avatars");
             return ResponseEntity.ok(Map.of("avatarUrl", fileUrl));
-
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to upload image: " + e.getMessage());
@@ -64,30 +44,9 @@ public class UploadController {
         }
 
         try {
-            String docUploadDir = "uploads" + File.separator + "documents";
-            File directory = new File(docUploadDir);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            String originalFileName = file.getOriginalFilename();
-            String extension = "";
-            if (originalFileName != null && originalFileName.contains(".")) {
-                extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-            }
-            String newFileName = UUID.randomUUID().toString() + extension;
-
-            File destinationFile = new File(directory.getAbsolutePath() + File.separator + newFileName);
-            file.transferTo(destinationFile);
-
-            String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/uploads/documents/")
-                    .path(newFileName)
-                    .toUriString();
-
+            String fileUrl = supabaseStorageService.uploadMultipartFile(file, "documents");
             return ResponseEntity.ok(Map.of("fileUrl", fileUrl));
-
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to upload file: " + e.getMessage());

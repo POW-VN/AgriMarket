@@ -13,7 +13,6 @@ public class CreateSupportRequestDTO {
     private String category;
     private String orderCode;
     private String title;
-    private String priority;
     private String description;
     private String attachmentUrl;
 }

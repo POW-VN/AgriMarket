@@ -3,23 +3,17 @@ package org.example.agrimarket.config;
 import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Category;
 import org.example.agrimarket.model.Farmer;
-import org.example.agrimarket.model.Product;
-import org.example.agrimarket.model.ProductImage;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CategoryRepository;
 import org.example.agrimarket.repository.FarmerRepository;
-import org.example.agrimarket.repository.ProductImageRepository;
-import org.example.agrimarket.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -28,22 +22,13 @@ public class DataInitializer implements CommandLineRunner {
     private CategoryRepository categoryRepository;
 
     @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private ProductImageRepository productImageRepository;
+    private AdminRepository adminRepository;
 
     @Autowired
     private FarmerRepository farmerRepository;
 
     @Autowired
-    private AdminRepository adminRepository;
-
-    @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
@@ -66,158 +51,36 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println(">>> DataInitializer: Reset admin password for: " + adminEmail);
         }
 
-        // Auto-migrate schema: add max_delivery_distance to farmer if not exists
-        try {
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'max_delivery_distance')\n" +
-                    "    ALTER TABLE farmer ADD max_delivery_distance DECIMAL(10,2) NULL;");
-            jdbcTemplate.execute("UPDATE farmer SET max_delivery_distance = 50.0 WHERE max_delivery_distance IS NULL;");
-            System.out.println(">>> DataInitializer: Checked and updated max_delivery_distance column in farmer table.");
-        } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not update farmer table: " + e.getMessage());
+        // ========== Ensure Farmer Bùi Khắc Hưng account exists ==========
+        String farmerEmail = "hungquynh0404@gmail.com";
+        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(farmerEmail);
+        if (farmerOpt.isEmpty()) {
+            Farmer farmer = new Farmer();
+            farmer.setFullName("Bùi Khắc Hưng");
+            farmer.setEmail(farmerEmail);
+            farmer.setPassword(passwordEncoder.encode("Baohung7112005@"));
+            farmer.setPhone("0912345678");
+            farmer.setStatus("active");
+            farmer.setVerificationStatus("verified");
+            farmer.setFarmName("Nông trại Bùi Khắc Hưng");
+            farmer.setFarmAddress("Đà Lạt, Lâm Đồng");
+            farmer.setDescription("Chuyên cung cấp các loại nông sản sạch chất lượng cao.");
+            farmer.setRatingAverage(5.0);
+            farmer.setTotalProducts(3);
+            farmer.setCreatedAt(LocalDateTime.now());
+            farmerRepository.save(farmer);
+            System.out.println(">>> DataInitializer: Created default farmer account: " + farmerEmail);
+        } else {
+            // Cập nhật lại mật khẩu và trạng thái hoạt động để đảm bảo người dùng đăng nhập được
+            Farmer farmer = farmerOpt.get();
+            farmer.setPassword(passwordEncoder.encode("Baohung7112005@"));
+            farmer.setStatus("active");
+            farmer.setVerificationStatus("verified");
+            farmerRepository.save(farmer);
+            System.out.println(">>> DataInitializer: Reset farmer password and status for: " + farmerEmail);
         }
 
-        // Auto-migrate schema: add latitude and longitude to farmer if not exists
-        try {
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'latitude')\n" +
-                    "    ALTER TABLE farmer ADD latitude DECIMAL(9,6) NULL;");
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('farmer') AND name = 'longitude')\n" +
-                    "    ALTER TABLE farmer ADD longitude DECIMAL(9,6) NULL;");
-            System.out.println(">>> DataInitializer: Checked and updated latitude/longitude columns in farmer table.");
-        } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not update farmer latitude/longitude: " + e.getMessage());
-        }
-
-        // Auto-migrate schema: add latitude and longitude to customer_address if not exists
-        try {
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('customer_address') AND name = 'latitude')\n" +
-                    "    ALTER TABLE customer_address ADD latitude DECIMAL(9,6) NULL;");
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('customer_address') AND name = 'longitude')\n" +
-                    "    ALTER TABLE customer_address ADD longitude DECIMAL(9,6) NULL;");
-            System.out.println(">>> DataInitializer: Checked and updated latitude/longitude columns in customer_address table.");
-        } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not update customer_address latitude/longitude: " + e.getMessage());
-        }
-
-        // Auto-migrate schema: add perishability to product if not exists
-        try {
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'perishability')\n" +
-                    "    ALTER TABLE product ADD perishability NVARCHAR(50) NULL;");
-            jdbcTemplate.execute("UPDATE product SET perishability = N'khô' WHERE perishability IS NULL;");
-            System.out.println(">>> DataInitializer: Checked and updated perishability column in product table.");
-        } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not update product table: " + e.getMessage());
-        }
-
-        // Auto-migrate schema: add limit_distance to product if not exists
-        try {
-            jdbcTemplate.execute(
-                    "IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'limit_distance')\n" +
-                    "    ALTER TABLE product ADD limit_distance DECIMAL(10,2) NULL;");
-            
-            // Set initial defaults for existing products based on perishability
-            jdbcTemplate.execute("UPDATE product SET limit_distance = 15.00 WHERE perishability = 'rất dễ hư' AND limit_distance IS NULL;");
-            jdbcTemplate.execute("UPDATE product SET limit_distance = 40.00 WHERE perishability = 'dễ hư' AND limit_distance IS NULL;");
-            jdbcTemplate.execute("UPDATE product SET limit_distance = 85.00 WHERE perishability = 'trung bình' AND limit_distance IS NULL;");
-            
-            System.out.println(">>> DataInitializer: Checked and updated limit_distance column in product table.");
-        } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not update product table limit_distance: " + e.getMessage());
-        }
-
-        // Clean up redundant legacy column is_organic in product table
-        try {
-            // Drop default constraints if any
-            jdbcTemplate.execute(
-                    "DECLARE @ConstraintName nvarchar(200)\n" +
-                            "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
-                            "WHERE parent_object_id = OBJECT_ID('product') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('product'), 'is_organic', 'ColumnId')\n" +
-                            "IF @ConstraintName IS NOT NULL\n" +
-                            "    EXEC('ALTER TABLE product DROP CONSTRAINT ' + @ConstraintName);");
-
-            // Drop column
-            jdbcTemplate.execute(
-                    "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('product') AND name = 'is_organic')\n" +
-                            "    ALTER TABLE product DROP COLUMN is_organic;");
-            System.out.println(">>> DataInitializer: Dropped is_organic column from product table.");
-        } catch (Exception e) {
-            System.err.println(">>> DataInitializer: Could not drop is_organic column from product table: " + e.getMessage());
-        }
-
-        // Clean up redundant legacy columns in orders table
-        String[] ordersCols = { "checkout_id", "total_price", "shipping_address" };
-        for (String col : ordersCols) {
-            try {
-                // Drop default constraints if any
-                jdbcTemplate.execute(
-                        "DECLARE @ConstraintName nvarchar(200)\n" +
-                                "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
-                                "WHERE parent_object_id = OBJECT_ID('orders') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('orders'), '"
-                                + col + "', 'ColumnId')\n" +
-                                "IF @ConstraintName IS NOT NULL\n" +
-                                "    EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @ConstraintName);");
-
-                // Drop foreign key constraints if any
-                jdbcTemplate.execute(
-                        "DECLARE @FKName nvarchar(200)\n" +
-                                "SELECT @FKName = f.name FROM sys.foreign_keys AS f\n" +
-                                "INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\n" +
-                                "WHERE fc.parent_object_id = OBJECT_ID('orders') AND fc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('orders'), '"
-                                + col + "', 'ColumnId')\n" +
-                                "IF @FKName IS NOT NULL\n" +
-                                "    EXEC('ALTER TABLE orders DROP CONSTRAINT ' + @FKName);");
-
-                jdbcTemplate.execute(
-                        "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('orders') AND name = '" + col
-                                + "')\n" +
-                                "    ALTER TABLE orders DROP COLUMN " + col + ";");
-                System.out.println(">>> DataInitializer: Dropped legacy column '" + col + "' from orders table.");
-            } catch (Exception e) {
-                System.err.println(">>> DataInitializer: Could not drop legacy column '" + col + "' from orders table: "
-                        + e.getMessage());
-            }
-        }
-
-        // Clean up redundant legacy columns in order_item table
-        String[] orderItemCols = { "product_thumbnail", "unit_price", "subtotal" };
-        for (String col : orderItemCols) {
-            try {
-                // Drop default constraints if any
-                jdbcTemplate.execute(
-                        "DECLARE @ConstraintName nvarchar(200)\n" +
-                                "SELECT @ConstraintName = Name FROM sys.default_constraints\n" +
-                                "WHERE parent_object_id = OBJECT_ID('order_item') AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('order_item'), '"
-                                + col + "', 'ColumnId')\n" +
-                                "IF @ConstraintName IS NOT NULL\n" +
-                                "    EXEC('ALTER TABLE order_item DROP CONSTRAINT ' + @ConstraintName);");
-
-                // Drop foreign key constraints if any
-                jdbcTemplate.execute(
-                        "DECLARE @FKName nvarchar(200)\n" +
-                                "SELECT @FKName = f.name FROM sys.foreign_keys AS f\n" +
-                                "INNER JOIN sys.foreign_key_columns AS fc ON f.object_id = fc.constraint_object_id\n" +
-                                "WHERE fc.parent_object_id = OBJECT_ID('order_item') AND fc.parent_column_id = COLUMNPROPERTY(OBJECT_ID('order_item'), '"
-                                + col + "', 'ColumnId')\n" +
-                                "IF @FKName IS NOT NULL\n" +
-                                "    EXEC('ALTER TABLE order_item DROP CONSTRAINT ' + @FKName);");
-
-                jdbcTemplate.execute(
-                        "IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('order_item') AND name = '"
-                                + col + "')\n" +
-                                "    ALTER TABLE order_item DROP COLUMN " + col + ";");
-                System.out.println(">>> DataInitializer: Dropped legacy column '" + col + "' from order_item table.");
-            } catch (Exception e) {
-                System.err.println(">>> DataInitializer: Could not drop legacy column '" + col
-                        + "' from order_item table: " + e.getMessage());
-            }
-        }
-
-        // 1. Ensure the 7 main categories exist
+        // ========== Ensure the 7 main categories exist ==========
         String[] targetCategories = {
                 "Cây lương thực",
                 "Rau củ quả",
@@ -237,75 +100,5 @@ public class DataInitializer implements CommandLineRunner {
                 System.out.println(">>> DataInitializer: Đã tạo danh mục mới: " + name);
             }
         }
-
-        // 2. Fetch target categories for re-mapping and seeding
-        Category rauCuQua = categoryRepository.findByName("Rau củ quả").orElse(null);
-        Category chanNuoi = categoryRepository.findByName("Chăn nuôi").orElse(null);
-        Category nongSanCheBien = categoryRepository.findByName("Nông sản chế biến").orElse(null);
-        Category giongCayTrong = categoryRepository.findByName("Giống cây trồng").orElse(null);
-        Category traiCay = categoryRepository.findByName("Trái cây").orElse(null);
-
-        // 2.5. Automatically migrate products from "Nông sản hữu cơ" to "Rau củ quả"
-        // and delete "Nông sản hữu cơ"
-        categoryRepository.findByName("Nông sản hữu cơ").ifPresent(oldCat -> {
-            try {
-                if (rauCuQua != null) {
-                    List<Product> affectedProducts = productRepository.findAll();
-                    for (Product p : affectedProducts) {
-                        if (p.getCategory() != null && p.getCategory().getId().equals(oldCat.getId())) {
-                            p.setCategory(rauCuQua);
-                            productRepository.save(p);
-                            System.out.println(">>> DataInitializer: Di chuyển sản phẩm '" + p.getName()
-                                    + "' từ 'Nông sản hữu cơ' sang '" + rauCuQua.getName() + "'");
-                        }
-                    }
-                }
-                categoryRepository.delete(oldCat);
-                System.out.println(">>> DataInitializer: Đã xóa danh mục 'Nông sản hữu cơ' khỏi database.");
-            } catch (Exception e) {
-                System.err.println(">>> DataInitializer: Không thể xóa danh mục 'Nông sản hữu cơ': " + e.getMessage());
-            }
-        });
-
-        // 3. Map existing products in database from old categories to new ones
-        List<Product> products = productRepository.findAll();
-        for (Product product : products) {
-            Category currentCat = product.getCategory();
-            if (currentCat != null) {
-                String catName = currentCat.getName();
-                Category targetCat = null;
-                if ("Rau củ".equals(catName)) {
-                    targetCat = rauCuQua;
-                } else if ("Sữa & Trứng".equals(catName) || "Thịt & Hải sản".equals(catName)) {
-                    targetCat = chanNuoi;
-                } else if ("Bách hóa".equals(catName)) {
-                    targetCat = nongSanCheBien;
-                } else if ("Hoa tươi".equals(catName)) {
-                    targetCat = giongCayTrong;
-                }
-
-                if (targetCat != null) {
-                    product.setCategory(targetCat);
-                    productRepository.save(product);
-                    System.out.println(">>> DataInitializer: Di chuyển sản phẩm '" + product.getName()
-                            + "' sang danh mục '" + targetCat.getName() + "'");
-                }
-            }
-        }
-
-        // 4. Safely delete old default categories if no products reference them
-        List<String> oldSystemCategories = List.of("Rau củ", "Bách hóa", "Sữa & Trứng", "Thịt & Hải sản", "Hoa tươi");
-        for (String oldName : oldSystemCategories) {
-            categoryRepository.findByName(oldName).ifPresent(oldCat -> {
-                try {
-                    categoryRepository.delete(oldCat);
-                    System.out.println(">>> DataInitializer: Đã xóa danh mục cũ '" + oldName + "' khỏi database.");
-                } catch (Exception e) {
-                    System.err.println(
-                            ">>> DataInitializer: Không thể xóa danh mục cũ '" + oldName + "': " + e.getMessage());
-                }
-            });
-        }
     }
 }
-

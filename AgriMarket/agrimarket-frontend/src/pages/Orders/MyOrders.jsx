@@ -160,7 +160,8 @@ const TABS = [
   { value: "confirmed", label: "Chờ lấy hàng" },
   { value: "shipping", label: "Chờ giao hàng" },
   { value: "delivered", label: "Đã giao" },
-  { value: "cancelled", label: "Đã hủy" }
+  { value: "cancelled", label: "Đã hủy" },
+  { value: "preorder", label: "Đặt trước (Preorder)" }
 ];
 
 export const MyOrders = () => {
@@ -168,6 +169,7 @@ export const MyOrders = () => {
   const { profile } = useProfile();
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [preorders, setPreorders] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -177,6 +179,35 @@ export const MyOrders = () => {
   const [customReason, setCustomReason] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const itemsPerPage = 3;
+
+  useEffect(() => {
+    const loadPreorders = () => {
+      const stored = localStorage.getItem("agrimarket_preorders");
+      setPreorders(stored ? JSON.parse(stored) : []);
+    };
+    loadPreorders();
+    window.addEventListener("preordersUpdated", loadPreorders);
+    return () => {
+      window.removeEventListener("preordersUpdated", loadPreorders);
+    };
+  }, []);
+
+  const handleCancelPreorder = (preorderId) => {
+    if (window.confirm("Bạn có chắc chắn muốn hủy yêu cầu đặt trước này? Khoản cọc sẽ được hoàn lại theo chính sách của AgriMarket.")) {
+      const stored = localStorage.getItem("agrimarket_preorders");
+      const list = stored ? JSON.parse(stored) : [];
+      const updated = list.map(po => {
+        if (po.id === preorderId) {
+          return { ...po, status: "cancelled", statusLabel: "Đã hủy cọc" };
+        }
+        return po;
+      });
+      localStorage.setItem("agrimarket_preorders", JSON.stringify(updated));
+      setPreorders(updated);
+      setToastMessage("Đã hủy yêu cầu đặt trước thành công!");
+      setTimeout(() => setToastMessage(""), 3000);
+    }
+  };
 
   useEffect(() => {
     // Check login state
@@ -253,13 +284,20 @@ export const MyOrders = () => {
   };
 
   // Filter logic
-  const filteredOrders = orders.filter(order => {
-    const matchesTab = activeTab === "all" || order.status === activeTab;
-    const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  const filteredOrders = activeTab === "preorder"
+    ? preorders.filter(po => {
+        const matchesSearch =
+          po.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          po.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesSearch;
+      })
+    : orders.filter(order => {
+        const matchesTab = activeTab === "all" || order.status === activeTab;
+        const matchesSearch =
+          order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          order.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
+      });
 
   // Pagination logic
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
@@ -369,31 +407,39 @@ export const MyOrders = () => {
             </div>
           ) : (
             paginatedOrders.map(order => (
-              <div className="order-card" key={order.id}>
+              <div className="order-card" key={order.id} style={activeTab === "preorder" ? { borderLeft: "4px solid #1b5e20" } : {}}>
                 {/* Card Top Info */}
                 <div className="order-card-header">
                   <div className="order-header-left">
-                    {renderStatusIcon(order.status)}
+                    {activeTab === "preorder" ? (
+                      <div className="order-icon-box status-preorder-icon" style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "50%", marginRight: "12px", fontSize: "18px" }}>
+                        🌱
+                      </div>
+                    ) : (
+                      renderStatusIcon(order.status)
+                    )}
                     <div className="order-title-info">
                       <div className="order-id-row">
-                        <span className="order-id-label">MÃ ĐƠN HÀNG #{order.id}</span>
-                        <span className={`status-badge status-${order.status}`}>
+                        <span className="order-id-label">{activeTab === "preorder" ? "MÃ ĐẶT TRƯỚC" : "MÃ ĐƠN HÀNG"} #{order.id}</span>
+                        <span className={`status-badge status-${order.status}`} style={activeTab === "preorder" && order.status === "paid" ? { backgroundColor: "#e8f5e9", color: "#1b5e20" } : {}}>
                           {order.statusLabel}
                         </span>
                       </div>
                       <div className="order-date-row">
                         <span>Đặt ngày {order.date} • {order.time}</span>
                       </div>
-                      {order.status === "cancelled" && order.cancelReason && (
-                        <div className="card-cancel-reason">
-                          <strong>Lý do hủy:</strong> "{order.cancelReason}"
+                      {activeTab === "preorder" && (
+                        <div className="preorder-harvest-date-badge" style={{ marginTop: "4px", fontSize: "12px", color: "#1b5e20", fontWeight: "600" }}>
+                          🌾 Thu hoạch dự kiến: {order.expectedHarvestDate}
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="order-header-right">
                     <span className="order-amount">{formatVND(order.amount)}</span>
-                    <span className="order-items-count">{order.itemCount} sản phẩm</span>
+                    <span className="order-items-count">
+                      {activeTab === "preorder" ? `Đã đặt cọc 20%: ${formatVND(order.depositPaid)}` : `${order.itemCount} sản phẩm`}
+                    </span>
                   </div>
                 </div>
 
@@ -408,7 +454,7 @@ export const MyOrders = () => {
                       )}
                     </div>
                     <div className="provider-details">
-                      <span className="provider-label">NHÀ CUNG CẤP</span>
+                      <span className="provider-label">{activeTab === "preorder" ? "HỘ GIA ĐÌNH SẢN XUẤT" : "NHÀ CUNG CẤP"}</span>
                       <span className="provider-name">{order.provider.name}</span>
                     </div>
                   </div>
@@ -430,44 +476,57 @@ export const MyOrders = () => {
 
                 {/* Card Footer Actions */}
                 <div className="order-card-footer">
-                  {order.status === "delivered" && (
+                  {activeTab === "preorder" ? (
                     <>
                       <button className="btn-outline">Liên hệ nhà vườn</button>
-                      <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
-                      <button className="btn-review-main"
-                        onClick={() => navigate(`/profile/orders/${order.id}`, { state: { openReviewSection: true } })}>
-                        Đánh giá sản phẩm
-                      </button>
-                      <button className="btn-solid btn-buy-again">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="15" height="15" style={{ marginRight: "6px" }}>
-                          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
-                        </svg>
-                        Mua lại
-                      </button>
-                    </>
-                  )}
-                  {order.status === "shipping" && (
-                    <>
-                      <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
-                    </>
-                  )}
-                  {order.status === "cancelled" && (
-                    <>
-                      <button className="btn-outline">Trung tâm hỗ trợ</button>
-                      <button className="btn-gray" onClick={() => navigate(`/profile/orders/${order.id}`)}>Chi tiết</button>
-                    </>
-                  )}
-                  {order.status !== "delivered" && order.status !== "shipping" && order.status !== "cancelled" && (
-                    <>
-                      <button className="btn-outline">Liên hệ nhà vườn</button>
-                      <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
-                      {order.status === "pending" && (
-                        <button
-                          className="btn-danger-outline"
-                          onClick={() => handleCancelClick(order.id)}
-                        >
-                          Hủy đơn hàng
+                      {order.status === "paid" && (
+                        <button className="btn-danger-outline" onClick={() => handleCancelPreorder(order.id)}>
+                          Hủy đặt trước
                         </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {order.status === "delivered" && (
+                        <>
+                          <button className="btn-outline">Liên hệ nhà vườn</button>
+                          <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
+                          <button className="btn-review-main"
+                            onClick={() => navigate(`/profile/orders/${order.id}`, { state: { openReviewSection: true } })}>
+                            Đánh giá sản phẩm
+                          </button>
+                          <button className="btn-solid btn-buy-again">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="15" height="15" style={{ marginRight: "6px" }}>
+                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
+                            </svg>
+                            Mua lại
+                          </button>
+                        </>
+                      )}
+                      {order.status === "shipping" && (
+                        <>
+                          <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
+                        </>
+                      )}
+                      {order.status === "cancelled" && (
+                        <>
+                          <button className="btn-outline">Trung tâm hỗ trợ</button>
+                          <button className="btn-gray" onClick={() => navigate(`/profile/orders/${order.id}`)}>Chi tiết</button>
+                        </>
+                      )}
+                      {order.status !== "delivered" && order.status !== "shipping" && order.status !== "cancelled" && (
+                        <>
+                          <button className="btn-outline">Liên hệ nhà vườn</button>
+                          <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
+                          {order.status === "pending" && (
+                            <button
+                              className="btn-danger-outline"
+                              onClick={() => handleCancelClick(order.id)}
+                            >
+                              Hủy đơn hàng
+                            </button>
+                          )}
+                        </>
                       )}
                     </>
                   )}
