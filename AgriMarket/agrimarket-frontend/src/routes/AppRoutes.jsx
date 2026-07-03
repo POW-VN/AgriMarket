@@ -54,6 +54,7 @@ import AdminComplaints from "../pages/Admin/AdminComplaints";
 import LiveChat from "../pages/Profile/Support/LiveChat";
 import AdminChat from "../pages/Admin/AdminChat";
 import LivestreamPage from "../pages/Livestream/LivestreamPage";
+import LivestreamListPage from "../pages/Livestream/LivestreamListPage";
 
 
 const FarmsRoute = () => {
@@ -115,7 +116,8 @@ const AppRoutes = () => {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/preorder-checkout" element={<PreorderCheckout />} />
-        <Route path="/livestream" element={<LivestreamPage />} />
+        <Route path="/livestream" element={<LivestreamListPage />} />
+        <Route path="/livestream/:id" element={<LivestreamPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment/vnpay-callback" element={<VNPayCallbackPage />} />
 
