@@ -150,6 +150,19 @@
   box-shadow: 0 2px 8px rgba(46, 125, 50, 0.1);
 }
 
+.reminder-count-badge {
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Live tab indicator pulse */
 .live-pulse-dot {
   width: 8px;

@@ -10,9 +10,19 @@ import farmerVideoImg from "../../assets/images/farmer_livestream_video.png";
 const LivestreamListPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'live', 'upcoming', 'replay'
-  const [subscribedIds, setSubscribedIds] = useState([]);
+  const [activeFilter, setActiveFilter] = useState("all"); // 'all', 'live', 'upcoming', 'replay', 'reminders'
+  const [subscribedIds, setSubscribedIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("subscribed_lives")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  useEffect(() => {
+    localStorage.setItem("subscribed_lives", JSON.stringify(subscribedIds));
+  }, [subscribedIds]);
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -103,6 +113,7 @@ const LivestreamListPage = () => {
       live.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
     if (activeFilter === "all") return matchesSearch;
+    if (activeFilter === "reminders") return subscribedIds.includes(live.id) && matchesSearch;
     return live.status === activeFilter && matchesSearch;
   });
 
@@ -154,6 +165,18 @@ const LivestreamListPage = () => {
               onClick={() => setActiveFilter("replay")}
             >
               Bản Phát Lại
+            </button>
+            <button 
+              className={`filter-tab-btn ${activeFilter === "reminders" ? "active" : ""}`}
+              onClick={() => setActiveFilter("reminders")}
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "4px" }}>
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+              </svg>
+              Nhắc Hẹn Phiên Live
+              {subscribedIds.length > 0 && (
+                <span className="reminder-count-badge">{subscribedIds.length}</span>
+              )}
             </button>
           </div>
 
@@ -308,12 +331,24 @@ const LivestreamListPage = () => {
           </div>
         ) : (
           <div className="no-lives-found">
-            <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-              <line x1="1" y1="1" x2="23" y2="23" strokeWidth="2"></line>
-            </svg>
-            <h3>Không tìm thấy phiên livestream nào</h3>
-            <p>Hãy thử tìm kiếm với từ khóa khác hoặc quay lại các tab lọc ở trên nhé!</p>
+            {activeFilter === "reminders" ? (
+              <>
+                <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                </svg>
+                <h3>Chưa có nhắc hẹn nào</h3>
+                <p>Hãy bấm vào nút "Nhận thông báo" tại các phiên live "Sắp diễn ra" để lưu danh sách nhắc hẹn nhé!</p>
+              </>
+            ) : (
+              <>
+                <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                  <line x1="1" y1="1" x2="23" y2="23" strokeWidth="2"></line>
+                </svg>
+                <h3>Không tìm thấy phiên livestream nào</h3>
+                <p>Hãy thử tìm kiếm với từ khóa khác hoặc quay lại các tab lọc ở trên nhé!</p>
+              </>
+            )}
           </div>
         )}
       </div>
