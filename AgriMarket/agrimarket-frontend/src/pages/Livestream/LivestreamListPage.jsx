@@ -158,8 +158,8 @@ const LivestreamListPage = () => {
           </div>
 
           {/* Search Box */}
-          <div className="search-box-container">
-            <svg className="search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <div className="live-search-box-container">
+            <svg className="live-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -168,10 +168,10 @@ const LivestreamListPage = () => {
               placeholder="Tìm phiên live, nhà vườn, sản phẩm..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input-field"
+              className="live-search-input-field"
             />
             {searchTerm && (
-              <button className="clear-search-btn" onClick={() => setSearchTerm("")}>&times;</button>
+              <button className="live-clear-search-btn" onClick={() => setSearchTerm("")}>&times;</button>
             )}
           </div>
         </div>

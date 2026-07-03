@@ -176,7 +176,7 @@
 }
 
 /* Search bar styling */
-.search-box-container {
+.live-search-box-container {
   display: flex;
   align-items: center;
   background-color: #f5f5f5;
@@ -189,19 +189,19 @@
   transition: all 0.25s ease;
 }
 
-.search-box-container:focus-within {
+.live-search-box-container:focus-within {
   background-color: #ffffff;
   border-color: #2e7d32;
   box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1);
 }
 
-.search-icon {
+.live-search-icon {
   color: #888888;
-  margin-right: 10px;
+  margin-right: 12px;
   flex-shrink: 0;
 }
 
-.search-input-field {
+.live-search-input-field {
   background: none;
   border: none;
   outline: none;
@@ -211,11 +211,11 @@
   padding: 4px 0;
 }
 
-.search-input-field::placeholder {
+.live-search-input-field::placeholder {
   color: #999999;
 }
 
-.clear-search-btn {
+.live-clear-search-btn {
   background: none;
   border: none;
   color: #999999;
@@ -228,7 +228,7 @@
   justify-content: center;
 }
 
-.clear-search-btn:hover {
+.live-clear-search-btn:hover {
   color: #333333;
 }
 
