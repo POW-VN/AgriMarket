@@ -227,14 +227,17 @@
 }
 
 .shopee-search-wrapper input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 6px 4px;
-  font-size: 13px;
-  color: #1e293b;
-  outline: none;
-  box-sizing: border-box;
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 6px 4px !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  box-sizing: border-box !important;
 }
 
 .shopee-clear-search {

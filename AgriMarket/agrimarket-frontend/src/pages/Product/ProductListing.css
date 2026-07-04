@@ -300,13 +300,16 @@ select {
 
 .multi-select-input {
     flex: 1;
-    min-width: 110px;
-    border: none;
-    outline: none;
-    font-size: 14px;
+    min-width: 60px !important;
+    max-width: 95px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    background-color: #f8fafc !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
     color: #333;
-    background: transparent;
-    padding: 4px 0;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .multi-select-input::placeholder {

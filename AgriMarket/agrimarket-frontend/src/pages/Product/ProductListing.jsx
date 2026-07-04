@@ -113,6 +113,15 @@ export default function ProductListing() {
         }
     }, [searchParams]);
 
+    // Cuộn lên đầu trang khi thay đổi danh mục (với độ trễ nhỏ để tránh cơ chế tự động cuộn của trình duyệt)
+    useEffect(() => {
+        window.scrollTo(0, 0);
+        const timer = setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [selectedCategory, searchParams]);
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (locationFilterRef.current && !locationFilterRef.current.contains(event.target)) {
@@ -246,6 +255,17 @@ export default function ProductListing() {
                     <div className="sidebar-card">
                         <h3 className="sidebar-title">☷ Tất Cả Danh Mục</h3>
                         <ul className="category-list">
+                            <li>
+                                <button
+                                    className={`category-btn ${!selectedCategory ? "active" : ""}`}
+                                    onClick={() => {
+                                        setSelectedCategory("");
+                                        setCurrentPage(1);
+                                    }}
+                                >
+                                    Tất cả sản phẩm
+                                </button>
+                            </li>
                             {mockCategories.map((category) => (
                                 <li key={category}>
                                     <button
@@ -401,10 +421,6 @@ export default function ProductListing() {
                                     setCurrentPage(1);
                                 }}
                             />
-                            <div className="tag-row">
-                                <span className="filter-tag" style={{ cursor: "pointer" }} onClick={() => { setShopKeyword("Nông trại xanh"); setCurrentPage(1); }}>Nông trại xanh</span>
-                                <span className="filter-tag" style={{ cursor: "pointer" }} onClick={() => { setShopKeyword("Farm Đà Lạt"); setCurrentPage(1); }}>Farm Đà Lạt</span>
-                            </div>
                         </div>
 
                         <div className="filter-group">
