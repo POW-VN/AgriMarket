@@ -39,6 +39,7 @@ export const FarmerLivestream = () => {
   const [blockedUsers, setBlockedUsers] = useState({}); // { username: expiryTimestamp }
   const [activeBlockMenuMsgId, setActiveBlockMenuMsgId] = useState(null);
   const [isConfirmEndOpen, setIsConfirmEndOpen] = useState(false);
+  const [adminBanReason, setAdminBanReason] = useState("");
   const blockedUsersRef = useRef({});
   blockedUsersRef.current = blockedUsers;
 
@@ -201,6 +202,34 @@ export const FarmerLivestream = () => {
       clearInterval(chatsTimerRef.current);
     };
   }, [streamState]);
+
+  // Check if banned by admin
+  useEffect(() => {
+    let checkInterval;
+    if (streamState === "live" && liveSessionId) {
+      checkInterval = setInterval(() => {
+        try {
+          const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+          const currentSession = storedLives.find(s => s.id === liveSessionId);
+          if (currentSession && currentSession.isBanned) {
+            // Stop streaming immediately!
+            if (cameraStream) {
+              cameraStream.getTracks().forEach((track) => track.stop());
+              setCameraStream(null);
+            }
+            clearInterval(streamTimerRef.current);
+            clearInterval(viewersTimerRef.current);
+            clearInterval(chatsTimerRef.current);
+            setStreamState("banned");
+            setAdminBanReason(currentSession.banReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
+          }
+        } catch (e) {
+          console.error("Lỗi khi kiểm tra vi phạm livestream:", e);
+        }
+      }, 2000);
+    }
+    return () => clearInterval(checkInterval);
+  }, [streamState, liveSessionId, cameraStream]);
 
   // Format seconds to MM:SS
   const formatTime = (secs) => {
@@ -1186,6 +1215,35 @@ export const FarmerLivestream = () => {
             </div>
 
             <button className="btn-close-report" onClick={() => setStreamState("setup")}>
+              Quay lại thiết lập
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5. BANNED BY ADMIN SCREEN */}
+      {streamState === "banned" && (
+        <div className="live-report-overlay live-banned-overlay">
+          <div className="live-report-modal live-banned-modal">
+            <div className="banned-icon-container">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18.63 11.37L12 4.74l-6.63 6.63a3.56 3.56 0 1 0 5 5l6.63-6.63c.27-.27.42-.64.42-1.02V8.18c0-.66-.54-1.2-1.2-1.2h-.55a1.44 1.44 0 0 0-1.02.42L8.03 14.03a3.56 3.56 0 1 0 5 5l5.6-5.6"></path>
+                <path d="m14 11 1.5 1.5"></path>
+              </svg>
+            </div>
+            <h2 className="report-title banned-title">
+              PHÁT SÓNG ĐÃ DỪNG BỞI QUẢN TRỊ VIÊN
+            </h2>
+            <p className="report-subtitle banned-subtitle">
+              Phiên livestream của bạn tạm thời bị dừng phát sóng do phát hiện vi phạm Tiêu chuẩn cộng đồng.
+            </p>
+
+            <div className="banned-detail-card">
+              <p className="banned-card-label">Lý do chấm dứt:</p>
+              <p className="banned-card-reason">{adminBanReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm."}</p>
+            </div>
+
+            <button className="btn-close-report btn-banned-dashboard" onClick={() => setStreamState("setup")}>
               Quay lại thiết lập
             </button>
           </div>

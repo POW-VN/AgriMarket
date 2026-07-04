@@ -288,44 +288,61 @@ const LivestreamPage = () => {
   };
 
   // Get active stream data based on id, default to thomas-miller if not found
-  let streamData = streamsMap[id];
-  if (!streamData) {
-    try {
-      const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-      const found = storedLives.find((item) => item.id === id);
-      if (found) {
-        streamData = {
-          ...found,
-          viewersCount: found.viewers || "120 đang xem",
-          videoSrc: found.videoSrc || found.thumbnail,
-          voucherTimeInit: found.voucherPercent > 0 ? 300 : 0,
-          initialChats: [
-            {
-              id: 1,
-              user: "Hệ thống AgriMarket",
-              text: "Chào mừng quý khách đến với livestream trực tiếp của nhà vườn!",
-              isBot: true,
-              avatar: ""
-            }
-          ]
-        };
+  const getStreamData = () => {
+    let data = streamsMap[id];
+    if (!data) {
+      try {
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const found = storedLives.find((item) => item.id === id);
+        if (found) {
+          data = {
+            ...found,
+            viewersCount: found.viewers || "120 đang xem",
+            videoSrc: found.videoSrc || found.thumbnail,
+            voucherTimeInit: found.voucherPercent > 0 ? 300 : 0,
+            initialChats: [
+              {
+                id: 1,
+                user: "Hệ thống AgriMarket",
+                text: "Chào mừng quý khách đến với livestream trực tiếp của nhà vườn!",
+                isBot: true,
+                avatar: ""
+              }
+            ]
+          };
+        }
+      } catch (e) {
+        console.error("Lỗi khi tìm custom livestream:", e);
       }
-    } catch (e) {
-      console.error("Lỗi khi tìm custom livestream:", e);
     }
-  }
-  if (!streamData) {
-    streamData = streamsMap["thomas-miller"];
-  }
+    return data || streamsMap["thomas-miller"];
+  };
 
-  // Initialize page variables when streamData changes
+  const [activeStream, setActiveStream] = useState(null);
+  const streamData = activeStream || getStreamData();
+
+  // Initialize page variables when streamData changes, and poll for changes in LocalStorage
   useEffect(() => {
-    setVoucherTime(streamData.voucherTimeInit);
+    const data = getStreamData();
+    setActiveStream(data);
+    setVoucherTime(data.voucherTimeInit);
     setVoucherClaimed(false);
-    setChatMessages(streamData.initialChats);
+    setChatMessages(data.initialChats);
     setIsFollowing(false);
     setIsShopChatOpen(false);
     setShopChatMessages([]);
+
+    const interval = setInterval(() => {
+      const latestData = getStreamData();
+      setActiveStream((prev) => {
+        if (!prev || prev.status !== latestData.status || prev.isBanned !== latestData.isBanned) {
+          return latestData;
+        }
+        return prev;
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
   // Random names and messages for simulating other users' chat comments (Live only)
@@ -598,168 +615,191 @@ const LivestreamPage = () => {
           <div className="livestream-left-column">
             
             {/* Simulated Live Video Player */}
-            <div className={`video-player-container state-${streamData.status}`}>
-              <div className="video-viewport" onClick={togglePlay}>
-                <img 
-                  src={streamData.videoSrc} 
-                  alt="Livestream nông trại" 
-                  className={`video-background-img ${isPlaying && streamData.status !== "upcoming" ? "playing" : "paused"}`}
-                />
-                
-                {/* Play/Pause center overlay icon on hover or action */}
-                {showPlayOverlay && streamData.status !== "upcoming" && (
-                  <div className="center-play-overlay">
-                    {isPlaying ? (
-                      <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
-                        <path d="M8 5v14l11-7z" />
+            <div className={`video-player-container state-${streamData.status} ${streamData.isBanned ? "is-banned" : ""}`}>
+              {streamData.isBanned ? (
+                <div className="video-viewport banned" onClick={(e) => e.stopPropagation()}>
+                  <div className="banned-blur-bg" style={{ backgroundImage: `url(${streamData.videoSrc})` }}></div>
+                  <div className="banned-media-overlay">
+                    <div className="banned-icon-wrapper">
+                      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18.63 11.37L12 4.74l-6.63 6.63a3.56 3.56 0 1 0 5 5l6.63-6.63c.27-.27.42-.64.42-1.02V8.18c0-.66-.54-1.2-1.2-1.2h-.55a1.44 1.44 0 0 0-1.02.42L8.03 14.03a3.56 3.56 0 1 0 5 5l5.6-5.6"></path>
+                        <path d="m14 11 1.5 1.5"></path>
                       </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                      </svg>
-                    )}
-                  </div>
-                )}
-
-                {/* Upcoming Livestream Overlay */}
-                {streamData.status === "upcoming" && (
-                  <div className="upcoming-media-overlay" onClick={(e) => e.stopPropagation()}>
-                    <div className="upcoming-glass-card">
-                      <div className="upcoming-timer-badge">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
-                          <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" />
-                        </svg>
-                        Sắp lên sóng
-                      </div>
-                      <h3>Phiên Live Sắp Bắt Đầu</h3>
-                      <p className="scheduled-date-string">Thời gian phát sóng: <strong>{streamData.scheduledTime}</strong></p>
-                      <button 
-                        className={`upcoming-action-notify-btn ${isSubscribed ? "subscribed" : ""}`}
-                        onClick={handleToggleSubscribe}
-                      >
-                        {isSubscribed ? (
-                          <>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "6px" }}>
-                              <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-                            </svg>
-                            Đã đăng ký nhận tin
-                          </>
-                        ) : (
-                          "Đăng ký nhận thông báo"
-                        )}
+                    </div>
+                    <h3 className="banned-overlay-title">PHIÊN PHÁT SÓNG ĐÃ DỪNG</h3>
+                    <div className="banned-explanation-box">
+                      Phiên livestream này đã bị quản trị viên dừng phát sóng do vi phạm tiêu chuẩn cộng đồng.
+                    </div>
+                    <div className="banned-overlay-actions">
+                      <button className="btn-banned-more-info" onClick={() => setToast({ show: true, message: "Đã mở trang hướng dẫn tiêu chuẩn cộng đồng.", type: "success" })}>
+                        Tìm hiểu thêm
+                      </button>
+                      <button className="btn-banned-report" onClick={() => setToast({ show: true, message: "Cảm ơn bạn đã đóng góp ý kiến.", type: "success" })}>
+                        Báo cáo thêm
                       </button>
                     </div>
                   </div>
-                )}
-
-                {/* Top Overlay Badges */}
-                <div className="video-top-overlays">
-                  {streamData.status === "live" && (
-                    <span className="live-status-badge">
-                      <span className="live-dot"></span>
-                      TRỰC TIẾP
-                    </span>
-                  )}
-                  {streamData.status === "upcoming" && (
-                    <span className="live-status-badge upcoming-badge">
-                      LÊN LỊCH
-                    </span>
-                  )}
-                  {streamData.status === "replay" && (
-                    <span className="live-status-badge replay-badge">
-                      PHÁT LẠI
-                    </span>
-                  )}
-                  
-                  <span className="viewers-count-badge">
-                    {streamData.status === "live" && (
-                      <svg className="viewer-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                      </svg>
-                    )}
-                    {streamData.viewersCount}
-                  </span>
                 </div>
-
-                {/* Bottom Video Controls (Hide on upcoming) */}
-                {streamData.status !== "upcoming" && (
-                  <div className="video-bottom-controls" onClick={(e) => e.stopPropagation()}>
-                    
-                    {/* Progress Line */}
-                    <div className="video-progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: streamData.status === "replay" ? (isPlaying ? "65%" : "35%") : (isPlaying ? "100%" : "99%") }}
-                      ></div>
+              ) : (
+                <div className="video-viewport" onClick={togglePlay}>
+                  <img 
+                    src={streamData.videoSrc} 
+                    alt="Livestream nông trại" 
+                    className={`video-background-img ${isPlaying && streamData.status !== "upcoming" ? "playing" : "paused"}`}
+                  />
+                  
+                  {/* Play/Pause center overlay icon on hover or action */}
+                  {showPlayOverlay && streamData.status !== "upcoming" && (
+                    <div className="center-play-overlay">
+                      {isPlaying ? (
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="white">
+                          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                      )}
                     </div>
+                  )}
 
-                    <div className="controls-flex">
-                      <div className="controls-left">
-                        {/* Play/Pause Button */}
-                        <button className="control-btn" onClick={togglePlay} title={isPlaying ? "Tạm dừng" : "Phát"}>
-                          {isPlaying ? (
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                            </svg>
+                  {/* Upcoming Livestream Overlay */}
+                  {streamData.status === "upcoming" && (
+                    <div className="upcoming-media-overlay" onClick={(e) => e.stopPropagation()}>
+                      <div className="upcoming-glass-card">
+                        <div className="upcoming-timer-badge">
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
+                            <polyline points="12 6 12 12 16 14" stroke="currentColor" strokeWidth="2" />
+                          </svg>
+                          Sắp lên sóng
+                        </div>
+                        <h3>Phiên Live Sắp Bắt Đầu</h3>
+                        <p className="scheduled-date-string">Thời gian phát sóng: <strong>{streamData.scheduledTime}</strong></p>
+                        <button 
+                          className={`upcoming-action-notify-btn ${isSubscribed ? "subscribed" : ""}`}
+                          onClick={handleToggleSubscribe}
+                        >
+                          {isSubscribed ? (
+                            <>
+                              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ marginRight: "6px" }}>
+                                <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+                              </svg>
+                              Đã đăng ký nhận tin
+                            </>
                           ) : (
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
+                            "Đăng ký nhận thông báo"
                           )}
                         </button>
+                      </div>
+                    </div>
+                  )}
 
-                        {/* Volume controls */}
-                        <div className="volume-control-group">
-                          <button className="control-btn" onClick={toggleMute}>
-                            {isMuted || volume === 0 ? (
+                  {/* Top Overlay Badges */}
+                  <div className="video-top-overlays">
+                    {streamData.status === "live" && (
+                      <span className="live-status-badge">
+                        <span className="live-dot"></span>
+                        TRỰC TIẾP
+                      </span>
+                    )}
+                    {streamData.status === "upcoming" && (
+                      <span className="live-status-badge upcoming-badge">
+                        LÊN LỊCH
+                      </span>
+                    )}
+                    {streamData.status === "replay" && (
+                      <span className="live-status-badge replay-badge">
+                        PHÁT LẠI
+                      </span>
+                    )}
+                    
+                    <span className="viewers-count-badge">
+                      {streamData.status === "live" && (
+                        <svg className="viewer-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                        </svg>
+                      )}
+                      {streamData.viewersCount}
+                    </span>
+                  </div>
+
+                  {/* Bottom Video Controls (Hide on upcoming) */}
+                  {streamData.status !== "upcoming" && (
+                    <div className="video-bottom-controls" onClick={(e) => e.stopPropagation()}>
+                      
+                      {/* Progress Line */}
+                      <div className="video-progress-bar">
+                        <div 
+                          className="progress-fill" 
+                          style={{ width: streamData.status === "replay" ? (isPlaying ? "65%" : "35%") : (isPlaying ? "100%" : "99%") }}
+                        ></div>
+                      </div>
+
+                      <div className="controls-flex">
+                        <div className="controls-left">
+                          {/* Play/Pause Button */}
+                          <button className="control-btn" onClick={togglePlay} title={isPlaying ? "Tạm dừng" : "Phát"}>
+                            {isPlaying ? (
                               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                               </svg>
                             ) : (
                               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                <path d="M8 5v14l11-7z" />
                               </svg>
                             )}
                           </button>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={isMuted ? 0 : volume} 
-                            onChange={(e) => {
-                              setVolume(Number(e.target.value));
-                              if (isMuted) setIsMuted(false);
-                            }}
-                            className="volume-slider-bar" 
-                          />
+
+                          {/* Volume controls */}
+                          <div className="volume-control-group">
+                            <button className="control-btn" onClick={toggleMute}>
+                              {isMuted || volume === 0 ? (
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                  <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.21.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                </svg>
+                              )}
+                            </button>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="100" 
+                              value={isMuted ? 0 : volume} 
+                              onChange={(e) => {
+                                setVolume(Number(e.target.value));
+                                if (isMuted) setIsMuted(false);
+                              }}
+                              className="volume-slider-bar" 
+                            />
+                          </div>
                         </div>
 
-                        {/* Timer */}
-                        <span className="live-timer-duration">
-                          {streamData.status === "replay" ? "00:45:12 / 01:15:30" : formatTime(currentTime)}
-                        </span>
-                      </div>
+                        <div className="controls-right">
+                          <span className="live-timer-duration">
+                            {streamData.status === "replay" ? "00:45:12 / 01:15:30" : formatTime(currentTime)}
+                          </span>
+                          
+                          <button className="control-btn" title="Cài đặt">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                              <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                            </svg>
+                          </button>
 
-                      <div className="controls-right">
-                        {/* Settings Gear */}
-                        <button className="control-btn" title="Cài đặt">
-                          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-                          </svg>
-                        </button>
-
-                        {/* Fullscreen */}
-                        <button className="control-btn" title="Toàn màn hình">
-                          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-                          </svg>
-                        </button>
+                          <button className="control-btn" title="Toàn màn hình">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Farmer Profile & Voucher Row */}
@@ -857,38 +897,52 @@ const LivestreamPage = () => {
               </div>
 
               {/* Scrollable chat messages container */}
-              <div className="chat-messages-container">
-                {chatMessages.map((msg) => (
-                  <div 
-                    key={msg.id} 
-                    className={`chat-message-bubble-wrapper ${msg.isBot ? "bot-highlight-bubble" : ""}`}
-                  >
-                    {!msg.isBot && (
-                      <img 
-                        src={msg.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"} 
-                        alt={msg.user} 
-                        className="chat-user-avatar-circle" 
-                      />
-                    )}
-                    <div className="message-content-inner">
-                      <div className="chat-user-name-title">
-                        {msg.isBot ? (
-                          <span className="bot-badge-name-row">
-                            <svg className="bot-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                              <path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zm-2 10H6V7h12v12zm-9-6c-.83 0-1.5-.67-1.5-1.5S8.17 10 9 10s1.5.67 1.5 1.5S9.83 13 9 13zm6 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                            </svg>
-                            {msg.user}
-                          </span>
-                        ) : (
-                          msg.user
-                        )}
-                      </div>
-                      <p className="chat-message-body-text">{msg.text}</p>
-                    </div>
+              {streamData.isBanned ? (
+                <div className="banned-chat-placeholder">
+                  <div className="banned-chat-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                    </svg>
                   </div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
+                  <p className="banned-chat-title">Tính năng trò chuyện không khả dụng</p>
+                  <p className="banned-chat-desc">Khung chat đã bị vô hiệu hóa cùng với phiên phát sóng này.</p>
+                </div>
+              ) : (
+                <div className="chat-messages-container">
+                  {chatMessages.map((msg) => (
+                    <div 
+                      key={msg.id} 
+                      className={`chat-message-bubble-wrapper ${msg.isBot ? "bot-highlight-bubble" : ""}`}
+                    >
+                      {!msg.isBot && (
+                        <img 
+                          src={msg.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"} 
+                          alt={msg.user} 
+                          className="chat-user-avatar-circle" 
+                        />
+                      )}
+                      <div className="message-content-inner">
+                        <div className="chat-user-name-title">
+                          {msg.isBot ? (
+                            <span className="bot-badge-name-row">
+                              <svg className="bot-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                <path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zm-2 10H6V7h12v12zm-9-6c-.83 0-1.5-.67-1.5-1.5S8.17 10 9 10s1.5.67 1.5 1.5S9.83 13 9 13zm6 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                              </svg>
+                              {msg.user}
+                            </span>
+                          ) : (
+                            msg.user
+                          )}
+                        </div>
+                        <p className="chat-message-body-text">{msg.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                </div>
+              )}
 
               {/* Chat Input form */}
               <form onSubmit={handleSendChat} className="chat-input-row-form">

@@ -31,7 +31,8 @@ import {
     Lock,
     Clock,
     X,
-    Check
+    Check,
+    Video
 } from "lucide-react";
 import "./AdminStyles.css";
 import "./ViolationReports.css";
@@ -325,6 +326,13 @@ export default function ViolationReports() {
                             <BarChart3 size={18} className="admin-nav-icon-svg" />
                         </span>
                         Báo cáo
+                    </button>
+
+                    <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
+                        <span className="admin-nav-icon">
+                            <Video size={18} className="admin-nav-icon-svg" />
+                        </span>
+                        Quản lý Livestream
                     </button>
 
                     <button className="admin-nav-item" onClick={() => showToast("Chức năng giám sát AI đang phát triển.")}>
