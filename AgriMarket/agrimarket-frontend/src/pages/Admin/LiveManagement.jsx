@@ -241,6 +241,7 @@ export default function LiveManagement() {
           return {
             ...session,
             status: "replay",
+            isBanned: true,
             scheduledTime: "Kết thúc bởi quản trị viên"
           };
         }
