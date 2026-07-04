@@ -78,10 +78,12 @@ input {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
   }
+
   70% {
     transform: scale(1.05);
     box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
   }
+
   100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
@@ -160,8 +162,15 @@ input {
 }
 
 @keyframes slideInToastUp {
-  from { transform: translateY(80px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(80px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Toast container for stacked toasts */

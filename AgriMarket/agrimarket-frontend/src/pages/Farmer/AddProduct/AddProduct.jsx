@@ -47,10 +47,10 @@ const isValidDateStr = (dateStr) => {
   const day = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10);
   const year = parseInt(parts[2], 10);
-  
+
   if (month < 1 || month > 12) return false;
   if (day < 1 || day > 31) return false;
-  
+
   const dateObj = new Date(year, month - 1, day);
   return dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day;
 };
@@ -175,7 +175,7 @@ export const AddProduct = () => {
             setExpirationDate(prod.expirationDate ? toDisplayDate(prod.expirationDate.substring(0, 10)) : "");
             setDescription(prod.description || "");
             setBasePrice(prod.price || "");
-            
+
             if (UNITS.includes(prod.unit)) {
               setSelectedUnit(prod.unit);
               setIsCustomUnit(false);
@@ -744,8 +744,8 @@ export const AddProduct = () => {
                     onChange={(e) => setLimitDistance(e.target.value)}
                   />
                   <small style={{ color: "#6b7280", marginTop: "4px", display: "block" }}>
-                    {perishability === "khô" 
-                      ? "Sản phẩm khô không giới hạn khoảng cách giao hàng." 
+                    {perishability === "khô"
+                      ? "Sản phẩm khô không giới hạn khoảng cách giao hàng."
                       : `Gợi ý mặc định cho độ hư hỏng đã chọn. Bạn có thể tự do điều chỉnh.`}
                   </small>
                 </div>
@@ -754,10 +754,10 @@ export const AddProduct = () => {
               <div className="ap-cert-upload" style={{ borderTop: "1px solid rgba(229, 231, 235, 0.5)", paddingTop: "16px", marginTop: "8px" }}>
                 <div className="ap-cert-header" style={{ marginBottom: "10px" }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.8" width="16" height="16">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <circle cx="10" cy="13" r="2"/>
-                    <path d="M12 15l3 3"/>
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <circle cx="10" cy="13" r="2" />
+                    <path d="M12 15l3 3" />
                   </svg>
                   <span className="ap-cert-title" style={{ color: "#0284c7" }}>Ảnh thông tin truy xuất nguồn gốc</span>
                 </div>
@@ -784,9 +784,9 @@ export const AddProduct = () => {
                       onChange={handleTraceabilityChange}
                     />
                     <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="1.5" width="28" height="28">
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
                     <p className="ap-cert-zone-text" style={{ color: "#0284c7" }}>Nhấp để tải ảnh truy xuất lên</p>
                     <p className="ap-cert-zone-hint">JPG, PNG — tối đa 10MB</p>
@@ -934,9 +934,8 @@ export const AddProduct = () => {
                       <img
                         src={previewSlides[safeIdx].url}
                         alt={`Slide ${safeIdx + 1}`}
-                        className={`ap-preview-img ${
-                          previewSlides[safeIdx].type === "cert" || previewSlides[safeIdx].type === "traceability" ? "ap-preview-cert-img" : ""
-                        }`}
+                        className={`ap-preview-img ${previewSlides[safeIdx].type === "cert" || previewSlides[safeIdx].type === "traceability" ? "ap-preview-cert-img" : ""
+                          }`}
                       />
                       {previewSlides[safeIdx].type === "traceability" && (
                         <div className="ap-slide-cert-badge" style={{ backgroundColor: "#0284c7" }}>
@@ -956,9 +955,8 @@ export const AddProduct = () => {
                           {previewSlides.map((s, i) => (
                             <button
                               key={i}
-                              className={`ap-slider-dot ${
-                                i === safeIdx ? "ap-slider-dot-active" : ""
-                              }`}
+                              className={`ap-slider-dot ${i === safeIdx ? "ap-slider-dot-active" : ""
+                                }`}
                               onClick={() => setPreviewSlideIdx(i)}
                             />
                           ))}
@@ -1065,14 +1063,14 @@ export const AddProduct = () => {
               <span className="custom-modal-icon" style={{ fontSize: "22px" }}>💰</span>
               <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý giá bán nông sản</h3>
             </div>
-            
+
             <div className="ai-modal-body" style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
               <p style={{ fontSize: "14px", color: "#4b5563", margin: 0 }}>
                 Dựa trên tên sản phẩm, danh mục và trạng thái hữu cơ của bạn, AI đề xuất giá bán sau (đơn vị: <strong>{selectedUnit}</strong>):
               </p>
 
               <div className="ai-price-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                <div 
+                <div
                   className="ai-price-card"
                   onClick={() => {
                     setBasePrice(aiPriceData.minPrice);
@@ -1096,7 +1094,7 @@ export const AddProduct = () => {
                   <span style={{ fontSize: "11px", color: "#9ca3af", display: "block", marginTop: "6px" }}>Bấm để chọn</span>
                 </div>
 
-                <div 
+                <div
                   className="ai-price-card recommended"
                   onClick={() => {
                     setBasePrice(aiPriceData.recommendedPrice);
@@ -1134,7 +1132,7 @@ export const AddProduct = () => {
                   <span style={{ fontSize: "11px", color: "#059669", display: "block", marginTop: "4px", fontWeight: "500" }}>Bấm để chọn</span>
                 </div>
 
-                <div 
+                <div
                   className="ai-price-card"
                   onClick={() => {
                     setBasePrice(aiPriceData.maxPrice);
@@ -1160,12 +1158,12 @@ export const AddProduct = () => {
               </div>
 
               {aiPriceData.explanation && (
-                <div style={{ 
-                  backgroundColor: "#f3f4f6", 
-                  padding: "12px 16px", 
-                  borderRadius: "10px", 
-                  fontSize: "13.5px", 
-                  lineHeight: "1.5", 
+                <div style={{
+                  backgroundColor: "#f3f4f6",
+                  padding: "12px 16px",
+                  borderRadius: "10px",
+                  fontSize: "13.5px",
+                  lineHeight: "1.5",
                   color: "#4b5563",
                   borderLeft: "4px solid #10b981"
                 }}>
