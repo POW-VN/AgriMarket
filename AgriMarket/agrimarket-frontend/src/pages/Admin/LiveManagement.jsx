@@ -23,7 +23,8 @@ import {
   SlidersHorizontal,
   X,
   Radio,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from "lucide-react";
 import "./AdminStyles.css";
 import "./LiveManagement.css";
@@ -36,6 +37,9 @@ export default function LiveManagement() {
   
   // Products modal view state
   const [viewingProductsList, setViewingProductsList] = useState(null); // array of products or null
+  
+  // Custom terminate confirm modal state
+  const [terminatingSession, setTerminatingSession] = useState(null); // { id, brand } or null
 
   // Interactive filters state
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -228,8 +232,6 @@ export default function LiveManagement() {
   };
 
   const handleTerminateStream = (sessionId, brandName) => {
-    const confirmTerm = window.confirm(`Bạn có chắc chắn muốn buộc DỪNG phiên livestream của [${brandName}] không?`);
-    if (!confirmTerm) return;
 
     try {
       // Find the stream session in localStorage list
@@ -688,7 +690,7 @@ export default function LiveManagement() {
                           {session.status === "live" ? (
                             <button
                               className="btn-terminate-stream"
-                              onClick={() => handleTerminateStream(session.id, session.farmerBrand)}
+                              onClick={() => setTerminatingSession({ id: session.id, brand: session.farmerBrand })}
                             >
                               Chấm dứt
                             </button>
@@ -767,6 +769,35 @@ export default function LiveManagement() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Terminate Confirmation Dialog Modal */}
+      {terminatingSession && (
+        <div className="confirm-modal-overlay" onClick={() => setTerminatingSession(null)}>
+          <div className="confirm-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-modal-icon">
+              <AlertTriangle size={28} />
+            </div>
+            <h3>Xác nhận buộc dừng</h3>
+            <p>
+              Bạn có chắc chắn muốn buộc <strong>DỪNG</strong> phiên livestream của nhà vườn <strong>{terminatingSession.brand}</strong> không?
+            </p>
+            <div className="confirm-modal-actions">
+              <button className="btn-confirm-cancel" onClick={() => setTerminatingSession(null)}>
+                Hủy bỏ
+              </button>
+              <button
+                className="btn-confirm-submit"
+                onClick={() => {
+                  handleTerminateStream(terminatingSession.id, terminatingSession.brand);
+                  setTerminatingSession(null);
+                }}
+              >
+                Đồng ý dừng
+              </button>
             </div>
           </div>
         </div>
