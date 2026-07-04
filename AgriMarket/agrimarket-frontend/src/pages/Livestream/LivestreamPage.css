@@ -10,10 +10,61 @@
 
 .livestream-main-wrapper {
   flex: 1;
-  max-width: 1240px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 24px 20px;
+}
+
+/* Navigation path back bar */
+.livestream-nav-bar {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 20px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #666666;
+}
+
+.btn-back-to-list {
+  background: none;
+  border: none;
+  color: #2e7d32;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s, transform 0.1s;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.btn-back-to-list:hover {
+  color: #1b5e20;
+  background-color: rgba(46, 125, 50, 0.08);
+}
+
+.nav-divider {
+  color: #cccccc;
+}
+
+.nav-current-title {
+  font-weight: 500;
+  color: #333333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+@media (max-width: 576px) {
+  .nav-current-title {
+    max-width: 180px;
+  }
 }
 
 /* 2-Column Responsive Grid Layout */
@@ -26,6 +77,13 @@
 @media (min-width: 992px) {
   .livestream-layout-grid {
     grid-template-columns: 7fr 3fr;
+  }
+}
+
+@media (min-width: 1400px) {
+  .livestream-layout-grid {
+    grid-template-columns: 76fr 24fr; /* Make video screen wider on large desktop */
+    gap: 32px;
   }
 }
 
@@ -1110,4 +1168,153 @@
 .shop-chat-footer button:hover {
   background-color: #0b220d;
   transform: scale(1.05);
+}
+
+/* --- UPCOMING & REPLAY VIEW STYLES --- */
+.upcoming-media-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 15;
+}
+
+.upcoming-glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+  color: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.upcoming-timer-badge {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.upcoming-glass-card h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.4;
+  color: #ffffff;
+}
+
+.scheduled-date-string {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.upcoming-action-notify-btn {
+  background-color: #ffffff;
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+.upcoming-action-notify-btn:hover {
+  background-color: #f0f9ff;
+  transform: translateY(-1px);
+}
+
+.upcoming-action-notify-btn.subscribed {
+  background-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.upcoming-action-notify-btn.subscribed:hover {
+  background-color: #059669;
+}
+
+/* Previews / Disabled styling for Upcoming and Replay */
+.product-purchase-action-btn.status-upcoming {
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.15);
+}
+
+.product-purchase-action-btn.status-upcoming:hover {
+  background-color: #bae6fd;
+  color: #025a87;
+}
+
+.live-status-badge.upcoming-badge {
+  background-color: #0284c7;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+}
+
+.live-status-badge.replay-badge {
+  background-color: #4b5563;
+  box-shadow: 0 2px 8px rgba(75, 85, 99, 0.4);
+}
+
+/* Grayed out voucher for Replay and Upcoming */
+.live-voucher-deal-card.status-replay,
+.live-voucher-deal-card.status-upcoming {
+  background: radial-gradient(circle at right, transparent 10px, #f3f4f6 11px);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.live-voucher-deal-card.status-replay .deal-status-badge,
+.live-voucher-deal-card.status-upcoming .deal-status-badge {
+  background-color: #f3f4f6;
+  color: #555555;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.live-voucher-deal-card.status-replay .voucher-promo-text,
+.live-voucher-deal-card.status-upcoming .voucher-promo-text {
+  color: #555555;
+}
+
+.live-voucher-deal-card.status-upcoming {
+  background: radial-gradient(circle at right, transparent 10px, #f0f9ff 11px);
+  border-color: rgba(2, 132, 199, 0.15);
+}
+
+.live-voucher-deal-card.status-upcoming .deal-status-badge {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: rgba(2, 132, 199, 0.2);
+}
+
+.live-voucher-deal-card.status-upcoming .voucher-promo-text {
+  color: #0369a1;
 }
