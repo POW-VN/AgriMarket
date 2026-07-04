@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import authService from "../../../services/authService";
 import cartService from "../../../services/cartService";
+import { getAllApprovedProducts } from "../../../services/productService";
 import NotificationBell from "../NotificationBell/NotificationBell";
 
 const Header = ({ activeTab }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState(null);
   const [cartItemsCount, setCartItemsCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [showSearch, setShowSearch] = useState(false);
+  const [allProducts, setAllProducts] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -44,6 +51,62 @@ const Header = ({ activeTab }) => {
       window.removeEventListener("cartUpdated", handleCartUpdate);
     };
   }, []);
+
+  useEffect(() => {
+    // Sync state with URL search param
+    const q = searchParams.get("search") || "";
+    setSearchQuery(q);
+    if (q) setShowSearch(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    // Load products for suggestions
+    const loadProducts = async () => {
+      try {
+        const data = await getAllApprovedProducts();
+        setAllProducts(data);
+      } catch (err) {
+        console.error("Lỗi tải sản phẩm cho gợi ý tìm kiếm:", err);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setSuggestions([]);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (query.trim().length > 0) {
+      const filtered = allProducts.filter(p => 
+        p.name?.toLowerCase().includes(query.toLowerCase()) || 
+        p.category?.toLowerCase().includes(query.toLowerCase()) ||
+        p.farmerName?.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5);
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const executeSearch = (query) => {
+    setSuggestions([]);
+    navigate(`/?search=${encodeURIComponent(query)}`);
+  };
+
+  const handleSearchSubmit = (e) => {
+    if (e.key === "Enter") {
+      executeSearch(searchQuery);
+    }
+  };
 
   const handleLogout = () => {
     authService.logout();
@@ -114,23 +177,75 @@ const Header = ({ activeTab }) => {
         </nav>
 
         <div className="header-actions">
-          {/* Search Icon */}
-          <button className="icon-btn" aria-label="Tìm kiếm">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </button>
+          {/* Search Area */}
+          <div className="header-search-wrapper" ref={wrapperRef}>
+            <div className={`header-search-bar ${showSearch ? "active" : ""}`}>
+              <button 
+                className="icon-btn search-btn" 
+                aria-label="Tìm kiếm"
+                onClick={() => {
+                  if (showSearch && searchQuery.trim()) {
+                    executeSearch(searchQuery);
+                  } else {
+                    setShowSearch(!showSearch);
+                  }
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+              <input
+                type="text"
+                className="header-search-input"
+                placeholder="Tìm sản phẩm, nông trại..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchSubmit}
+                onFocus={() => setShowSearch(true)}
+              />
+            </div>
+
+            {/* Search Suggestions Dropdown */}
+            {showSearch && suggestions.length > 0 && (
+              <div className="search-suggestions-dropdown">
+                {suggestions.map((p) => (
+                  <div
+                    key={p.id}
+                    className="suggestion-item"
+                    onClick={() => {
+                      setSuggestions([]);
+                      setSearchQuery("");
+                      setShowSearch(false);
+                      navigate(`/products/${p.id}`);
+                    }}
+                  >
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="suggestion-img" />
+                    ) : (
+                      <div className="suggestion-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', fontSize: '18px' }}>🌾</div>
+                    )}
+                    <div className="suggestion-info">
+                      <span className="suggestion-title">{p.name}</span>
+                      <span className="suggestion-farm">🧑‍🌾 {p.farmerName || "Nhà vườn Agri"}</span>
+                    </div>
+                    <span className="suggestion-price">{p.price.toLocaleString("vi-VN")}đ</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Cart Icon */}
           {showCart && (
