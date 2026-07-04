@@ -685,9 +685,9 @@
 .live-chat-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 520px; /* Match height of left column (viewfinder + footer) */
+  align-self: start; /* Align to top and keep card height compact around content */
   box-sizing: border-box;
+  padding: 18px; /* Tighter padding to give more content width and prevent button overflows */
 }
 
 .chat-panel-header {
@@ -710,7 +710,7 @@
 }
 
 .chat-console-messages-list {
-  height: 380px; /* Fixed high-capacity height so multiple comments are visible at once */
+  height: 280px; /* Restored stable compact height to show 5-6 comments and prevent extra space */
   overflow-y: auto;
   margin-bottom: 12px;
   padding-right: 4px;
@@ -791,6 +791,7 @@
 
 .host-chat-input {
   flex: 1;
+  min-width: 0; /* Enable proper flex shrinking in narrow columns */
   padding: 8px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
