@@ -10,6 +10,7 @@ const TABS = [
   { id: "orders",       label: "Đơn hàng của tôi",   icon: "🚜", path: "/farmer/orders" },
   { id: "farm-profile", label: "Thông tin trang trại", icon: "🏡", path: "/farmer/farm-profile" },
   { id: "chat",         label: "Tin nhắn khách hàng", icon: "💬", path: "/farmer/chat" },
+  { id: "livestream",   label: "Quản lý Livestream", icon: "📺", path: "/farmer/livestream" },
 ];
 
 export const FarmerLayout = () => {
@@ -56,6 +57,7 @@ export const FarmerLayout = () => {
     if (path.startsWith("/farmer/orders")) return "orders";
     if (path.startsWith("/farmer/farm-profile")) return "farm-profile";
     if (path.startsWith("/farmer/chat")) return "chat";
+    if (path.startsWith("/farmer/livestream")) return "livestream";
     return "overview";
   };
 
@@ -130,6 +132,7 @@ export const FarmerLayout = () => {
                 {currentTab === "orders" && "Nhận đơn hàng mới từ người tiêu dùng và cập nhật giao vận."}
                 {currentTab === "farm-profile" && "Hoàn thiện hồ sơ trang trại giúp tăng độ tin cậy."}
                 {currentTab === "chat" && "Xem và trả lời các tin nhắn tư vấn từ người tiêu dùng."}
+                {currentTab === "livestream" && "Thiết lập, chuẩn bị thiết bị phát sóng và tương tác trực tiếp với khách hàng."}
               </p>
             </div>
 
