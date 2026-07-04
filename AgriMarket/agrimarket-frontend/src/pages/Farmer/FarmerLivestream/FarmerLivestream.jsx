@@ -38,6 +38,7 @@ export const FarmerLivestream = () => {
   const [pinnedChatMessage, setPinnedChatMessage] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState({}); // { username: expiryTimestamp }
   const [activeBlockMenuMsgId, setActiveBlockMenuMsgId] = useState(null);
+  const [isConfirmEndOpen, setIsConfirmEndOpen] = useState(false);
   const blockedUsersRef = useRef({});
   blockedUsersRef.current = blockedUsers;
 
@@ -520,11 +521,13 @@ export const FarmerLivestream = () => {
     }, 2000);
   };
 
-  // End Livestream and Show Stats
+  // Trigger confirm end stream modal
   const handleEndLivestream = () => {
-    const confirmEnd = window.confirm("Bạn có chắc chắn muốn kết thúc buổi Livestream này không?");
-    if (!confirmEnd) return;
+    setIsConfirmEndOpen(true);
+  };
 
+  // End Livestream and Show Stats
+  const executeEndLivestream = () => {
     // Generate final metrics
     const durationStr = formatTime(streamDuration);
     const peakViewers = Math.max(viewersCount + 20, 15); // simulated peak
@@ -1260,6 +1263,42 @@ export const FarmerLivestream = () => {
               </button>
               <button className="btn-modal-submit" onClick={handleUpdateLiveProducts}>
                 Lưu thay đổi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. CUSTOM CONFIRM END STREAM MODAL */}
+      {isConfirmEndOpen && (
+        <div className="live-report-overlay">
+          <div className="live-report-modal" style={{ maxWidth: "420px", padding: "28px" }}>
+            <div className="report-icon-container" style={{ backgroundColor: "#fee2e2", color: "#ef4444", marginBottom: "16px" }}>
+              ⚠️
+            </div>
+            <h3 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#1f2937", margin: "0 0 8px 0" }}>
+              Xác nhận Kết thúc Live
+            </h3>
+            <p style={{ fontSize: "0.9rem", color: "#4b5563", margin: "0 0 24px 0", lineHeight: "1.5" }}>
+              Bạn có chắc chắn muốn dừng buổi phát sóng trực tiếp này không? Hành động này sẽ kết thúc tương tác trực tiếp với khách hàng.
+            </p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button 
+                className="btn-modal-cancel" 
+                onClick={() => setIsConfirmEndOpen(false)}
+                style={{ flex: 1, padding: "10px", margin: 0 }}
+              >
+                Quay lại Live
+              </button>
+              <button 
+                className="btn-modal-submit" 
+                onClick={() => {
+                  setIsConfirmEndOpen(false);
+                  executeEndLivestream();
+                }}
+                style={{ flex: 1, padding: "10px", backgroundColor: "#ef4444", color: "white", border: "none", margin: 0 }}
+              >
+                Kết thúc ngay
               </button>
             </div>
           </div>
