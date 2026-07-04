@@ -135,6 +135,7 @@
   accent-color: #10b981;
   cursor: pointer;
   flex-shrink: 0;
+  pointer-events: none; /* Prevent event conflicts and layout shifting on hover/click */
 }
 
 .product-row-thumbnail {
