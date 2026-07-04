@@ -58,6 +58,7 @@ import AdminChat from "../pages/Admin/AdminChat";
 import LivestreamPage from "../pages/Livestream/LivestreamPage";
 import LivestreamListPage from "../pages/Livestream/LivestreamListPage";
 import ViolationReports from "../pages/Admin/ViolationReports";
+import ProductListing from "../pages/Product/ProductListing";
 
 
 const FarmsRoute = () => {
@@ -113,6 +114,7 @@ const AppRoutes = () => {
         </Route>
 
         <Route path="/products" element={<ProductPage />} />
+        <Route path="/products/listing" element={<ProductListing />} />
         <Route path="/products/:id" element={<ProductDetail />} />
         <Route path="/products/:id/reviews" element={<ProductReviewsView />} />
 
