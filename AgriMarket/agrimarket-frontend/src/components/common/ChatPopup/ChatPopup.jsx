@@ -22,6 +22,8 @@ import {
   Download
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import chatService from "../../../services/chatService";
+import authService from "../../../services/authService";
 import "./ChatPopup.css";
 
 // Danh sách ảnh gửi mẫu mặc định
@@ -36,135 +38,10 @@ const DEFAULT_MEDIA_IMAGES = [
   "https://images.unsplash.com/photo-1589927986089-35812388d1f4?w=300&auto=format&fit=crop&q=80"  // cải thảo
 ];
 
-// Dữ liệu mẫu khởi tạo ban đầu
-const INITIAL_CHATS = [
-  {
-    id: "farm-xanh",
-    name: "Nông trại Xanh",
-    verified: true,
-    avatar: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=150&auto=format&fit=crop&q=60",
-    phone: "0912 345 678",
-    farmAddress: "Xã Tà Nung, Thành phố Đà Lạt, Lâm Đồng",
-    activeState: "Đang hoạt động",
-    isOnline: true,
-    unreadCount: 1,
-    isPinned: false,
-    isMuted: false,
-    isBlocked: false,
-    type: "normal",
-    mediaImages: [...DEFAULT_MEDIA_IMAGES],
-    messages: [
-      { id: "m1", sender: "user", type: "text", text: "Xin chào, tôi muốn hỏi về bắp cải.", time: "10:30", status: "read", timestamp: 1782971400000 },
-      { id: "m2", sender: "farmer", type: "text", text: "Chào bạn 👋 Bạn cần mình tư vấn điều gì?", time: "10:31", timestamp: 1782971460000 },
-      { id: "m3", sender: "user", type: "text", text: "Bắp cải hôm nay còn hàng không?", time: "10:31", status: "read", timestamp: 1782971460000 },
-      { id: "m4", sender: "farmer", type: "text", text: "Dạ còn ạ. Giá hôm nay là 28.000đ/kg.", time: "10:32", timestamp: 1782971520000 },
-      { id: "m5", sender: "user", type: "text", text: "Nếu mua 5kg thì giao trong ngày được không?", time: "10:33", status: "read", timestamp: 1782971580000 },
-      { id: "m6", sender: "farmer", type: "text", text: "Được bạn nhé! Nếu trong nội thành sẽ giao trong ngày.", time: "10:34", timestamp: 1782971640000 }
-    ]
-  },
-  {
-    id: "vuon-dalat",
-    name: "Vườn Rau Đà Lạt",
-    verified: true,
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=60",
-    phone: "0987 654 321",
-    farmAddress: "Phường 11, Thành phố Đà Lạt, Lâm Đồng",
-    activeState: "Hoạt động 5 phút trước",
-    isOnline: true,
-    unreadCount: 2,
-    isPinned: false,
-    isMuted: false,
-    isBlocked: false,
-    type: "normal",
-    mediaImages: [...DEFAULT_MEDIA_IMAGES],
-    messages: [
-      { id: "m1", sender: "farmer", type: "text", text: "Chào bạn, vườn rau Đà Lạt rất hân hạnh được phục vụ bạn.", time: "Hôm qua", timestamp: 1782885600000 },
-      { id: "m2", sender: "user", type: "text", text: "Mình muốn đặt súp lơ xanh và cải bó xôi.", time: "Hôm qua", status: "read", timestamp: 1782885660000 },
-      { id: "m3", sender: "farmer", type: "text", text: "Cảm ơn bạn đã quan tâm sản phẩm. Bạn vui lòng tạo đơn trên web hoặc nhắn trực tiếp số lượng ở đây nha.", time: "Hôm qua", timestamp: 1782885720000 }
-    ]
-  },
-  {
-    id: "farm-organic",
-    name: "Farm Organic",
-    verified: true,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60",
-    phone: "0909 090 909",
-    farmAddress: "Huyện Đơn Dương, Tỉnh Lâm Đồng",
-    activeState: "Đang hoạt động",
-    isOnline: true,
-    unreadCount: 0,
-    isPinned: false,
-    isMuted: false,
-    isBlocked: false,
-    type: "order",
-    mediaImages: [...DEFAULT_MEDIA_IMAGES],
-    messages: [
-      { id: "m1", sender: "farmer", type: "text", text: "Chào bạn, đơn hàng súp lơ hữu cơ đã được gửi đi.", time: "24/05", timestamp: 1779624000000 },
-      { id: "m2", sender: "farmer", type: "text", text: "Đơn hàng #12345 của bạn đã được giao. Bạn kiểm tra giúp mình nhé!", time: "24/05", timestamp: 1779624060000 }
-    ]
-  },
-  {
-    id: "vuon-vinhlong",
-    name: "Vườn Cam Vĩnh Long",
-    verified: true,
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=60",
-    phone: "0911 223 344",
-    farmAddress: "Huyện Trà Ôn, Tỉnh Vĩnh Long",
-    activeState: "Hoạt động 1 giờ trước",
-    isOnline: false,
-    unreadCount: 0,
-    isPinned: false,
-    isMuted: false,
-    isBlocked: false,
-    type: "normal",
-    mediaImages: [...DEFAULT_MEDIA_IMAGES],
-    messages: [
-      { id: "m1", sender: "farmer", type: "text", text: "Chào bạn, hiện vườn đang thu hoạch cam sành vỏ mỏng mọng nước.", time: "22/05", timestamp: 1779451200000 },
-      { id: "m2", sender: "farmer", type: "text", text: "Cam đang vào mùa rất ngọt, bạn thử nhé!", time: "22/05", timestamp: 1779451260000 }
-    ]
-  },
-  {
-    id: "farm-binhan",
-    name: "Nông trại Bình An",
-    verified: true,
-    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=60",
-    phone: "0977 889 900",
-    farmAddress: "Xã Lộc An, Huyện Đất Đỏ, Bà Rịa - Vũng Tàu",
-    activeState: "Hoạt động 2 ngày trước",
-    isOnline: false,
-    unreadCount: 0,
-    isPinned: false,
-    isMuted: false,
-    isBlocked: false,
-    type: "promo",
-    mediaImages: [...DEFAULT_MEDIA_IMAGES],
-    messages: [
-      { id: "m1", sender: "farmer", type: "text", text: "Nông trại Bình An chào bạn!", time: "20/05", timestamp: 1779278400000 },
-      { id: "m2", sender: "farmer", type: "text", text: "Chúng tôi có chương trình ưu đãi mới. Mua 3kg tặng 1kg rau mầm.", time: "20/05", timestamp: 1779278460000 }
-    ]
-  }
-];
-
-const ALL_SYSTEM_FARMS = [
-  { id: "farm-xanh", name: "Nông trại Xanh", verified: true, avatar: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=150&auto=format&fit=crop&q=60", phone: "0912 345 678", farmAddress: "Xã Tà Nung, Thành phố Đà Lạt, Lâm Đồng", activeState: "Đang hoạt động", isOnline: true },
-  { id: "vuon-dalat", name: "Vườn Rau Đà Lạt", verified: true, avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=60", phone: "0987 654 321", farmAddress: "Phường 11, Thành phố Đà Lạt, Lâm Đồng", activeState: "Hoạt động 5 phút trước", isOnline: true },
-  { id: "farm-organic", name: "Farm Organic", verified: true, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60", phone: "0909 090 909", farmAddress: "Huyện Đơn Dương, Tỉnh Lâm Đồng", activeState: "Đang hoạt động", isOnline: true },
-  { id: "vuon-vinhlong", name: "Vườn Cam Vĩnh Long", verified: true, avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=60", phone: "0911 223 344", farmAddress: "Huyện Trà Ôn, Tỉnh Vĩnh Long", activeState: "Hoạt động 1 giờ trước", isOnline: false },
-  { id: "farm-binhan", name: "Nông trại Bình An", verified: true, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=60", phone: "0977 889 900", farmAddress: "Xã Lộc An, Huyện Đất Đỏ, Bà Rịa - Vũng Tàu", activeState: "Hoạt động 2 ngày trước", isOnline: false },
-  
-  { id: "farm-hoamai", name: "Nông trại Hoa Mai", verified: true, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=60", phone: "0901 112 222", farmAddress: "Xã Lộc Phát, Thành phố Bảo Lộc, Lâm Đồng", activeState: "Đang hoạt động", isOnline: true },
-  { id: "htx-anbinh", name: "Hợp tác xã An Bình", verified: true, avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=60", phone: "0902 223 333", farmAddress: "Huyện Cần Giuộc, Tỉnh Long An", activeState: "Hoạt động 3 giờ trước", isOnline: false },
-  { id: "vuon-buoizaxanh", name: "Vườn Bưởi Da Xanh", verified: false, avatar: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=60", phone: "0903 334 444", farmAddress: "Huyện Mỏ Cày Nam, Tỉnh Bến Tre", activeState: "Đang hoạt động", isOnline: true },
-  { id: "farm-bavi", name: "Trang trại Bò Sữa Ba Vì", verified: true, avatar: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150&auto=format&fit=crop&q=60", phone: "0904 445 555", farmAddress: "Huyện Ba Vì, Thành phố Hà Nội", activeState: "Hoạt động 1 ngày trước", isOnline: false }
-];
-
-const AUTO_RESPONSES = [
-  "Dạ vâng ạ, nông trại của mình ghi nhận thông tin rồi nhé. Bên mình sẽ chuẩn bị sản phẩm tươi ngon nhất cho bạn ạ!",
-  "Dạ cảm ơn bạn đã quan tâm. Sản phẩm của vườn hoàn toàn tự nhiên và được thu hoạch trong ngày nên bạn yên tâm nha.",
-  "Dạ mình nghe đây ạ! Bạn có cần mình tư vấn thêm về cách bảo quản hay chế biến loại nông sản này không?",
-  "Dạ bên mình đang đóng gói đơn hàng, một lát nữa shipper lấy hàng đi mình sẽ báo mã vận đơn cho bạn theo dõi nhé.",
-  "Dạ chào bạn, hiện tại vườn đang bận thu hoạch ngoài đồng một chút. Mình sẽ phản hồi chi tiết lại cho bạn ngay sau ít phút nha! Cảm ơn bạn rất nhiều."
-];
+// Dữ liệu mẫu khởi tạo ban đầu đã được xoá để kết nối backend thực tế
+const INITIAL_CHATS = [];
+const ALL_SYSTEM_FARMS = [];
+const AUTO_RESPONSES = [];
 
 // Danh sách tin nhắn nhanh mẫu
 const QUICK_REPLIES = [
@@ -198,6 +75,8 @@ export const ChatPopup = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [inputText, setInputText] = useState("");
   const [totalUnread, setTotalUnread] = useState(0);
+  const [suggestedFarms, setSuggestedFarms] = useState([]);
+  const [rowActionMenuId, setRowActionMenuId] = useState(null);
 
   // States cho Options Menu (3 chấm), Modal Thông tin, Modal Kho ảnh, Zoom Ảnh và Quick Actions
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -214,42 +93,38 @@ export const ChatPopup = () => {
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Khởi tạo dữ liệu từ LocalStorage hoặc dữ liệu mẫu và đồng bộ tự động
-  useEffect(() => {
-    const savedChats = localStorage.getItem("agrimarket_chats");
-    if (savedChats) {
-      try {
-        const parsed = JSON.parse(savedChats);
-        const needsUpdate = parsed.some(c => c.farmAddress === undefined || c.isPinned === undefined || c.mediaImages === undefined);
-        if (needsUpdate) {
-          const updated = parsed.map(c => {
-            const initItem = INITIAL_CHATS.find(init => init.id === c.id);
-            if (initItem) {
-              return {
-                ...initItem,
-                ...c,
-                farmAddress: c.farmAddress || initItem.farmAddress,
-                phone: c.phone || initItem.phone,
-                mediaImages: c.mediaImages || initItem.mediaImages || [...DEFAULT_MEDIA_IMAGES],
-                isPinned: c.isPinned !== undefined ? c.isPinned : initItem.isPinned,
-                isMuted: c.isMuted !== undefined ? c.isMuted : initItem.isMuted,
-                isBlocked: c.isBlocked !== undefined ? c.isBlocked : initItem.isBlocked
-              };
-            }
-            return c;
-          });
-          setChats(updated);
-          localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
-        } else {
-          setChats(parsed);
-        }
-      } catch (e) {
-        setChats(INITIAL_CHATS);
-      }
-    } else {
-      setChats(INITIAL_CHATS);
-      localStorage.setItem("agrimarket_chats", JSON.stringify(INITIAL_CHATS));
+  // Fetch conversations from backend
+  const fetchConversations = async () => {
+    const token = localStorage.getItem("farmconnect_token");
+    if (!token) return;
+    try {
+      const data = await chatService.getConversations();
+      const pinnedIds = getPinnedIds();
+      const clearedTimes = getClearedHistoryTimes();
+
+      const sanitized = data.map(c => {
+        const idStr = String(c.id);
+        const clearedTime = clearedTimes[idStr] || 0;
+        const filteredMessages = c.messages.filter(m => (m.timestamp || 0) > clearedTime);
+        return {
+          ...c,
+          id: idStr,
+          isPinned: pinnedIds.includes(idStr),
+          isBlocked: c.isBlocked,
+          messages: filteredMessages,
+          mediaImages: c.mediaImages && c.mediaImages.length > 0 ? c.mediaImages : [...DEFAULT_MEDIA_IMAGES]
+        };
+      });
+      setChats(sanitized);
+    } catch (err) {
+      console.error("Failed to load conversations:", err);
     }
+  };
+
+  useEffect(() => {
+    fetchConversations();
+    const interval = setInterval(fetchConversations, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   // Đóng Options Menu khi click bên ngoài
@@ -267,46 +142,45 @@ export const ChatPopup = () => {
     };
   }, [showOptionsMenu]);
 
+  // Đóng Row Action Menu khi click bên ngoài
+  useEffect(() => {
+    const handleCloseRowMenu = (event) => {
+      const menu = document.querySelector(".zalo-item-dropdown-menu");
+      const btn = document.querySelector(".zalo-item-more-btn");
+      if (menu && !menu.contains(event.target) && btn && !btn.contains(event.target)) {
+        setRowActionMenuId(null);
+      }
+    };
+    if (rowActionMenuId) {
+      document.addEventListener("mousedown", handleCloseRowMenu);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleCloseRowMenu);
+    };
+  }, [rowActionMenuId]);
+
   // Lắng nghe sự kiện mở chat từ các trang ProductDetail hoặc FarmerProfile
   useEffect(() => {
-    const handleOpenChatEvent = (e) => {
-      const { farmId, farmName, farmAvatar, phone, farmAddress } = e.detail;
+    const handleOpenChatEvent = async (e) => {
+      const { farmId } = e.detail;
       setIsOpen(true); // Mở cửa sổ chat popup lên
       
-      const existingChat = chats.find(c => c.id === farmId);
-      if (existingChat) {
-        handleSelectFarm(existingChat, chats);
-      } else {
-        const initTimestamp = Date.now();
-        const newChat = {
-          id: farmId,
-          name: farmName,
-          verified: true,
-          avatar: farmAvatar || "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=150&auto=format&fit=crop&q=60",
-          phone: phone || "0912 345 678",
-          farmAddress: farmAddress || "Đà Lạt, Lâm Đồng",
-          activeState: "Đang hoạt động",
-          isOnline: true,
-          unreadCount: 0,
-          isPinned: false,
-          isMuted: false,
-          isBlocked: false,
-          type: "normal",
-          mediaImages: [...DEFAULT_MEDIA_IMAGES],
-          messages: [
-            { 
-              id: `m-init-${initTimestamp}`, 
-              sender: "farmer", 
-              type: "text",
-              text: `Chào bạn! Cảm ơn đã liên hệ với ${farmName}. Nông trại có thể giúp gì cho bạn?`, 
-              time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-              timestamp: initTimestamp
-            }
-          ]
+      const token = localStorage.getItem("farmconnect_token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      try {
+        const startedConv = await chatService.startConversation(farmId);
+        const sanitized = {
+          ...startedConv,
+          id: String(startedConv.id)
         };
-        const updatedChats = [newChat, ...chats];
-        saveChatsToStorage(updatedChats);
-        handleSelectFarm(newChat, updatedChats);
+        await fetchConversations();
+        handleSelectFarm(sanitized);
+      } catch (err) {
+        console.error("Failed to start conversation:", err);
       }
     };
     
@@ -329,26 +203,33 @@ export const ChatPopup = () => {
     }
   }, [activeView, selectedFarm, chats]);
 
-  const saveChatsToStorage = (updatedChats) => {
-    setChats(updatedChats);
-    localStorage.setItem("agrimarket_chats", JSON.stringify(updatedChats));
-  };
+  // Fetch suggested farmers when new-chat query changes
+  useEffect(() => {
+    if (activeView === "new-chat") {
+      const loadSuggestedFarms = async () => {
+        try {
+          const data = await chatService.suggestFarmers(newChatQuery);
+          setSuggestedFarms(data);
+        } catch (err) {
+          console.error("Failed to load suggested farms:", err);
+        }
+      };
+      loadSuggestedFarms();
+    }
+  }, [newChatQuery, activeView]);
 
-  const handleSelectFarm = (farm, currentChatsList = chats) => {
+  const handleSelectFarm = async (farm) => {
     setSelectedFarm(farm);
     setActiveView("chat");
     setShowOptionsMenu(false);
     setShowQuickActions(false);
 
-    const listToUse = currentChatsList;
-    const updatedChats = listToUse.map((c) => {
-      if (c.id === farm.id) {
-        const updatedMessages = c.messages.map(m => m.sender === 'farmer' ? { ...m, status: 'read' } : m);
-        return { ...c, unreadCount: 0, messages: updatedMessages };
-      }
-      return c;
-    });
-    saveChatsToStorage(updatedChats);
+    try {
+      await chatService.getMessages(farm.id);
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to fetch messages for conversation:", err);
+    }
   };
 
   const handleBackToList = () => {
@@ -358,77 +239,25 @@ export const ChatPopup = () => {
     setShowQuickActions(false);
   };
 
-  // Hàm phụ trợ gửi tin nhắn tự động
-  const sendFarmerReply = (responseContent, chatList) => {
-    setTimeout(() => {
-      const checkChat = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-      const updatedCheck = checkChat.find(c => c.id === selectedFarm.id);
-      if (updatedCheck?.isBlocked) return;
-
-      const responseTime = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-      const replyTimestamp = Date.now();
-      
-      const replyMsg = {
-        id: `farmer-${replyTimestamp}`,
-        sender: "farmer",
-        type: "text",
-        text: responseContent,
-        time: responseTime,
-        timestamp: replyTimestamp
-      };
-
-      const chatsWithReply = chatList.map((c) => {
-        if (c.id === selectedFarm.id) {
-          const isCurrentlyChatting = isOpen && activeView === "chat" && selectedFarm.id === c.id;
-          return {
-            ...c,
-            unreadCount: isCurrentlyChatting ? 0 : (c.unreadCount || 0) + 1,
-            messages: [...c.messages, replyMsg]
-          };
-        }
-        return c;
-      });
-
-      saveChatsToStorage(chatsWithReply);
-    }, 1500);
-  };
-
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || !selectedFarm) return;
 
-    const currentDetail = chats.find(c => c.id === selectedFarm.id);
+    const currentDetail = chats.find(c => String(c.id) === String(selectedFarm.id));
     if (currentDetail?.isBlocked) return;
 
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    const currentTimestamp = Date.now();
-
-    const newMsg = {
-      id: `user-${currentTimestamp}`,
-      sender: "user",
-      type: "text",
-      text: inputText.trim(),
-      time: timeStr,
-      status: "sent",
-      timestamp: currentTimestamp
-    };
-
-    const updatedChats = chats.map((c) => {
-      if (c.id === selectedFarm.id) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
-      }
-      return c;
-    });
-
-    saveChatsToStorage(updatedChats);
+    const content = inputText.trim();
     setInputText("");
 
-    const reply = AUTO_RESPONSES[Math.floor(Math.random() * AUTO_RESPONSES.length)];
-    sendFarmerReply(reply, updatedChats);
+    try {
+      await chatService.sendMessage(selectedFarm.id, {
+        content: content,
+        type: "text"
+      });
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
   };
 
   // Gửi ảnh thực tế qua FileReader (base64)
@@ -437,36 +266,17 @@ export const ChatPopup = () => {
     if (!file || !selectedFarm) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64Data = event.target.result;
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-      const currentTimestamp = Date.now();
-
-      const newMsg = {
-        id: `user-img-${currentTimestamp}`,
-        sender: "user",
-        type: "image",
-        mediaUrl: base64Data,
-        time: timeStr,
-        status: "sent",
-        timestamp: currentTimestamp
-      };
-
-      const updatedChats = chats.map((c) => {
-        if (c.id === selectedFarm.id) {
-          const currentMedia = c.mediaImages || [...DEFAULT_MEDIA_IMAGES];
-          return {
-            ...c,
-            mediaImages: [base64Data, ...currentMedia], // Đẩy ảnh mới lên đầu kho ảnh
-            messages: [...c.messages, newMsg]
-          };
-        }
-        return c;
-      });
-
-      saveChatsToStorage(updatedChats);
-      sendFarmerReply("Dạ vườn đã nhận được hình ảnh của bạn rồi nhé! Nông sản trông ngon quá.", updatedChats);
+      try {
+        await chatService.sendMessage(selectedFarm.id, {
+          content: base64Data,
+          type: "image"
+        });
+        fetchConversations();
+      } catch (err) {
+        console.error("Failed to upload image:", err);
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = ""; // Reset input
@@ -477,7 +287,6 @@ export const ChatPopup = () => {
     const file = e.target.files?.[0];
     if (!file || !selectedFarm) return;
 
-    // Tính kích thước
     let sizeStr = "";
     if (file.size < 1024 * 1024) {
       sizeStr = `${(file.size / 1024).toFixed(1)} KB`;
@@ -485,217 +294,173 @@ export const ChatPopup = () => {
       sizeStr = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
     }
 
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    const currentTimestamp = Date.now();
-
-    const newMsg = {
-      id: `user-file-${currentTimestamp}`,
-      sender: "user",
-      type: "file",
-      fileName: file.name,
-      fileSize: sizeStr,
-      time: timeStr,
-      status: "sent",
-      timestamp: currentTimestamp
-    };
-
-    const updatedChats = chats.map((c) => {
-      if (c.id === selectedFarm.id) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64Data = event.target.result;
+      try {
+        await chatService.sendMessage(selectedFarm.id, {
+          content: base64Data,
+          type: "file",
+          fileName: file.name,
+          fileSize: sizeStr
+        });
+        fetchConversations();
+      } catch (err) {
+        console.error("Failed to upload file:", err);
       }
-      return c;
-    });
-
-    saveChatsToStorage(updatedChats);
-    sendFarmerReply(`Dạ vườn nhận được file tài liệu "${file.name}" rồi nhé bạn. Vườn sẽ mở kiểm tra ạ.`, updatedChats);
+    };
+    reader.readAsDataURL(file);
     e.target.value = ""; // Reset input
   };
 
   // Gửi vị trí giả lập
-  const handleSendLocation = () => {
+  const handleSendLocation = async () => {
     if (!selectedFarm) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    const currentTimestamp = Date.now();
-
-    const newMsg = {
-      id: `user-loc-${currentTimestamp}`,
-      sender: "user",
-      type: "location",
-      locationName: "Vị trí của tôi (Đang ở gần chợ nông sản Đà Lạt)",
-      mapUrl: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=300&q=70",
-      time: timeStr,
-      status: "sent",
-      timestamp: currentTimestamp
-    };
-
-    const updatedChats = chats.map((c) => {
-      if (c.id === selectedFarm.id) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
-      }
-      return c;
-    });
-
-    saveChatsToStorage(updatedChats);
-    setShowQuickActions(false);
-    sendFarmerReply("Dạ cảm ơn bạn đã gửi định vị! Bên mình sẽ báo shipper giao đúng vị trí này nha.", updatedChats);
+    try {
+      await chatService.sendMessage(selectedFarm.id, {
+        content: "Vị trí chia sẻ",
+        type: "location",
+        locationName: "Vị trí của tôi (Đang ở gần chợ nông sản Đà Lạt)",
+        mapUrl: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=300&q=70"
+      });
+      setShowQuickActions(false);
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to send location:", err);
+    }
   };
 
   // Gửi danh thiếp mẫu
-  const handleSendContactCard = () => {
+  const handleSendContactCard = async () => {
     if (!selectedFarm) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    const currentTimestamp = Date.now();
-
-    const newMsg = {
-      id: `user-contact-${currentTimestamp}`,
-      sender: "user",
-      type: "contact",
-      contactName: "Bùi Khắc Hưng (Nông dân số)",
-      contactPhone: "0912 999 888",
-      contactAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
-      time: timeStr,
-      status: "sent",
-      timestamp: currentTimestamp
-    };
-
-    const updatedChats = chats.map((c) => {
-      if (c.id === selectedFarm.id) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
-      }
-      return c;
-    });
-
-    saveChatsToStorage(updatedChats);
-    setShowQuickActions(false);
-    sendFarmerReply("Dạ vườn lưu lại thông tin liên hệ của bạn rồi nhé. Cảm ơn bạn!", updatedChats);
+    try {
+      await chatService.sendMessage(selectedFarm.id, {
+        content: "Chia sẻ danh thiếp",
+        type: "contact",
+        contactName: "Bùi Khắc Hưng (Nông dân số)",
+        contactPhone: "0912 999 888",
+        contactAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
+      });
+      setShowQuickActions(false);
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to send contact card:", err);
+    }
   };
 
   // Click chọn tin nhắn nhanh mẫu
-  const handleSendQuickReply = (text) => {
+  const handleSendQuickReply = async (text) => {
     if (!selectedFarm) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-    const currentTimestamp = Date.now();
-
-    const newMsg = {
-      id: `user-quick-${currentTimestamp}`,
-      sender: "user",
-      type: "text",
-      text: text,
-      time: timeStr,
-      status: "sent",
-      timestamp: currentTimestamp
-    };
-
-    const updatedChats = chats.map((c) => {
-      if (c.id === selectedFarm.id) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
-      }
-      return c;
-    });
-
-    saveChatsToStorage(updatedChats);
-    setShowQuickActions(false);
-    
-    // Auto trả lời thích hợp
-    let responseText = "Dạ bắp cải và súp lơ hôm nay cắt ngoài vườn cực kỳ tươi xanh nhé bạn!";
-    if (text.includes("ship")) {
-      responseText = "Dạ sau khi bạn đặt đơn thì khoảng 30 phút - 1 tiếng shipper sẽ lấy hàng và giao đi ngay trong buổi ạ!";
-    } else if (text.includes("bán sỉ")) {
-      responseText = "Dạ bên mình có giá sỉ cực tốt cho các cửa hàng và bếp ăn từ 50kg trở lên. Bạn check Zalo số điện thoại vườn nhé!";
+    try {
+      await chatService.sendMessage(selectedFarm.id, {
+        content: text,
+        type: "text"
+      });
+      setShowQuickActions(false);
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to send quick reply:", err);
     }
-    sendFarmerReply(responseText, updatedChats);
   };
 
-  const handleCreateNewConversation = (farm) => {
-    const existingChat = chats.find(c => c.id === farm.id);
-    if (existingChat) {
-      handleSelectFarm(existingChat);
-    } else {
-      const initTimestamp = Date.now();
-      const newChat = {
-        ...farm,
-        unreadCount: 0,
-        isPinned: false,
-        isMuted: false,
-        isBlocked: false,
-        type: "normal",
-        mediaImages: [...DEFAULT_MEDIA_IMAGES],
-        messages: [
-          { 
-            id: `m-init-${initTimestamp}`, 
-            sender: "farmer", 
-            type: "text",
-            text: `Chào bạn! Cảm ơn đã liên hệ với ${farm.name}. Nông trại có thể giúp gì cho bạn?`, 
-            time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-            timestamp: initTimestamp
-          }
-        ]
+  const handleCreateNewConversation = async (farm) => {
+    const token = localStorage.getItem("farmconnect_token");
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+    try {
+      const startedConv = await chatService.startConversation(farm.id);
+      const sanitized = {
+        ...startedConv,
+        id: String(startedConv.id)
       };
-      const updatedChats = [newChat, ...chats];
-      handleSelectFarm(newChat, updatedChats);
+      await fetchConversations();
+      handleSelectFarm(sanitized);
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
     }
     setNewChatQuery("");
   };
 
+  const getPrefsKey = (type) => {
+    const user = authService.getCurrentUser();
+    const email = user?.email || "anonymous";
+    return `agrimarket_chat_${type}_${email}`;
+  };
+
+  const getPinnedIds = () => {
+    const key = getPrefsKey("pinned");
+    return JSON.parse(localStorage.getItem(key)) || [];
+  };
+
+  const getBlockedIds = () => {
+    const key = getPrefsKey("blocked");
+    return JSON.parse(localStorage.getItem(key)) || [];
+  };
+
+  const getClearedHistoryTimes = () => {
+    const key = getPrefsKey("cleared");
+    return JSON.parse(localStorage.getItem(key)) || {};
+  };
+
   const handleTogglePin = (farmId) => {
-    const updatedChats = chats.map((c) => {
-      if (c.id === farmId) {
-        return { ...c, isPinned: !c.isPinned };
-      }
-      return c;
-    });
-    saveChatsToStorage(updatedChats);
+    const idStr = String(farmId);
+    const key = getPrefsKey("pinned");
+    let pinned = getPinnedIds();
+    if (pinned.includes(idStr)) {
+      pinned = pinned.filter(id => id !== idStr);
+    } else {
+      pinned.push(idStr);
+    }
+    localStorage.setItem(key, JSON.stringify(pinned));
+    
+    setChats(prev => prev.map(c => String(c.id) === idStr ? { ...c, isPinned: !c.isPinned } : c));
     setShowOptionsMenu(false);
   };
 
-  const handleToggleMute = (farmId) => {
-    const updatedChats = chats.map((c) => {
-      if (c.id === farmId) {
-        return { ...c, isMuted: !c.isMuted };
-      }
-      return c;
-    });
-    saveChatsToStorage(updatedChats);
-    setShowOptionsMenu(false);
-  };
-
-  const handleToggleBlock = (farmId) => {
-    const updatedChats = chats.map((c) => {
-      if (c.id === farmId) {
-        return { ...c, isBlocked: !c.isBlocked };
-      }
-      return c;
-    });
-    saveChatsToStorage(updatedChats);
-    setShowOptionsMenu(false);
-  };
-
-  const handleClearHistory = (farmId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không?")) {
-      const updatedChats = chats.map((c) => {
-        if (c.id === farmId) {
-          return { ...c, messages: [] };
-        }
-        return c;
-      });
-      saveChatsToStorage(updatedChats);
+  const handleToggleBlock = async (farmId) => {
+    const idStr = String(farmId);
+    try {
+      const updated = await chatService.toggleBlock(idStr);
+      setChats(prev => prev.map(c => String(c.id) === idStr ? { ...c, isBlocked: updated.isBlocked, blockedBy: updated.blockedBy } : c));
       setShowOptionsMenu(false);
+    } catch (err) {
+      console.error("Failed to toggle block:", err);
+      alert(err.response?.data || "Không thể thực hiện chặn/bỏ chặn.");
+    }
+  };
+
+  const handleClearHistory = async (farmId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không?")) {
+      const idStr = String(farmId);
+      try {
+        await chatService.deleteConversation(idStr);
+        setChats(prev => prev.filter(c => String(c.id) !== idStr));
+        if (selectedFarm && String(selectedFarm.id) === idStr) {
+          setSelectedFarm(null);
+          setActiveView("list");
+        }
+        
+        // Dọn dẹp localStorage cho cuộc trò chuyện bị xóa
+        const cleanLocalStorage = (type) => {
+          const key = getPrefsKey(type);
+          const list = JSON.parse(localStorage.getItem(key)) || [];
+          const filtered = list.filter(id => String(id) !== idStr);
+          localStorage.setItem(key, JSON.stringify(filtered));
+        };
+        cleanLocalStorage("pinned");
+        cleanLocalStorage("blocked");
+        const clearedKey = getPrefsKey("cleared");
+        const cleared = JSON.parse(localStorage.getItem(clearedKey)) || {};
+        delete cleared[idStr];
+        localStorage.setItem(clearedKey, JSON.stringify(cleared));
+
+        setShowOptionsMenu(false);
+      } catch (err) {
+        console.error("Failed to delete conversation:", err);
+        alert(err.response?.data || "Không thể xóa cuộc trò chuyện.");
+      }
     }
   };
 
@@ -731,11 +496,7 @@ export const ChatPopup = () => {
     return true;
   });
 
-  const filteredSystemFarms = ALL_SYSTEM_FARMS.filter(farm => 
-    farm.name.toLowerCase().includes(newChatQuery.toLowerCase())
-  );
-
-  const currentChatDetail = selectedFarm ? chats.find(c => c.id === selectedFarm.id) : null;
+  const currentChatDetail = selectedFarm ? chats.find(c => String(c.id) === String(selectedFarm.id)) : null;
 
   return (
     <div className={`zalo-chat-container ${isOpen ? "zalo-popup-open" : ""}`}>
@@ -909,7 +670,6 @@ export const ChatPopup = () => {
                               <span className="zalo-farm-name">{chat.name}</span>
                               {chat.verified && <CheckCircle2 className="zalo-verified-badge" size={14} />}
                               {chat.isPinned && <Pin size={11} className="zalo-mini-status-icon zalo-pinned-icon" />}
-                              {chat.isMuted && <BellOff size={11} className="zalo-mini-status-icon zalo-muted-icon" />}
                             </span>
                             <span className="zalo-chat-time">{lastMsg?.time || ""}</span>
                           </div>
@@ -921,6 +681,43 @@ export const ChatPopup = () => {
                               <span className="zalo-unread-badge-green">{chat.unreadCount}</span>
                             )}
                           </div>
+                        </div>
+
+                        <div className="zalo-item-action-wrapper" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            type="button"
+                            className="zalo-item-more-btn"
+                            onClick={() => setRowActionMenuId(rowActionMenuId === chat.id ? null : chat.id)}
+                            title="Tùy chọn"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                          
+                          {rowActionMenuId === chat.id && (
+                            <div className="zalo-item-dropdown-menu">
+                              <button type="button" className="zalo-item-dropdown-option" onClick={() => { handleTogglePin(chat.id); setRowActionMenuId(null); }}>
+                                <Pin size={12} />
+                                <span>{chat.isPinned ? "Bỏ ghim" : "Ghim"}</span>
+                              </button>
+                              <button type="button" className="zalo-item-dropdown-option zalo-danger-option" onClick={() => { handleClearHistory(chat.id); setRowActionMenuId(null); }}>
+                                <Trash2 size={12} />
+                                <span>Xóa lịch sử</span>
+                              </button>
+                              {chat.isBlocked ? (
+                                chat.blockedBy === (JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "farmer" : "customer") && (
+                                  <button type="button" className="zalo-item-dropdown-option" onClick={() => { handleToggleBlock(chat.id); setRowActionMenuId(null); }}>
+                                    <Ban size={12} />
+                                    <span>Bỏ chặn</span>
+                                  </button>
+                                )
+                              ) : (
+                                <button type="button" className="zalo-item-dropdown-option zalo-danger-option" onClick={() => { handleToggleBlock(chat.id); setRowActionMenuId(null); }}>
+                                  <Ban size={12} />
+                                  <span>Chặn</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -969,12 +766,12 @@ export const ChatPopup = () => {
               {/* Danh sách nông trại đề xuất */}
               <div className="zalo-chat-list-content">
                 <div className="zalo-new-chat-section-title">Nông trại đề xuất</div>
-                {filteredSystemFarms.length === 0 ? (
+                {suggestedFarms.length === 0 ? (
                   <div className="zalo-empty-chat-list">
                     <p>Không tìm thấy nông trại nào</p>
                   </div>
                 ) : (
-                  filteredSystemFarms.map((farm) => {
+                  suggestedFarms.map((farm) => {
                     return (
                       <div 
                         key={farm.id} 
@@ -1056,18 +853,23 @@ export const ChatPopup = () => {
                         <Pin size={15} />
                         <span>{currentChatDetail.isPinned ? "Bỏ ghim trò chuyện" : "Ghim trò chuyện"}</span>
                       </button>
-                      <button className="zalo-dropdown-item" onClick={() => handleToggleMute(currentChatDetail.id)}>
-                        <BellOff size={15} />
-                        <span>{currentChatDetail.isMuted ? "Bật thông báo" : "Tắt thông báo"}</span>
-                      </button>
                       <button className="zalo-dropdown-item zalo-danger-item" onClick={() => handleClearHistory(currentChatDetail.id)}>
                         <Trash2 size={15} />
                         <span>Xóa lịch sử trò chuyện</span>
                       </button>
-                      <button className="zalo-dropdown-item zalo-danger-item" onClick={() => handleToggleBlock(currentChatDetail.id)}>
-                        <Ban size={15} />
-                        <span>{currentChatDetail.isBlocked ? "Bỏ chặn nông trại" : "Chặn nông trại này"}</span>
-                      </button>
+                      {currentChatDetail.isBlocked ? (
+                        currentChatDetail.blockedBy === (JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "farmer" : "customer") && (
+                          <button className="zalo-dropdown-item" onClick={() => handleToggleBlock(currentChatDetail.id)}>
+                            <Ban size={15} />
+                            <span>Bỏ chặn {JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "khách hàng" : "nông trại"}</span>
+                          </button>
+                        )
+                      ) : (
+                        <button className="zalo-dropdown-item zalo-danger-item" onClick={() => handleToggleBlock(currentChatDetail.id)}>
+                          <Ban size={15} />
+                          <span>Chặn {JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "khách hàng" : "nông trại"} này</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1085,7 +887,9 @@ export const ChatPopup = () => {
                   </div>
                 ) : (
                   currentChatDetail.messages && currentChatDetail.messages.map((msg, index) => {
-                    const isUser = msg.sender === "user";
+                    const loggedInUser = authService.getCurrentUser();
+                    const isUser = (loggedInUser?.role === "farmer" && msg.sender === "farmer") ||
+                                   (loggedInUser?.role !== "farmer" && msg.sender === "user");
                     const isImg = msg.type === "image";
                     const isFile = msg.type === "file";
                     const isLoc = msg.type === "location";
@@ -1237,11 +1041,17 @@ export const ChatPopup = () => {
               {/* Footer controls */}
               <div className="zalo-chat-footer-controls">
                 {currentChatDetail.isBlocked ? (
-                  <div className="zalo-blocked-input-banner">
-                    <span>Bạn đã chặn nông trại này. Bỏ chặn để gửi tin nhắn.</span>
-                    <button className="zalo-unblock-btn" onClick={() => handleToggleBlock(currentChatDetail.id)}>
-                      Bỏ chặn
-                    </button>
+                  <div className="zalo-blocked-input-banner" style={{ padding: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f2f4f7", borderRadius: "8px" }}>
+                    {currentChatDetail.blockedBy === (JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "farmer" : "customer") ? (
+                      <>
+                        <span style={{ fontSize: "13px", color: "#667085", fontWeight: "600" }}>Bạn đã chặn {JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "khách hàng" : "nông trại"} này. Bỏ chặn để gửi tin nhắn.</span>
+                        <button className="zalo-unblock-btn" onClick={() => handleToggleBlock(currentChatDetail.id)} style={{ padding: "6px 12px", border: "1px solid #1B5E20", background: "none", color: "#1B5E20", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+                          Bỏ chặn
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: "13px", color: "#667085", fontWeight: "600", width: "100%", textAlign: "center" }}>Bạn đã bị chặn</span>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -1288,14 +1098,8 @@ export const ChatPopup = () => {
           {showInfoModal && currentChatDetail && (
             <div className="zalo-info-modal-overlay">
               <div className="zalo-info-modal-card">
-                <div className="zalo-info-modal-header-container">
-                  {/* Cánh đồng cover ảnh bìa */}
-                  <img 
-                    src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&auto=format&fit=crop&q=80" 
-                    alt="Ảnh bìa trang trại" 
-                    className="zalo-info-modal-cover" 
-                  />
-                  <button className="zalo-info-modal-close-absolute" onClick={() => setShowInfoModal(false)}>
+                <div className="zalo-info-modal-header-container" style={{ height: "40px", background: "none" }}>
+                  <button className="zalo-info-modal-close-absolute" onClick={() => setShowInfoModal(false)} style={{ color: "#333", top: "12px", right: "12px" }}>
                     <X size={18} />
                   </button>
                 </div>
@@ -1316,7 +1120,7 @@ export const ChatPopup = () => {
                   <span className="zalo-info-modal-status">{currentChatDetail.activeState}</span>
                   
                   <p className="zalo-info-modal-bio">
-                    Chuyên cung cấp nông sản sạch hữu cơ đạt tiêu chuẩn VietGAP, an toàn cho sức khỏe gia đình bạn.
+                    {currentChatDetail.description || "Nông trại chưa cập nhật giới thiệu."}
                   </p>
                   
                   <div className="zalo-info-details-list">
