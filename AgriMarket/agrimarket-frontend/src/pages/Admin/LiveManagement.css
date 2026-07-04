@@ -1,5 +1,14 @@
 /* Admin Livestream Management Stylesheet */
 
+/* Fix Search Icon Overlap */
+.admin-search-wrapper .admin-search-input {
+  padding-left: 44px !important;
+}
+
+.admin-search-wrapper .admin-search-icon {
+  left: 16px !important;
+}
+
 .live-management-container {
   padding: 0;
 }
