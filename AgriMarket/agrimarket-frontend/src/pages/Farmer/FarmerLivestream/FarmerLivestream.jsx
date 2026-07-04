@@ -39,6 +39,7 @@ export const FarmerLivestream = () => {
   const [blockedUsers, setBlockedUsers] = useState({}); // { username: expiryTimestamp }
   const [activeBlockMenuMsgId, setActiveBlockMenuMsgId] = useState(null);
   const [isConfirmEndOpen, setIsConfirmEndOpen] = useState(false);
+  const [adminBanReason, setAdminBanReason] = useState("");
   const blockedUsersRef = useRef({});
   blockedUsersRef.current = blockedUsers;
 
@@ -220,6 +221,7 @@ export const FarmerLivestream = () => {
             clearInterval(viewersTimerRef.current);
             clearInterval(chatsTimerRef.current);
             setStreamState("banned");
+            setAdminBanReason(currentSession.banReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
           }
         } catch (e) {
           console.error("Lỗi khi kiểm tra vi phạm livestream:", e);
@@ -1238,7 +1240,7 @@ export const FarmerLivestream = () => {
 
             <div className="banned-detail-card">
               <p className="banned-card-label">Lý do chấm dứt:</p>
-              <p className="banned-card-reason">Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.</p>
+              <p className="banned-card-reason">{adminBanReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm."}</p>
             </div>
 
             <button className="btn-close-report btn-banned-dashboard" onClick={() => setStreamState("setup")}>

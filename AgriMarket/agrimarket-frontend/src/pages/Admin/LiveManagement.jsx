@@ -44,7 +44,9 @@ export default function LiveManagement() {
   // Interactive filters state
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'live', 'ended'
-  const [sortBy, setSortBy] = useState("default"); // 'default', 'viewers', 'likes'
+  const [sortBy, setSortBy] = useState("default"); // 'default', 'newest', 'viewers', 'likes'
+  const [banReason, setBanReason] = useState("Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
+  const [customBanReason, setCustomBanReason] = useState("");
 
   // Baseline Mock sessions corresponding to the screenshot (plus mock product items and likes)
   const defaultMockSessions = [
@@ -231,8 +233,7 @@ export default function LiveManagement() {
     setTimeout(() => setToastMessage(""), 3500);
   };
 
-  const handleTerminateStream = (sessionId, brandName) => {
-
+  const handleTerminateStream = (sessionId, brandName, reason) => {
     try {
       // Find the stream session in localStorage list
       const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
@@ -242,6 +243,7 @@ export default function LiveManagement() {
             ...session,
             status: "replay",
             isBanned: true,
+            banReason: reason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.",
             scheduledTime: "Kết thúc bởi quản trị viên"
           };
         }
@@ -291,6 +293,19 @@ export default function LiveManagement() {
       result = [...result].sort((a, b) => b.viewers - a.viewers);
     } else if (sortBy === "likes") {
       result = [...result].sort((a, b) => b.likes - a.likes);
+    } else if (sortBy === "newest") {
+      const getTimestamp = (session) => {
+        if (session.id && typeof session.id === "string" && session.id.startsWith("custom-live-")) {
+          return parseInt(session.id.replace("custom-live-", "")) || 0;
+        }
+        // Baseline mock sessions (older, preserve their relative order)
+        if (session.id === "FRM-8892") return 1004;
+        if (session.id === "FRM-1024") return 1003;
+        if (session.id === "FRM-2231") return 1002;
+        if (session.id === "FRM-4451") return 1001;
+        return 0;
+      };
+      result = [...result].sort((a, b) => getTimestamp(b) - getTimestamp(a));
     }
 
     return result;
@@ -541,6 +556,15 @@ export default function LiveManagement() {
                         <input
                           type="radio"
                           name="sortBy"
+                          checked={sortBy === "newest"}
+                          onChange={() => setSortBy("newest")}
+                        />
+                        <span>Mới nhất</span>
+                      </label>
+                      <label className="filter-option">
+                        <input
+                          type="radio"
+                          name="sortBy"
                           checked={sortBy === "viewers"}
                           onChange={() => setSortBy("viewers")}
                         />
@@ -786,7 +810,11 @@ export default function LiveManagement() {
 
       {/* Custom Terminate Confirmation Dialog Modal */}
       {terminatingSession && (
-        <div className="confirm-modal-overlay" onClick={() => setTerminatingSession(null)}>
+        <div className="confirm-modal-overlay" onClick={() => {
+          setTerminatingSession(null);
+          setBanReason("Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
+          setCustomBanReason("");
+        }}>
           <div className="confirm-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="confirm-modal-icon">
               <AlertTriangle size={28} />
@@ -795,15 +823,78 @@ export default function LiveManagement() {
             <p>
               Bạn có chắc chắn muốn buộc <strong>DỪNG</strong> phiên livestream của nhà vườn <strong>{terminatingSession.brand}</strong> không?
             </p>
+
+            <div style={{ marginTop: "16px", marginBottom: "16px", textAlign: "left", width: "100%" }}>
+              <label style={{ fontSize: "0.85rem", fontWeight: "600", color: "#475569", display: "block", marginBottom: "6px" }}>
+                Lý do buộc dừng:
+              </label>
+              <select
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.9rem",
+                  color: "#1e293b",
+                  outline: "none",
+                  backgroundColor: "#ffffff",
+                  cursor: "pointer"
+                }}
+              >
+                <option value="Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.">
+                  Vi phạm tiêu chuẩn quảng cáo / chất lượng
+                </option>
+                <option value="Bán hàng nông sản không rõ nguồn gốc xuất xứ hoặc hàng giả.">
+                  Hàng hóa không rõ nguồn gốc xuất xứ
+                </option>
+                <option value="Sử dụng ngôn từ, hình ảnh hoặc hành vi không chuẩn mực trên sóng.">
+                  Ngôn từ / hành vi không chuẩn mực
+                </option>
+                <option value="Phát livestream tĩnh hoặc phát lại video cũ không được phép.">
+                  Livestream tĩnh / Phát lại video cũ
+                </option>
+                <option value="custom">Nhập lý do khác...</option>
+              </select>
+
+              {banReason === "custom" && (
+                <textarea
+                  placeholder="Nhập lý do chi tiết..."
+                  value={customBanReason}
+                  onChange={(e) => setCustomBanReason(e.target.value)}
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "0.9rem",
+                    color: "#1e293b",
+                    outline: "none",
+                    minHeight: "60px",
+                    resize: "vertical"
+                  }}
+                />
+              )}
+            </div>
+
             <div className="confirm-modal-actions">
-              <button className="btn-confirm-cancel" onClick={() => setTerminatingSession(null)}>
+              <button className="btn-confirm-cancel" onClick={() => {
+                setTerminatingSession(null);
+                setBanReason("Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
+                setCustomBanReason("");
+              }}>
                 Hủy bỏ
               </button>
               <button
                 className="btn-confirm-submit"
                 onClick={() => {
-                  handleTerminateStream(terminatingSession.id, terminatingSession.brand);
+                  const finalReason = banReason === "custom" ? (customBanReason.trim() || "Lý do vi phạm khác") : banReason;
+                  handleTerminateStream(terminatingSession.id, terminatingSession.brand, finalReason);
                   setTerminatingSession(null);
+                  setBanReason("Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
+                  setCustomBanReason("");
                 }}
               >
                 Đồng ý dừng
