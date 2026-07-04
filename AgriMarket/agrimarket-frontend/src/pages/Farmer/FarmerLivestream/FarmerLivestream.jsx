@@ -1129,7 +1129,6 @@ export const FarmerLivestream = () => {
             <form className="host-chat-input-row" onSubmit={handleHostSendChat}>
               <input
                 type="text"
-                placeholder="Trả lời bình luận của khán giả..."
                 className="host-chat-input"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
