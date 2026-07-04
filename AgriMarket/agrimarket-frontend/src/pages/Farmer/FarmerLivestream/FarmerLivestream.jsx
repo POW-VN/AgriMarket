@@ -198,10 +198,11 @@ export const FarmerLivestream = () => {
       if (prev.includes(productId)) {
         return prev.filter((id) => id !== productId);
       } else {
-        // Set a default discount (e.g. 10%) when checking the product
+        // Set a default discount matching the active voucher percent (default to 10 if none)
+        const defaultDiscount = voucherPercent > 0 ? voucherPercent : 10;
         setProductDiscounts(discs => ({
           ...discs,
-          [productId]: discs[productId] || 10
+          [productId]: discs[productId] !== undefined ? discs[productId] : defaultDiscount
         }));
         return [...prev, productId];
       }
@@ -209,11 +210,31 @@ export const FarmerLivestream = () => {
   };
 
   const handleDiscountChange = (productId, value) => {
+    if (value === "") {
+      setProductDiscounts((prev) => ({
+        ...prev,
+        [productId]: ""
+      }));
+      return;
+    }
     const percent = Math.min(Math.max(parseInt(value) || 0, 0), 90);
     setProductDiscounts((prev) => ({
       ...prev,
       [productId]: percent
     }));
+  };
+
+  const handleVoucherPercentChange = (percent) => {
+    setVoucherPercent(percent);
+    if (percent > 0) {
+      setProductDiscounts((prev) => {
+        const next = { ...prev };
+        selectedProductIds.forEach((id) => {
+          next[id] = percent;
+        });
+        return next;
+      });
+    }
   };
 
   // Launch Livestream Session
@@ -230,7 +251,7 @@ export const FarmerLivestream = () => {
     const selectedProductsDetails = farmerProducts
       .filter((p) => selectedProductIds.includes(p.id))
       .map((p) => {
-        const discount = productDiscounts[p.id] || 0;
+        const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
         const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
         return {
           id: p.id,
@@ -401,20 +422,22 @@ export const FarmerLivestream = () => {
                       className={`product-row-item ${selectedProductIds.includes(prod.id) ? "selected" : ""}`}
                       onClick={() => handleProductCheckboxChange(prod.id)}
                     >
-                      <input
-                        type="checkbox"
-                        className="product-row-checkbox"
-                        checked={selectedProductIds.includes(prod.id)}
-                        onChange={() => {}} // handled by item click
-                      />
-                      <img src={prod.imageUrl} alt={prod.name} className="product-row-thumbnail" />
-                      <div className="product-row-details">
-                        <p className="product-row-name">{prod.name}</p>
-                        <p className="product-row-meta">
-                          Giá niêm yết: {prod.price.toLocaleString()}đ/{prod.unit} - Tồn kho: {prod.stock}
-                        </p>
+                      <div className="product-row-left">
+                        <input
+                          type="checkbox"
+                          className="product-row-checkbox"
+                          checked={selectedProductIds.includes(prod.id)}
+                          onChange={() => {}} // handled by item click
+                        />
+                        <img src={prod.imageUrl} alt={prod.name} className="product-row-thumbnail" />
+                        <div className="product-row-details">
+                          <p className="product-row-name">{prod.name}</p>
+                          <p className="product-row-meta">
+                            Giá: <span className="price-bold">{prod.price.toLocaleString()}đ</span>/{prod.unit} • Kho: {prod.stock}
+                          </p>
+                        </div>
                       </div>
-                      {selectedProductIds.includes(prod.id) && (
+                      {selectedProductIds.includes(prod.id) && voucherPercent !== 0 && (
                         <div className="product-row-inputs" onClick={(e) => e.stopPropagation()}>
                           <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Giảm live:</span>
                           <input
@@ -422,7 +445,7 @@ export const FarmerLivestream = () => {
                             className="live-discount-box"
                             min="0"
                             max="90"
-                            value={productDiscounts[prod.id] || 0}
+                            value={productDiscounts[prod.id] !== undefined ? productDiscounts[prod.id] : ""}
                             onChange={(e) => handleDiscountChange(prod.id, e.target.value)}
                           />
                           <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#475569" }}>%</span>
@@ -443,25 +466,25 @@ export const FarmerLivestream = () => {
               <div className="voucher-option-pills">
                 <button
                   className={`voucher-pill ${voucherPercent === 0 ? "active" : ""}`}
-                  onClick={() => setVoucherPercent(0)}
+                  onClick={() => handleVoucherPercentChange(0)}
                 >
                   Không áp dụng
                 </button>
                 <button
                   className={`voucher-pill ${voucherPercent === 10 ? "active" : ""}`}
-                  onClick={() => setVoucherPercent(10)}
+                  onClick={() => handleVoucherPercentChange(10)}
                 >
                   Giảm 10%
                 </button>
                 <button
                   className={`voucher-pill ${voucherPercent === 15 ? "active" : ""}`}
-                  onClick={() => setVoucherPercent(15)}
+                  onClick={() => handleVoucherPercentChange(15)}
                 >
                   Giảm 15%
                 </button>
                 <button
                   className={`voucher-pill ${voucherPercent === 20 ? "active" : ""}`}
-                  onClick={() => setVoucherPercent(20)}
+                  onClick={() => handleVoucherPercentChange(20)}
                 >
                   Giảm 20%
                 </button>
