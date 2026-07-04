@@ -288,7 +288,35 @@ const LivestreamPage = () => {
   };
 
   // Get active stream data based on id, default to thomas-miller if not found
-  const streamData = streamsMap[id] || streamsMap["thomas-miller"];
+  let streamData = streamsMap[id];
+  if (!streamData) {
+    try {
+      const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+      const found = storedLives.find((item) => item.id === id);
+      if (found) {
+        streamData = {
+          ...found,
+          viewersCount: found.viewers || "120 đang xem",
+          videoSrc: found.videoSrc || found.thumbnail,
+          voucherTimeInit: found.voucherPercent > 0 ? 300 : 0,
+          initialChats: [
+            {
+              id: 1,
+              user: "Hệ thống AgriMarket",
+              text: "Chào mừng quý khách đến với livestream trực tiếp của nhà vườn!",
+              isBot: true,
+              avatar: ""
+            }
+          ]
+        };
+      }
+    } catch (e) {
+      console.error("Lỗi khi tìm custom livestream:", e);
+    }
+  }
+  if (!streamData) {
+    streamData = streamsMap["thomas-miller"];
+  }
 
   // Initialize page variables when streamData changes
   useEffect(() => {

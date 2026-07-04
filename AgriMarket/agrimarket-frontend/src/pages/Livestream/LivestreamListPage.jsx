@@ -31,6 +31,17 @@ const LivestreamListPage = () => {
     }, 3000);
   };
 
+  const [customLives, setCustomLives] = useState([]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+      setCustomLives(stored);
+    } catch (e) {
+      console.error("Lỗi khi tải livestream tự tạo từ localStorage:", e);
+    }
+  }, []);
+
   // Mock livestreams data matching different farmers and statuses
   const livestreamsData = [
     {
@@ -105,7 +116,7 @@ const LivestreamListPage = () => {
   };
 
   // Filter & search logic
-  const filteredLivestreams = livestreamsData.filter((live) => {
+  const filteredLivestreams = [...customLives, ...livestreamsData].filter((live) => {
     const matchesSearch = 
       live.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       live.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
