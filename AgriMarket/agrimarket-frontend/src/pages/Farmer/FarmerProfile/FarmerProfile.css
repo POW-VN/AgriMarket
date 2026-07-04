@@ -405,6 +405,44 @@
   line-height: 1.2;
 }
 
+.content-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.content-section-title-row .content-section-title {
+  margin-bottom: 0;
+}
+
+.report-farmer-btn {
+  flex: 0 0 auto;
+  border: 1px solid #f2b8b5;
+  background: #fff5f5;
+  color: #c62828;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  box-shadow: 0 8px 18px rgba(198, 40, 40, 0.08);
+}
+
+.report-farmer-btn:hover {
+  transform: translateY(-1px);
+  background: #ffecec;
+  box-shadow: 0 10px 22px rgba(198, 40, 40, 0.12);
+}
+
+.report-farmer-btn:focus-visible {
+  outline: 3px solid rgba(198, 40, 40, 0.18);
+  outline-offset: 2px;
+}
+
 .farmer-description-text {
   font-size: 14.5px;
   line-height: 1.7;
@@ -666,6 +704,15 @@
   .farmer-bio-card,
   .farmer-gallery-card {
     padding: 24px;
+  }
+
+  .content-section-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .report-farmer-btn {
+    padding: 8px 14px;
   }
   
   .gallery-grid {

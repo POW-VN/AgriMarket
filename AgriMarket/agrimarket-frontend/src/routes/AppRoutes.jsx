@@ -47,6 +47,7 @@ import Notifications from "../pages/Profile/Notifications";
 import AdminNotifications from "../pages/Admin/Notifications/AdminNotifications";
 import SupportHub from "../pages/Profile/Support/SupportHub";
 import CreateSupportRequest from "../pages/Profile/Support/CreateSupportRequest";
+import ReportViolation from "../pages/Profile/Support/ReportViolation";
 import SupportRequestSuccess from "../pages/Profile/Support/SupportRequestSuccess";
 import MySupportRequests from "../pages/Profile/Support/MySupportRequests";
 import SupportRequestDetail from "../pages/Profile/Support/SupportRequestDetail";
@@ -55,6 +56,7 @@ import LiveChat from "../pages/Profile/Support/LiveChat";
 import AdminChat from "../pages/Admin/AdminChat";
 import LivestreamPage from "../pages/Livestream/LivestreamPage";
 import LivestreamListPage from "../pages/Livestream/LivestreamListPage";
+import ViolationReports from "../pages/Admin/ViolationReports";
 
 
 const FarmsRoute = () => {
@@ -136,13 +138,11 @@ const AppRoutes = () => {
         <Route path="/shipper/requests" element={<ShipmentRequests />} />
         <Route path="/shipper/update-status" element={<UpdateShipmentStatus />} />
 
-        {/* Fallback to Home for any other unknown path */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-
         <Route path="/profile/notifications" element={<Notifications />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/support" element={<SupportHub />} />
         <Route path="/support/create" element={<CreateSupportRequest />} />
+        <Route path="/support/report" element={<ReportViolation />} />
         <Route path="/support/success/:id" element={<SupportRequestSuccess />} />
         <Route path="/support/detail/:id" element={<SupportRequestDetail />} />
         <Route path="/support/my-requests" element={<MySupportRequests />} />
@@ -151,6 +151,11 @@ const AppRoutes = () => {
         <Route path="/admin/complaints" element={<AdminComplaints />} />
         <Route path="/admin/chat" element={<AdminChat />} />
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
+        <Route path="/support/report" element={<ReportViolation />} />
+        <Route path="/admin/reports" element={<ViolationReports />} />
+
+        {/* Fallback to Home for any other unknown path */}
+        <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
       <ChatPopup />

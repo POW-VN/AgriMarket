@@ -134,6 +134,36 @@ export default function FarmerProfile() {
     window.dispatchEvent(event);
   };
 
+  const handleReportFarmer = () => {
+    if (!farmer) return;
+
+    const searchParams = new URLSearchParams({
+      targetType: "farmer",
+      targetId: String(farmer.id || id),
+      farmerName: farmer.farmName || farmer.fullName || "",
+      farmerAddress: farmer.farmAddress || "",
+      farmerAvatar: farmer.avatarUrl || "",
+    });
+
+    navigate(
+      {
+        pathname: "/support/report",
+        search: `?${searchParams.toString()}`,
+      },
+      {
+        state: {
+          reportTarget: {
+            targetType: "farmer",
+            targetId: String(farmer.id || id),
+            farmerName: farmer.farmName || farmer.fullName || "",
+            farmerAddress: farmer.farmAddress || "",
+            farmerAvatar: farmer.avatarUrl || "",
+          },
+        },
+      }
+    );
+  };
+
   const handleSendChatMessage = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -307,7 +337,12 @@ export default function FarmerProfile() {
             
             {/* Bio Card */}
             <div className="farmer-bio-card">
-              <h3 className="content-section-title">Về nhà vườn</h3>
+              <div className="content-section-title-row">
+                <h3 className="content-section-title">Về nhà vườn</h3>
+                <button type="button" className="report-farmer-btn" onClick={handleReportFarmer}>
+                  Báo cáo
+                </button>
+              </div>
               <p className="farmer-description-text">{farmer.description}</p>
               
               <div className="certificates-badges-row">
