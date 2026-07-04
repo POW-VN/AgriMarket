@@ -522,6 +522,9 @@ export const FarmerLivestream = () => {
 
   // End Livestream and Show Stats
   const handleEndLivestream = () => {
+    const confirmEnd = window.confirm("Bạn có chắc chắn muốn kết thúc buổi Livestream này không?");
+    if (!confirmEnd) return;
+
     // Generate final metrics
     const durationStr = formatTime(streamDuration);
     const peakViewers = Math.max(viewersCount + 20, 15); // simulated peak
