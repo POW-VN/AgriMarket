@@ -81,11 +81,11 @@ const Home = () => {
     const now = new Date();
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
     const diff = endOfDay.getTime() - now.getTime();
-    
+
     const hours = Math.max(0, Math.floor((diff / (1000 * 60 * 60)) % 24));
     const minutes = Math.max(0, Math.floor((diff / 1000 / 60) % 60));
     const seconds = Math.max(0, Math.floor((diff / 1000) % 60));
-    
+
     return {
       hours: hours.toString().padStart(2, '0'),
       minutes: minutes.toString().padStart(2, '0'),
@@ -416,12 +416,12 @@ const Home = () => {
   };
 
   const flashSaleProducts = products.filter(p => p.oldPrice).slice(0, 4);
-  const displayFlashSale = flashSaleProducts.length > 0 
-    ? flashSaleProducts 
+  const displayFlashSale = flashSaleProducts.length > 0
+    ? flashSaleProducts
     : products.slice(0, 4).map(p => ({
-        ...p,
-        oldPrice: p.oldPrice || p.price * 1.25
-      }));
+      ...p,
+      oldPrice: p.oldPrice || p.price * 1.25
+    }));
 
   return (
     <div className="home-page">
@@ -851,44 +851,44 @@ const Home = () => {
             <h4 className="footer-col-title">DANH MỤC NỔI BẬT</h4>
             <ul className="footer-links">
               <li>
-                <span 
-                  style={{ cursor: "pointer" }} 
-                  onClick={() => { 
-                    setSelectedCategory("Rau củ quả"); 
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" }); 
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedCategory("Rau củ quả");
+                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
                   Rau củ quả sạch
                 </span>
               </li>
               <li>
-                <span 
-                  style={{ cursor: "pointer" }} 
-                  onClick={() => { 
-                    setSelectedCategory("Trái cây"); 
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" }); 
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedCategory("Trái cây");
+                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
                   Trái cây tươi ngon
                 </span>
               </li>
               <li>
-                <span 
-                  style={{ cursor: "pointer" }} 
-                  onClick={() => { 
-                    setSelectedCategory("Cây lương thực"); 
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" }); 
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedCategory("Cây lương thực");
+                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
                   Gạo & Ngũ cốc sạch
                 </span>
               </li>
               <li>
-                <span 
-                  style={{ cursor: "pointer" }} 
-                  onClick={() => { 
-                    setSelectedCategory("Nông sản chế biến"); 
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" }); 
+                <span
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    setSelectedCategory("Nông sản chế biến");
+                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
                   Nông sản chế biến

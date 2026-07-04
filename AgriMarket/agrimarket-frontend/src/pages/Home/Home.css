@@ -1266,9 +1266,24 @@
   opacity: 1;
 }
 
+.header-search-bar .search-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  flex-shrink: 0 !important;
+  color: #374151 !important;
+}
+
 .header-search-bar.active .search-btn {
-  background: transparent;
-  color: #2e7d32;
+  background: transparent !important;
+  color: #2e7d32 !important;
 }
 
 .search-suggestions-dropdown {
