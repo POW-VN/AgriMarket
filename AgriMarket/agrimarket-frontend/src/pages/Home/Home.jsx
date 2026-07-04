@@ -72,6 +72,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [cartItemsCount, setCartItemsCount] = useState(0);
   const [toasts, setToasts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState([]);
   const [activeFarms, setActiveFarms] = useState([]);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
@@ -109,6 +110,11 @@ const Home = () => {
     }, 4000);
     return () => clearInterval(timer);
   }, []);
+
+  // Reset page when category or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
 
   const triggerToast = (message, type = "success") => {
     const id = Date.now() + Math.random().toString(36).substr(2, 9);
@@ -738,15 +744,56 @@ const Home = () => {
             ) : filteredProducts.length === 0 ? (
               <div className="product-empty-state">Chưa có sản phẩm nào thuộc danh mục này.</div>
             ) : (
-              filteredProducts.slice(0, 10).map((p) => renderProductCard(p))
+              filteredProducts.slice((currentPage - 1) * 10, currentPage * 10).map((p) => renderProductCard(p))
             )}
           </div>
 
-          <div className="load-more-container">
-            <button className="load-more-btn" onClick={() => navigate("/products")}>
-              Tải thêm sản phẩm
-            </button>
-          </div>
+          {filteredProducts.length > 10 && (
+            <div className="product-pagination">
+              <button 
+                className="pagination-btn" 
+                disabled={currentPage === 1} 
+                onClick={() => {
+                  setCurrentPage(prev => Math.max(1, prev - 1));
+                  document.querySelector(".new-featured-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                &lt;
+              </button>
+
+              {(() => {
+                const totalPages = Math.ceil(filteredProducts.length / 10);
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                  pages.push(
+                    <button 
+                      key={i} 
+                      className={`pagination-btn ${currentPage === i ? "active" : ""}`}
+                      onClick={() => {
+                        setCurrentPage(i);
+                        document.querySelector(".new-featured-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+                return pages;
+              })()}
+
+              <button 
+                className="pagination-btn" 
+                disabled={currentPage === Math.ceil(filteredProducts.length / 10)} 
+                onClick={() => {
+                  const totalPages = Math.ceil(filteredProducts.length / 10);
+                  setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                  document.querySelector(".new-featured-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                &gt;
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Livestream Previews Section */}
