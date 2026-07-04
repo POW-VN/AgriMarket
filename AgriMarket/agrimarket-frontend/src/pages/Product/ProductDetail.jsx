@@ -15,6 +15,41 @@ export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const handleReportProduct = () => {
+    if (!product) return;
+
+    const searchParams = new URLSearchParams({
+      targetType: "product",
+      targetId: String(product.id ?? id),
+      productName: product.name || "",
+      productCategory: product.category || "",
+      farmerName: product.farmerName || "",
+    });
+
+    if (product.price !== undefined && product.price !== null) {
+      searchParams.set("productPrice", String(product.price));
+    }
+
+    navigate(
+      {
+        pathname: "/support/report",
+        search: `?${searchParams.toString()}`,
+      },
+      {
+        state: {
+          reportTarget: {
+            targetType: "product",
+            targetId: String(product.id ?? id),
+            productName: product.name || "",
+            productCategory: product.category || "",
+            farmerName: product.farmerName || "",
+            productPrice: product.price ?? null,
+          },
+        },
+      }
+    );
+  };
+
   // Header / Auth States
   const [user, setUser] = useState(null);
 
@@ -1100,7 +1135,12 @@ export default function ProductDetail() {
 
         {/* Right Column - Product details */}
         <section className="product-info-section">
-          <h1 className="product-title">{product.name}</h1>
+          <div className="product-title-row">
+            <h1 className="product-title">{product.name}</h1>
+            <button type="button" className="report-product-btn" onClick={handleReportProduct}>
+              Báo cáo
+            </button>
+          </div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px", marginBottom: "12px" }}>
             {product.farmerOrganicUrl && (
               <span className="tag-pill tag-organic" style={{ 
