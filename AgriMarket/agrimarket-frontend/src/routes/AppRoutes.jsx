@@ -21,6 +21,7 @@ import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
 import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
 import FarmerProfile from "../pages/Farmer/FarmerProfile/FarmerProfile";
 import { FarmerChat } from "../pages/Farmer/FarmerChat/FarmerChat";
+import { FarmerLivestream } from "../pages/Farmer/FarmerLivestream/FarmerLivestream";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -110,6 +111,7 @@ const AppRoutes = () => {
           <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
           <Route path="farm-profile" element={<FarmDetails />} />
           <Route path="chat" element={<FarmerChat />} />
+          <Route path="livestream" element={<FarmerLivestream />} />
         </Route>
 
         <Route path="/products" element={<ProductPage />} />
