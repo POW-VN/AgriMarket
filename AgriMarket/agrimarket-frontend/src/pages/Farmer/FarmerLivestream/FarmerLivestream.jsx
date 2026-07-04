@@ -33,6 +33,8 @@ export const FarmerLivestream = () => {
   const [chatInput, setChatInput] = useState("");
   const [streamDuration, setStreamDuration] = useState(0); // in seconds
   const [pinnedProductId, setPinnedProductId] = useState(null);
+  const [isEditProductsOpen, setIsEditProductsOpen] = useState(false);
+  const [tempVoucherPercent, setTempVoucherPercent] = useState(10);
 
   // Final Report Stats
   const [reportStats, setReportStats] = useState({
@@ -237,6 +239,103 @@ export const FarmerLivestream = () => {
     }
   };
 
+  const handleUpdateLiveVoucher = (percent) => {
+    // Calculate new discounts synchronously
+    const newDiscounts = { ...productDiscounts };
+    if (percent > 0) {
+      selectedProductIds.forEach((id) => {
+        newDiscounts[id] = percent;
+      });
+    } else {
+      selectedProductIds.forEach((id) => {
+        newDiscounts[id] = 0;
+      });
+    }
+
+    // Set states synchronously
+    setVoucherPercent(percent);
+    setProductDiscounts(newDiscounts);
+    setTempVoucherPercent(percent);
+
+    try {
+      const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
+      if (activeSession) {
+        const updatedProducts = farmerProducts
+          .filter((p) => selectedProductIds.includes(p.id))
+          .map((p) => {
+            const discount = percent !== 0 ? (parseInt(newDiscounts[p.id]) || 0) : 0;
+            const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
+            return {
+              id: p.id,
+              name: p.name,
+              originalPrice: p.price,
+              price: livePrice,
+              unit: p.unit || "kg",
+              imageUrl: p.imageUrl,
+              discountPercent: discount
+            };
+          });
+
+        const updatedSession = {
+          ...activeSession,
+          voucherPercent: percent,
+          voucherTitle: percent > 0 ? `Giảm ${percent}% Toàn Trang Trại` : null,
+          tags: ["Trực tiếp tại vườn", "Nông sản sạch", percent > 0 ? `Voucher ${percent}%` : "Săn Deal"],
+          products: updatedProducts
+        };
+
+        localStorage.setItem("active_farmer_livestream_session", JSON.stringify(updatedSession));
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const nextLives = storedLives.map((s) => (s.id === liveSessionId ? updatedSession : s));
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify(nextLives));
+      }
+    } catch (e) {
+      console.error("Lỗi khi điều chỉnh voucher trong livestream:", e);
+    }
+  };
+
+  const handleUpdateLiveProducts = () => {
+    try {
+      const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
+      if (activeSession) {
+        const updatedProducts = farmerProducts
+          .filter((p) => selectedProductIds.includes(p.id))
+          .map((p) => {
+            const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
+            const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
+            return {
+              id: p.id,
+              name: p.name,
+              originalPrice: p.price,
+              price: livePrice,
+              unit: p.unit || "kg",
+              imageUrl: p.imageUrl,
+              discountPercent: discount
+            };
+          });
+
+        let nextPin = pinnedProductId;
+        if (!selectedProductIds.includes(pinnedProductId)) {
+          nextPin = selectedProductIds.length > 0 ? selectedProductIds[0] : null;
+          setPinnedProductId(nextPin);
+        }
+
+        const updatedSession = {
+          ...activeSession,
+          products: updatedProducts
+        };
+
+        localStorage.setItem("active_farmer_livestream_session", JSON.stringify(updatedSession));
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const nextLives = storedLives.map((s) => (s.id === liveSessionId ? updatedSession : s));
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify(nextLives));
+      }
+    } catch (e) {
+      console.error("Lỗi khi cập nhật sản phẩm trong livestream:", e);
+    }
+    setIsEditProductsOpen(false);
+  };
+
   // Launch Livestream Session
   const handleStartLivestream = () => {
     if (!title.trim()) {
@@ -295,6 +394,8 @@ export const FarmerLivestream = () => {
     } catch (e) {
       console.error("Lỗi lưu trữ dữ liệu livestream:", e);
     }
+
+    setTempVoucherPercent(voucherPercent);
 
     // Move to broadcasting state
     setStreamState("live");
@@ -650,7 +751,7 @@ export const FarmerLivestream = () => {
               {pinnedProductId && (() => {
                 const prod = farmerProducts.find((p) => p.id === pinnedProductId);
                 if (!prod) return null;
-                const discount = productDiscounts[pinnedProductId] || 0;
+                const discount = voucherPercent !== 0 ? (productDiscounts[pinnedProductId] || 0) : 0;
                 const livePrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
 
                 return (
@@ -768,14 +869,33 @@ export const FarmerLivestream = () => {
 
             {/* Console Products pinning selection list */}
             <div className="console-products-card">
-              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
-                📌 Sản phẩm trong buổi live ({selectedProductIds.length})
-              </h4>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
+                  📌 Sản phẩm trong buổi live ({selectedProductIds.length})
+                </h4>
+                <button
+                  className="btn-edit-live-products"
+                  onClick={() => setIsEditProductsOpen(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#10b981",
+                    fontSize: "0.8rem",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  ✏️ Chỉnh sửa
+                </button>
+              </div>
               <div className="pinned-products-grid">
                 {farmerProducts
                   .filter((p) => selectedProductIds.includes(p.id))
                   .map((p) => {
-                    const discount = productDiscounts[p.id] || 0;
+                    const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
                     const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
                     const isActivePin = pinnedProductId === p.id;
 
@@ -802,6 +922,68 @@ export const FarmerLivestream = () => {
                       </div>
                     );
                   })}
+              </div>
+            </div>
+
+            {/* Voucher edit section during live */}
+            <div className="console-voucher-edit-card" style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
+                🎟️ Điều chỉnh Voucher phiên live
+              </h4>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <div className="voucher-option-pills" style={{ gap: "6px", display: "flex", flexWrap: "wrap" }}>
+                  {[0, 10, 15, 20].map((percent) => (
+                    <button
+                      key={percent}
+                      className={`voucher-pill ${tempVoucherPercent === percent ? "active" : ""}`}
+                      onClick={() => setTempVoucherPercent(percent)}
+                      style={{ padding: "6px 10px", fontSize: "0.75rem", borderRadius: "6px" }}
+                    >
+                      {percent === 0 ? "Không" : `-${percent}%`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom input box */}
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tự nhập:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="90"
+                    placeholder="Nhập %"
+                    value={![0, 10, 15, 20].includes(tempVoucherPercent) ? tempVoucherPercent : ""}
+                    onChange={(e) => {
+                      const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 90);
+                      setTempVoucherPercent(val);
+                    }}
+                    style={{
+                      width: "68px",
+                      padding: "6px 4px",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "6px",
+                      fontSize: "0.8rem",
+                      textAlign: "center"
+                    }}
+                  />
+                  <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "#475569" }}>%</span>
+                </div>
+
+                {/* Apply button shown conditionally */}
+                {tempVoucherPercent !== voucherPercent && (
+                  <button
+                    className="btn-modal-submit"
+                    onClick={() => handleUpdateLiveVoucher(tempVoucherPercent)}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "0.75rem",
+                      borderRadius: "6px",
+                      marginLeft: "auto"
+                    }}
+                  >
+                    Áp dụng
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -849,6 +1031,83 @@ export const FarmerLivestream = () => {
             <button className="btn-close-report" onClick={() => setStreamState("setup")}>
               Quay lại thiết lập
             </button>
+          </div>
+        </div>
+      )}
+      {/* 4. EDIT PRODUCTS MODAL (DURING LIVE) */}
+      {isEditProductsOpen && (
+        <div className="live-modal-overlay">
+          <div className="live-modal-content">
+            <div className="live-modal-header">
+              <h3>✏️ Quản lý sản phẩm trên Livestream</h3>
+              <button className="btn-close-modal" onClick={() => setIsEditProductsOpen(false)}>
+                &times;
+              </button>
+            </div>
+            
+            <div className="form-group-live">
+              <label className="product-pin-title-row">
+                <span>Chọn sản phẩm hiển thị & giá ưu đãi:</span>
+                {selectedProductIds.length > 0 && (
+                  <span className="selected-count-tag">Đã chọn: {selectedProductIds.length}</span>
+                )}
+              </label>
+              
+              <div className="products-selection-container" style={{ maxHeight: "300px" }}>
+                {farmerProducts.length > 0 ? (
+                  farmerProducts.map((prod) => (
+                    <div
+                      key={prod.id}
+                      className={`product-row-item ${selectedProductIds.includes(prod.id) ? "selected" : ""}`}
+                      onClick={() => handleProductCheckboxChange(prod.id)}
+                    >
+                      <div className="product-row-left">
+                        <input
+                          type="checkbox"
+                          className="product-row-checkbox"
+                          checked={selectedProductIds.includes(prod.id)}
+                          onChange={() => {}}
+                        />
+                        <img src={prod.imageUrl} alt={prod.name} className="product-row-thumbnail" />
+                        <div className="product-row-details">
+                          <p className="product-row-name">{prod.name}</p>
+                          <p className="product-row-meta">
+                            Giá: <span className="price-bold">{prod.price.toLocaleString()}đ</span>/{prod.unit} • Kho: {prod.stock}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedProductIds.includes(prod.id) && voucherPercent !== 0 && (
+                        <div className="product-row-inputs" onClick={(e) => e.stopPropagation()}>
+                          <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Giảm live:</span>
+                          <input
+                            type="number"
+                            className="live-discount-box"
+                            min="0"
+                            max="90"
+                            value={productDiscounts[prod.id] !== undefined ? productDiscounts[prod.id] : ""}
+                            onChange={(e) => handleDiscountChange(prod.id, e.target.value)}
+                          />
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#475569" }}>%</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ padding: "16px", color: "#64748b", margin: 0, textAlign: "center", fontSize: "0.85rem" }}>
+                    Chưa có sản phẩm nào.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="live-modal-footer">
+              <button className="btn-modal-cancel" onClick={() => setIsEditProductsOpen(false)}>
+                Hủy
+              </button>
+              <button className="btn-modal-submit" onClick={handleUpdateLiveProducts}>
+                Lưu thay đổi
+              </button>
+            </div>
           </div>
         </div>
       )}
