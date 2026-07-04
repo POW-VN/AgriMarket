@@ -572,5 +572,111 @@ const MOCK_PRODUCTS = [
         farmerName: "Vườn ươm giống miền Tây",
         farmLocation: "Tiền Giang (cách 120 km)",
         farmDescription: "Chuyên sản xuất và phân phối cây giống ăn quả chuẩn giống chất lượng cao."
+    },
+    {
+        id: "preorder-litchi",
+        name: "Vải Thiều Lục Ngạn",
+        category: "Trái cây",
+        price: 45000,
+        unit: "kg",
+        isLocal: true,
+        isPreorder: true,
+        imageUrl: "https://images.unsplash.com/photo-1587334206506-6b7c9a204390?w=600",
+        images: [
+            "https://images.unsplash.com/photo-1587334206506-6b7c9a204390?w=600"
+        ],
+        rating: 4.8,
+        reviewsCount: 156,
+        sold: 650,
+        stock: 350,
+        harvestDate: "2026-06-15",
+        farmerName: "Hợp tác xã Lục Ngạn",
+        farmLocation: "Bắc Giang",
+        farmDescription: "Hợp tác xã chuyên trồng và tiêu thụ vải thiều chín đỏ tự nhiên đạt tiêu chuẩn VietGAP xuất khẩu."
+    },
+    {
+        id: "preorder-durian",
+        name: "Sầu Riêng Ri6",
+        category: "Trái cây",
+        price: 120000,
+        unit: "kg",
+        isLocal: true,
+        isPreorder: true,
+        imageUrl: "https://images.unsplash.com/photo-1595304675549-30113c2db7fe?w=600",
+        images: [
+            "https://images.unsplash.com/photo-1595304675549-30113c2db7fe?w=600"
+        ],
+        rating: 4.9,
+        reviewsCount: 88,
+        sold: 0,
+        stock: 2000,
+        harvestDate: "2026-06-20",
+        openTime: "08:00 - 10/05",
+        farmerName: "Chín Hóa (Bến Tre)",
+        farmLocation: "Bến Tre",
+        farmDescription: "Vườn sầu riêng Ri6 lâu năm canh tác theo tiêu chuẩn hữu cơ sinh học, trái to cơm vàng hạt lép."
+    },
+    {
+        id: "preorder-avocado",
+        name: "Bơ Sáp 034",
+        category: "Trái cây",
+        price: 65000,
+        unit: "kg",
+        isLocal: true,
+        isPreorder: true,
+        imageUrl: "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600",
+        images: [
+            "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600"
+        ],
+        rating: 4.7,
+        reviewsCount: 110,
+        sold: 500,
+        stock: 0,
+        harvestDate: "2026-07-05",
+        farmerName: "Bảo Lâm Organic",
+        farmLocation: "Lâm Đồng",
+        farmDescription: "Nông trại organic chuyên bơ sáp 034 dẻo béo chất lượng cao tại Lâm Hà, Lâm Đồng."
+    },
+    {
+        id: "preorder-dragonfruit",
+        name: "Thanh Long Ruột Đỏ",
+        category: "Trái cây",
+        price: 32000,
+        unit: "kg",
+        isLocal: true,
+        isPreorder: true,
+        imageUrl: "https://images.unsplash.com/photo-1527324688151-0e627063f2b1?w=600",
+        images: [
+            "https://images.unsplash.com/photo-1527324688151-0e627063f2b1?w=600"
+        ],
+        rating: 4.6,
+        reviewsCount: 75,
+        sold: 200,
+        stock: 800,
+        harvestDate: "2026-06-20",
+        farmerName: "Farm Bình Thuận",
+        farmLocation: "Bình Thuận",
+        farmDescription: "Trang trại thanh long ruột đỏ VietGAP ứng dụng công nghệ tưới tiêu nhỏ giọt Israel."
+    },
+    {
+        id: "preorder-pomelo",
+        name: "Bưởi Da Xanh Bến Tre",
+        category: "Trái cây",
+        price: 65000,
+        unit: "kg",
+        isLocal: true,
+        isPreorder: true,
+        imageUrl: "https://images.unsplash.com/photo-1598880940080-ff9a29891b85?w=600",
+        images: [
+            "https://images.unsplash.com/photo-1598880940080-ff9a29891b85?w=600"
+        ],
+        rating: 4.8,
+        reviewsCount: 95,
+        sold: 50,
+        stock: 50,
+        harvestDate: "2026-10-20",
+        farmerName: "Vườn Bưởi Da Xanh",
+        farmLocation: "Bến Tre",
+        farmDescription: "Chuyên cung cấp bưởi da xanh ruột hồng chín ngọt mọng nước được canh tác theo tiêu chuẩn chất lượng cao."
     }
 ];
