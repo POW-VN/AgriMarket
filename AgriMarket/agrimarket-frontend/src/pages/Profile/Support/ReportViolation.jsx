@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Package, ShieldCheck, Store, User } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import authService from "../../../services/authService";
+import reportService from "../../../services/reportService";
 import "./ReportViolation.css";
 
 const buildInitialFormData = (location) => {
@@ -105,50 +106,16 @@ export default function ReportViolation() {
         setMessage("");
 
         const payload = {
-            // Khi làm backend, reporterId nên lấy từ token/JWT ở backend,
-            // không nên tin hoàn toàn ID gửi từ frontend.
-            reporterId: currentUser.id,
-
-            // Khớp với cột target_type trong bảng report.
             targetType: formData.targetType,
-
-            // Khớp với cột target_id trong bảng report.
             targetId: Number(formData.targetId),
-
-            // Khớp với cột reason trong bảng report.
             reason: formData.reason,
-
-            // Khớp với cột description trong bảng report.
             description: formData.description,
-
-            // Khi làm backend, status có thể để backend tự set mặc định là "pending".
-            status: "pending",
         };
 
         try {
-            /*
-              TODO BACKEND:
-              Sau khi bạn làm API backend, tạo file service riêng, ví dụ:
-              src/services/reportService.js
-      
-              Sau đó gọi:
-              await reportService.createReport(payload);
-      
-              API gợi ý:
-              POST /api/reports
-      
-              Body gửi lên:
-              {
-                targetType: "product" | "farmer" | "customer",
-                targetId: number,
-                reason: string,
-                description: string
-              }
-      
-              Backend nên tự lấy reporter_id từ user đang đăng nhập.
-            */
+            await reportService.createReport(payload);
 
-            setMessage("Giao diện đã sẵn sàng. Sau khi có backend, báo cáo sẽ được gửi lên hệ thống.");
+            setMessage("✅ Báo cáo của bạn đã được gửi thành công! Đội ngũ quản trị viên sẽ xem xét và xử lý trong thời gian sớm nhất.");
 
             setFormData({
                 targetType: "",
@@ -164,7 +131,11 @@ export default function ReportViolation() {
             });
         } catch (error) {
             console.error("Lỗi khi gửi báo cáo vi phạm:", error);
-            setMessage("Không thể gửi báo cáo. Vui lòng thử lại sau.");
+            const errMsg =
+                error?.response?.data ||
+                error?.message ||
+                "Không thể gửi báo cáo. Vui lòng thử lại sau.";
+            setMessage(`❌ ${errMsg}`);
         } finally {
             setSubmitting(false);
         }

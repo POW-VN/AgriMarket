@@ -523,3 +523,23 @@
         padding: 20px;
     }
 }
+
+/* Closed report notice */
+.report-closed-notice {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: #fff3e0;
+    border: 1px solid #ffb74d;
+    border-radius: 8px;
+    color: #e65100;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Disabled buttons */
+.violation-action-area button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}

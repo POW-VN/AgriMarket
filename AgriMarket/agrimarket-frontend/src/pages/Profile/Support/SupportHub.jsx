@@ -3,27 +3,49 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
+import reportService from "../../../services/reportService";
 import authService from "../../../services/authService";
 import "./SupportHub.css";
 
 export default function SupportHub() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [recentRequests, setRecentRequests] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
 
-    const fetchRecentRequests = async () => {
+    const fetchRecentActivities = async () => {
       if (currentUser) {
         try {
-          const data = await supportRequestService.getMyRequests();
-          // Lấy 3 yêu cầu gần nhất
-          setRecentRequests(data.slice(0, 3));
+          // Fetch both support requests and reports in parallel
+          const [requestsData, reportsData] = await Promise.allSettled([
+            supportRequestService.getMyRequests(),
+            reportService.getMyReports(),
+          ]);
+
+          const requests = (requestsData.status === "fulfilled" ? requestsData.value : []).map((r) => ({
+            ...r,
+            _type: "request",
+            _sortDate: r.updatedAt || r.createdAt,
+          }));
+
+          const reports = (reportsData.status === "fulfilled" ? reportsData.value : []).map((r) => ({
+            ...r,
+            _type: "report",
+            _sortDate: r.updatedAt || r.createdAt,
+          }));
+
+          // Merge, sort by date descending, take top 4
+          const combined = [...requests, ...reports]
+            .sort((a, b) => new Date(b._sortDate) - new Date(a._sortDate))
+            .slice(0, 4);
+
+          setRecentActivities(combined);
         } catch (err) {
-          console.error("Lỗi khi tải yêu cầu gần đây:", err);
+          console.error("Lỗi khi tải hoạt động gần đây:", err);
         } finally {
           setLoading(false);
         }
@@ -32,40 +54,46 @@ export default function SupportHub() {
       }
     };
 
-    fetchRecentRequests();
+    fetchRecentActivities();
   }, []);
 
-  const getStatusClass = (status) => {
+  const getStatusClass = (status, type) => {
+    if (type === "report") {
+      switch (status) {
+        case "pending": return "status-pending";
+        case "reviewing": return "status-processing";
+        case "resolved": return "status-resolved";
+        case "rejected": return "status-rejected";
+        default: return "";
+      }
+    }
     switch (status) {
-      case "pending":
-        return "status-pending";
-      case "assigned":
-        return "status-assigned";
-      case "processing":
-        return "status-processing";
-      case "resolved":
-        return "status-resolved";
-      case "rejected":
-        return "status-rejected";
-      default:
-        return "";
+      case "pending": return "status-pending";
+      case "assigned": return "status-assigned";
+      case "processing": return "status-processing";
+      case "resolved": return "status-resolved";
+      case "rejected": return "status-rejected";
+      default: return "";
     }
   };
 
-  const getStatusLabel = (status) => {
+  const getStatusLabel = (status, type) => {
+    if (type === "report") {
+      switch (status) {
+        case "pending": return "Đang chờ";
+        case "reviewing": return "Đang xem xét";
+        case "resolved": return "Đã xử lý";
+        case "rejected": return "Đã từ chối";
+        default: return status;
+      }
+    }
     switch (status) {
-      case "pending":
-        return "Đang chờ";
-      case "assigned":
-        return "Đã phân công";
-      case "processing":
-        return "Đang xử lý";
-      case "resolved":
-        return "Đã giải quyết";
-      case "rejected":
-        return "Đã từ chối";
-      default:
-        return status;
+      case "pending": return "Đang chờ";
+      case "assigned": return "Đã phân công";
+      case "processing": return "Đang xử lý";
+      case "resolved": return "Đã giải quyết";
+      case "rejected": return "Đã từ chối";
+      default: return status;
     }
   };
 
@@ -230,18 +258,14 @@ export default function SupportHub() {
                 onClick={() => {
                   if (!user) {
                     navigate("/login");
-                  } else if (recentRequests.length > 0) {
-                    navigate("/support/chat");
                   } else {
-                    navigate("/support/create?autoChat=true");
+                    navigate("/support/chat");
                   }
                 }}
               >
                 Bắt đầu Chat
               </button>
             </div>
-
-            {/* Card 4 */}
             <div className="support-card glass-card">
               <div className="card-icon-wrapper orange-icon">📞</div>
               <h2>Liên hệ Hỗ trợ</h2>
@@ -253,9 +277,7 @@ export default function SupportHub() {
           </div>
         </section>
 
-        {/* Categories and Recent Activity */}
         <div className="support-bottom-layout">
-          {/* Categories list */}
           <aside className="support-categories-sidebar">
             <h3 className="section-title">Danh mục</h3>
             <ul className="support-cat-list">
@@ -286,7 +308,7 @@ export default function SupportHub() {
           <section className="support-recent-activity">
             <div className="recent-activity-header">
               <h3 className="section-title">Hoạt động Gần đây</h3>
-              {user && recentRequests.length > 0 && (
+              {user && recentActivities.length > 0 && (
                 <button className="view-all-btn" onClick={() => navigate("/support/my-requests")}>
                   Xem tất cả
                 </button>
@@ -300,33 +322,57 @@ export default function SupportHub() {
               </div>
             ) : loading ? (
               <div className="activity-loading">Đang tải hoạt động gần đây...</div>
-            ) : recentRequests.length === 0 ? (
+            ) : recentActivities.length === 0 ? (
               <div className="activity-placeholder">
-                <p>Bạn chưa gửi yêu cầu hỗ trợ nào gần đây.</p>
+                <p>Bạn chưa có hoạt động hỗ trợ nào gần đây.</p>
                 <button className="support-btn btn-primary-green" onClick={() => navigate("/support/create")}>Tạo yêu cầu ngay</button>
               </div>
             ) : (
               <div className="activity-timeline">
-                {recentRequests.map((req) => (
+                {recentActivities.map((item) => (
                   <div
-                    key={req.id}
+                    key={`${item._type}-${item.id}`}
                     className="activity-item"
-                    onClick={() => navigate(`/support/detail/${req.id}`)}
+                    onClick={() => {
+                      if (item._type === "request") {
+                        navigate(`/support/detail/${item.id}`);
+                      }
+                      // reports don’t have a detail page yet, no navigation
+                    }}
+                    style={item._type === "report" ? { cursor: "default" } : {}}
                   >
                     <div className="activity-timeline-line">
-                      <div className="activity-node-dot"></div>
+                      <div
+                        className="activity-node-dot"
+                        style={item._type === "report" ? { background: "#ef5350" } : {}}
+                      ></div>
                     </div>
                     <div className="activity-content-box">
                       <div className="activity-meta">
-                        <span className="activity-id">#REQ-{req.id}</span>
-                        <span className={`activity-status-badge ${getStatusClass(req.status)}`}>
-                          {getStatusLabel(req.status)}
+                        <span className="activity-id">
+                          {item._type === "report" ? (
+                            <>🛡️ RP-{item.id}</>
+                          ) : (
+                            <>#REQ-{item.id}</>
+                          )}
+                        </span>
+                        <span className={`activity-status-badge ${getStatusClass(item.status, item._type)}`}>
+                          {getStatusLabel(item.status, item._type)}
                         </span>
                       </div>
-                      <h4>{req.title}</h4>
-                      <p className="activity-desc">{req.description}</p>
+                      <h4>
+                        {item._type === "report"
+                          ? `Báo cáo vi phạm — ${item.reason || "Vi phạm chính sách"}`
+                          : item.title}
+                      </h4>
+                      <p className="activity-desc">
+                        {item._type === "report"
+                          ? `Đối tượng: ${item.targetType === "product" ? "Sản phẩm" : item.targetType === "farmer" ? "Nông trại" : "Khách hàng"} (ID: ${item.targetId})`
+                          : item.description}
+                      </p>
                       <span className="activity-time">
-                        Danh mục: {req.category} | Cập nhật lúc: {new Date(req.updatedAt || req.createdAt).toLocaleString()}
+                        {item._type === "report" ? "Báo cáo vi phạm" : `Danh mục: ${item.category}`} | Cập nhật lúc:{" "}
+                        {new Date(item._sortDate).toLocaleString()}
                       </span>
                     </div>
                   </div>

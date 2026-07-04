@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
+import reportService from "../../services/reportService";
+import apiClient from "../../services/apiClient";
 import {
     LayoutDashboard,
     Users,
@@ -76,41 +78,9 @@ export default function ViolationReports() {
         setLoading(true);
 
         try {
-            /*
-              TODO BACKEND:
-              Khi làm backend, tạo service riêng:
-              src/services/reportService.js
-      
-              Ví dụ API:
-              GET /api/admin/reports
-      
-              Dữ liệu mong muốn trả về:
-              [
-                {
-                  id: 1,
-                  reporterId: 5,
-                  reporterName: "Nguyễn Văn A",
-                  reporterRole: "customer",
-                  targetType: "product",
-                  targetId: 12,
-                  targetName: "Xoài cát Hòa Lộc",
-                  reason: "Sản phẩm không đúng mô tả",
-                  description: "Người dùng mô tả chi tiết vi phạm...",
-                  status: "pending",
-                  severity: "high",
-                  createdAt: "2026-07-01T10:30:00",
-                  updatedAt: "2026-07-01T11:00:00"
-                }
-              ]
-      
-              Sau này thay bằng:
-              const data = await reportService.getAllReports();
-              setReports(data);
-              setSelectedReport(data[0] || null);
-            */
-
-            setReports([]);
-            setSelectedReport(null);
+            const data = await reportService.getAllReports();
+            setReports(data);
+            setSelectedReport(data[0] || null);
         } catch (error) {
             console.error("Lỗi khi tải danh sách báo cáo vi phạm:", error);
             showToast("Không thể tải danh sách báo cáo vi phạm.");
@@ -141,8 +111,8 @@ export default function ViolationReports() {
         switch (status) {
             case "pending":
                 return "Đang chờ";
-            case "processing":
-                return "Đang xử lý";
+            case "reviewing":
+                return "Đang xem xét";
             case "resolved":
                 return "Đã xử lý";
             case "rejected":
@@ -191,7 +161,7 @@ export default function ViolationReports() {
     const reportStats = useMemo(() => {
         return {
             pending: reports.filter((item) => item.status === "pending").length,
-            processing: reports.filter((item) => item.status === "processing").length,
+            reviewing: reports.filter((item) => item.status === "reviewing").length,
             resolved: reports.filter((item) => item.status === "resolved").length,
             rejected: reports.filter((item) => item.status === "rejected").length,
         };
@@ -203,31 +173,30 @@ export default function ViolationReports() {
             return;
         }
 
-        try {
-            /*
-              TODO BACKEND:
-              Khi backend sẵn sàng, gọi API cập nhật trạng thái báo cáo.
-      
-              API gợi ý:
-              PUT /api/admin/reports/{reportId}/status
-      
-              Body:
-              {
-                status: "processing" | "resolved" | "rejected",
-                adminNote: resolutionNote
-              }
-      
-              Ví dụ:
-              await reportService.updateReportStatus(selectedReport.id, {
-                status,
-                adminNote: resolutionNote
-              });
-            */
+        // Cannot change status once resolved or rejected
+        if (selectedReport.status === "resolved" || selectedReport.status === "rejected") {
+            showToast("❌ Báo cáo này đã kết thúc xử lý và không thể thay đổi trạng thái.");
+            return;
+        }
 
-            showToast("Chức năng xử lý báo cáo sẽ hoạt động sau khi kết nối backend.");
+        try {
+            const updated = await reportService.updateReportStatus(
+                selectedReport.id,
+                status,
+                resolutionNote
+            );
+
+            // Cập nhật local state
+            setReports((prev) =>
+                prev.map((r) => (r.id === updated.id ? updated : r))
+            );
+            setSelectedReport(updated);
+            setResolutionNote("");
+            showToast(`✅ Đã cập nhật trạng thái thành "${getStatusLabel(status)}" thành công.`);
         } catch (error) {
             console.error("Lỗi khi cập nhật trạng thái báo cáo:", error);
-            showToast("Không thể cập nhật trạng thái báo cáo.");
+            const errMsg = error?.response?.data || error?.message || "Không thể cập nhật trạng thái báo cáo.";
+            showToast(`❌ ${errMsg}`);
         }
     };
 
@@ -237,30 +206,19 @@ export default function ViolationReports() {
             return;
         }
 
-        try {
-            /*
-              TODO BACKEND:
-              Nếu targetType là "farmer" hoặc "customer",
-              admin có thể khóa tài khoản bị báo cáo.
-      
-              API gợi ý:
-              PUT /api/admin/users/{role}/{id}/status
-      
-              Body:
-              {
-                status: "banned"
-              }
-      
-              Lưu ý:
-              - targetType trong bảng report hiện gồm customer, farmer, product.
-              - Nếu targetType = product thì không khóa tài khoản trực tiếp,
-                mà nên xử lý ẩn/xóa sản phẩm.
-            */
+        const { targetType, targetId } = selectedReport;
+        if (targetType !== "farmer" && targetType !== "customer") {
+            showToast("❌ Chỉ khoá tài khoản nông dân hoặc khách hàng.");
+            return;
+        }
 
-            showToast("Chức năng khóa tài khoản sẽ được kết nối sau khi có backend.");
+        try {
+            await apiClient.put(`/api/admin/users/${targetType}/${targetId}/status`, { status: "banned" });
+            showToast(`✅ Đã khoá tài khoản ${targetType === "farmer" ? "nông dân" : "khách hàng"} (ID: ${targetId}) thành công.`);
         } catch (error) {
             console.error("Lỗi khi khóa tài khoản:", error);
-            showToast("Không thể khóa tài khoản liên quan.");
+            const errMsg = error?.response?.data || error?.message || "Không thể khóa tài khoản liên quan.";
+            showToast(`❌ ${errMsg}`);
         }
     };
 
@@ -270,24 +228,20 @@ export default function ViolationReports() {
             return;
         }
 
-        try {
-            /*
-              TODO BACKEND:
-              Nếu targetType là "product", admin có thể ẩn sản phẩm bị báo cáo.
-      
-              API gợi ý:
-              PUT /api/admin/products/{productId}/status
-      
-              Body:
-              {
-                status: "hidden"
-              }
-            */
+        if (selectedReport.targetType !== "product") {
+            showToast("❌ Chỉ ẩn sản phẩm khi báo cáo là loại Sản phẩm.");
+            return;
+        }
 
-            showToast("Chức năng ẩn sản phẩm sẽ được kết nối sau khi có backend.");
+        try {
+            await apiClient.post(`/api/admin/products/${selectedReport.targetId}/hide`, {
+                reason: resolutionNote || `Ẩn do báo cáo vi phạm RP-${selectedReport.id}`,
+            });
+            showToast(`✅ Đã ẩn sản phẩm (ID: ${selectedReport.targetId}) thành công.`);
         } catch (error) {
             console.error("Lỗi khi ẩn sản phẩm:", error);
-            showToast("Không thể ẩn sản phẩm liên quan.");
+            const errMsg = error?.response?.data || error?.message || "Không thể ẩn sản phẩm liên quan.";
+            showToast(`❌ ${errMsg}`);
         }
     };
 
@@ -517,7 +471,7 @@ export default function ViolationReports() {
                                 >
                                     <option value="all">Tất cả trạng thái</option>
                                     <option value="pending">Đang chờ</option>
-                                    <option value="processing">Đang xử lý</option>
+                                    <option value="reviewing">Đang xem xét</option>
                                     <option value="resolved">Đã xử lý</option>
                                     <option value="rejected">Đã từ chối</option>
                                 </select>
@@ -673,23 +627,37 @@ export default function ViolationReports() {
                                     </div>
 
                                     <div className="violation-action-area">
-                                        {selectedReport.targetType === "product" && (
-                                            <button className="btn-remove-product" onClick={handleHideProduct}>
-                                                Ẩn sản phẩm
-                                            </button>
-                                        )}
-
+                                        {/* Lock button: only for farmer/customer reports */}
                                         {(selectedReport.targetType === "farmer" ||
                                             selectedReport.targetType === "customer") && (
-                                                <button className="btn-remove-product" onClick={handleLockTargetAccount}>
+                                                <button
+                                                    className="btn-remove-product"
+                                                    onClick={handleLockTargetAccount}
+                                                    disabled={selectedReport.status === "resolved" || selectedReport.status === "rejected"}
+                                                    title={selectedReport.status === "resolved" || selectedReport.status === "rejected" ? "Báo cáo đã kết thúc" : "Khóa tài khoản liên quan"}
+                                                >
                                                     Khóa tài khoản liên quan
                                                 </button>
                                             )}
 
+                                        {/* Hide button: only for product reports */}
+                                        {selectedReport.targetType === "product" && (
+                                            <button
+                                                className="btn-remove-product"
+                                                onClick={handleHideProduct}
+                                                disabled={selectedReport.status === "resolved" || selectedReport.status === "rejected"}
+                                                title={selectedReport.status === "resolved" || selectedReport.status === "rejected" ? "Báo cáo đã kết thúc" : "Ẩn sản phẩm"}
+                                            >
+                                                Ẩn sản phẩm
+                                            </button>
+                                        )}
+
                                         <div className="action-two-columns">
                                             <button
                                                 className="btn-warning-action"
-                                                onClick={() => handleUpdateReportStatus("processing")}
+                                                onClick={() => handleUpdateReportStatus("reviewing")}
+                                                disabled={selectedReport.status === "resolved" || selectedReport.status === "rejected" || selectedReport.status === "reviewing"}
+                                                title={selectedReport.status === "reviewing" ? "Đã đánh dấu đang xém xét" : undefined}
                                             >
                                                 Đánh dấu đang xử lý
                                             </button>
@@ -697,6 +665,7 @@ export default function ViolationReports() {
                                             <button
                                                 className="btn-dismiss-action"
                                                 onClick={() => handleUpdateReportStatus("rejected")}
+                                                disabled={selectedReport.status === "resolved" || selectedReport.status === "rejected"}
                                             >
                                                 Từ chối báo cáo
                                             </button>
@@ -705,9 +674,16 @@ export default function ViolationReports() {
                                         <button
                                             className="btn-resolve-action"
                                             onClick={() => handleUpdateReportStatus("resolved")}
+                                            disabled={selectedReport.status === "resolved" || selectedReport.status === "rejected"}
                                         >
                                             Hoàn tất xử lý
                                         </button>
+
+                                        {(selectedReport.status === "resolved" || selectedReport.status === "rejected") && (
+                                            <p className="report-closed-notice">
+                                                🔒 Báo cáo này đã được kết thúc và không thể thay đổi.
+                                            </p>
+                                        )}
                                     </div>
                                 </>
                             ) : (
