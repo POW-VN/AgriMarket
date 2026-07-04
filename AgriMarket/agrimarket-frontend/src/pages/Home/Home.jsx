@@ -15,7 +15,8 @@ const MAIN_CATEGORIES = [
   { name: "Trái cây", icon: "🍎" },
   { name: "Cây công nghiệp", icon: "🪵" },
   { name: "Giống cây trồng", icon: "🌱" },
-  { name: "Nông sản chế biến", icon: "🥫" }
+  { name: "Nông sản chế biến", icon: "🥫" },
+  { name: "Chăn nuôi", icon: "🐄" }
 ];
 
 const MOCK_FARMS = [
@@ -569,13 +570,23 @@ const Home = () => {
 
         {/* Categories Section (Original Emoji Pills Layout, without 'Khác', Grid 7col single-row) */}
         <section className="categories-section">
-          <h2 className="section-title">Danh mục</h2>
+          <h2
+            className="section-title"
+            onClick={() => navigate("/products/listing")}
+            style={{ cursor: "pointer", display: "inline-block" }}
+            title="Xem tất cả danh mục"
+          >
+            Danh mục →
+          </h2>
           <div className="categories-grid">
             {MAIN_CATEGORIES.map((cat) => (
               <div
                 key={cat.name}
                 className={`category-pill ${selectedCategory === cat.name ? "active" : ""}`}
-                onClick={() => setSelectedCategory(selectedCategory === cat.name ? "" : cat.name)}
+                onClick={() => {
+                  setSelectedCategory(cat.name);
+                  navigate(`/products/listing?category=${encodeURIComponent(cat.name)}`);
+                }}
                 style={{ cursor: "pointer" }}
               >
                 <span className="category-icon">{cat.icon}</span>
