@@ -9,7 +9,10 @@ import reviewService from "../../services/reviewService";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
 import wishlistService from "../../services/wishlistService";
 import "./ProductDetail.css";
+import "./PreorderCheckout.css";
 import Header from "../../components/common/Header/Header";
+import Footer from "../../components/common/Footer/Footer";
+import { Leaf, Shield } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -59,10 +62,41 @@ export default function ProductDetail() {
   const [activeImage, setActiveImage] = useState("");
   const [brokenImages, setBrokenImages] = useState({});
   const [mainImageError, setMainImageError] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(5);
   const [isSaved, setIsSaved] = useState(false);
   const [savedRelatedIds, setSavedRelatedIds] = useState(new Set());
   const [isFarmerFollowed, setIsFarmerFollowed] = useState(false);
+  const [preorderDeliveryDate, setPreorderDeliveryDate] = useState("2026-10-22");
+  
+  // Preorder checkout sync states
+  const [deliveryMode, setDeliveryMode] = useState("shipping"); // 'shipping' or 'pickup'
+  const [customDate, setCustomDate] = useState("2026-09-01");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [placedPreorderId, setPlacedPreorderId] = useState(null);
+
+  useEffect(() => {
+    if (product && product.isPreorder) {
+      if (product.harvestDate) {
+        const parts = product.harvestDate.split("/");
+        if (parts.length === 3) {
+          const d = new Date(parts[2], parts[1] - 1, parts[0]);
+          d.setDate(d.getDate() + 2);
+          const dateStr = d.toISOString().split("T")[0];
+          setPreorderDeliveryDate(dateStr);
+          setCustomDate(dateStr);
+        } else {
+          const d = new Date(product.harvestDate);
+          if (!isNaN(d.getTime())) {
+            d.setDate(d.getDate() + 2);
+            const dateStr = d.toISOString().split("T")[0];
+            setPreorderDeliveryDate(dateStr);
+            setCustomDate(dateStr);
+          }
+        }
+      }
+    }
+  }, [product]);
 
   // Lightbox Modal States
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -975,6 +1009,350 @@ export default function ProductDetail() {
     return val.charAt(0).toUpperCase() + val.slice(1);
   };
 
+  const renderPreorderDetail = () => {
+    if (!product) return null;
+
+    // Helper format VND
+    const formatVND = (number) => {
+      return new Intl.NumberFormat("vi-VN").format(number) + " đ";
+    };
+
+    const formatDateString = (dateStr) => {
+      if (!dateStr) return "";
+      const parts = dateStr.split("-");
+      if (parts.length !== 3) return dateStr;
+      const [y, m, d] = parts;
+      return `${d}/${m}/${y}`;
+    };
+
+    const handleQuantityChange = (newVal) => {
+      if (newVal < 1) return;
+      setQuantity(newVal);
+    };
+
+    const handleConfirmPreorder = () => {
+      const preorderId = "PO-" + Math.floor(100000 + Math.random() * 900000);
+      setPlacedPreorderId(preorderId);
+
+      const newPreorder = {
+        id: preorderId,
+        productId: product.id,
+        productName: product.name,
+        imageUrl: product.imageUrl,
+        price: product.price,
+        unit: product.unit,
+        quantity: quantity,
+        farmerId: product.farmerId,
+        farmerName: product.farmerName,
+        status: "paid",
+        expectedHarvest: product.expectedHarvest || product.harvestDate || "Cuối tháng 10, 2026",
+        deliveryWindow: product.deliveryWindow || "Từ 22/10 đến 30/10/2026",
+        totalAmount: totalAmount,
+        depositPaid: depositAmount,
+        remainingAmount: totalAmount - depositAmount,
+        createdAt: new Date().toLocaleDateString("vi-VN"),
+        deliveryOption: deliveryMode === "pickup" ? "Tự nhận tại nông trại" : `Giao tận nơi ngày ${formatDateString(customDate)}`,
+        specialInstructions: specialInstructions,
+        isPreorder: true
+      };
+
+      const existingPreorders = JSON.parse(localStorage.getItem("agrimarket_preorders")) || [];
+      localStorage.setItem("agrimarket_preorders", JSON.stringify([newPreorder, ...existingPreorders]));
+      window.dispatchEvent(new Event("preordersUpdated"));
+      setShowSuccessModal(true);
+    };
+
+    // Cost calculations
+    const pricePerUnit = product.price || 0;
+    const subtotal = pricePerUnit * quantity;
+    const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
+    const estimatedTaxes = Math.round(subtotal * 0.05); // 5% VAT
+    const totalAmount = subtotal + deliveryFee + estimatedTaxes;
+    const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
+
+    return (
+      <div className="preorder-checkout-page">
+        <Header activeTab="preorder" />
+
+        <main className="preorder-checkout-main">
+          {/* Breadcrumb */}
+          <nav className="preorder-breadcrumb">
+            <Link to="/">Trang chủ</Link>
+            <span className="separator">&gt;</span>
+            <Link to="/preorders">Đặt trước</Link>
+            <span className="separator">&gt;</span>
+            <span className="current">{product.name}</span>
+          </nav>
+
+          {/* Grid Layout */}
+          <div className="preorder-layout-grid">
+            
+            {/* Left Main Panels */}
+            <div className="preorder-left-column">
+              
+              {/* 1. Product Info Panel */}
+              <div className="preorder-card-panel preorder-product-card">
+                <div className="preorder-product-upper">
+                  <div className="preorder-image-wrapper">
+                    <img src={product.imageUrl} alt={product.name} />
+                    <span className="preorder-badge-pill">ĐẶT TRƯỚC</span>
+                  </div>
+
+                  <div className="preorder-details-info">
+                    <h2>{product.name}</h2>
+                    <div className="preorder-farm-row">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                      <span>Nông trại {product.farmerName || "Green Valley"}</span>
+                    </div>
+
+                    <div className="preorder-timeline-cards">
+                      <div className="timeline-box">
+                        <div className="box-label">DỰ KIẾN THU HOẠCH</div>
+                        <div className="box-value">{product.expectedHarvest || product.harvestDate || "Cuối tháng 10, 2026"}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="preorder-product-desc">
+                  {product.description || "Đặt trước sản phẩm của mùa vụ thu hoạch mới giúp đảm bảo nguồn cung tươi ngon nhất trực tiếp từ nông trại. Hỗ trợ nông dân yên tâm sản xuất với cam kết bao tiêu đầu ra chất lượng cao."}
+                </p>
+              </div>
+
+              {/* 2. Configure Preorder Form */}
+              <div className="preorder-card-panel">
+                <h3 className="config-title">Thông tin đặt trước</h3>
+
+                {/* Quantity */}
+                <div className="config-group">
+                  <label className="group-label">Chọn số lượng đặt trước ({product.unit || "kg"})</label>
+                  <div className="qty-selector-row">
+                    <div className="qty-control-buttons">
+                      <button 
+                        type="button" 
+                        className="qty-btn" 
+                        onClick={() => handleQuantityChange(quantity - 1)}
+                        disabled={quantity <= 1}
+                      >
+                        －
+                      </button>
+                      <input 
+                        type="text" 
+                        className="qty-input-text" 
+                        value={quantity}
+                        readOnly
+                      />
+                      <button 
+                        type="button" 
+                        className="qty-btn" 
+                        onClick={() => handleQuantityChange(quantity + 1)}
+                      >
+                        ＋
+                      </button>
+                    </div>
+                    <span className="price-indicator-text">{formatVND(pricePerUnit)} / {product.unit || "kg"}</span>
+                  </div>
+                </div>
+
+                {/* Preferred Delivery Date */}
+                <div className="config-group">
+                  <label className="group-label">Phương thức nhận hàng</label>
+                  <div className="delivery-options-grid-3">
+                    <div
+                      className={`delivery-opt-card-3 ${deliveryMode === "shipping" ? "selected" : ""}`}
+                      onClick={() => setDeliveryMode("shipping")}
+                    >
+                      <div className="opt-header-line">
+                        <span className="opt-date">Vận chuyển giao hàng</span>
+                        {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
+                      </div>
+                      <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
+                    </div>
+
+                    <div
+                      className={`delivery-opt-card-3 ${deliveryMode === "pickup" ? "selected" : ""}`}
+                      onClick={() => setDeliveryMode("pickup")}
+                    >
+                      <div className="opt-header-line">
+                        <span className="opt-date">Tự nhận tại nông trại</span>
+                        {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
+                      </div>
+                      <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
+                    </div>
+                  </div>
+
+                  <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
+                    <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
+                      Chọn ngày nhận mong muốn trên lịch *
+                    </label>
+                    <input
+                      type="date"
+                      className="preorder-date-picker-input"
+                      value={customDate}
+                      onChange={(e) => setCustomDate(e.target.value)}
+                      min="2026-08-01"
+                      max="2026-12-31"
+                    />
+                  </div>
+                </div>
+
+                {/* Special Instructions */}
+                <div className="config-group" style={{ marginBottom: 0 }}>
+                  <label className="group-label">Ghi chú vận chuyển (Không bắt buộc)</label>
+                  <textarea
+                    className="special-instructions-area"
+                    placeholder="Nhập bất kỳ yêu cầu cụ thể nào về việc giao hàng của bạn..."
+                    value={specialInstructions}
+                    onChange={(e) => setSpecialInstructions(e.target.value)}
+                  />
+                </div>
+
+              </div>
+
+              {/* 3. Bottom Trust Badges */}
+              <div className="preorder-trust-badges">
+                <div className="trust-badge-item">
+                  <div className="trust-badge-icon leaf-icon">
+                    <Leaf size={20} />
+                  </div>
+                  <div className="trust-badge-text">
+                    <h4>Cam kết nông sản hữu cơ</h4>
+                    <p>Sản phẩm được trồng hoàn toàn tự nhiên, không sử dụng hóa chất bảo vệ thực vật độc hại.</p>
+                  </div>
+                </div>
+
+                <div className="trust-badge-item">
+                  <div className="trust-badge-icon shield-icon">
+                    <Shield size={20} />
+                  </div>
+                  <div className="trust-badge-text">
+                    <h4>Hủy đặt trước an toàn</h4>
+                    <p>Tiền đặt cọc của bạn được đảm bảo. Bạn có thể tự do hủy đặt hàng tối đa 14 ngày trước thời điểm thu hoạch.</p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column Sidebar Summary */}
+            <div className="preorder-right-column">
+              <div className="preorder-summary-card">
+                <h3 className="summary-title">Tóm tắt đơn đặt trước</h3>
+                
+                <div className="summary-rows">
+                  <div className="summary-item-line">
+                    <span>{quantity}x {product.name}</span>
+                    <span>{formatVND(subtotal)}</span>
+                  </div>
+                  <div className="summary-item-line">
+                    <span>Phí giao hàng (Tạm tính)</span>
+                    <span>{formatVND(deliveryFee)}</span>
+                  </div>
+                  <div className="summary-item-line">
+                    <span>Thuế VAT (5%)</span>
+                    <span>{formatVND(estimatedTaxes)}</span>
+                  </div>
+                  
+                  <div className="summary-item-line total-line">
+                    <span>Tổng giá trị ước tính</span>
+                    <span>{formatVND(totalAmount)}</span>
+                  </div>
+                </div>
+
+                {/* Deposit Highlights */}
+                <div className="deposit-required-box">
+                  <div className="deposit-header-row">
+                    <span className="deposit-label-text">Yêu cầu đặt cọc (20%)</span>
+                    <span className="deposit-val-text">{formatVND(depositAmount)}</span>
+                  </div>
+                  <span className="deposit-note-text">Thanh toán cọc hôm nay để giữ suất mua thu hoạch của nông trại.</span>
+                </div>
+
+                {/* Confirm Button */}
+                <button 
+                  type="button" 
+                  className="btn-confirm-preorder"
+                  onClick={handleConfirmPreorder}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: "8px"}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  Xác nhận đặt trước
+                </button>
+
+                <p className="preorder-agreement-disclaimer">
+                  Bằng việc xác nhận, bạn đồng ý với Điều khoản và quy trình mua sắm đặt trước Seasonal Preorder của AgriMarket.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Success Modal */}
+          {showSuccessModal && (
+            <div className="preorder-success-overlay">
+              <div className="preorder-success-modal">
+                <div className="success-check-badge">✓</div>
+                <h3>Đặt trước thành công!</h3>
+                <p className="success-msg">
+                  Đơn đặt trước của bạn đã được ghi nhận. Khoản đặt cọc 20% đã được mô phỏng thanh toán thành công.
+                </p>
+                
+                <div className="success-receipt-info">
+                  <div className="receipt-row">
+                    <span className="label">Mã đơn đặt trước:</span>
+                    <span className="value">{placedPreorderId}</span>
+                  </div>
+                  <div className="receipt-row">
+                    <span className="label">Sản phẩm:</span>
+                    <span className="value">{product.name}</span>
+                  </div>
+                  <span className="receipt-row">
+                    <span className="label">Tổng số lượng:</span>
+                    <span className="value">{quantity} {product.unit || "kg"}</span>
+                  </span>
+                  <div className="receipt-row">
+                    <span className="label">Số tiền đặt cọc (20%):</span>
+                    <span className="value">{formatVND(depositAmount)}</span>
+                  </div>
+                  <div className="receipt-row">
+                    <span className="label">Ngày giao hàng mong muốn:</span>
+                    <span className="value">
+                      {deliveryMode === "pickup" ? "Tự nhận tại nông trại" : formatDateString(customDate)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="success-actions-col">
+                  <button 
+                    type="button" 
+                    className="btn-success-primary"
+                    onClick={() => {
+                      setShowSuccessModal(false);
+                      navigate("/preorders");
+                    }}
+                  >
+                    Quay lại Danh sách Đặt trước
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-success-outline"
+                    onClick={() => {
+                      setShowSuccessModal(false);
+                      navigate("/");
+                    }}
+                  >
+                    Về Trang chủ
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <Footer />
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="product-detail-page">
@@ -998,6 +1376,10 @@ export default function ProductDetail() {
         </div>
       </div>
     );
+  }
+
+  if (product.isPreorder) {
+    return renderPreorderDetail();
   }
 
   // Generate breadcrumb items dynamically
@@ -1212,32 +1594,6 @@ export default function ProductDetail() {
             <span className="price-unit">/ {product.unit === "bunch" ? "bó" : product.unit === "bag" ? "túi" : product.unit === "3lbs" ? "túi" : product.unit || "bó"}</span>
           </div>
 
-          {/* Harvest & Origin Metadata Info Bar */}
-          <div className="harvest-meta-spec">
-            <div className="harvest-meta-item">
-              <span className="harvest-meta-icon">📍</span>
-              <div className="harvest-meta-text">
-                <span className="harvest-meta-label">Nơi thu hoạch</span>
-                <span className="harvest-meta-val" title={product.farmLocation || "Lâm Đồng, Việt Nam"}>
-                  {product.farmLocation || "Lâm Đồng, Việt Nam"}
-                </span>
-              </div>
-            </div>
-            <div className="harvest-meta-item">
-              <span className="harvest-meta-icon">📅</span>
-              <div className="harvest-meta-text">
-                <span className="harvest-meta-label">Ngày thu hoạch</span>
-                <span className="harvest-meta-val">{formatDate(product.harvestDate)}</span>
-              </div>
-            </div>
-            <div className="harvest-meta-item">
-              <span className="harvest-meta-icon">⏳</span>
-              <div className="harvest-meta-text">
-                <span className="harvest-meta-label">Hạn sử dụng</span>
-                <span className="harvest-meta-val">{formatDate(product.expirationDate)}</span>
-              </div>
-            </div>
-          </div>
 
           {/* Purchase Option Box */}
           <div className="purchase-options-card">
@@ -1310,45 +1666,6 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Vận chuyển location selector */}
-            <div className="shipping-calc-container">
-              <div className="shipping-calc-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shipping-truck-icon">
-                  <rect x="1" y="3" width="15" height="13"></rect>
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                  <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                  <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                </svg>
-                <span className="shipping-calc-title">Địa điểm giao hàng:</span>
-              </div>
-              <div className="shipping-calc-select-row">
-                <select
-                  className="shipping-city-select"
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                >
-                  {VIETNAM_CITIES.map(c => (
-                    <option key={c.name} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              {shippingInfo && (
-                <div className="shipping-calc-result">
-                  <div className="shipping-info-line">
-                    <span className="shipping-result-label">Hình thức:</span>
-                    <span className="shipping-result-value bold">{shippingInfo.method}</span>
-                  </div>
-                  <div className="shipping-info-line">
-                    <span className="shipping-result-label">Thời gian:</span>
-                    <span className="shipping-result-value">{shippingInfo.time}</span>
-                  </div>
-                  <div className="shipping-info-line">
-                    <span className="shipping-result-label">Phí vận chuyển:</span>
-                    <span className="shipping-result-value fee-highlight">{formatPrice(shippingInfo.fee)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
 
             <div className="action-buttons-group">
               {product.isPreorder ? (

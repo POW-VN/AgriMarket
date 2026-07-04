@@ -12,8 +12,8 @@ const PreorderCheckout = () => {
   
   // Checkout data states
   const [product, setProduct] = useState(null);
-  const [quantity, setQuantity] = useState(1);
-  const [deliveryMode, setDeliveryMode] = useState("pickup"); // 'pickup' or 'custom'
+  const [quantity, setQuantity] = useState(5);
+  const [deliveryMode, setDeliveryMode] = useState("shipping"); // 'shipping' or 'pickup'
   const [customDate, setCustomDate] = useState("2026-09-01");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -21,10 +21,7 @@ const PreorderCheckout = () => {
 
   // Helper format VND
   const formatVND = (number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(number);
+    return new Intl.NumberFormat("vi-VN").format(number) + " đ";
   };
 
   useEffect(() => {
@@ -40,7 +37,7 @@ const PreorderCheckout = () => {
         if (parsed && parsed.selectedItems && parsed.selectedItems.length > 0) {
           const item = parsed.selectedItems[0];
           setProduct(item);
-          setQuantity(item.quantity || 1);
+          setQuantity(item.quantity || 5);
         } else {
           loadMockFallback();
         }
@@ -54,15 +51,14 @@ const PreorderCheckout = () => {
   }, []);
 
   const loadMockFallback = () => {
-    // Gorgeous default product if accessed directly without selecting one
     setProduct({
-      id: "mock_tomato_preorder",
-      name: "Giỏ Cà chua Heirloom Hữu cơ (10 lbs)",
-      price: 1100000,
-      unit: "Giỏ 4.5kg",
-      imageUrl: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&auto=format&fit=crop&q=60",
-      farmerId: 101,
-      farmerName: "Nông trại Thung Lũng Xanh (Green Valley)",
+      id: "mock-2",
+      name: "Cà rốt gia truyền hữu cơ",
+      price: 112500,
+      unit: "bó",
+      imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",
+      farmerId: 102,
+      farmerName: "Nông trại Green Valley",
       expectedHarvest: "Cuối tháng 08, 2026",
       deliveryWindow: "Từ 01/09 đến 07/09/2026",
       isPreorder: true
@@ -83,7 +79,7 @@ const PreorderCheckout = () => {
   // Cost calculations
   const pricePerUnit = product.price || 0;
   const subtotal = pricePerUnit * quantity;
-  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000; // Miễn phí vận chuyển nếu tự nhận
+  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
   const estimatedTaxes = Math.round(subtotal * 0.05); // 5% VAT
   const totalAmount = subtotal + deliveryFee + estimatedTaxes;
   const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
@@ -124,7 +120,7 @@ const PreorderCheckout = () => {
       depositPaid: depositAmount,
       remainingAmount: totalAmount - depositAmount,
       createdAt: new Date().toLocaleDateString("vi-VN"),
-      deliveryOption: deliveryMode === "pickup" ? "Tự nhận tại nông trại" : `Giao tận nơi ngày ${formatDateString(customDate)}`,
+      deliveryOption: deliveryMode === "pickup" ? "Tự nhận tại nông trại" : deliveryMode === "option1" ? "Giao buổi sáng ngày 01/09/2026" : "Giao buổi chiều ngày 04/09/2026",
       specialInstructions: specialInstructions,
       isPreorder: true
     };
@@ -162,43 +158,40 @@ const PreorderCheckout = () => {
             
             {/* 1. Product Info Panel */}
             <div className="preorder-card-panel preorder-product-card">
-              <div className="preorder-image-wrapper">
-                <img src={product.imageUrl} alt={product.name} />
-                <span className="preorder-badge-pill">Đặt trước</span>
-              </div>
-
-              <div className="preorder-details-info">
-                <h2>{product.name}</h2>
-                <div className="preorder-farm-row">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                  <span>{product.farmerName || "Nông trại địa phương"}</span>
+              <div className="preorder-product-upper">
+                <div className="preorder-image-wrapper">
+                  <img src={product.imageUrl} alt={product.name} />
+                  <span className="preorder-badge-pill">ĐẶT TRƯỚC</span>
                 </div>
 
-                <div className="preorder-timeline-cards">
-                  <div className="timeline-box">
-                    <div className="box-label">Dự kiến thu hoạch</div>
-                    <div className="box-value">{product.expectedHarvest || "Tháng 8, 2026"}</div>
+                <div className="preorder-details-info">
+                  <h2>{product.name}</h2>
+                  <div className="preorder-farm-row">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <span>Nông trại {product.farmerName || "Green Valley"}</span>
                   </div>
-                  <div className="timeline-box">
-                    <div className="box-label">Thời gian giao hàng</div>
-                    <div className="box-value">{product.deliveryWindow || "Tháng 9, 2026"}</div>
+
+                  <div className="preorder-timeline-cards">
+                    <div className="timeline-box">
+                      <div className="box-label">DỰ KIẾN THU HOẠCH</div>
+                      <div className="box-value">{product.expectedHarvest || "Cuối tháng 08, 2026"}</div>
+                    </div>
                   </div>
                 </div>
-
-                <p className="preorder-product-desc">
-                  Đặt trước sản phẩm của mùa vụ thu hoạch mới giúp đảm bảo nguồn cung tươi ngon nhất trực tiếp từ nông trại. 
-                  Hỗ trợ nông dân yên tâm sản xuất với cam kết bao tiêu đầu ra chất lượng cao.
-                </p>
               </div>
+
+              <p className="preorder-product-desc">
+                {product.description || "Đặt trước sản phẩm của mùa vụ thu hoạch mới giúp đảm bảo nguồn cung tươi ngon nhất trực tiếp từ nông trại. Hỗ trợ nông dân yên tâm sản xuất với cam kết bao tiêu đầu ra chất lượng cao."}
+              </p>
             </div>
 
             {/* 2. Configure Preorder Form */}
             <div className="preorder-card-panel">
-              <h3 className="config-title">Cấu hình thông tin đặt trước</h3>
+              <h3 className="config-title">Thông tin đặt trước</h3>
 
               {/* Quantity */}
               <div className="config-group">
-                <label className="group-label">Chọn số lượng đặt trước ({product.unit})</label>
+                <label className="group-label">Chọn số lượng đặt trước ({product.unit || "bó"})</label>
                 <div className="qty-selector-row">
                   <div className="qty-control-buttons">
                     <button 
@@ -223,52 +216,50 @@ const PreorderCheckout = () => {
                       ＋
                     </button>
                   </div>
-                  <span className="price-indicator-text">{formatVND(pricePerUnit)} / {product.unit}</span>
+                  <span className="price-indicator-text">{formatVND(pricePerUnit)} / {product.unit || "bó"}</span>
                 </div>
               </div>
 
               {/* Preferred Delivery Date */}
               <div className="config-group">
-                <label className="group-label">Phương thức nhận hàng mong muốn</label>
-                <div className="delivery-options-grid">
+                <label className="group-label">Phương thức nhận hàng</label>
+                <div className="delivery-options-grid-3">
                   <div
-                    className={`delivery-opt-card ${deliveryMode === "pickup" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("pickup")}
+                    className={`delivery-opt-card-3 ${deliveryMode === "shipping" ? "selected" : ""}`}
+                    onClick={() => setDeliveryMode("shipping")}
                   >
-                    <div className="opt-date">Tự nhận tại vườn</div>
-                    <div className="opt-desc">Bạn tự đến vườn lấy hàng (Miễn phí giao hàng)</div>
-                    {deliveryMode === "pickup" && (
-                      <div className="checkmark-icon">✓</div>
-                    )}
+                    <div className="opt-header-line">
+                      <span className="opt-date">Vận chuyển giao hàng</span>
+                      {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
+                    </div>
+                    <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
                   </div>
 
                   <div
-                    className={`delivery-opt-card ${deliveryMode === "custom" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("custom")}
+                    className={`delivery-opt-card-3 ${deliveryMode === "pickup" ? "selected" : ""}`}
+                    onClick={() => setDeliveryMode("pickup")}
                   >
-                    <div className="opt-date">Tự chọn ngày nhận</div>
-                    <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
-                    {deliveryMode === "custom" && (
-                      <div className="checkmark-icon">✓</div>
-                    )}
+                    <div className="opt-header-line">
+                      <span className="opt-date">Tự nhận tại nông trại</span>
+                      {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
+                    </div>
+                    <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
                   </div>
                 </div>
 
-                {deliveryMode === "custom" && (
-                  <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
-                    <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
-                      Chọn ngày nhận hàng trên lịch *
-                    </label>
-                    <input
-                      type="date"
-                      className="preorder-date-picker-input"
-                      value={customDate}
-                      onChange={(e) => setCustomDate(e.target.value)}
-                      min="2026-08-01"
-                      max="2026-12-31"
-                    />
-                  </div>
-                )}
+                <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
+                  <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
+                    Chọn ngày nhận mong muốn trên lịch *
+                  </label>
+                  <input
+                    type="date"
+                    className="preorder-date-picker-input"
+                    value={customDate}
+                    onChange={(e) => setCustomDate(e.target.value)}
+                    min="2026-08-01"
+                    max="2026-12-31"
+                  />
+                </div>
               </div>
 
               {/* Special Instructions */}
@@ -302,7 +293,7 @@ const PreorderCheckout = () => {
                 </div>
                 <div className="trust-badge-text">
                   <h4>Hủy đặt trước an toàn</h4>
-                  <p>Tiền đặt cọc được bảo đảm. Được phép hủy đặt trước miễn phí trước khi vụ mùa bước vào 1/3 giai đoạn cuối của chu kỳ thu hoạch.</p>
+                  <p>Tiền đặt cọc của bạn được đảm bảo. Bạn có thể tự do hủy đặt hàng tối đa 14 ngày trước thời điểm thu hoạch.</p>
                 </div>
               </div>
             </div>
@@ -349,7 +340,7 @@ const PreorderCheckout = () => {
                 className="btn-confirm-preorder"
                 onClick={handleConfirmPreorder}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: "8px"}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 Xác nhận đặt trước
               </button>
 

@@ -33,6 +33,7 @@ import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
 import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PreorderCheckout from "../pages/Product/PreorderCheckout";
+import PreorderList from "../pages/Product/PreorderList";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import VNPayCallbackPage from "../pages/Payment/VNPayCallbackPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
@@ -117,6 +118,7 @@ const AppRoutes = () => {
 
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/preorders" element={<PreorderList />} />
         <Route path="/preorder-checkout" element={<PreorderCheckout />} />
         <Route path="/livestream" element={<LivestreamListPage />} />
         <Route path="/livestream/:id" element={<LivestreamPage />} />
