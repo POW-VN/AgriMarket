@@ -456,6 +456,10 @@
   gap: 24px;
 }
 
+.live-console-grid > div {
+  min-width: 0; /* Prevent child content expansion from breaking grid column ratios */
+}
+
 @media (max-width: 1024px) {
   .live-console-grid {
     grid-template-columns: 1fr;
@@ -682,6 +686,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 520px; /* Match height of left column (viewfinder + footer) */
+  box-sizing: border-box;
 }
 
 .chat-panel-header {
@@ -704,18 +710,52 @@
 }
 
 .chat-console-messages-list {
-  flex: 1;
-  max-height: 250px;
+  height: 380px; /* Fixed high-capacity height so multiple comments are visible at once */
   overflow-y: auto;
   margin-bottom: 12px;
   padding-right: 4px;
 }
 
 .chat-message-console-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 10px;
   font-size: 0.85rem;
   line-height: 1.4;
   word-break: break-word;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.chat-message-console-item:hover {
+  background-color: #f1f5f9;
+}
+
+.chat-message-bubble-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-pin-chat-msg {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.chat-message-console-item:hover .btn-pin-chat-msg {
+  opacity: 1;
+}
+
+.btn-pin-chat-msg:hover {
+  transform: scale(1.2);
 }
 
 .chat-message-console-item.system {
@@ -868,6 +908,9 @@
 }
 
 .btn-end-stream {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 12px 24px;
   background-color: #ef4444;
   color: white;
@@ -1099,4 +1142,147 @@
   background-color: #059669;
   box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
 }
+
+/* Pinned Chat Box Styles */
+.console-pinned-chat-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background-color: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  animation: slide-down 0.2s ease-out;
+}
+
+.console-pinned-chat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pinned-badge {
+  font-weight: 700;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pinned-user {
+  font-weight: 700;
+  color: #1e3a8a;
+  flex-shrink: 0;
+}
+
+.pinned-text {
+  color: #1e293b;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.btn-unpin-chat {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-unpin-chat:hover {
+  color: #ef4444;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Chat Moderation: Block Options Menu & Buttons */
+.block-options-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.75rem;
+  z-index: 10;
+  animation: fade-in 0.15s ease-out;
+  margin-left: auto;
+}
+
+.block-options-menu button {
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  transition: all 0.15s;
+}
+
+.block-options-menu button:hover {
+  background-color: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+.block-options-menu button.close-menu-btn {
+  background: none;
+  border: none;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+}
+
+.block-options-menu button.close-menu-btn:hover {
+  color: #475569;
+  background: none;
+}
+
+.btn-delete-chat-msg,
+.btn-block-user-msg {
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  margin-left: 4px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-message-console-item:hover .btn-delete-chat-msg,
+.chat-message-console-item:hover .btn-block-user-msg {
+  opacity: 1;
+}
+
+.btn-delete-chat-msg:hover,
+.btn-block-user-msg:hover {
+  transform: scale(1.25);
+}
+
 

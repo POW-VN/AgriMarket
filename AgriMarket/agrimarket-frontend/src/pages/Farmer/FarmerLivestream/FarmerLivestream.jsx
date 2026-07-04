@@ -35,6 +35,11 @@ export const FarmerLivestream = () => {
   const [pinnedProductId, setPinnedProductId] = useState(null);
   const [isEditProductsOpen, setIsEditProductsOpen] = useState(false);
   const [tempVoucherPercent, setTempVoucherPercent] = useState(10);
+  const [pinnedChatMessage, setPinnedChatMessage] = useState(null);
+  const [blockedUsers, setBlockedUsers] = useState({}); // { username: expiryTimestamp }
+  const [activeBlockMenuMsgId, setActiveBlockMenuMsgId] = useState(null);
+  const blockedUsersRef = useRef({});
+  blockedUsersRef.current = blockedUsers;
 
   // Final Report Stats
   const [reportStats, setReportStats] = useState({
@@ -49,7 +54,7 @@ export const FarmerLivestream = () => {
   const streamTimerRef = useRef(null);
   const viewersTimerRef = useRef(null);
   const chatsTimerRef = useRef(null);
-  const chatEndRef = useRef(null);
+  const chatListRef = useRef(null);
 
   // Fetch Farmer Products on mount
   useEffect(() => {
@@ -110,9 +115,11 @@ export const FarmerLivestream = () => {
     return () => clearInterval(interval);
   }, [isMicOn, streamState]);
 
-  // Autoscroll chat box
+  // Autoscroll chat box locally without shifting the browser window scroll position
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatListRef.current) {
+      chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
+    }
   }, [chatMessages]);
 
   // Manage Active Livestream Timers (Simulated Chat, Viewers, Time Ticker)
@@ -164,15 +171,22 @@ export const FarmerLivestream = () => {
         if (isComment) {
           const randomUser = mockUsers[Math.floor(Math.random() * mockUsers.length)];
           const randomText = mockComments[Math.floor(Math.random() * mockComments.length)];
-          setChatMessages((prev) => [
-            ...prev,
-            {
-              id: `comment-${Date.now()}-${Math.random()}`,
-              type: "buyer",
-              user: randomUser,
-              text: randomText
-            }
-          ]);
+
+          // Check if user is currently blocked
+          const blockExpiry = blockedUsersRef.current[randomUser];
+          const isBlocked = blockExpiry && (blockExpiry === Infinity || blockExpiry > Date.now());
+
+          if (!isBlocked) {
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                id: `comment-${Date.now()}-${Math.random()}`,
+                type: "buyer",
+                user: randomUser,
+                text: randomText
+              }
+            ]);
+          }
         } else {
           // Trigger a heart burst
           triggerHeartBurst();
@@ -334,6 +348,82 @@ export const FarmerLivestream = () => {
       console.error("Lỗi khi cập nhật sản phẩm trong livestream:", e);
     }
     setIsEditProductsOpen(false);
+  };
+
+  const handlePinChat = (msg) => {
+    setPinnedChatMessage(msg);
+    try {
+      const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
+      if (activeSession) {
+        const updatedSession = {
+          ...activeSession,
+          pinnedChatMessage: msg
+        };
+        localStorage.setItem("active_farmer_livestream_session", JSON.stringify(updatedSession));
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const nextLives = storedLives.map((s) => (s.id === liveSessionId ? updatedSession : s));
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify(nextLives));
+      }
+    } catch (e) {
+      console.error("Lỗi khi ghim tin nhắn chat:", e);
+    }
+  };
+
+  const handleUnpinChat = () => {
+    setPinnedChatMessage(null);
+    try {
+      const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
+      if (activeSession) {
+        const updatedSession = {
+          ...activeSession,
+          pinnedChatMessage: null
+        };
+        localStorage.setItem("active_farmer_livestream_session", JSON.stringify(updatedSession));
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const nextLives = storedLives.map((s) => (s.id === liveSessionId ? updatedSession : s));
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify(nextLives));
+      }
+    } catch (e) {
+      console.error("Lỗi khi bỏ ghim tin nhắn chat:", e);
+    }
+  };
+
+  const handleDeleteChat = (msgId) => {
+    setChatMessages((prev) => prev.filter((m) => m.id !== msgId));
+    if (pinnedChatMessage && pinnedChatMessage.id === msgId) {
+      handleUnpinChat();
+    }
+  };
+
+  const handleBlockUser = (username, durationMinutes) => {
+    const expiry = durationMinutes === Infinity ? Infinity : Date.now() + durationMinutes * 60 * 1000;
+    setBlockedUsers((prev) => ({
+      ...prev,
+      [username]: expiry
+    }));
+
+    // Remove all previous messages from this blocked user
+    setChatMessages((prev) => prev.filter((m) => m.user !== username));
+
+    // Clear pin if pinned message belonged to this user
+    if (pinnedChatMessage && pinnedChatMessage.user === username) {
+      handleUnpinChat();
+    }
+
+    let durationText = "";
+    if (durationMinutes === 15) durationText = "15 phút";
+    else if (durationMinutes === 1440) durationText = "1 ngày";
+    else durationText = "vĩnh viễn";
+
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: `sys-block-${Date.now()}`,
+        type: "system",
+        text: `Hệ thống: Người dùng [${username}] đã bị chặn bình luận ${durationText}!`
+      }
+    ]);
+    setActiveBlockMenuMsgId(null);
   };
 
   // Launch Livestream Session
@@ -818,8 +908,140 @@ export const FarmerLivestream = () => {
             {/* End Stream Button */}
             <div className="live-console-footer">
               <button className="btn-end-stream" onClick={handleEndLivestream}>
-                🟥 Kết thúc Livestream
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  style={{ marginRight: "8px" }}
+                >
+                  <rect x="4" y="4" width="16" height="16" rx="3" />
+                </svg>
+                Kết thúc Livestream
               </button>
+            </div>
+
+            {/* Live Products & Voucher adjustment container card */}
+            <div className="live-card" style={{ marginTop: "20px", padding: "16px 20px" }}>
+              {/* Console Products pinning selection list */}
+              <div className="console-products-card">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
+                    📌 Sản phẩm trong buổi live ({selectedProductIds.length})
+                  </h4>
+                  <button
+                    className="btn-edit-live-products"
+                    onClick={() => setIsEditProductsOpen(true)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#10b981",
+                      fontSize: "0.8rem",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                  >
+                    ✏️ Chỉnh sửa
+                  </button>
+                </div>
+                <div className="pinned-products-grid">
+                  {farmerProducts
+                    .filter((p) => selectedProductIds.includes(p.id))
+                    .map((p) => {
+                      const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
+                      const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
+                      const isActivePin = pinnedProductId === p.id;
+
+                      return (
+                        <div
+                          key={p.id}
+                          className={`console-product-item ${isActivePin ? "active" : ""}`}
+                        >
+                          <div className="console-prod-left">
+                            <img src={p.imageUrl} alt={p.name} className="console-prod-img" />
+                            <div className="console-prod-details">
+                              <p className="console-prod-name">{p.name}</p>
+                              <p className="console-prod-price">
+                                {livePrice.toLocaleString()}đ/{p.unit}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            className={`btn-pin-control ${isActivePin ? "active" : ""}`}
+                            onClick={() => setPinnedProductId(p.id)}
+                          >
+                            {isActivePin ? "📌 Đang ghim" : "Ghim lên live"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Voucher edit section during live */}
+              <div className="console-voucher-edit-card" style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+                <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
+                  🎟️ Điều chỉnh Voucher phiên live
+                </h4>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  <div className="voucher-option-pills" style={{ gap: "6px", display: "flex", flexWrap: "wrap" }}>
+                    {[0, 10, 15, 20].map((percent) => (
+                      <button
+                        key={percent}
+                        className={`voucher-pill ${tempVoucherPercent === percent ? "active" : ""}`}
+                        onClick={() => setTempVoucherPercent(percent)}
+                        style={{ padding: "6px 10px", fontSize: "0.75rem", borderRadius: "6px" }}
+                      >
+                        {percent === 0 ? "Không" : `-${percent}%`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom input box */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tự nhập:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="90"
+                      placeholder="Nhập %"
+                      value={![0, 10, 15, 20].includes(tempVoucherPercent) ? tempVoucherPercent : ""}
+                      onChange={(e) => {
+                        const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 90);
+                        setTempVoucherPercent(val);
+                      }}
+                      style={{
+                        width: "68px",
+                        padding: "6px 4px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        fontSize: "0.8rem",
+                        textAlign: "center"
+                      }}
+                    />
+                    <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "#475569" }}>%</span>
+                  </div>
+
+                  {/* Apply button shown conditionally */}
+                  {tempVoucherPercent !== voucherPercent && (
+                    <button
+                      className="btn-modal-submit"
+                      onClick={() => handleUpdateLiveVoucher(tempVoucherPercent)}
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "0.75rem",
+                        borderRadius: "6px",
+                        marginLeft: "auto"
+                      }}
+                    >
+                      Áp dụng
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -834,23 +1056,73 @@ export const FarmerLivestream = () => {
               </span>
             </div>
 
+            {/* Pinned Chat Display Row */}
+            {pinnedChatMessage && (
+              <div className="console-pinned-chat-row">
+                <div className="console-pinned-chat-content">
+                  <span className="pinned-badge">📌 Đã ghim:</span>
+                  <span className="pinned-user">{pinnedChatMessage.user}:</span>
+                  <span className="pinned-text">{pinnedChatMessage.text}</span>
+                </div>
+                <button className="btn-unpin-chat" onClick={handleUnpinChat} title="Bỏ ghim">
+                  &times;
+                </button>
+              </div>
+            )}
+
             {/* Chat List */}
-            <div className="chat-console-messages-list">
+            <div className="chat-console-messages-list" ref={chatListRef}>
               {chatMessages.map((msg) => (
                 <div key={msg.id} className={`chat-message-console-item ${msg.type}`}>
                   {msg.type === "system" ? (
                     <span>{msg.text}</span>
                   ) : (
                     <>
-                      <span className={`chat-user-badge ${msg.type}`}>
-                        {msg.user}:
-                      </span>
-                      <span className="chat-msg-text">{msg.text}</span>
+                      {activeBlockMenuMsgId === msg.id ? (
+                        <div className="block-options-menu" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => handleBlockUser(msg.user, 15)} title="Chặn 15 phút">15p</button>
+                          <button onClick={() => handleBlockUser(msg.user, 1440)} title="Chặn 1 ngày">1 ngày</button>
+                          <button onClick={() => handleBlockUser(msg.user, Infinity)} title="Chặn vĩnh viễn">Vô hạn</button>
+                          <button className="close-menu-btn" onClick={() => setActiveBlockMenuMsgId(null)} title="Hủy">✕</button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="chat-message-bubble-left">
+                            <span className={`chat-user-badge ${msg.type}`}>
+                              {msg.user}:
+                            </span>
+                            <span className="chat-msg-text">{msg.text}</span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center" }}>
+                            <button
+                              className="btn-pin-chat-msg"
+                              onClick={() => handlePinChat(msg)}
+                              title="Ghim tin nhắn"
+                            >
+                              📌
+                            </button>
+                            <button
+                              className="btn-delete-chat-msg"
+                              onClick={() => handleDeleteChat(msg.id)}
+                              title="Xóa bình luận"
+                            >
+                              🗑️
+                            </button>
+                            <button
+                              className="btn-block-user-msg"
+                              onClick={() => setActiveBlockMenuMsgId(msg.id)}
+                              title="Chặn người dùng này"
+                            >
+                              🚫
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
               ))}
-              <div ref={chatEndRef} />
+              {/* No dummy scroll ref element needed since we scroll container scrollTop directly */}
             </div>
 
             {/* Host Reply chat input */}
@@ -866,126 +1138,6 @@ export const FarmerLivestream = () => {
                 Gửi
               </button>
             </form>
-
-            {/* Console Products pinning selection list */}
-            <div className="console-products-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
-                  📌 Sản phẩm trong buổi live ({selectedProductIds.length})
-                </h4>
-                <button
-                  className="btn-edit-live-products"
-                  onClick={() => setIsEditProductsOpen(true)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#10b981",
-                    fontSize: "0.8rem",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px"
-                  }}
-                >
-                  ✏️ Chỉnh sửa
-                </button>
-              </div>
-              <div className="pinned-products-grid">
-                {farmerProducts
-                  .filter((p) => selectedProductIds.includes(p.id))
-                  .map((p) => {
-                    const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
-                    const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
-                    const isActivePin = pinnedProductId === p.id;
-
-                    return (
-                      <div
-                        key={p.id}
-                        className={`console-product-item ${isActivePin ? "active" : ""}`}
-                      >
-                        <div className="console-prod-left">
-                          <img src={p.imageUrl} alt={p.name} className="console-prod-img" />
-                          <div className="console-prod-details">
-                            <p className="console-prod-name">{p.name}</p>
-                            <p className="console-prod-price">
-                              {livePrice.toLocaleString()}đ/{p.unit}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          className={`btn-pin-control ${isActivePin ? "active" : ""}`}
-                          onClick={() => setPinnedProductId(p.id)}
-                        >
-                          {isActivePin ? "📌 Đang ghim" : "Ghim lên live"}
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-
-            {/* Voucher edit section during live */}
-            <div className="console-voucher-edit-card" style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
-              <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
-                🎟️ Điều chỉnh Voucher phiên live
-              </h4>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                <div className="voucher-option-pills" style={{ gap: "6px", display: "flex", flexWrap: "wrap" }}>
-                  {[0, 10, 15, 20].map((percent) => (
-                    <button
-                      key={percent}
-                      className={`voucher-pill ${tempVoucherPercent === percent ? "active" : ""}`}
-                      onClick={() => setTempVoucherPercent(percent)}
-                      style={{ padding: "6px 10px", fontSize: "0.75rem", borderRadius: "6px" }}
-                    >
-                      {percent === 0 ? "Không" : `-${percent}%`}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Custom input box */}
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tự nhập:</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="90"
-                    placeholder="Nhập %"
-                    value={![0, 10, 15, 20].includes(tempVoucherPercent) ? tempVoucherPercent : ""}
-                    onChange={(e) => {
-                      const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 90);
-                      setTempVoucherPercent(val);
-                    }}
-                    style={{
-                      width: "68px",
-                      padding: "6px 4px",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "6px",
-                      fontSize: "0.8rem",
-                      textAlign: "center"
-                    }}
-                  />
-                  <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "#475569" }}>%</span>
-                </div>
-
-                {/* Apply button shown conditionally */}
-                {tempVoucherPercent !== voucherPercent && (
-                  <button
-                    className="btn-modal-submit"
-                    onClick={() => handleUpdateLiveVoucher(tempVoucherPercent)}
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: "0.75rem",
-                      borderRadius: "6px",
-                      marginLeft: "auto"
-                    }}
-                  >
-                    Áp dụng
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
