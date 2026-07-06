@@ -67,14 +67,14 @@ const FarmerScheduledCountdown = ({ title, description, scheduledTime, onStartLi
       }}>
         📅
       </div>
-      
+
       <h2 style={{
         fontSize: "1.75rem",
         fontWeight: "800",
         color: "#065f46",
         margin: "0 0 8px 0"
       }}>Phiên Live Đã Được Lên Lịch</h2>
-      
+
       <p style={{
         fontSize: "1rem",
         color: "#047857",
@@ -418,7 +418,7 @@ export const FarmerLivestream = () => {
         try {
           if (!liveSessionId) return;
           const detailRes = await apiClient.get(`/api/livestreams/${liveSessionId}`);
-          
+
           if (detailRes.data.status !== "active") {
             await handleExternalEnd();
             return;
@@ -969,7 +969,7 @@ export const FarmerLivestream = () => {
       await apiClient.post(`/api/livestreams/${liveSessionId}/comments`, {
         comment: chatInput.trim()
       });
-      
+
       const farmerUser = JSON.parse(localStorage.getItem("farmconnect_user")) || {};
       const farmName = farmerUser.farmName || "Nhà vườn";
 
@@ -1105,7 +1105,7 @@ export const FarmerLivestream = () => {
                   <span className="selected-count-tag">Đã chọn: {selectedProductIds.length}</span>
                 )}
               </label>
-              
+
               <div className="products-selection-container">
                 {loadingProducts ? (
                   <p style={{ padding: "16px", color: "#64748b", margin: 0, textAlign: "center", fontSize: "0.85rem" }}>
@@ -1123,7 +1123,7 @@ export const FarmerLivestream = () => {
                           type="checkbox"
                           className="product-row-checkbox"
                           checked={selectedProductIds.includes(prod.id)}
-                          onChange={() => {}} // handled by item click
+                          onChange={() => { }} // handled by item click
                         />
                         <img src={prod.imageUrl} alt={prod.name} className="product-row-thumbnail" />
                         <div className="product-row-details">
@@ -1296,8 +1296,8 @@ export const FarmerLivestream = () => {
               <label style={{ display: "block", fontSize: "0.9rem", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
                 📅 Thời gian lên lịch (Nếu muốn lên lịch live)
               </label>
-              <input 
-                type="datetime-local" 
+              <input
+                type="datetime-local"
                 value={scheduledTime}
                 min={getMinDateTimeLocal()}
                 onChange={(e) => setScheduledTime(e.target.value)}
@@ -1317,8 +1317,8 @@ export const FarmerLivestream = () => {
               📡 Bắt đầu Phát sóng ngay
             </button>
 
-            <button 
-              className="btn-schedule-live" 
+            <button
+              className="btn-schedule-live"
               onClick={handleScheduleLivestream}
               style={{
                 width: "100%",
@@ -1350,7 +1350,7 @@ export const FarmerLivestream = () => {
 
       {/* 1.5. SCHEDULED COUNTDOWN SCREEN */}
       {streamState === "scheduled" && (
-        <FarmerScheduledCountdown 
+        <FarmerScheduledCountdown
           title={title}
           description={description}
           scheduledTime={scheduledTime}
@@ -1378,326 +1378,326 @@ export const FarmerLivestream = () => {
             )}
           </div>
           <div className="live-console-grid">
-          {/* Main viewfinder broadcasting feed */}
-          <div>
-            <div className="live-viewfinder-wrapper">
-              {/* Actual camera or animated fallback */}
-              {isCamOn ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="viewfinder-stream"
-                ></video>
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "radial-gradient(circle, #1e3a8a 0%, #0f172a 100%)",
-                    color: "white"
-                  }}
-                >
-                  <span style={{ fontSize: "3rem", animation: "bounce 2s infinite" }}>🎥</span>
-                  <p style={{ marginTop: "12px", fontSize: "0.95rem", fontWeight: "600", color: "#cbd5e1" }}>
-                    Camera đang tắt (Livestream đang chạy)
-                  </p>
+            {/* Main viewfinder broadcasting feed */}
+            <div>
+              <div className="live-viewfinder-wrapper">
+                {/* Actual camera or animated fallback */}
+                {isCamOn ? (
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="viewfinder-stream"
+                  ></video>
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "radial-gradient(circle, #1e3a8a 0%, #0f172a 100%)",
+                      color: "white"
+                    }}
+                  >
+                    <span style={{ fontSize: "3rem", animation: "bounce 2s infinite" }}>🎥</span>
+                    <p style={{ marginTop: "12px", fontSize: "0.95rem", fontWeight: "600", color: "#cbd5e1" }}>
+                      Camera đang tắt (Livestream đang chạy)
+                    </p>
+                  </div>
+                )}
+
+                {/* Viewfinder Header info */}
+                <div className="viewfinder-top-bar">
+                  <div className="viewfinder-badges-left">
+                    <span className="badge-live-pulse">
+                      <span style={{ width: "6px", height: "6px", backgroundColor: "white", borderRadius: "50%" }}></span>
+                      TRỰC TIẾP
+                    </span>
+                    <span className="badge-live-time">
+                      {formatTime(streamDuration)}
+                    </span>
+                  </div>
+
+                  <div className="viewfinder-badges-right">
+                    <span className="badge-console-stats">
+                      👥 {viewersCount} người xem
+                    </span>
+                    <span className="badge-console-stats">
+                      ❤️ {heartsCount} Thích
+                    </span>
+                  </div>
+                </div>
+
+
+
+                {/* Floating Hearts effect area */}
+                <div className="hearts-fly-area">
+                  {floatingHearts.map((heartId) => {
+                    const hearts = ["❤️", "💖", "🍓", "🍅", "⭐", "👍"];
+                    const randomIcon = hearts[Math.floor((heartId * 10) % hearts.length)];
+                    const leftPos = 10 + ((heartId * 100) % 40); // spread left position
+                    return (
+                      <span
+                        key={heartId}
+                        className="floating-heart"
+                        style={{ left: `${leftPos}px` }}
+                      >
+                        {randomIcon}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {/* Overlay controls */}
+                <div className="viewfinder-action-row">
+                  <button
+                    className="btn-floating-action"
+                    onClick={() => setIsCamOn(!isCamOn)}
+                    title={isCamOn ? "Tắt Camera" : "Bật Camera"}
+                  >
+                    {isCamOn ? "📷" : "🚫"}
+                  </button>
+                  <button
+                    className="btn-floating-action"
+                    onClick={() => setIsMicOn(!isMicOn)}
+                    title={isMicOn ? "Tắt Mic" : "Bật Mic"}
+                  >
+                    {isMicOn ? "🎤" : "🔇"}
+                  </button>
+                </div>
+              </div>
+
+              {/* End Stream Button */}
+              <div className="live-console-footer">
+                <button className="btn-end-stream" onClick={handleEndLivestream}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    style={{ marginRight: "8px" }}
+                  >
+                    <rect x="4" y="4" width="16" height="16" rx="3" />
+                  </svg>
+                  Kết thúc Livestream
+                </button>
+              </div>
+
+              {/* Live Products & Voucher adjustment container card */}
+              <div className="live-card" style={{ marginTop: "20px", padding: "16px 20px" }}>
+                {/* Console Products pinning selection list */}
+                <div className="console-products-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
+                      📌 Sản phẩm trong buổi live ({selectedProductIds.length})
+                    </h4>
+                    <button
+                      className="btn-edit-live-products"
+                      onClick={() => setIsEditProductsOpen(true)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#10b981",
+                        fontSize: "0.8rem",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      ✏️ Chỉnh sửa
+                    </button>
+                  </div>
+                  <div className="pinned-products-grid">
+                    {farmerProducts
+                      .filter((p) => selectedProductIds.includes(p.id))
+                      .map((p) => {
+                        const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
+                        const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
+                        const isActivePin = pinnedProductId === p.id;
+
+                        return (
+                          <div
+                            key={p.id}
+                            className={`console-product-item ${isActivePin ? "active" : ""}`}
+                          >
+                            <div className="console-prod-left">
+                              <img src={p.imageUrl} alt={p.name} className="console-prod-img" />
+                              <div className="console-prod-details">
+                                <p className="console-prod-name">{p.name}</p>
+                                <p className="console-prod-price">
+                                  {livePrice.toLocaleString()}đ/{p.unit}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              className={`btn-pin-control ${isActivePin ? "active" : ""}`}
+                              onClick={() => handlePinProduct(p.id)}
+                            >
+                              {isActivePin ? "📌 Đang ghim" : "Ghim lên live"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* Voucher edit section during live */}
+                <div className="console-voucher-edit-card" style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+                  <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
+                    🎟️ Điều chỉnh Voucher phiên live
+                  </h4>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <div className="voucher-option-pills" style={{ gap: "6px", display: "flex", flexWrap: "wrap" }}>
+                      {[0, 10, 15, 20].map((percent) => (
+                        <button
+                          key={percent}
+                          className={`voucher-pill ${tempVoucherPercent === percent ? "active" : ""}`}
+                          onClick={() => setTempVoucherPercent(percent)}
+                          style={{ padding: "6px 10px", fontSize: "0.75rem", borderRadius: "6px" }}
+                        >
+                          {percent === 0 ? "Không" : `-${percent}%`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom input box */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tự nhập:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="90"
+                        placeholder="Nhập %"
+                        value={![0, 10, 15, 20].includes(tempVoucherPercent) ? tempVoucherPercent : ""}
+                        onChange={(e) => {
+                          const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 90);
+                          setTempVoucherPercent(val);
+                        }}
+                        style={{
+                          width: "68px",
+                          padding: "6px 4px",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "6px",
+                          fontSize: "0.8rem",
+                          textAlign: "center"
+                        }}
+                      />
+                      <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "#475569" }}>%</span>
+                    </div>
+
+                    {/* Apply button shown conditionally */}
+                    {tempVoucherPercent !== voucherPercent && (
+                      <button
+                        className="btn-modal-submit"
+                        onClick={() => handleUpdateLiveVoucher(tempVoucherPercent)}
+                        style={{
+                          padding: "6px 12px",
+                          fontSize: "0.75rem",
+                          borderRadius: "6px",
+                          marginLeft: "auto"
+                        }}
+                      >
+                        Áp dụng
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right column: Live Chat box */}
+            <div className="live-card live-chat-panel">
+              <div className="chat-panel-header">
+                <h3 className="chat-panel-title">
+                  💬 Khán giả trò chuyện
+                </h3>
+                <span className="badge-role" style={{ backgroundColor: "#e2e8f0", color: "#475569" }}>
+                  Host Console
+                </span>
+              </div>
+
+              {/* Pinned Chat Display Row */}
+              {pinnedChatMessage && (
+                <div className="console-pinned-chat-row">
+                  <div className="console-pinned-chat-content">
+                    <span className="pinned-badge">📌 Đã ghim:</span>
+                    <span className="pinned-user">{pinnedChatMessage.user}:</span>
+                    <span className="pinned-text">{pinnedChatMessage.text}</span>
+                  </div>
+                  <button className="btn-unpin-chat" onClick={handleUnpinChat} title="Bỏ ghim">
+                    &times;
+                  </button>
                 </div>
               )}
 
-              {/* Viewfinder Header info */}
-              <div className="viewfinder-top-bar">
-                <div className="viewfinder-badges-left">
-                  <span className="badge-live-pulse">
-                    <span style={{ width: "6px", height: "6px", backgroundColor: "white", borderRadius: "50%" }}></span>
-                    TRỰC TIẾP
-                  </span>
-                  <span className="badge-live-time">
-                    {formatTime(streamDuration)}
-                  </span>
-                </div>
-
-                <div className="viewfinder-badges-right">
-                  <span className="badge-console-stats">
-                    👥 {viewersCount} người xem
-                  </span>
-                  <span className="badge-console-stats">
-                    ❤️ {heartsCount} Thích
-                  </span>
-                </div>
-              </div>
-
-
-
-              {/* Floating Hearts effect area */}
-              <div className="hearts-fly-area">
-                {floatingHearts.map((heartId) => {
-                  const hearts = ["❤️", "💖", "🍓", "🍅", "⭐", "👍"];
-                  const randomIcon = hearts[Math.floor((heartId * 10) % hearts.length)];
-                  const leftPos = 10 + ((heartId * 100) % 40); // spread left position
-                  return (
-                    <span
-                      key={heartId}
-                      className="floating-heart"
-                      style={{ left: `${leftPos}px` }}
-                    >
-                      {randomIcon}
-                    </span>
-                  );
-                })}
-              </div>
-
-              {/* Overlay controls */}
-              <div className="viewfinder-action-row">
-                <button
-                  className="btn-floating-action"
-                  onClick={() => setIsCamOn(!isCamOn)}
-                  title={isCamOn ? "Tắt Camera" : "Bật Camera"}
-                >
-                  {isCamOn ? "📷" : "🚫"}
-                </button>
-                <button
-                  className="btn-floating-action"
-                  onClick={() => setIsMicOn(!isMicOn)}
-                  title={isMicOn ? "Tắt Mic" : "Bật Mic"}
-                >
-                  {isMicOn ? "🎤" : "🔇"}
-                </button>
-              </div>
-            </div>
-
-            {/* End Stream Button */}
-            <div className="live-console-footer">
-              <button className="btn-end-stream" onClick={handleEndLivestream}>
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  style={{ marginRight: "8px" }}
-                >
-                  <rect x="4" y="4" width="16" height="16" rx="3" />
-                </svg>
-                Kết thúc Livestream
-              </button>
-            </div>
-
-            {/* Live Products & Voucher adjustment container card */}
-            <div className="live-card" style={{ marginTop: "20px", padding: "16px 20px" }}>
-              {/* Console Products pinning selection list */}
-              <div className="console-products-card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                  <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
-                    📌 Sản phẩm trong buổi live ({selectedProductIds.length})
-                  </h4>
-                  <button
-                    className="btn-edit-live-products"
-                    onClick={() => setIsEditProductsOpen(true)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#10b981",
-                      fontSize: "0.8rem",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px"
-                    }}
-                  >
-                    ✏️ Chỉnh sửa
-                  </button>
-                </div>
-                <div className="pinned-products-grid">
-                  {farmerProducts
-                    .filter((p) => selectedProductIds.includes(p.id))
-                    .map((p) => {
-                      const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
-                      const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
-                      const isActivePin = pinnedProductId === p.id;
-
-                      return (
-                        <div
-                          key={p.id}
-                          className={`console-product-item ${isActivePin ? "active" : ""}`}
-                        >
-                          <div className="console-prod-left">
-                            <img src={p.imageUrl} alt={p.name} className="console-prod-img" />
-                            <div className="console-prod-details">
-                              <p className="console-prod-name">{p.name}</p>
-                              <p className="console-prod-price">
-                                {livePrice.toLocaleString()}đ/{p.unit}
-                              </p>
-                            </div>
-                          </div>
+              {/* Chat List */}
+              <div className="chat-console-messages-list" ref={chatListRef}>
+                {chatMessages.map((msg) => (
+                  <div key={msg.id} className={`chat-message-console-item ${msg.type}`}>
+                    {msg.type === "system" ? (
+                      <span>{msg.text}</span>
+                    ) : (
+                      <>
+                        <div className="chat-message-bubble-left">
+                          <span className={`chat-user-badge ${msg.type}`}>
+                            {msg.user}:
+                          </span>
+                          <span className="chat-msg-text">{msg.text}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center" }}>
                           <button
-                            className={`btn-pin-control ${isActivePin ? "active" : ""}`}
-                            onClick={() => handlePinProduct(p.id)}
+                            className="btn-pin-chat-msg"
+                            onClick={() => handlePinChat(msg)}
+                            title="Ghim tin nhắn"
                           >
-                            {isActivePin ? "📌 Đang ghim" : "Ghim lên live"}
+                            📌
+                          </button>
+                          <button
+                            className="btn-delete-chat-msg"
+                            onClick={() => handleDeleteChat(msg.id)}
+                            title="Xóa bình luận"
+                          >
+                            🗑️
+                          </button>
+                          <button
+                            className="btn-block-user-msg"
+                            onClick={() => {
+                              if (window.confirm(`Bạn có chắc chắn muốn chặn bình luận của [${msg.user}] và xóa toàn bộ bình luận cũ của họ không?`)) {
+                                handleBlockUser(msg);
+                              }
+                            }}
+                            title="Chặn người dùng này"
+                          >
+                            🚫
                           </button>
                         </div>
-                      );
-                    })}
-                </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+                {/* No dummy scroll ref element needed since we scroll container scrollTop directly */}
               </div>
 
-              {/* Voucher edit section during live */}
-              <div className="console-voucher-edit-card" style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
-                <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
-                  🎟️ Điều chỉnh Voucher phiên live
-                </h4>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                  <div className="voucher-option-pills" style={{ gap: "6px", display: "flex", flexWrap: "wrap" }}>
-                    {[0, 10, 15, 20].map((percent) => (
-                      <button
-                        key={percent}
-                        className={`voucher-pill ${tempVoucherPercent === percent ? "active" : ""}`}
-                        onClick={() => setTempVoucherPercent(percent)}
-                        style={{ padding: "6px 10px", fontSize: "0.75rem", borderRadius: "6px" }}
-                      >
-                        {percent === 0 ? "Không" : `-${percent}%`}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom input box */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Tự nhập:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="90"
-                      placeholder="Nhập %"
-                      value={![0, 10, 15, 20].includes(tempVoucherPercent) ? tempVoucherPercent : ""}
-                      onChange={(e) => {
-                        const val = Math.min(Math.max(parseInt(e.target.value) || 0, 0), 90);
-                        setTempVoucherPercent(val);
-                      }}
-                      style={{
-                        width: "68px",
-                        padding: "6px 4px",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "6px",
-                        fontSize: "0.8rem",
-                        textAlign: "center"
-                      }}
-                    />
-                    <span style={{ fontSize: "0.8rem", fontWeight: "700", color: "#475569" }}>%</span>
-                  </div>
-
-                  {/* Apply button shown conditionally */}
-                  {tempVoucherPercent !== voucherPercent && (
-                    <button
-                      className="btn-modal-submit"
-                      onClick={() => handleUpdateLiveVoucher(tempVoucherPercent)}
-                      style={{
-                        padding: "6px 12px",
-                        fontSize: "0.75rem",
-                        borderRadius: "6px",
-                        marginLeft: "auto"
-                      }}
-                    >
-                      Áp dụng
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right column: Live Chat box */}
-          <div className="live-card live-chat-panel">
-            <div className="chat-panel-header">
-              <h3 className="chat-panel-title">
-                💬 Khán giả trò chuyện
-              </h3>
-              <span className="badge-role" style={{ backgroundColor: "#e2e8f0", color: "#475569" }}>
-                Host Console
-              </span>
-            </div>
-
-            {/* Pinned Chat Display Row */}
-            {pinnedChatMessage && (
-              <div className="console-pinned-chat-row">
-                <div className="console-pinned-chat-content">
-                  <span className="pinned-badge">📌 Đã ghim:</span>
-                  <span className="pinned-user">{pinnedChatMessage.user}:</span>
-                  <span className="pinned-text">{pinnedChatMessage.text}</span>
-                </div>
-                <button className="btn-unpin-chat" onClick={handleUnpinChat} title="Bỏ ghim">
-                  &times;
+              {/* Host Reply chat input */}
+              <form className="host-chat-input-row" onSubmit={handleHostSendChat}>
+                <input
+                  type="text"
+                  className="host-chat-input"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                />
+                <button type="submit" className="btn-send-host-chat">
+                  Gửi
                 </button>
-              </div>
-            )}
-
-            {/* Chat List */}
-            <div className="chat-console-messages-list" ref={chatListRef}>
-              {chatMessages.map((msg) => (
-                <div key={msg.id} className={`chat-message-console-item ${msg.type}`}>
-                  {msg.type === "system" ? (
-                    <span>{msg.text}</span>
-                  ) : (
-                    <>
-                      <div className="chat-message-bubble-left">
-                        <span className={`chat-user-badge ${msg.type}`}>
-                          {msg.user}:
-                        </span>
-                        <span className="chat-msg-text">{msg.text}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                        <button
-                          className="btn-pin-chat-msg"
-                          onClick={() => handlePinChat(msg)}
-                          title="Ghim tin nhắn"
-                        >
-                          📌
-                        </button>
-                        <button
-                          className="btn-delete-chat-msg"
-                          onClick={() => handleDeleteChat(msg.id)}
-                          title="Xóa bình luận"
-                        >
-                          🗑️
-                        </button>
-                        <button
-                          className="btn-block-user-msg"
-                          onClick={() => {
-                            if (window.confirm(`Bạn có chắc chắn muốn chặn bình luận của [${msg.user}] và xóa toàn bộ bình luận cũ của họ không?`)) {
-                              handleBlockUser(msg);
-                            }
-                          }}
-                          title="Chặn người dùng này"
-                        >
-                          🚫
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-              {/* No dummy scroll ref element needed since we scroll container scrollTop directly */}
+              </form>
             </div>
-
-            {/* Host Reply chat input */}
-            <form className="host-chat-input-row" onSubmit={handleHostSendChat}>
-              <input
-                type="text"
-                className="host-chat-input"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-              />
-              <button type="submit" className="btn-send-host-chat">
-                Gửi
-              </button>
-            </form>
           </div>
-        </div>
         </>
       )}
 
@@ -1775,7 +1775,7 @@ export const FarmerLivestream = () => {
                 &times;
               </button>
             </div>
-            
+
             <div className="form-group-live">
               <label className="product-pin-title-row">
                 <span>Chọn sản phẩm hiển thị & giá ưu đãi:</span>
@@ -1783,7 +1783,7 @@ export const FarmerLivestream = () => {
                   <span className="selected-count-tag">Đã chọn: {tempSelectedProductIds.length}</span>
                 )}
               </label>
-              
+
               <div className="products-selection-container" style={{ maxHeight: "300px" }}>
                 {farmerProducts.length > 0 ? (
                   farmerProducts.map((prod) => (
@@ -1797,7 +1797,7 @@ export const FarmerLivestream = () => {
                           type="checkbox"
                           className="product-row-checkbox"
                           checked={tempSelectedProductIds.includes(prod.id)}
-                          onChange={() => {}}
+                          onChange={() => { }}
                         />
                         <img src={prod.imageUrl} alt={prod.name} className="product-row-thumbnail" />
                         <div className="product-row-details">
@@ -1870,15 +1870,15 @@ export const FarmerLivestream = () => {
               Bạn có chắc chắn muốn dừng buổi phát sóng trực tiếp này không? Hành động này sẽ kết thúc tương tác trực tiếp với khách hàng.
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <button 
-                className="btn-modal-cancel" 
+              <button
+                className="btn-modal-cancel"
                 onClick={() => setIsConfirmEndOpen(false)}
                 style={{ flex: 1, padding: "10px", margin: 0 }}
               >
                 Quay lại Live
               </button>
-              <button 
-                className="btn-modal-submit" 
+              <button
+                className="btn-modal-submit"
                 onClick={() => {
                   setIsConfirmEndOpen(false);
                   executeEndLivestream();

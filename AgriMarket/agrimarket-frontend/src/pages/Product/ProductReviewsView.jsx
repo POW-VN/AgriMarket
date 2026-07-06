@@ -7,6 +7,7 @@ import cartService from "../../services/cartService";
 import { getProductById } from "../../services/productService";
 import reviewService from "../../services/reviewService";
 import Header from "../../components/common/Header/Header";
+import Footer from "../../components/common/Footer/Footer";
 import "./ProductReviewsView.css";
 
 /*
@@ -390,7 +391,14 @@ export default function ProductReviewsView() {
                             </div>
 
                             <button className="prv-add-cart-btn" onClick={handleAddToCart}>
-                                🛒 Thêm vào giỏ hàng
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="9" cy="21" r="1"></circle>
+                                    <circle cx="20" cy="21" r="1"></circle>
+                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                    <line x1="12" y1="10" x2="16" y2="10"></line>
+                                    <line x1="14" y1="8" x2="14" y2="12"></line>
+                                </svg>
+                                Thêm vào giỏ hàng
                             </button>
                         </div>
                     </aside>
@@ -581,19 +589,7 @@ export default function ProductReviewsView() {
                 </div>
             </main>
 
-            <footer className="prv-footer">
-                <div>
-                    <strong>🚜 AgriMarket</strong>
-                    <p>© 2026 AgriMarket. Kết nối Nông nghiệp số.</p>
-                </div>
-
-                <div className="prv-footer-links">
-                    <Link to="/help">Trung tâm trợ giúp</Link>
-                    <Link to="/privacy">Chính sách bảo mật</Link>
-                    <Link to="/terms">Điều khoản dịch vụ</Link>
-                    <Link to="/contact">Liên hệ</Link>
-                </div>
-            </footer>
+            <Footer />
 
             {toastMessage && (
                 <div className="prv-toast">

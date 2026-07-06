@@ -369,14 +369,11 @@ export const MyOrders = () => {
           <h1 className="page-title" style={{ fontSize: "32px", fontWeight: "800", color: "#00412f", letterSpacing: "-0.5px", margin: 0 }}>Đơn hàng của tôi</h1>
 
           {/* Search box */}
-          <div className="search-wrapper">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" className="search-icon">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+          <div className="myorders-search-wrapper">
+            <span className="myorders-search-icon-glass">🔍</span>
             <input
               type="text"
-              className="search-input"
+              className="myorders-search-input"
               placeholder="Tìm kiếm theo mã đơn hoặc tên nhà vườn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
