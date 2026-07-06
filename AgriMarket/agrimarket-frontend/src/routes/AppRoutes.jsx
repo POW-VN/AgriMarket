@@ -21,6 +21,7 @@ import FarmerLayout from "../pages/Farmer/FarmerDashboard/FarmerLayout";
 import FarmerOverview from "../pages/Farmer/FarmerDashboard/FarmerOverview";
 import FarmerProfile from "../pages/Farmer/FarmerProfile/FarmerProfile";
 import { FarmerChat } from "../pages/Farmer/FarmerChat/FarmerChat";
+import { FarmerLivestream } from "../pages/Farmer/FarmerLivestream/FarmerLivestream";
 import Home from '../pages/Home/Home'
 import ProductPage from "../pages/Product/ProductPage";
 import ProductDetail from "../pages/Product/ProductDetail";
@@ -33,6 +34,7 @@ import CustomerOrderDetail from "../pages/Orders/CustomerOrderDetail";
 import CartPage from "../pages/Cart/CartPage";
 import CheckoutPage from "../pages/Checkout/CheckoutPage";
 import PreorderCheckout from "../pages/Product/PreorderCheckout";
+import PreorderList from "../pages/Product/PreorderList";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import VNPayCallbackPage from "../pages/Payment/VNPayCallbackPage";
 import UserAccounts from "../pages/Admin/UserAccounts";
@@ -47,6 +49,7 @@ import Notifications from "../pages/Profile/Notifications";
 import AdminNotifications from "../pages/Admin/Notifications/AdminNotifications";
 import SupportHub from "../pages/Profile/Support/SupportHub";
 import CreateSupportRequest from "../pages/Profile/Support/CreateSupportRequest";
+import ReportViolation from "../pages/Profile/Support/ReportViolation";
 import SupportRequestSuccess from "../pages/Profile/Support/SupportRequestSuccess";
 import MySupportRequests from "../pages/Profile/Support/MySupportRequests";
 import SupportRequestDetail from "../pages/Profile/Support/SupportRequestDetail";
@@ -54,6 +57,10 @@ import AdminComplaints from "../pages/Admin/AdminComplaints";
 import LiveChat from "../pages/Profile/Support/LiveChat";
 import AdminChat from "../pages/Admin/AdminChat";
 import LivestreamPage from "../pages/Livestream/LivestreamPage";
+import LivestreamListPage from "../pages/Livestream/LivestreamListPage";
+import ViolationReports from "../pages/Admin/ViolationReports";
+import ProductListing from "../pages/Product/ProductListing";
+import LiveManagement from "../pages/Admin/LiveManagement";
 
 
 const FarmsRoute = () => {
@@ -106,16 +113,20 @@ const AppRoutes = () => {
           <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
           <Route path="farm-profile" element={<FarmDetails />} />
           <Route path="chat" element={<FarmerChat />} />
+          <Route path="livestream" element={<FarmerLivestream />} />
         </Route>
 
         <Route path="/products" element={<ProductPage />} />
+        <Route path="/products/listing" element={<ProductListing />} />
         <Route path="/products/:id" element={<ProductDetail />} />
         <Route path="/products/:id/reviews" element={<ProductReviewsView />} />
 
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/preorders" element={<PreorderList />} />
         <Route path="/preorder-checkout" element={<PreorderCheckout />} />
-        <Route path="/livestream" element={<LivestreamPage />} />
+        <Route path="/livestream" element={<LivestreamListPage />} />
+        <Route path="/livestream/:id" element={<LivestreamPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment/vnpay-callback" element={<VNPayCallbackPage />} />
 
@@ -128,19 +139,18 @@ const AppRoutes = () => {
         <Route path="/admin/users/create" element={<CreateAccount />} />
         <Route path="/admin/products" element={<ProductApproval />} />
         <Route path="/admin/orders" element={<OrderManagement />} />
+        <Route path="/admin/livestreams" element={<LiveManagement />} />
 
         {/* Shipper Routes */}
         <Route path="/shipper/dashboard" element={<Navigate to="/shipper/requests" replace />} />
         <Route path="/shipper/requests" element={<ShipmentRequests />} />
         <Route path="/shipper/update-status" element={<UpdateShipmentStatus />} />
 
-        {/* Fallback to Home for any other unknown path */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-
         <Route path="/profile/notifications" element={<Notifications />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/support" element={<SupportHub />} />
         <Route path="/support/create" element={<CreateSupportRequest />} />
+        <Route path="/support/report" element={<ReportViolation />} />
         <Route path="/support/success/:id" element={<SupportRequestSuccess />} />
         <Route path="/support/detail/:id" element={<SupportRequestDetail />} />
         <Route path="/support/my-requests" element={<MySupportRequests />} />
@@ -149,6 +159,11 @@ const AppRoutes = () => {
         <Route path="/admin/complaints" element={<AdminComplaints />} />
         <Route path="/admin/chat" element={<AdminChat />} />
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
+        <Route path="/support/report" element={<ReportViolation />} />
+        <Route path="/admin/reports" element={<ViolationReports />} />
+
+        {/* Fallback to Home for any other unknown path */}
+        <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
       <ChatPopup />

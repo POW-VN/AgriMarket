@@ -1,20 +1,35 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Package, Store, User } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Package, ShieldCheck, Store, User } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import authService from "../../../services/authService";
+import reportService from "../../../services/reportService";
 import "./ReportViolation.css";
+
+const buildInitialFormData = (location) => {
+    const searchParams = new URLSearchParams(location.search);
+    const reportTarget = location.state?.reportTarget || {};
+
+    return {
+        targetType: searchParams.get("targetType") || reportTarget.targetType || "",
+        targetId: searchParams.get("targetId") || reportTarget.targetId || "",
+        reason: reportTarget.reason || "",
+        description: reportTarget.description || "",
+        productName: searchParams.get("productName") || reportTarget.productName || "",
+        productCategory: searchParams.get("productCategory") || reportTarget.productCategory || "",
+        farmerName: searchParams.get("farmerName") || reportTarget.farmerName || "",
+        farmerAddress: searchParams.get("farmerAddress") || reportTarget.farmerAddress || "",
+        farmerAvatar: searchParams.get("farmerAvatar") || reportTarget.farmerAvatar || "",
+        productPrice: searchParams.get("productPrice") || reportTarget.productPrice || "",
+    };
+};
 
 export default function ReportViolation() {
     const navigate = useNavigate();
+    const location = useLocation();
     const currentUser = authService.getCurrentUser();
 
-    const [formData, setFormData] = useState({
-        targetType: "",
-        targetId: "",
-        reason: "",
-        description: "",
-    });
+    const [formData, setFormData] = useState(() => buildInitialFormData(location));
 
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
@@ -29,6 +44,12 @@ export default function ReportViolation() {
         "Lừa đảo hoặc giao dịch đáng ngờ",
         "Khác",
     ];
+
+    useEffect(() => {
+        setFormData(buildInitialFormData(location));
+        setErrors({});
+        setMessage("");
+    }, [location]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -85,60 +106,36 @@ export default function ReportViolation() {
         setMessage("");
 
         const payload = {
-            // Khi làm backend, reporterId nên lấy từ token/JWT ở backend,
-            // không nên tin hoàn toàn ID gửi từ frontend.
-            reporterId: currentUser.id,
-
-            // Khớp với cột target_type trong bảng report.
             targetType: formData.targetType,
-
-            // Khớp với cột target_id trong bảng report.
             targetId: Number(formData.targetId),
-
-            // Khớp với cột reason trong bảng report.
             reason: formData.reason,
-
-            // Khớp với cột description trong bảng report.
             description: formData.description,
-
-            // Khi làm backend, status có thể để backend tự set mặc định là "pending".
-            status: "pending",
         };
 
         try {
-            /*
-              TODO BACKEND:
-              Sau khi bạn làm API backend, tạo file service riêng, ví dụ:
-              src/services/reportService.js
-      
-              Sau đó gọi:
-              await reportService.createReport(payload);
-      
-              API gợi ý:
-              POST /api/reports
-      
-              Body gửi lên:
-              {
-                targetType: "product" | "farmer" | "customer",
-                targetId: number,
-                reason: string,
-                description: string
-              }
-      
-              Backend nên tự lấy reporter_id từ user đang đăng nhập.
-            */
+            await reportService.createReport(payload);
 
-            setMessage("Giao diện đã sẵn sàng. Sau khi có backend, báo cáo sẽ được gửi lên hệ thống.");
+            setMessage("✅ Báo cáo của bạn đã được gửi thành công! Đội ngũ quản trị viên sẽ xem xét và xử lý trong thời gian sớm nhất.");
 
             setFormData({
                 targetType: "",
                 targetId: "",
                 reason: "",
                 description: "",
+                productName: "",
+                productCategory: "",
+                farmerName: "",
+                farmerAddress: "",
+                farmerAvatar: "",
+                productPrice: "",
             });
         } catch (error) {
             console.error("Lỗi khi gửi báo cáo vi phạm:", error);
-            setMessage("Không thể gửi báo cáo. Vui lòng thử lại sau.");
+            const errMsg =
+                error?.response?.data ||
+                error?.message ||
+                "Không thể gửi báo cáo. Vui lòng thử lại sau.";
+            setMessage(`❌ ${errMsg}`);
         } finally {
             setSubmitting(false);
         }
@@ -164,7 +161,7 @@ export default function ReportViolation() {
                     </div>
 
                     <div className="report-hero-card">
-                        <div className="trust-icon">🛡️</div>
+                        <div className="trust-icon"><ShieldCheck size={28} strokeWidth={2.2} /></div>
                         <h3>Cam kết bảo vệ cộng đồng</h3>
                         <p>
                             Mọi báo cáo sẽ được xem xét cẩn thận nhằm giữ cho thị trường nông sản
@@ -175,6 +172,55 @@ export default function ReportViolation() {
 
                 <section className="report-content-layout">
                     <form className="report-form-card" onSubmit={handleSubmitReport}>
+                        {(formData.productName || formData.farmerName || formData.targetId) && (
+                            <div className="report-context-card">
+                                <div>
+                                    <span className="report-context-label">
+                                        {formData.targetType === "farmer" ? "Đang báo cáo nhà vườn" : "Đang báo cáo sản phẩm"}
+                                    </span>
+                                    <h3>{formData.productName || formData.farmerName || "Đối tượng đã chọn"}</h3>
+                                </div>
+
+                                <div className="report-context-grid">
+                                    <div>
+                                        <span>{formData.targetType === "farmer" ? "Mã nhà vườn" : "Mã sản phẩm"}</span>
+                                        <strong>{formData.targetId || "-"}</strong>
+                                    </div>
+                                    {formData.targetType === "farmer" ? (
+                                        <>
+                                            <div>
+                                                <span>Tên nhà vườn</span>
+                                                <strong>{formData.farmerName || "-"}</strong>
+                                            </div>
+                                            <div>
+                                                <span>Địa chỉ</span>
+                                                <strong>{formData.farmerAddress || "-"}</strong>
+                                            </div>
+                                            <div>
+                                                <span>Ảnh đại diện</span>
+                                                <strong>{formData.farmerAvatar ? "Đã đính kèm" : "-"}</strong>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <span>Danh mục</span>
+                                                <strong>{formData.productCategory || "-"}</strong>
+                                            </div>
+                                            <div>
+                                                <span>Nông trại / Người bán</span>
+                                                <strong>{formData.farmerName || "-"}</strong>
+                                            </div>
+                                            <div>
+                                                <span>Giá bán</span>
+                                                <strong>{formData.productPrice ? `${Number(formData.productPrice).toLocaleString("vi-VN")} đ` : "-"}</strong>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="form-header">
                             <h2>Thông tin báo cáo</h2>
                             <p>Vui lòng điền đầy đủ các thông tin bên dưới.</p>

@@ -16,12 +16,14 @@ import {
   Send
 } from "lucide-react";
 import "./FarmerChat.css";
+import chatService from "../../../services/chatService";
 
 export const FarmerChat = () => {
   const { farmerProfile, currentUser } = useOutletContext();
   const [allChats, setAllChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [inputText, setInputText] = useState("");
+  const [rowActionMenuId, setRowActionMenuId] = useState(null);
   
   // States Lọc tin nhắn (Shopee)
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,91 +45,66 @@ export const FarmerChat = () => {
   // ID Nông trại hiện tại (mặc định 4 cho Bùi Khắc Hưng)
   const farmId = farmerProfile?.id || 4;
 
-  // 1. Tải danh sách chat từ LocalStorage và sync định kỳ
-  useEffect(() => {
-    const loadChats = () => {
-      const saved = localStorage.getItem("agrimarket_chats");
-      let chatsArray = [];
-      
-      if (saved) {
-        chatsArray = JSON.parse(saved);
-      }
-      
-      // Tìm cuộc trò chuyện của nông trại hiện tại
-      const myFarmChat = chatsArray.find(c => String(c.id) === String(farmId));
-      
-      if (!myFarmChat) {
-        // Tạo cuộc trò chuyện mẫu với khách hàng Bảo Hưng
-        const initTimestamp = Date.now() - 3600000;
-        const defaultChat = {
-          id: farmId,
-          name: "Khách hàng Bảo Hưng",
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
-          verified: true,
-          phone: "0337222769",
-          farmAddress: "Thành phố Đà Nẵng",
-          activeState: "Đang hoạt động",
-          isOnline: true,
-          unreadCount: 0,
-          isPinned: false,
-          isMuted: false,
-          isBlocked: false,
-          type: "normal",
-          mediaImages: [
-            "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=600",
-            "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600"
-          ],
-          messages: [
-            {
-              id: `m-sample-1`,
-              sender: "user",
-              type: "text",
-              text: "Chào nhà vườn! Tôi muốn mua một ít rau cải bắp và cam sạch từ vườn của mình. Không biết bên vườn mình có sẵn hàng và giao trong ngày được không ạ?",
-              time: new Date(initTimestamp).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-              timestamp: initTimestamp
-            },
-            {
-              id: `m-sample-2`,
-              sender: "farmer",
-              type: "text",
-              text: "Dạ vườn chào bạn Bảo Hưng nhé! Các loại rau cải bắp và cam sành bên mình luôn được hái tươi mới mỗi sáng và có sẵn hàng giao ngay trong ngày ạ.",
-              time: new Date(initTimestamp + 300000).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-              timestamp: initTimestamp + 300000
-            }
-          ]
-        };
-        
-        chatsArray.push(defaultChat);
-        localStorage.setItem("agrimarket_chats", JSON.stringify(chatsArray));
-        setAllChats(chatsArray);
-        setActiveChat(defaultChat);
-      } else {
-        // Ép tên/avatar đối phương thành góc nhìn Khách hàng Bảo Hưng đối với Nông dân
-        const myFarmChatModified = {
-          ...myFarmChat,
-          name: "Khách hàng Bảo Hưng",
-          avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
-        };
-        
-        setAllChats(chatsArray);
-        
-        // Cập nhật active chat hiện tại
-        setActiveChat(prev => {
-          if (!prev) return myFarmChatModified;
-          const updatedActive = chatsArray.find(c => String(c.id) === String(prev.id));
-          return updatedActive ? {
-            ...updatedActive,
-            name: "Khách hàng Bảo Hưng",
-            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
-          } : myFarmChatModified;
-        });
-      }
-    };
+  const getPrefsKey = (type) => {
+    const email = currentUser?.email || "anonymous";
+    return `agrimarket_chat_${type}_${email}`;
+  };
 
-    loadChats();
-    const timer = setInterval(loadChats, 1000);
+  const getPinnedIds = () => {
+    const key = getPrefsKey("pinned");
+    return JSON.parse(localStorage.getItem(key)) || [];
+  };
+
+  const getBlockedIds = () => {
+    const key = getPrefsKey("blocked");
+    return JSON.parse(localStorage.getItem(key)) || [];
+  };
+
+  const getClearedHistoryTimes = () => {
+    const key = getPrefsKey("cleared");
+    return JSON.parse(localStorage.getItem(key)) || {};
+  };
+
+  // 1. Tải danh sách chat từ Backend và sync định kỳ
+  const fetchConversations = async () => {
+    const token = localStorage.getItem("farmconnect_token");
+    if (!token) return;
+    try {
+      const data = await chatService.getConversations();
+      
+      const pinnedIds = getPinnedIds();
+      const clearedTimes = getClearedHistoryTimes();
+
+      const sanitized = data.map(c => {
+        const idStr = String(c.id);
+        const clearedTime = clearedTimes[idStr] || 0;
+        const filteredMessages = c.messages.filter(m => (m.timestamp || 0) > clearedTime);
+        return {
+          ...c,
+          id: idStr,
+          isPinned: pinnedIds.includes(idStr),
+          isBlocked: c.isBlocked,
+          messages: filteredMessages
+        };
+      });
+      setAllChats(sanitized);
+
+      // Keep active chat's messages in sync
+      setActiveChat(prev => {
+        if (!prev) return null;
+        const updated = sanitized.find(c => String(c.id) === String(prev.id));
+        return updated || prev;
+      });
+    } catch (err) {
+      console.error("Failed to load conversations:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchConversations();
+    const timer = setInterval(fetchConversations, 3000);
     return () => clearInterval(timer);
-  }, [farmId]);
+  }, []);
 
   // Click outside để đóng options dropdown menu
   useEffect(() => {
@@ -142,6 +119,21 @@ export const FarmerChat = () => {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [showOptionsMenu]);
 
+  // Đóng Row Action Menu khi click bên ngoài
+  useEffect(() => {
+    const handleCloseRowMenu = (event) => {
+      const menu = document.querySelector(".fc-item-dropdown-menu");
+      const btn = document.querySelector(".fc-item-more-btn");
+      if (menu && !menu.contains(event.target) && btn && !btn.contains(event.target)) {
+        setRowActionMenuId(null);
+      }
+    };
+    if (rowActionMenuId) {
+      document.addEventListener("mousedown", handleCloseRowMenu);
+    }
+    return () => document.removeEventListener("mousedown", handleCloseRowMenu);
+  }, [rowActionMenuId]);
+
   // Cuộn xuống tin nhắn mới nhất
   useEffect(() => {
     if (chatEndRef.current) {
@@ -149,86 +141,101 @@ export const FarmerChat = () => {
     }
   }, [activeChat?.messages]);
 
-  // 2. Các hàm Options Menu đồng bộ LocalStorage
+  // 2. Các hàm Options Menu đồng bộ
   const handleTogglePin = (chatId) => {
-    const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-    const updated = saved.map(c => {
-      if (String(c.id) === String(chatId)) {
-        return { ...c, isPinned: !c.isPinned };
-      }
-      return c;
-    });
-    localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
+    const idStr = String(chatId);
+    const key = getPrefsKey("pinned");
+    let pinned = getPinnedIds();
+    if (pinned.includes(idStr)) {
+      pinned = pinned.filter(id => id !== idStr);
+    } else {
+      pinned.push(idStr);
+    }
+    localStorage.setItem(key, JSON.stringify(pinned));
+
+    setAllChats(prev => prev.map(c => String(c.id) === idStr ? { ...c, isPinned: !c.isPinned } : c));
     setShowOptionsMenu(false);
   };
 
-  const handleToggleMute = (chatId) => {
-    const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-    const updated = saved.map(c => {
-      if (String(c.id) === String(chatId)) {
-        return { ...c, isMuted: !c.isMuted };
-      }
-      return c;
-    });
-    localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
-    setShowOptionsMenu(false);
-  };
-
-  const handleToggleBlock = (chatId) => {
-    const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-    const updated = saved.map(c => {
-      if (String(c.id) === String(chatId)) {
-        return { ...c, isBlocked: !c.isBlocked };
-      }
-      return c;
-    });
-    localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
-    setShowOptionsMenu(false);
-  };
-
-  const handleClearHistory = (chatId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không?")) {
-      const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-      const updated = saved.map(c => {
-        if (String(c.id) === String(chatId)) {
-          return { ...c, messages: [], mediaImages: [] };
+  const handleToggleBlock = async (chatId) => {
+    const idStr = String(chatId);
+    try {
+      const updated = await chatService.toggleBlock(idStr);
+      setAllChats(prev => prev.map(c => String(c.id) === idStr ? { ...c, isBlocked: updated.isBlocked, blockedBy: updated.blockedBy } : c));
+      
+      // Also update active chat if it is the toggled one
+      setActiveChat(prev => {
+        if (prev && String(prev.id) === idStr) {
+          return { ...prev, isBlocked: updated.isBlocked, blockedBy: updated.blockedBy };
         }
-        return c;
+        return prev;
       });
-      localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
       setShowOptionsMenu(false);
+    } catch (err) {
+      console.error("Failed to toggle block:", err);
+      alert(err.response?.data || "Không thể thực hiện chặn/bỏ chặn.");
+    }
+  };
+
+  const handleClearHistory = async (chatId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện này không?")) {
+      const idStr = String(chatId);
+      try {
+        await chatService.deleteConversation(idStr);
+        setAllChats(prev => prev.filter(c => String(c.id) !== idStr));
+        if (activeChat && String(activeChat.id) === idStr) {
+          setActiveChat(null);
+        }
+
+        // Dọn dẹp localStorage cho cuộc trò chuyện bị xóa
+        const cleanLocalStorage = (type) => {
+          const key = getPrefsKey(type);
+          const list = JSON.parse(localStorage.getItem(key)) || [];
+          const filtered = list.filter(id => String(id) !== idStr);
+          localStorage.setItem(key, JSON.stringify(filtered));
+        };
+        cleanLocalStorage("pinned");
+        cleanLocalStorage("blocked");
+        const clearedKey = getPrefsKey("cleared");
+        const cleared = JSON.parse(localStorage.getItem(clearedKey)) || {};
+        delete cleared[idStr];
+        localStorage.setItem(clearedKey, JSON.stringify(cleared));
+
+        setShowOptionsMenu(false);
+      } catch (err) {
+        console.error("Failed to delete conversation:", err);
+        alert(err.response?.data || "Không thể xóa cuộc trò chuyện.");
+      }
+    }
+  };
+
+  const handleSelectChat = async (chat) => {
+    setActiveChat(chat);
+    try {
+      await chatService.getMessages(chat.id);
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to load messages:", err);
     }
   };
 
   // Gửi tin nhắn chữ
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || !activeChat) return;
 
-    const timestamp = Date.now();
-    const newMsg = {
-      id: `m-farmer-${timestamp}`,
-      sender: "farmer",
-      type: "text",
-      text: inputText.trim(),
-      time: new Date(timestamp).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-      timestamp: timestamp
-    };
-
-    const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-    const updated = saved.map(c => {
-      if (String(c.id) === String(activeChat.id)) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
-      }
-      return c;
-    });
-
-    localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
+    const content = inputText.trim();
     setInputText("");
-    window.dispatchEvent(new CustomEvent("agrimarket_chat_updated"));
+
+    try {
+      await chatService.sendMessage(activeChat.id, {
+        content: content,
+        type: "text"
+      });
+      fetchConversations();
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
   };
 
   // Gửi ảnh thực tế
@@ -237,34 +244,17 @@ export const FarmerChat = () => {
     if (!file || !activeChat) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const base64Data = reader.result;
-      const timestamp = Date.now();
-      
-      const newMsg = {
-        id: `m-farmer-img-${timestamp}`,
-        sender: "farmer",
-        type: "image",
-        text: base64Data,
-        time: new Date(timestamp).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-        timestamp: timestamp
-      };
-
-      const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-      const updated = saved.map(c => {
-        if (String(c.id) === String(activeChat.id)) {
-          const currentMedia = c.mediaImages || [];
-          return {
-            ...c,
-            mediaImages: [base64Data, ...currentMedia].slice(0, 8),
-            messages: [...c.messages, newMsg]
-          };
-        }
-        return c;
-      });
-
-      localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
-      window.dispatchEvent(new CustomEvent("agrimarket_chat_updated"));
+      try {
+        await chatService.sendMessage(activeChat.id, {
+          content: base64Data,
+          type: "image"
+        });
+        fetchConversations();
+      } catch (err) {
+        console.error("Failed to send image:", err);
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -275,32 +265,23 @@ export const FarmerChat = () => {
     const file = e.target.files[0];
     if (!file || !activeChat) return;
 
-    const timestamp = Date.now();
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-    
-    const newMsg = {
-      id: `m-farmer-file-${timestamp}`,
-      sender: "farmer",
-      type: "file",
-      text: file.name,
-      fileSize: `${fileSizeMB} MB`,
-      time: new Date(timestamp).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-      timestamp: timestamp
-    };
-
-    const saved = JSON.parse(localStorage.getItem("agrimarket_chats")) || [];
-    const updated = saved.map(c => {
-      if (String(c.id) === String(activeChat.id)) {
-        return {
-          ...c,
-          messages: [...c.messages, newMsg]
-        };
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      try {
+        await chatService.sendMessage(activeChat.id, {
+          content: base64Data,
+          type: "file",
+          fileName: file.name,
+          fileSize: `${fileSizeMB} MB`
+        });
+        fetchConversations();
+      } catch (err) {
+        console.error("Failed to send file:", err);
       }
-      return c;
-    });
-
-    localStorage.setItem("agrimarket_chats", JSON.stringify(updated));
-    window.dispatchEvent(new CustomEvent("agrimarket_chat_updated"));
+    };
+    reader.readAsDataURL(file);
     e.target.value = "";
   };
 
@@ -322,8 +303,6 @@ export const FarmerChat = () => {
 
   // Filter hội thoại dựa trên Search và Dropdown Shopee
   const filteredChats = allChats.filter(chat => {
-    if (String(chat.id) !== String(farmId)) return false;
-    
     const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       chat.messages.some(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase()));
     
@@ -333,6 +312,16 @@ export const FarmerChat = () => {
     if (activeTab === "pinned") return chat.isPinned;
     
     return true;
+  }).sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+
+    const aLast = a.messages[a.messages.length - 1];
+    const bLast = b.messages[b.messages.length - 1];
+    if (!aLast) return 1;
+    if (!bLast) return -1;
+
+    return (bLast.timestamp || 0) - (aLast.timestamp || 0);
   });
 
   return (
@@ -409,7 +398,7 @@ export const FarmerChat = () => {
                   <div 
                     key={chat.id} 
                     className={`fc-chat-item ${isCurrentActive ? "active" : ""}`}
-                    onClick={() => setActiveChat(chat)}
+                    onClick={() => handleSelectChat(chat)}
                   >
                     <div className="fc-item-avatar-wrapper">
                       <img src={chat.avatar} alt={chat.name} />
@@ -424,6 +413,43 @@ export const FarmerChat = () => {
                         <span className="fc-item-time">{getLatestMessageTime(chat)}</span>
                       </div>
                       <p className="fc-item-last-msg">{getLatestMessage(chat)}</p>
+                    </div>
+
+                    <div className="fc-item-action-wrapper" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        type="button"
+                        className="fc-item-more-btn"
+                        onClick={() => setRowActionMenuId(rowActionMenuId === chat.id ? null : chat.id)}
+                        title="Tùy chọn"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      
+                      {rowActionMenuId === chat.id && (
+                        <div className="fc-item-dropdown-menu">
+                          <button type="button" className="fc-item-dropdown-option" onClick={() => { handleTogglePin(chat.id); setRowActionMenuId(null); }}>
+                            <Pin size={12} />
+                            <span>{chat.isPinned ? "Bỏ ghim" : "Ghim"}</span>
+                          </button>
+                          <button type="button" className="fc-item-dropdown-option fc-danger-option" onClick={() => { handleClearHistory(chat.id); setRowActionMenuId(null); }}>
+                            <Trash2 size={12} />
+                            <span>Xóa lịch sử</span>
+                          </button>
+                          {chat.isBlocked ? (
+                            chat.blockedBy === "farmer" && (
+                              <button type="button" className="fc-item-dropdown-option" onClick={() => { handleToggleBlock(chat.id); setRowActionMenuId(null); }}>
+                                <Ban size={12} />
+                                <span>Bỏ chặn</span>
+                              </button>
+                            )
+                          ) : (
+                            <button type="button" className="fc-item-dropdown-option fc-danger-option" onClick={() => { handleToggleBlock(chat.id); setRowActionMenuId(null); }}>
+                              <Ban size={12} />
+                              <span>Chặn</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -484,18 +510,23 @@ export const FarmerChat = () => {
                         <Pin size={15} />
                         <span>{activeChat.isPinned ? "Bỏ ghim trò chuyện" : "Ghim trò chuyện"}</span>
                       </button>
-                      <button className="zalo-dropdown-item" onClick={() => handleToggleMute(activeChat.id)}>
-                        <BellOff size={15} />
-                        <span>{activeChat.isMuted ? "Bật thông báo" : "Tắt thông báo"}</span>
-                      </button>
                       <button className="zalo-dropdown-item zalo-danger-item" onClick={() => handleClearHistory(activeChat.id)}>
                         <Trash2 size={15} />
                         <span>Xóa lịch sử trò chuyện</span>
                       </button>
-                      <button className="zalo-dropdown-item zalo-danger-item" onClick={() => handleToggleBlock(activeChat.id)}>
-                        <Ban size={15} />
-                        <span>{activeChat.isBlocked ? "Bỏ chặn khách hàng" : "Chặn khách hàng"}</span>
-                      </button>
+                      {activeChat.isBlocked ? (
+                        activeChat.blockedBy === "farmer" && (
+                          <button className="zalo-dropdown-item" onClick={() => handleToggleBlock(activeChat.id)}>
+                            <Ban size={15} />
+                            <span>Bỏ chặn khách hàng</span>
+                          </button>
+                        )
+                      ) : (
+                        <button className="zalo-dropdown-item zalo-danger-item" onClick={() => handleToggleBlock(activeChat.id)}>
+                          <Ban size={15} />
+                          <span>Chặn khách hàng</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -504,7 +535,9 @@ export const FarmerChat = () => {
               {/* Thân Khung Chat - Bong bóng tin nhắn */}
               <div className="fc-detail-body">
                 {activeChat.messages && activeChat.messages.map((msg) => {
-                  const isMe = msg.sender === "farmer";
+                  const role = currentUser?.role || "farmer";
+                  const isMe = (role === "farmer" && msg.sender === "farmer") ||
+                               (role !== "farmer" && msg.sender === "user");
                   
                   return (
                     <div key={msg.id} className={`fc-msg-row ${isMe ? "right" : "left"}`}>
@@ -585,50 +618,67 @@ export const FarmerChat = () => {
 
               {/* Chân Khung Chat - Công cụ & ô nhập */}
               <footer className="fc-detail-footer">
-                <div className="fc-footer-toolbar">
-                  <button 
-                    type="button" 
-                    className="fc-toolbar-icon-btn" 
-                    title="Gửi hình ảnh"
-                    onClick={() => imageInputRef.current.click()}
-                  >
-                    <ImageIcon size={20} />
-                  </button>
-                  <button 
-                    type="button" 
-                    className="fc-toolbar-icon-btn" 
-                    title="Đính kèm tệp tin"
-                    onClick={() => fileInputRef.current.click()}
-                  >
-                    <Paperclip size={20} />
-                  </button>
-                  
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    ref={imageInputRef} 
-                    style={{ display: "none" }} 
-                    onChange={handleImageChange} 
-                  />
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    style={{ display: "none" }} 
-                    onChange={handleFileChange} 
-                  />
-                </div>
+                {activeChat.isBlocked ? (
+                  <div className="zalo-blocked-input-banner" style={{ padding: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f2f4f7", borderRadius: "8px", width: "100%", boxSizing: "border-box" }}>
+                    {activeChat.blockedBy === (JSON.parse(localStorage.getItem("farmconnect_user"))?.role === "farmer" ? "farmer" : "customer") ? (
+                      <>
+                        <span style={{ fontSize: "13px", color: "#667085", fontWeight: "600" }}>Bạn đã chặn khách hàng này. Bỏ chặn để tiếp tục nhắn tin.</span>
+                        <button className="zalo-unblock-btn" onClick={() => handleToggleBlock(activeChat.id)} style={{ padding: "6px 12px", border: "1px solid #1B5E20", background: "none", color: "#1B5E20", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+                          Bỏ chặn
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: "13px", color: "#667085", fontWeight: "600", width: "100%", textAlign: "center" }}>Bạn đã bị chặn</span>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="fc-footer-toolbar">
+                      <button 
+                        type="button" 
+                        className="fc-toolbar-icon-btn" 
+                        title="Gửi hình ảnh"
+                        onClick={() => imageInputRef.current.click()}
+                      >
+                        <ImageIcon size={20} />
+                      </button>
+                      <button 
+                        type="button" 
+                        className="fc-toolbar-icon-btn" 
+                        title="Đính kèm tệp tin"
+                        onClick={() => fileInputRef.current.click()}
+                      >
+                        <Paperclip size={20} />
+                      </button>
+                      
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        ref={imageInputRef} 
+                        style={{ display: "none" }} 
+                        onChange={handleImageChange} 
+                      />
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: "none" }} 
+                        onChange={handleFileChange} 
+                      />
+                    </div>
 
-                <form className="fc-chat-input-form" onSubmit={handleSendMessage}>
-                  <input 
-                    type="text" 
-                    placeholder="Nhập nội dung phản hồi khách hàng..." 
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                  />
-                  <button type="submit" disabled={!inputText.trim()} className="fc-send-btn" aria-label="Gửi phản hồi">
-                    <Send size={18} />
-                  </button>
-                </form>
+                    <form className="fc-chat-input-form" onSubmit={handleSendMessage}>
+                      <input 
+                        type="text" 
+                        placeholder="Nhập nội dung phản hồi khách hàng..." 
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                      />
+                      <button type="submit" disabled={!inputText.trim()} className="fc-send-btn" aria-label="Gửi phản hồi">
+                        <Send size={18} />
+                      </button>
+                    </form>
+                  </>
+                )}
               </footer>
             </>
           ) : (
