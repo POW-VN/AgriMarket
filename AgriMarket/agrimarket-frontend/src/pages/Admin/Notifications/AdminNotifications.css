@@ -327,7 +327,7 @@
     padding: 8px 12px;
     border-radius: 10px;
     border: 1px solid transparent;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
     box-sizing: border-box;
 }
 
@@ -335,7 +335,6 @@
 .checkbox-option:hover {
     background-color: #f0fdf4;
     border-color: #d1fae5;
-    transform: translateX(2px);
 }
 
 .radio-option:has(input:checked),
@@ -351,18 +350,12 @@
     height: 17px;
     margin-top: 2px;
     flex-shrink: 0;
-    transition: transform 0.2s ease;
 }
 
 .radio-option input:focus,
 .checkbox-option input:focus {
     outline: none;
     box-shadow: none;
-}
-
-.radio-option:hover input,
-.checkbox-option:hover input {
-    transform: scale(1.08);
 }
 
 .radio-option strong {

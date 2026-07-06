@@ -7,7 +7,7 @@
   background-color: #ffffff;
   border-radius: 8px !important; /* Phẳng dẹt sang trọng chuẩn Zalo Web */
   box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05) !important;
-  border: 1px solid #edf2eb !important;
+  border: 1px solid #b8c2cc !important;
   overflow: hidden;
   margin-top: 10px !important; /* Đẩy xuống một chút tránh xa mép trên */
 }
@@ -21,8 +21,8 @@
 
 /* CỘT TRÁI - DANH SÁCH CHAT */
 .fc-sidebar-left {
-  background-color: #fcfdfe;
-  border-right: 1px solid #edf2eb;
+  background-color: #f0f2f5;
+  border-right: 1px solid #dcdfe4;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -30,14 +30,14 @@
 
 .fc-sidebar-search {
   padding: 16px;
-  border-bottom: 1px solid #edf2eb;
+  border-bottom: 1px solid #dcdfe4;
 }
 
 .fc-sidebar-search input {
   width: 100%;
   padding: 10px 16px;
   border-radius: 30px;
-  border: 1px solid #e1ebd9;
+  border: 1px solid #cbd5e1;
   background-color: #ffffff;
   font-size: 13px;
   outline: none;
@@ -57,17 +57,17 @@
   padding: 14px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-bottom: 1px solid #f8faf7;
+  border-bottom: 1px solid #e4e6eb;
   position: relative;
 }
 
 .fc-chat-item:hover {
-  background-color: #f4f8f3;
+  background-color: #e4e6eb;
 }
 
 .fc-chat-item.active {
-  background-color: #eaf3e7;
-  border-left: 4px solid var(--primary-color, #1B5E20);
+  background-color: #e5efff;
+  border-left: 4px solid #0068ff;
 }
 
 .fc-item-avatar-wrapper {
@@ -146,7 +146,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #f8fafc;
+  background-color: #eef2f6;
 }
 
 .fc-detail-header {
@@ -218,7 +218,7 @@
   flex-direction: column;
   gap: 16px;
   scroll-behavior: smooth;
-  background-color: #e5eff8 !important; /* Màu nền xanh da trời nhạt dịu mắt chuẩn Zalo Web */
+  background-color: #eef2f6 !important; /* Màu nền xám nhạt dịu mắt chuẩn Zalo Web */
 }
 
 .fc-msg-row {
@@ -272,8 +272,8 @@
 }
 
 .fc-msg-row.right .fc-msg-bubble {
-  background-color: var(--primary-color, #1B5E20) !important;
-  color: #ffffff !important;
+  background-color: #e5efff !important;
+  color: #071a30 !important;
   border-radius: 8px 8px 0 8px !important; /* Đuôi bong bóng Zalo bên phải */
   border: none !important;
 }
@@ -520,7 +520,7 @@
 
 .fc-chat-input-form input {
   flex: 1;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #8a96a3;
   border-radius: 6px; /* Bo góc nhẹ 6px giống Zalo */
   padding: 10px 16px;
   font-size: 13.5px;
@@ -528,16 +528,17 @@
   transition: all 0.2s;
   font-family: inherit;
   box-sizing: border-box;
-  background: #f8fafc;
-}
-
-.fc-chat-input-form input:focus {
-  border-color: var(--primary-color, #1B5E20);
   background: #ffffff;
 }
 
+.fc-chat-input-form input:focus {
+  border-color: #0068ff;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(0, 104, 255, 0.15);
+}
+
 .fc-send-btn {
-  background: var(--primary-color, #1B5E20) !important;
+  background: #0068ff !important;
   color: #ffffff !important;
   border: none !important;
   width: 38px !important;
@@ -549,11 +550,11 @@
   cursor: pointer !important;
   transition: all 0.2s !important;
   flex-shrink: 0 !important;
-  box-shadow: 0 2px 4px rgba(27, 94, 32, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 104, 255, 0.2) !important;
 }
 
 .fc-send-btn:hover:not(:disabled) {
-  background: #113f15 !important;
+  background: #0056cc !important;
 }
 
 .fc-send-btn:disabled {
@@ -638,8 +639,8 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: #ffffff;
-  border-bottom: 1px solid #edf2eb;
+  background: #f0f2f5;
+  border-bottom: 1px solid #dcdfe4;
   box-sizing: border-box;
 }
 
@@ -647,10 +648,17 @@
   position: relative;
   display: flex;
   align-items: center;
-  background: #f0f2f5;
+  background: #ffffff;
   border-radius: 6px;
   padding: 0 8px;
   flex: 1;
+  border: 1px solid #8a96a3;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.shopee-search-wrapper:focus-within {
+  border-color: #0068ff;
+  box-shadow: 0 0 0 2px rgba(0, 104, 255, 0.15);
 }
 
 .shopee-search-icon {
@@ -688,7 +696,7 @@
   align-items: center;
   gap: 4px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #8a96a3;
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 13px;
@@ -747,11 +755,11 @@
   background: #ffffff !important;
 }
 
-/* GREEN HEADER FOR FARMER CHAT (SAME AS CUSTOMER CHAT) */
+/* GREEN HEADER FOR FARMER CHAT (CHANGED TO ZALO STYLE WHITE HEADER) */
 .zalo-chat-popup-header-green {
-  background: var(--primary-color, #1B5E20) !important;
-  color: #ffffff !important;
-  border-bottom: none !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -765,7 +773,7 @@
   height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 1.5px solid #ffffff;
+  border: 1.5px solid #e2e8f0;
 }
 
 .zalo-avatar-wrapper img {
@@ -779,12 +787,12 @@
   margin: 0 !important;
   font-size: 15px !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 .fc-active-status-green {
   font-size: 11.5px !important;
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: #64748b !important;
   font-weight: 500 !important;
   display: flex !important;
   align-items: center !important;
@@ -799,7 +807,7 @@
 .fc-phone-action-btn, .fc-option-btn {
   background: transparent !important;
   border: none !important;
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: #475569 !important;
   cursor: pointer !important;
   padding: 8px !important;
   border-radius: 50% !important;
@@ -811,8 +819,8 @@
 }
 
 .fc-phone-action-btn:hover, .fc-option-btn:hover, .fc-option-btn-active {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
 /* OPTIONS DROPDOWN FOR FARMER CHAT (ZALO STYLE) */

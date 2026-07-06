@@ -956,5 +956,281 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+/* ============================================
+   LIVE MANAGEMENT PREMIUM TOAST NOTIFICATION
+   ============================================ */
+
+@keyframes lm-slide-down-bounce {
+  0%   { transform: translateY(-20px); opacity: 0; }
+  70%  { transform: translateY(4px);   opacity: 1; }
+  100% { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes lm-progress-shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+.lm-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 28px;
+  z-index: 99999;
+  display: flex;
+  align-items: stretch;
+  width: 360px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(14px) saturate(180%);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: lm-slide-down-bounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Accent bar - left vertical strip */
+.lm-toast-accent-bar {
+  width: 5px;
+  flex-shrink: 0;
+  border-radius: 14px 0 0 14px;
+}
+.lm-toast-success .lm-toast-accent-bar { background: linear-gradient(180deg, #10b981, #059669); }
+.lm-toast-error   .lm-toast-accent-bar { background: linear-gradient(180deg, #ef4444, #dc2626); }
+.lm-toast-info    .lm-toast-accent-bar { background: linear-gradient(180deg, #3b82f6, #2563eb); }
+
+/* Icon circle */
+.lm-toast-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin: auto 0 auto 14px;
+}
+.lm-toast-success .lm-toast-icon-wrap { background: #d1fae5; color: #059669; }
+.lm-toast-error   .lm-toast-icon-wrap { background: #fee2e2; color: #dc2626; }
+.lm-toast-info    .lm-toast-icon-wrap { background: #dbeafe; color: #2563eb; }
+
+/* Text body */
+.lm-toast-body {
+  flex: 1;
+  padding: 14px 10px 14px 12px;
+  min-width: 0;
+}
+
+.lm-toast-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0 0 3px 0;
+  line-height: 1;
+}
+.lm-toast-success .lm-toast-title { color: #059669; }
+.lm-toast-error   .lm-toast-title { color: #dc2626; }
+.lm-toast-info    .lm-toast-title { color: #2563eb; }
+
+.lm-toast-message {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* Close button */
+.lm-toast-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px 12px 0 0;
+  align-self: flex-start;
+  transition: color 0.15s;
+}
+.lm-toast-close:hover { color: #475569; }
+
+/* Progress bar */
+.lm-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  animation: lm-progress-shrink 4s linear forwards;
+  border-radius: 0 0 14px 14px;
+}
+.lm-toast-success .lm-toast-progress { background: linear-gradient(90deg, #10b981, #6ee7b7); }
+.lm-toast-error   .lm-toast-progress { background: linear-gradient(90deg, #ef4444, #fca5a5); }
+.lm-toast-info    .lm-toast-progress { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
+
+/* ============================================
+   CENTERED STATUS MODAL OVERLAY
+   (like Password Reset Successful)
+   ============================================ */
+
+@keyframes lm-modal-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes lm-modal-slide-up {
+  from { transform: translateY(24px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* Full-screen backdrop */
+.lm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: lm-modal-fade-in 0.22s ease;
+}
+
+/* Card */
+.lm-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 32px 32px;
+  text-align: center;
+  animation: lm-modal-slide-up 0.32s cubic-bezier(0.34, 1.30, 0.64, 1);
+}
+
+/* Top accent bar */
+.lm-modal-top-bar {
+  width: 100%;
+  height: 5px;
+  margin: 0 -32px;
+  width: calc(100% + 64px);
+  margin-bottom: 28px;
+}
+.lm-modal-success .lm-modal-top-bar { background: linear-gradient(90deg, #059669, #10b981, #34d399); }
+.lm-modal-error   .lm-modal-top-bar { background: linear-gradient(90deg, #dc2626, #ef4444, #f87171); }
+.lm-modal-info    .lm-modal-top-bar { background: linear-gradient(90deg, #1d4ed8, #3b82f6, #60a5fa); }
+
+/* Icon circle */
+.lm-modal-icon-circle {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+.lm-modal-success .lm-modal-icon-circle {
+  background: #d1fae5;
+  color: #059669;
+  box-shadow: 0 0 0 10px #ecfdf5;
+}
+.lm-modal-error .lm-modal-icon-circle {
+  background: #fee2e2;
+  color: #dc2626;
+  box-shadow: 0 0 0 10px #fff5f5;
+}
+.lm-modal-info .lm-modal-icon-circle {
+  background: #dbeafe;
+  color: #1d4ed8;
+  box-shadow: 0 0 0 10px #eff6ff;
+}
+
+/* Title */
+.lm-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+
+/* Message */
+.lm-modal-message {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 20px;
+  max-width: 320px;
+}
+
+/* Countdown row */
+.lm-modal-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 5px 14px;
+  margin-bottom: 20px;
+}
+.lm-modal-countdown strong {
+  color: #0f172a;
+  font-weight: 700;
+  min-width: 12px;
+  display: inline-block;
+}
+
+/* Action button */
+.lm-modal-btn {
+  width: 100%;
+  padding: 13px 0;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+}
+.lm-modal-success .lm-modal-btn {
+  background: linear-gradient(135deg, #064e3b, #059669);
+  color: #ffffff;
+}
+.lm-modal-success .lm-modal-btn:hover {
+  background: linear-gradient(135deg, #065f46, #10b981);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+}
+.lm-modal-error .lm-modal-btn {
+  background: linear-gradient(135deg, #991b1b, #dc2626);
+  color: #ffffff;
+}
+.lm-modal-error .lm-modal-btn:hover {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+}
+.lm-modal-info .lm-modal-btn {
+  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  color: #ffffff;
+}
+
+
+
 
 

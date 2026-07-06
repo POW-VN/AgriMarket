@@ -78,7 +78,7 @@ export const FarmerChat = () => {
       const sanitized = data.map(c => {
         const idStr = String(c.id);
         const clearedTime = clearedTimes[idStr] || 0;
-        const filteredMessages = c.messages.filter(m => (m.timestamp || 0) > clearedTime);
+        const filteredMessages = (c.messages || []).filter(m => (m.timestamp || 0) > clearedTime);
         return {
           ...c,
           id: idStr,
@@ -286,8 +286,10 @@ export const FarmerChat = () => {
   };
 
   const getLatestMessage = (chat) => {
-    if (!chat.messages || chat.messages.length === 0) return "Chưa có tin nhắn";
-    const last = chat.messages[chat.messages.length - 1];
+    const msgs = chat.messages || [];
+    if (msgs.length === 0) return "Chưa có tin nhắn";
+    const last = msgs[msgs.length - 1];
+    if (!last) return "Chưa có tin nhắn";
     if (last.type === "image") return "[Hình ảnh]";
     if (last.type === "file") return `[Tệp đính kèm] ${last.text}`;
     if (last.type === "location") return "[📍 Vị trí bản đồ]";
@@ -296,15 +298,17 @@ export const FarmerChat = () => {
   };
 
   const getLatestMessageTime = (chat) => {
-    if (!chat.messages || chat.messages.length === 0) return "";
-    const last = chat.messages[chat.messages.length - 1];
-    return last.time;
+    const msgs = chat.messages || [];
+    if (msgs.length === 0) return "";
+    const last = msgs[msgs.length - 1];
+    return last ? last.time : "";
   };
 
   // Filter hội thoại dựa trên Search và Dropdown Shopee
   const filteredChats = allChats.filter(chat => {
-    const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      chat.messages.some(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase()));
+    const chatName = chat.name || "";
+    const matchesSearch = chatName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (chat.messages || []).some(m => m.text?.toLowerCase().includes(searchQuery.toLowerCase()));
     
     if (!matchesSearch) return false;
     
@@ -316,8 +320,10 @@ export const FarmerChat = () => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
 
-    const aLast = a.messages[a.messages.length - 1];
-    const bLast = b.messages[b.messages.length - 1];
+    const aMessages = a.messages || [];
+    const bMessages = b.messages || [];
+    const aLast = aMessages[aMessages.length - 1];
+    const bLast = bMessages[bMessages.length - 1];
     if (!aLast) return 1;
     if (!bLast) return -1;
 
@@ -534,7 +540,7 @@ export const FarmerChat = () => {
 
               {/* Thân Khung Chat - Bong bóng tin nhắn */}
               <div className="fc-detail-body">
-                {activeChat.messages && activeChat.messages.map((msg) => {
+                {(activeChat.messages || []).map((msg) => {
                   const role = currentUser?.role || "farmer";
                   const isMe = (role === "farmer" && msg.sender === "farmer") ||
                                (role !== "farmer" && msg.sender === "user");

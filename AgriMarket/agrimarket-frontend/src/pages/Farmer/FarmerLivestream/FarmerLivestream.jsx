@@ -190,6 +190,20 @@ export const FarmerLivestream = () => {
   const [blockedUsers, setBlockedUsers] = useState({}); // { username: expiryTimestamp }
   const [activeBlockMenuMsgId, setActiveBlockMenuMsgId] = useState(null);
   const [isConfirmEndOpen, setIsConfirmEndOpen] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+  };
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(() => {
+        setToast(prev => ({ ...prev, show: false }));
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show]);
   const [adminBanReason, setAdminBanReason] = useState("");
   const blockedUsersRef = useRef({});
   blockedUsersRef.current = blockedUsers;
@@ -779,7 +793,7 @@ export const FarmerLivestream = () => {
   // Launch Livestream Session
   const handleStartLivestream = async () => {
     if (!title.trim()) {
-      alert("Vui lòng nhập Tiêu đề phiên livestream!");
+      showToast("Vui lòng nhập Tiêu đề phiên livestream!", "error");
       return;
     }
 
@@ -917,24 +931,24 @@ export const FarmerLivestream = () => {
       }
     } catch (err) {
       console.error(err);
-      alert("Không thể kết nối đến máy chủ Agora. Chi tiết: " + err.message);
+      showToast("Không thể kết nối đến máy chủ Agora. Chi tiết: " + err.message, "error");
     }
   };
 
   const handleScheduleLivestream = async () => {
     if (!title.trim()) {
-      alert("Vui lòng nhập Tiêu đề phiên livestream!");
+      showToast("Vui lòng nhập Tiêu đề phiên livestream!", "error");
       return;
     }
     if (!scheduledTime) {
-      alert("Vui lòng chọn thời gian lên lịch phát sóng!");
+      showToast("Vui lòng chọn thời gian lên lịch phát sóng!", "error");
       return;
     }
 
     const scheduledDate = new Date(scheduledTime);
     const minScheduledDate = new Date(Date.now() + 5 * 60 * 1000);
     if (scheduledDate < minScheduledDate) {
-      alert("Thời gian lên lịch phát sóng phải cách hiện tại ít nhất 5 phút!");
+      showToast("Thời gian lên lịch phát sóng phải cách hiện tại ít nhất 5 phút!", "error");
       return;
     }
 
@@ -948,6 +962,7 @@ export const FarmerLivestream = () => {
       const data = response.data;
       setLiveSessionId(data.livestreamId);
       setStreamState("scheduled");
+      showToast("Lên lịch livestream thành công!", "success");
 
       if (cameraStream) {
         cameraStream.getTracks().forEach((track) => track.stop());
@@ -955,7 +970,7 @@ export const FarmerLivestream = () => {
       }
     } catch (err) {
       console.error("Lỗi lên lịch livestream:", err);
-      alert("Không thể lên lịch livestream. Vui lòng thử lại sau.");
+      showToast("Không thể lên lịch livestream. Vui lòng thử lại sau.", "error");
     }
   };
 
@@ -1063,7 +1078,7 @@ export const FarmerLivestream = () => {
       window.agoraActiveHostSession = null;
     } catch (e) {
       console.error(e);
-      alert("Lỗi khi kết thúc livestream: " + e.message);
+      showToast("Lỗi khi kết thúc livestream: " + e.message, "error");
     }
   };
 
@@ -1739,28 +1754,51 @@ export const FarmerLivestream = () => {
 
       {/* 5. BANNED BY ADMIN SCREEN */}
       {streamState === "banned" && (
-        <div className="live-report-overlay live-banned-overlay">
-          <div className="live-report-modal live-banned-modal">
-            <div className="banned-icon-container">
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18.63 11.37L12 4.74l-6.63 6.63a3.56 3.56 0 1 0 5 5l6.63-6.63c.27-.27.42-.64.42-1.02V8.18c0-.66-.54-1.2-1.2-1.2h-.55a1.44 1.44 0 0 0-1.02.42L8.03 14.03a3.56 3.56 0 1 0 5 5l5.6-5.6"></path>
-                <path d="m14 11 1.5 1.5"></path>
+        <div className="fl-banned-overlay">
+          <div className="fl-banned-card">
+            {/* Top accent bar */}
+            <div className="fl-banned-top-bar" />
+
+            {/* Icon */}
+            <div className="fl-banned-icon-wrap">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
               </svg>
             </div>
-            <h2 className="report-title banned-title">
-              PHÁT SÓNG ĐÃ DỪNG BỞI QUẢN TRỊ VIÊN
-            </h2>
-            <p className="report-subtitle banned-subtitle">
-              Phiên livestream của bạn tạm thời bị dừng phát sóng do phát hiện vi phạm Tiêu chuẩn cộng đồng.
+
+            {/* Title */}
+            <h2 className="fl-banned-title">Phiên livestream đã bị dừng</h2>
+            <p className="fl-banned-subtitle">
+              Quản trị viên AgriMarket đã chấm dứt phiên phát sóng của bạn do phát hiện vi phạm Tiêu chuẩn cộng đồng.
             </p>
 
-            <div className="banned-detail-card">
-              <p className="banned-card-label">Lý do chấm dứt:</p>
-              <p className="banned-card-reason">{adminBanReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm."}</p>
+            {/* Reason card */}
+            <div className="fl-banned-reason-card">
+              <div className="fl-banned-reason-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>LÝ DO CHẤM DỨT</span>
+              </div>
+              <p className="fl-banned-reason-text">
+                {adminBanReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm."}
+              </p>
             </div>
 
-            <button className="btn-close-report btn-banned-dashboard" onClick={() => setStreamState("setup")}>
-              Quay lại thiết lập
+            {/* Help note */}
+            <p className="fl-banned-help">
+              Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ bộ phận hỗ trợ AgriMarket để được giải quyết.
+            </p>
+
+            {/* Action button */}
+            <button className="fl-banned-btn" onClick={() => setStreamState("setup")}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Quay lại trang thiết lập
             </button>
           </div>
         </div>
@@ -1889,6 +1927,43 @@ export const FarmerLivestream = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast.show && (
+        <div className={`livestream-premium-toast ${toast.type}`}>
+          <div className="toast-accent-bar" />
+          <div className="toast-content-wrapper">
+            <div className="toast-icon-circle">
+              {toast.type === "success" && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+              {toast.type === "error" && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+              {toast.type === "warning" && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              )}
+            </div>
+            <div className="toast-text-group">
+              <span className="toast-status-title">
+                {toast.type === "success" ? "Thành công" : toast.type === "error" ? "Thất bại" : "Cảnh báo"}
+              </span>
+              <span className="toast-message-body">{toast.message}</span>
+            </div>
+          </div>
+          <button className="toast-close-btn" onClick={() => setToast({ show: false })}>×</button>
+          <div className="toast-progress-bar" />
         </div>
       )}
     </div>

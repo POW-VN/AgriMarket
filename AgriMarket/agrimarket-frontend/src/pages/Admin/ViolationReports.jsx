@@ -135,7 +135,7 @@ export default function ViolationReports() {
             case "low":
                 return "Thấp";
             default:
-                return "Chưa xác định";
+                return "Chờ đánh giá";
         }
     };
 
@@ -250,6 +250,17 @@ export default function ViolationReports() {
     const formatDateTime = (value) => {
         if (!value) return "Chưa rõ";
         return new Date(value).toLocaleString("vi-VN");
+    };
+
+    const formatDateTimeShort = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${hours}:${minutes} ${day}/${month}/${year}`;
     };
 
     const handleLogout = () => {
@@ -376,61 +387,57 @@ export default function ViolationReports() {
                                 </div>
                             </div>
 
-                            <div className="violation-table-wrapper">
-                                <table className="violation-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Mã báo cáo</th>
-                                            <th>Đối tượng bị báo cáo</th>
-                                            <th>Loại</th>
-                                            <th>Mức độ</th>
-                                            <th>Trạng thái</th>
-                                            <th>Ngày gửi</th>
-                                        </tr>
-                                    </thead>
+                            <div className="violation-card-list">
+                                {loading ? (
+                                    <div className="empty-list-cell">
+                                        Đang tải danh sách báo cáo...
+                                    </div>
+                                ) : filteredReports.length === 0 ? (
+                                    <div className="empty-list-cell">
+                                        Chưa có báo cáo vi phạm nào để hiển thị.
+                                    </div>
+                                ) : (
+                                    filteredReports.map((report) => (
+                                        <div
+                                            key={report.id}
+                                            className={`violation-card-item ${selectedReport?.id === report.id ? "selected" : ""} ${report.status}`}
+                                            onClick={() => setSelectedReport(report)}
+                                        >
+                                            <div className="card-item-header">
+                                                <span className="card-report-code">RP-{report.id}</span>
+                                                <span className="card-report-date">{formatDateTimeShort(report.createdAt)}</span>
+                                            </div>
 
-                                    <tbody>
-                                        {loading ? (
-                                            <tr>
-                                                <td colSpan="6" className="empty-table-cell">
-                                                    Đang tải danh sách báo cáo...
-                                                </td>
-                                            </tr>
-                                        ) : filteredReports.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="6" className="empty-table-cell">
-                                                    Chưa có báo cáo vi phạm nào để hiển thị.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filteredReports.map((report) => (
-                                                <tr
-                                                    key={report.id}
-                                                    className={selectedReport?.id === report.id ? "selected" : ""}
-                                                    onClick={() => setSelectedReport(report)}
-                                                >
-                                                    <td>RP-{report.id}</td>
-                                                    <td>
-                                                        <strong>{report.targetName || `ID: ${report.targetId}`}</strong>
-                                                        <span>{report.reason}</span>
-                                                    </td>
-                                                    <td>{getTargetTypeLabel(report.targetType)}</td>
-                                                    <td>
-                                                        <span className={`severity-badge ${report.severity || "unknown"}`}>
-                                                            {getSeverityLabel(report.severity)}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span className={`report-status-badge ${report.status}`}>
-                                                            {getStatusLabel(report.status)}
-                                                        </span>
-                                                    </td>
-                                                    <td>{formatDateTime(report.createdAt)}</td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
+                                            <div className="card-item-body">
+                                                <div className="card-target-row">
+                                                    <span className="card-target-type-badge">
+                                                        {getTargetTypeLabel(report.targetType)}
+                                                    </span>
+                                                    <strong className="card-target-name">
+                                                        {report.targetName || `ID: ${report.targetId}`}
+                                                    </strong>
+                                                </div>
+                                                <p className="card-report-reason">{report.reason}</p>
+                                            </div>
+
+                                            <div className="card-item-footer">
+                                                <div className="card-badges-row">
+                                                    <span className={`severity-badge ${report.severity || "unknown"}`}>
+                                                        {getSeverityLabel(report.severity)}
+                                                    </span>
+                                                    <span className={`report-status-badge ${report.status}`}>
+                                                        {getStatusLabel(report.status)}
+                                                    </span>
+                                                </div>
+                                                {report.reporterName && (
+                                                    <span className="card-reporter-name">
+                                                        Gửi bởi: {report.reporterName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 
