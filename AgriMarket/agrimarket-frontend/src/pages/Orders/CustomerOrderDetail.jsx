@@ -310,7 +310,7 @@ export const CustomerOrderDetail = () => {
 
   // Helper to render timeline step icons as SVGs
   const renderStepIcon = (key, isCompleted, isCurrent) => {
-    if (isCompleted && key !== "shipping" && key !== "delivered") {
+    if (isCompleted) {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
           <polyline points="20 6 9 17 4 12" />
@@ -328,9 +328,12 @@ export const CustomerOrderDetail = () => {
         );
       case "confirmed":
         return (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
+            <path d="M3 21h18" />
+            <path d="M3 7l1-4h16l1 4" />
+            <path d="M4 7v14" />
+            <path d="M20 7v14" />
+            <path d="M9 21v-7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7" />
           </svg>
         );
       case "preparing":
@@ -518,9 +521,9 @@ export const CustomerOrderDetail = () => {
                 <div className="cod-timeline-wrapper tracker-timeline">
                   <div className="cod-timeline">
                     {TIMELINE_STEPS.map((step, idx) => {
-                      const isCompleted = idx < activeIndex;
-                      const isCurrent = idx === activeIndex;
-                      const isPending = idx > activeIndex;
+                      const isCompleted = order.status === "delivered" ? true : idx < activeIndex;
+                      const isCurrent = order.status === "delivered" ? false : idx === activeIndex;
+                      const isPending = order.status === "delivered" ? false : idx > activeIndex;
                       const stepClass = `cod-step${isCompleted ? " completed" : ""}${isCurrent ? " current" : ""}${isPending ? " pending" : ""}`;
                       return (
                         <React.Fragment key={step.key}>
@@ -534,7 +537,7 @@ export const CustomerOrderDetail = () => {
                             </span>
                           </div>
                           {idx < TIMELINE_STEPS.length - 1 && (
-                            <div className={`cod-connector${idx < activeIndex ? " done" : ""}`} />
+                            <div className={`cod-connector${isCompleted ? " done" : ""}`} />
                           )}
                         </React.Fragment>
                       );

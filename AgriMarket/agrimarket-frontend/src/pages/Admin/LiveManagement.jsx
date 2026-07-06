@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
@@ -35,7 +35,10 @@ import "./LiveManagement.css";
 export default function LiveManagement() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
+  const [toast, setToast] = useState(null); // { message, type: 'success'|'error'|'info', title }
+  const [toastCountdown, setToastCountdown] = useState(0);
+  const toastTimerRef = useRef(null);
+  const toastCountdownRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   
   // Products modal view state
@@ -158,6 +161,12 @@ export default function LiveManagement() {
   ];
 
   const [sessions, setSessions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sortBy]);
 
   // Check auth and load sessions
   useEffect(() => {
@@ -227,19 +236,54 @@ export default function LiveManagement() {
     }
   };
 
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => setToastMessage(""), 3500);
+  const showToast = (message, type = "success", title = null) => {
+    // Clear existing timers
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (toastCountdownRef.current) clearInterval(toastCountdownRef.current);
+
+    const autoCloseSecs = type === "success" ? 5 : 0; // success auto-closes, error stays until user closes
+    setToast({ message, type, title });
+    setToastCountdown(autoCloseSecs);
+
+    if (autoCloseSecs > 0) {
+      let remaining = autoCloseSecs;
+      toastCountdownRef.current = setInterval(() => {
+        remaining -= 1;
+        setToastCountdown(remaining);
+        if (remaining <= 0) {
+          clearInterval(toastCountdownRef.current);
+        }
+      }, 1000);
+      toastTimerRef.current = setTimeout(() => {
+        setToast(null);
+        setToastCountdown(0);
+      }, autoCloseSecs * 1000);
+    }
+  };
+
+  const closeToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (toastCountdownRef.current) clearInterval(toastCountdownRef.current);
+    setToast(null);
+    setToastCountdown(0);
   };
 
   const handleTerminateStream = async (sessionId, brandName, reason) => {
     try {
       await apiClient.post(`/api/livestreams/admin/${sessionId}/terminate`, { reason });
-      showToast(`Đã chấm dứt livestream của nhà vườn ${brandName}.`);
+      showToast(
+        `Phiên livestream của nhà vườn ${brandName} đã bị dừng và gỡ khỏi danh sách trực tiếp.`,
+        "success",
+        "Chấm dứt thành công"
+      );
       loadSessions();
     } catch (err) {
       console.error("Lỗi chấm dứt livestream:", err);
-      showToast(`Lỗi khi chấm dứt livestream: ${err.response?.data || err.message}`);
+      showToast(
+        err.response?.data || err.message || "Đã xảy ra lỗi không xác định, vui lòng thử lại.",
+        "error",
+        "Thao tác thất bại"
+      );
     }
   };
 
@@ -248,10 +292,13 @@ export default function LiveManagement() {
     // Search query match
     let result = sessions.filter((s) => {
       const keyword = searchQuery.toLowerCase();
+      const brand = s.farmerBrand || "";
+      const title = s.title || "";
+      const name = s.farmerName || "";
       return (
-        s.farmerBrand.toLowerCase().includes(keyword) ||
-        s.title.toLowerCase().includes(keyword) ||
-        s.farmerName.toLowerCase().includes(keyword)
+        brand.toLowerCase().includes(keyword) ||
+        title.toLowerCase().includes(keyword) ||
+        name.toLowerCase().includes(keyword)
       );
     });
 
@@ -283,6 +330,11 @@ export default function LiveManagement() {
     return result;
   }, [sessions, searchQuery, statusFilter, sortBy]);
 
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentSessions = filteredSessions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
+
   // Derived stats counters
   const liveCount = useMemo(() => {
     return sessions.filter((s) => s.status === "live").length;
@@ -309,12 +361,61 @@ export default function LiveManagement() {
 
   return (
     <div className="admin-layout">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="admin-toast">
-          <div className="admin-toast-content">
-            <CheckCircle2 size={18} style={{ color: "#10b981", marginRight: "8px" }} />
-            <span>{toastMessage}</span>
+      {/* Centered Status Modal Overlay */}
+      {toast && (
+        <div className="lm-modal-overlay" onClick={closeToast}>
+          <div
+            className={`lm-modal-card lm-modal-${toast.type}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top accent bar */}
+            <div className="lm-modal-top-bar" />
+
+            {/* Icon circle */}
+            <div className="lm-modal-icon-circle">
+              {toast.type === "success" && (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              )}
+              {toast.type === "error" && (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              )}
+              {toast.type === "info" && (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              )}
+            </div>
+
+            {/* Text content */}
+            <h2 className="lm-modal-title">
+              {toast.title || (toast.type === "success" ? "Thành công" : toast.type === "error" ? "Thất bại" : "Thông báo")}
+            </h2>
+            <p className="lm-modal-message">{toast.message}</p>
+
+            {/* Countdown row (only for success) */}
+            {toast.type === "success" && toastCountdown > 0 && (
+              <div className="lm-modal-countdown">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>Tự đóng sau <strong>{toastCountdown}</strong> giây</span>
+              </div>
+            )}
+
+            {/* Close / action button */}
+            <button className="lm-modal-btn" onClick={closeToast}>
+              {toast.type === "success" ? "Đóng" : "Thử lại"}
+            </button>
           </div>
         </div>
       )}
@@ -484,8 +585,8 @@ export default function LiveManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSessions.length > 0 ? (
-                    filteredSessions.map((session) => (
+                  {currentSessions.length > 0 ? (
+                    currentSessions.map((session) => (
                       <tr key={session.id}>
                         {/* Farmer column */}
                         <td>
@@ -599,13 +700,36 @@ export default function LiveManagement() {
 
               {/* Table pagination footer */}
               <div className="live-pagination-bar">
-                <span>Hiển thị 1-{filteredSessions.length} trên tổng số {sessions.length} phiên live</span>
+                <span>
+                  Hiển thị {filteredSessions.length === 0 ? 0 : indexOfFirstItem + 1}-
+                  {Math.min(indexOfLastItem, filteredSessions.length)} trên tổng số {sessions.length} phiên live
+                </span>
                 <div className="live-page-buttons">
-                  <button className="page-btn" disabled>&lt;</button>
-                  <button className="page-btn active">1</button>
-                  <button className="page-btn">2</button>
-                  <button className="page-btn">3</button>
-                  <button className="page-btn">&gt;</button>
+                  <button 
+                    className="page-btn" 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    &lt;
+                  </button>
+                  
+                  {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      className={`page-btn ${currentPage === pageNumber ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  
+                  <button 
+                    className="page-btn" 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    &gt;
+                  </button>
                 </div>
               </div>
             </div>
