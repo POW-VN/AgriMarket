@@ -5,7 +5,10 @@ import Footer from "../../../components/common/Footer/Footer";
 import profileService from "../../../services/profileService";
 import { getAllApprovedProducts } from "../../../services/productService";
 import wishlistService from "../../../services/wishlistService";
+import apiClient from "../../../services/apiClient";
 import chatLogo from "../../../assets/images/chat-logo.png";
+import authService from "../../../services/authService";
+import cartService from "../../../services/cartService";
 import "./FarmerProfile.css";
 
 const formatDate = (dateString) => {
@@ -35,6 +38,67 @@ export default function FarmerProfile() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const [activeLiveId, setActiveLiveId] = useState(null);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const triggerToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage("");
+    }, 2500);
+  };
+
+  const handleAddToCart = async (product) => {
+    try {
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        // Logged in user: save to DB
+        await cartService.addToCart(product.id, 1);
+      } else {
+        // Guest: save to localStorage
+        const cartKey = "agrimarket_cart";
+        const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
+        const existingIndex = currentCart.findIndex(
+          (item) => String(item.id) === String(product.id)
+        );
+
+        if (existingIndex >= 0) {
+          const newQty = currentCart[existingIndex].quantity + 1;
+          if (product.stock !== undefined && newQty > product.stock) {
+            triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+            return;
+          }
+          currentCart[existingIndex].quantity = newQty;
+        } else {
+          if (product.stock !== undefined && 1 > product.stock) {
+            triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+            return;
+          }
+          currentCart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            unit: product.unit,
+            imageUrl: product.imageUrl,
+            quantity: 1,
+            checked: true,
+            stockQuantity: product.stock,
+            farmerId: product.farmerId,
+            farmerName: product.farmerName || farmer?.farmName
+          });
+        }
+
+        localStorage.setItem(cartKey, JSON.stringify(currentCart));
+      }
+
+      // Dispatch event to update Header cart count
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+      triggerToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    } catch (err) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", err);
+      triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");
+    }
+  };
 
   // Load farmer details and products
   useEffect(() => {
@@ -96,6 +160,22 @@ export default function FarmerProfile() {
         setFarmer(finalFarmer);
         const followStatus = await wishlistService.isFarmerFollowed(finalFarmer.id);
         setIsFollowed(followStatus);
+
+        // 3. Check if farmer has active livestream
+        let foundLiveId = null;
+        try {
+          const liveRes = await apiClient.get("/api/livestreams/active");
+          const activeStreams = liveRes.data;
+          const currentActiveStream = activeStreams.find(
+            (s) => String(s.farmerId) === String(id)
+          );
+          if (currentActiveStream) {
+            foundLiveId = currentActiveStream.id;
+          }
+        } catch (liveErr) {
+          console.error("Lỗi khi kiểm tra livestream hoạt động:", liveErr);
+        }
+        setActiveLiveId(foundLiveId);
 
         // If no products were found, populate with mock products for visual completeness
         if (farmerProds.length === 0) {
@@ -269,18 +349,26 @@ export default function FarmerProfile() {
             
             {/* Identity Card */}
             <div className="farmer-identity-card">
-              <div className="farmer-avatar-wrapper">
+              <div 
+                className={`farmer-avatar-wrapper ${activeLiveId ? "is-live-broadcasting" : ""}`}
+                onClick={activeLiveId ? () => navigate(`/livestream/${activeLiveId}`) : null}
+                style={activeLiveId ? { cursor: "pointer" } : null}
+                title={activeLiveId ? "Xem phiên livestream trực tiếp" : ""}
+              >
                 {farmer.avatarUrl ? (
-                  <img src={farmer.avatarUrl} alt={farmer.fullName} className="farmer-avatar" />
+                  <img src={farmer.avatarUrl} alt={farmer.farmName} className="farmer-avatar" />
                 ) : (
                   <div className="farmer-avatar-placeholder">
-                    {farmer.fullName.charAt(0).toUpperCase()}
+                    {(farmer.farmName || "").charAt(0).toUpperCase()}
                   </div>
+                )}
+                {activeLiveId && (
+                  <span className="live-avatar-badge">Live</span>
                 )}
               </div>
               
               <h2 className="farmer-name-title">
-                {farmer.fullName}
+                {farmer.farmName}
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" className="verified-tick-icon" title="Nhà vườn uy tín">
                   <circle cx="12" cy="12" r="10" fill="#0095F6" />
                   <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -296,13 +384,9 @@ export default function FarmerProfile() {
                   Nhắn tin ngay
                 </button>
 
-                <a 
-                  className="btn-call-farmer" 
-                  href={`tel:${farmer.phone || '0337222769'}`}
-                  style={{ textDecoration: 'none' }}
-                >
-                  Gọi điện: {farmer.phone || '0337 222 769'}
-                </a>
+                <div className="farmer-phone-info">
+                  📞 Gọi điện: {farmer.phone || '0337 222 769'}
+                </div>
                 
                 <button className={`btn-follow-farmer ${isFollowed ? "followed" : ""}`} onClick={handleToggleFollow}>
                   {isFollowed ? "Đang theo dõi" : "Theo dõi"}
@@ -420,23 +504,7 @@ export default function FarmerProfile() {
                           className="btn-add-quick-cart"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const cartKey = "agrimarket_cart";
-                            const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
-                            const idx = currentCart.findIndex(item => item.id === p.id);
-                            if (idx > -1) {
-                              currentCart[idx].quantity += 1;
-                            } else {
-                              currentCart.push({
-                                id: p.id,
-                                name: p.name,
-                                price: p.price,
-                                unit: p.unit,
-                                imageUrl: p.imageUrl,
-                                quantity: 1
-                              });
-                            }
-                            localStorage.setItem(cartKey, JSON.stringify(currentCart));
-                            alert(`Đã thêm "${p.name}" vào giỏ hàng!`);
+                            handleAddToCart(p);
                           }}
                           aria-label="Thêm vào giỏ"
                         >
@@ -472,6 +540,13 @@ export default function FarmerProfile() {
             </button>
             <img src={certModalImage} alt="Chứng nhận chất lượng" className="cert-modal-image" />
           </div>
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="farmer-toast">
+          <span>✅</span>
+          <span>{toastMessage}</span>
         </div>
       )}
 

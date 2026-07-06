@@ -145,6 +145,16 @@ public class ReviewController {
             review.setCustomer(customer);
             review.setRating(request.getRating());
             review.setComment(commentString);
+
+            // Populate new structured fields
+            review.setQualityRating(request.getSpecificRatings() != null ? request.getSpecificRatings().getOrDefault("quality", 0) : 0);
+            review.setFreshnessRating(request.getSpecificRatings() != null ? request.getSpecificRatings().getOrDefault("freshness", 0) : 0);
+            review.setPackagingRating(request.getSpecificRatings() != null ? request.getSpecificRatings().getOrDefault("packaging", 0) : 0);
+            review.setDeliveryRating(request.getSpecificRatings() != null ? request.getSpecificRatings().getOrDefault("delivery", 0) : 0);
+            review.setAnonymous(request.getAnonymous() != null ? request.getAnonymous() : false);
+            review.setImages(savedImageUrls);
+            review.setTags(request.getSelectedTags() != null ? request.getSelectedTags() : Collections.emptyList());
+
             if (existingReview.isPresent()) {
                 review.setCreatedAt(LocalDateTime.now());
             }
@@ -214,19 +224,33 @@ public class ReviewController {
 
             String rawComment = review.getComment();
             String text = rawComment;
-            List<String> images = Collections.emptyList();
-            List<String> tags = Collections.emptyList();
-            Map<String, Integer> specificRatings = Collections.emptyMap();
-            boolean anonymous = false;
+            List<String> images = review.getImages() != null ? review.getImages() : Collections.emptyList();
+            List<String> tags = review.getTags() != null ? review.getTags() : Collections.emptyList();
+            Map<String, Integer> specificRatings = new HashMap<>();
+            if (review.getQualityRating() != null) {
+                specificRatings.put("quality", review.getQualityRating());
+                specificRatings.put("freshness", review.getFreshnessRating());
+                specificRatings.put("packaging", review.getPackagingRating());
+                specificRatings.put("delivery", review.getDeliveryRating());
+            }
+            boolean anonymous = review.getAnonymous() != null ? review.getAnonymous() : false;
 
             if (rawComment != null && rawComment.startsWith("{")) {
                 try {
                     Map<String, Object> parsed = objectMapper.readValue(rawComment, new TypeReference<Map<String, Object>>() {});
                     text = (String) parsed.getOrDefault("text", "");
-                    images = (List<String>) parsed.getOrDefault("images", Collections.emptyList());
-                    tags = (List<String>) parsed.getOrDefault("tags", Collections.emptyList());
-                    specificRatings = (Map<String, Integer>) parsed.getOrDefault("specificRatings", Collections.emptyMap());
-                    anonymous = (Boolean) parsed.getOrDefault("anonymous", false);
+                    if (images.isEmpty()) {
+                        images = (List<String>) parsed.getOrDefault("images", Collections.emptyList());
+                    }
+                    if (tags.isEmpty()) {
+                        tags = (List<String>) parsed.getOrDefault("tags", Collections.emptyList());
+                    }
+                    if (specificRatings.isEmpty() || !specificRatings.containsKey("quality") || specificRatings.get("quality") == 0) {
+                        specificRatings = (Map<String, Integer>) parsed.getOrDefault("specificRatings", Collections.emptyMap());
+                    }
+                    if (review.getAnonymous() == null) {
+                        anonymous = (Boolean) parsed.getOrDefault("anonymous", false);
+                    }
                 } catch (Exception e) {
                     // fallback
                 }
@@ -257,19 +281,33 @@ public class ReviewController {
 
                 String rawComment = review.getComment();
                 String text = rawComment;
-                List<String> images = Collections.emptyList();
-                List<String> tags = Collections.emptyList();
-                Map<String, Integer> specificRatings = Collections.emptyMap();
-                boolean anonymous = false;
+                List<String> images = review.getImages() != null ? review.getImages() : Collections.emptyList();
+                List<String> tags = review.getTags() != null ? review.getTags() : Collections.emptyList();
+                Map<String, Integer> specificRatings = new HashMap<>();
+                if (review.getQualityRating() != null) {
+                    specificRatings.put("quality", review.getQualityRating());
+                    specificRatings.put("freshness", review.getFreshnessRating());
+                    specificRatings.put("packaging", review.getPackagingRating());
+                    specificRatings.put("delivery", review.getDeliveryRating());
+                }
+                boolean anonymous = review.getAnonymous() != null ? review.getAnonymous() : false;
 
                 if (rawComment != null && rawComment.startsWith("{")) {
                     try {
                         Map<String, Object> parsed = objectMapper.readValue(rawComment, new TypeReference<Map<String, Object>>() {});
                         text = (String) parsed.getOrDefault("text", "");
-                        images = (List<String>) parsed.getOrDefault("images", Collections.emptyList());
-                        tags = (List<String>) parsed.getOrDefault("tags", Collections.emptyList());
-                        specificRatings = (Map<String, Integer>) parsed.getOrDefault("specificRatings", Collections.emptyMap());
-                        anonymous = (Boolean) parsed.getOrDefault("anonymous", false);
+                        if (images.isEmpty()) {
+                            images = (List<String>) parsed.getOrDefault("images", Collections.emptyList());
+                        }
+                        if (tags.isEmpty()) {
+                            tags = (List<String>) parsed.getOrDefault("tags", Collections.emptyList());
+                        }
+                        if (specificRatings.isEmpty() || !specificRatings.containsKey("quality") || specificRatings.get("quality") == 0) {
+                            specificRatings = (Map<String, Integer>) parsed.getOrDefault("specificRatings", Collections.emptyMap());
+                        }
+                        if (review.getAnonymous() == null) {
+                            anonymous = (Boolean) parsed.getOrDefault("anonymous", false);
+                        }
                     } catch (Exception e) {
                         // fallback to raw
                     }

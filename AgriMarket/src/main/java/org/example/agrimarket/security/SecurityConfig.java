@@ -55,7 +55,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/error",
                                 "/api/products/**",
-                                "/api/payment/vnpay-callback"
+                                "/api/payment/vnpay-callback",
+                                "/api/livestreams/*/join",
+                                "/api/livestreams/*/leave"
                         ).permitAll()
 
                         // Other APIs need login

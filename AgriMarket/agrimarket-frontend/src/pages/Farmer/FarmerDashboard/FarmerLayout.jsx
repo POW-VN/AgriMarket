@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import profileService from "../../../services/profileService";
 import authService from "../../../services/authService";
+import apiClient from "../../../services/apiClient";
 import "./FarmerDashboard.css";
 
 const TABS = [
@@ -13,9 +14,229 @@ const TABS = [
   { id: "livestream",   label: "Quản lý Livestream", icon: "📺", path: "/farmer/livestream" },
 ];
 
+const FarmerPiPOverlay = ({ onClose }) => {
+  const navigate = useNavigate();
+  const videoRef = React.useRef(null);
+  const commentsEndRef = React.useRef(null);
+  const [comments, setComments] = useState(window.agoraActiveHostSession?.chatMessages || []);
+
+  useEffect(() => {
+    const session = window.agoraActiveHostSession;
+    if (!session || !session.localVideoTrack) return;
+
+    session.localVideoTrack.play(videoRef.current);
+
+    const interval = setInterval(async () => {
+      try {
+        const commentsRes = await apiClient.get(`/api/livestreams/${session.liveSessionId}/comments`);
+        const dbMsgs = commentsRes.data.map(c => ({
+          id: `comment-${c.id}`,
+          user: c.user || "Khán giả",
+          text: c.text,
+          isHost: c.isHost
+        }));
+        const updated = [
+          { id: "sys-1", type: "system", text: "Hệ thống: Kết nối livestream ổn định. Phiên live bắt đầu phát sóng!" },
+          ...dbMsgs
+        ];
+        setComments(updated);
+        session.chatMessages = updated;
+      } catch (err) {
+        console.error("Lỗi đồng bộ comments trong PiP:", err);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+      if (session && session.localVideoTrack) {
+        session.localVideoTrack.stop();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [comments]);
+
+  const handleMaximize = () => {
+    navigate("/farmer/livestream");
+    onClose();
+  };
+
+  const handleStopLive = async () => {
+    const session = window.agoraActiveHostSession;
+    if (!session) return;
+
+    if (!window.confirm("Bạn có chắc chắn muốn kết thúc phiên livestream này?")) return;
+
+    try {
+      await apiClient.post(`/api/livestreams/${session.liveSessionId}/end`);
+      
+      if (session.localAudioTrack) {
+        session.localAudioTrack.stop();
+        session.localAudioTrack.close();
+      }
+      if (session.localVideoTrack) {
+        session.localVideoTrack.stop();
+        session.localVideoTrack.close();
+      }
+      if (session.client) {
+        await session.client.leave();
+      }
+
+      try {
+        localStorage.removeItem("active_farmer_livestream_session");
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const updatedLives = storedLives.map((s) => {
+          if (s.id === session.liveSessionId) {
+            return { ...s, status: "replay" };
+          }
+          return s;
+        });
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify(updatedLives));
+      } catch (err) {
+        console.error(err);
+      }
+
+      window.agoraActiveHostSession = null;
+      onClose();
+      alert("Đã kết thúc livestream thành công!");
+    } catch (e) {
+      console.error(e);
+      alert("Lỗi khi kết thúc livestream: " + e.message);
+    }
+  };
+
+  const session = window.agoraActiveHostSession;
+  if (!session) return null;
+
+  return (
+    <div className="pip-overlay-container">
+      <div className="pip-header">
+        <div className="pip-header-left">
+          <span className="pip-live-dot"></span>
+          <h4 className="pip-header-title">{session.title}</h4>
+        </div>
+        <div className="pip-header-actions">
+          <button className="pip-btn-action" onClick={handleMaximize} title="Phóng to">
+            🗖
+          </button>
+        </div>
+      </div>
+
+      <div className="pip-video-viewport">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
+        />
+      </div>
+
+      <div className="pip-comments-area">
+        {comments.map((msg) => (
+          <div key={msg.id} className="pip-comment-item">
+            <span className="pip-comment-user" style={{ color: msg.isHost ? "#10b981" : "#40916c" }}>
+              {msg.user || (msg.type === "system" ? "Hệ thống" : "Người xem")}:
+            </span>
+            <span className="pip-comment-text">{msg.text}</span>
+          </div>
+        ))}
+        <div ref={commentsEndRef} />
+      </div>
+
+      <div className="pip-footer">
+        <button className="pip-btn-maximize" onClick={handleMaximize}>
+          📡 Trở lại Live
+        </button>
+        <button className="pip-btn-stop" onClick={handleStopLive}>
+          🛑 Tắt Live
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export const FarmerLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleSafeNavigate = (targetPath, isLogout = false) => {
+    if (window.agoraActiveHostSession && window.agoraActiveHostSession.streamState === "live") {
+      const confirmLeave = window.confirm(
+        "Cảnh báo: Nếu bạn thoát ra khỏi trang quản lý nhà vườn, phiên livestream hiện tại sẽ bị kết thúc. Bạn có chắc chắn muốn rời đi?"
+      );
+      if (!confirmLeave) return;
+
+      const endSession = async () => {
+        const session = window.agoraActiveHostSession;
+        try {
+          await apiClient.post(`/api/livestreams/${session.liveSessionId}/end`);
+          
+          if (session.localAudioTrack) {
+            session.localAudioTrack.stop();
+            session.localAudioTrack.close();
+          }
+          if (session.localVideoTrack) {
+            session.localVideoTrack.stop();
+            session.localVideoTrack.close();
+          }
+          if (session.client) {
+            await session.client.leave();
+          }
+
+          localStorage.removeItem("active_farmer_livestream_session");
+          const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+          const updatedLives = storedLives.map((s) => {
+            if (s.id === session.liveSessionId) {
+              return { ...s, status: "replay" };
+            }
+            return s;
+          });
+          localStorage.setItem("farmer_custom_livestreams", JSON.stringify(updatedLives));
+
+          window.agoraActiveHostSession = null;
+          setShowPiP(false);
+
+          if (isLogout) {
+            authService.logout();
+          }
+          navigate(targetPath);
+        } catch (err) {
+          console.error("Lỗi khi kết thúc live tự động:", err);
+          window.agoraActiveHostSession = null;
+          setShowPiP(false);
+          if (isLogout) {
+            authService.logout();
+          }
+          navigate(targetPath);
+        }
+      };
+      endSession();
+    } else {
+      if (isLogout) {
+        authService.logout();
+      }
+      navigate(targetPath);
+    }
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (window.agoraActiveHostSession && window.agoraActiveHostSession.streamState === "live") {
+        e.preventDefault();
+        e.returnValue = "Cảnh báo: Nếu bạn tải lại hoặc thoát trang, phiên livestream hiện tại sẽ bị kết thúc.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   // Active user details
   const [currentUser, setCurrentUser] = useState(null);
@@ -69,11 +290,38 @@ export const FarmerLayout = () => {
 
   const isOrderDetailPath = location.pathname.startsWith("/farmer/orders/orderdetail");
 
+  const [showPiP, setShowPiP] = useState(false);
+
+  useEffect(() => {
+    if (window.agoraActiveHostSession && location.pathname !== "/farmer/livestream") {
+      setShowPiP(true);
+    } else {
+      setShowPiP(false);
+    }
+
+    const handleShowPiP = () => {
+      if (location.pathname !== "/farmer/livestream") {
+        setShowPiP(true);
+      }
+    };
+    const handleHidePiP = () => {
+      setShowPiP(false);
+    };
+
+    window.addEventListener("agora_pip_show", handleShowPiP);
+    window.addEventListener("agora_pip_hide", handleHidePiP);
+
+    return () => {
+      window.removeEventListener("agora_pip_show", handleShowPiP);
+      window.removeEventListener("agora_pip_hide", handleHidePiP);
+    };
+  }, [location.pathname]);
+
   return (
     <div className="farmer-dashboard-root">
       {/* SIDEBAR */}
       <aside className="fd-sidebar">
-        <div className="fd-brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+        <div className="fd-brand" onClick={() => handleSafeNavigate("/")} style={{ cursor: "pointer" }}>
           <svg className="logo-tractor" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="7" cy="18" r="2" />
             <circle cx="18" cy="18" r="2" />
@@ -112,7 +360,7 @@ export const FarmerLayout = () => {
         </nav>
 
         <div className="fd-sidebar-footer">
-          <button className="fd-btn-logout" onClick={() => { authService.logout(); navigate("/login"); }}>
+          <button className="fd-btn-logout" onClick={() => handleSafeNavigate("/login", true)}>
             <span>↪</span> Đăng xuất
           </button>
         </div>
@@ -137,7 +385,7 @@ export const FarmerLayout = () => {
             </div>
 
             <div className="topbar-right">
-              <div className="user-profile-badge" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
+              <div className="user-profile-badge" onClick={() => handleSafeNavigate("/profile")} style={{ cursor: "pointer" }}>
                 <span>Hồ sơ cá nhân</span>
                 <span className="arrow">→</span>
               </div>
@@ -147,6 +395,7 @@ export const FarmerLayout = () => {
 
         <div className={isOrderDetailPath ? "" : "fd-viewport-content"}>
           <Outlet context={{ farmerProfile, currentUser }} />
+          {showPiP && <FarmerPiPOverlay onClose={() => setShowPiP(false)} />}
         </div>
       </main>
     </div>
@@ -154,3 +403,5 @@ export const FarmerLayout = () => {
 };
 
 export default FarmerLayout;
+
+

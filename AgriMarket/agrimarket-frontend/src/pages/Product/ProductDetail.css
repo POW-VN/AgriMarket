@@ -2661,4 +2661,57 @@
   box-shadow: 0 6px 14px rgba(27, 94, 32, 0.2);
 }
 
+/* Custom styles for specific ratings and tags in detail page */
+.detail-review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 8px;
+}
+
+.detail-tag-badge {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.detail-specific-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 12px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.detail-specific-rating-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f4f6;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.detail-specific-label {
+  font-weight: 700;
+  color: #374151;
+}
+
+.detail-specific-stars {
+  display: flex;
+  gap: 1px;
+  color: #d1d5db;
+  line-height: 1;
+}
+
+.detail-specific-stars .filled {
+  color: #f59e0b; /* matching the gold/amber theme of the product detail page */
+}
+
+
 

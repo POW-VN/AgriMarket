@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header/Header";
+import apiClient from "../../services/apiClient";
 import "./LivestreamListPage.css";
 
-// Import local assets for Thomas Miller (matching the detail page)
-import farmerAvatarImg from "../../assets/images/thomas_miller_avatar.png";
-import farmerVideoImg from "../../assets/images/farmer_livestream_video.png";
+
 
 const LivestreamListPage = () => {
   const navigate = useNavigate();
@@ -31,72 +30,53 @@ const LivestreamListPage = () => {
     }, 3000);
   };
 
-  const [customLives, setCustomLives] = useState([]);
+  const [backendLives, setBackendLives] = useState([]);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-      setCustomLives(stored);
-    } catch (e) {
-      console.error("Lỗi khi tải livestream tự tạo từ localStorage:", e);
-    }
+    const fetchBackendLives = async () => {
+      try {
+        const res = await apiClient.get("/api/livestreams/active");
+        setBackendLives(res.data);
+        
+        // Clean up ended/obsolete livestream subscriptions
+        const activeIds = res.data.map(l => l.id.toString());
+        setSubscribedIds(prev => {
+          const filtered = prev.filter(id => activeIds.includes(id.toString()));
+          return filtered;
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải livestream từ backend:", err);
+      }
+    };
+    fetchBackendLives();
   }, []);
 
-  // Mock livestreams data matching different farmers and statuses
-  const livestreamsData = [
-    {
-      id: "thomas-miller",
-      farmerName: "Thomas Miller",
-      farmerBrand: "Sun Valley Organics",
-      farmerAvatar: farmerAvatarImg,
-      title: "Thu hoạch mật ong rừng nguyên chất & Cà rốt hữu cơ",
-      description: "Tham quan quy trình thu hoạch mật ong rừng tự nhiên và trực tiếp thu hoạch cà rốt bảy sắc organic từ nông trại. Nhận voucher giảm giá 20% độc quyền tại phiên live!",
-      status: "live",
-      viewers: "1.2k đang xem",
-      thumbnail: farmerVideoImg,
-      tags: ["Mật ong rừng", "Cà rốt hữu cơ", "Voucher 20%"],
-      scheduledTime: "04/07/2026, 23:00 (Hôm nay)"
-    },
-    {
-      id: "sarah-jenkins",
-      farmerName: "Sarah Jenkins",
-      farmerBrand: "Green Valley Farms",
-      farmerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
-      title: "Trải nghiệm hái dâu tây chín mọng tại vườn organic Đà Lạt",
-      description: "Cùng Sarah đi qua các hàng dâu tây chín đỏ vườn và chọn lựa những trái dâu tươi ngon nhất. Mua dâu hữu cơ chất lượng cao với giá gốc ngay tại vườn!",
-      status: "live",
-      viewers: "856 đang xem",
-      thumbnail: "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=800",
-      tags: ["Dâu tây hữu cơ", "Đà Lạt", "Trực tiếp tại vườn"],
-      scheduledTime: "04/07/2026, 23:30 (Hôm nay)"
-    },
-    {
-      id: "tran-nam",
-      farmerName: "Trần Văn Nam",
-      farmerBrand: "Nông trại sữa bò Ba Vì",
-      farmerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-      title: "Quy trình vắt sữa bò tươi hữu cơ chuẩn VietGAP mỗi sáng",
-      description: "Khám phá quy trình chăm sóc bò sữa và quy trình vắt sữa bò khép kín hiện đại. Ưu đãi mua sữa bò tươi nguyên chất tiệt trùng thơm ngon béo ngậy.",
-      status: "upcoming",
-      viewers: "420 đã đăng ký",
+  // Map backend streams to UI format
+  const mappedLives = backendLives.map((live) => {
+    const isLive = live.status === "active" || live.status === "live";
+    const startTimeStr = live.startTime ? new Date(live.startTime).toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit"
+    }) + " - " + new Date(live.startTime).toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }) : "Chưa lên lịch";
+
+    return {
+      id: live.id.toString(),
+      farmerName: live.farmerName,
+      farmerBrand: live.farmerBrand || "Nông trại sạch địa phương",
+      farmerAvatar: live.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+      title: live.title,
+      description: live.description || "Chào mừng bạn đến với phiên livestream nông sản của chúng tôi!",
+      status: live.status === "active" ? "live" : live.status,
+      viewers: live.status === "active" ? `${live.viewersCount} đang xem` : "Sắp diễn ra",
       thumbnail: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800",
-      tags: ["Sữa tươi Ba Vì", "Quy trình VietGAP", "Sắp diễn ra"],
-      scheduledTime: "05/07/2026, 08:00 AM (Ngày mai)"
-    },
-    {
-      id: "nguyen-mai",
-      farmerName: "Nguyễn Thị Mai",
-      farmerBrand: "Vườn trái cây chín miền Tây",
-      farmerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-      title: "Thu hoạch sầu riêng Ri6 chín rụng từ cây & Hướng dẫn lựa sầu cực chuẩn",
-      description: "Bản phát lại của phiên live cực hot tại vườn sầu riêng Ri6 miền Tây. Hướng dẫn phân biệt sầu riêng chín tự nhiên và cách chọn quả nhiều cơm vàng óng ánh.",
-      status: "replay",
-      viewers: "2.4k lượt xem",
-      thumbnail: "https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=800",
-      tags: ["Sầu riêng Ri6", "Sầu chín cây", "Hướng dẫn chọn sầu"],
-      scheduledTime: "03/07/2026, 14:00 (Đã phát)"
-    }
-  ];
+      tags: ["Trực tiếp tại vườn", "Nông sản sạch"],
+      scheduledTime: isLive ? "Đang phát trực tiếp" : startTimeStr
+    };
+  });
 
   // Handle subscription for upcoming livestreams
   const handleSubscribe = (id, farmerName, e) => {
@@ -116,7 +96,7 @@ const LivestreamListPage = () => {
   };
 
   // Filter & search logic
-  const filteredLivestreams = [...customLives, ...livestreamsData].filter((live) => {
+  const filteredLivestreams = mappedLives.filter((live) => {
     const matchesSearch = 
       live.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       live.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -171,12 +151,7 @@ const LivestreamListPage = () => {
             >
               Sắp Diễn Ra
             </button>
-            <button 
-              className={`filter-tab-btn ${activeFilter === "replay" ? "active" : ""}`}
-              onClick={() => setActiveFilter("replay")}
-            >
-              Bản Phát Lại
-            </button>
+
             <button 
               className={`filter-tab-btn ${activeFilter === "reminders" ? "active" : ""}`}
               onClick={() => setActiveFilter("reminders")}
@@ -341,11 +316,7 @@ const LivestreamListPage = () => {
                         )}
                       </button>
                     )}
-                    {live.status === "replay" && (
-                      <button className="cta-action-btn btn-replay-session">
-                        Xem Phát Lại
-                      </button>
-                    )}
+
                   </div>
                 </div>
               </div>

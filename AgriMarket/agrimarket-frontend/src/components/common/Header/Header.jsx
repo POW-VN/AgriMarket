@@ -119,19 +119,7 @@ const Header = ({ activeTab }) => {
 
   const renderNavLinks = () => {
     if (role === "admin") {
-      return (
-        <>
-          <Link to="/" className={`nav-link ${activeTab === "home" ? "active" : ""}`}>Trang chủ</Link>
-          <Link to="/admin/users" className={`nav-link ${activeTab === "admin" ? "active" : ""}`}>AgriAdmin</Link>
-        </>
-      );
-    } else if (role === "partner" || role === "shipper") {
-      return (
-        <>
-          <Link to="/" className={`nav-link ${activeTab === "home" ? "active" : ""}`}>Trang chủ</Link>
-          <Link to="/shipper/requests" className={`nav-link ${activeTab === "shipper" ? "active" : ""}`}>Kênh Vận Chuyển</Link>
-        </>
-      );
+      return null;
     } else {
       // customer, farmer, hoặc chưa đăng nhập
       return (
@@ -146,7 +134,7 @@ const Header = ({ activeTab }) => {
     }
   };
 
-  const showCart = role !== "admin" && role !== "partner" && role !== "shipper";
+  const showCart = role !== "admin";
 
   return (
     <header className="home-header">

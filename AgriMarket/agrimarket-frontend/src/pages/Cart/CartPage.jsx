@@ -15,6 +15,7 @@ export default function CartPage() {
     const [toastMessage, setToastMessage] = useState("");
     const [user, setUser] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const enrichCartItems = async (items) => {
         if (!items || items.length === 0) return [];
@@ -71,6 +72,8 @@ export default function CartPage() {
                 } catch (err) {
                     console.error("Lỗi khi load giỏ hàng từ DB:", err);
                     await loadLocalCart();
+                } finally {
+                    setIsLoading(false);
                 }
             } else {
                 await loadLocalCart();
@@ -147,6 +150,7 @@ export default function CartPage() {
             }));
 
             setCartItems(checkedCart);
+            setIsLoading(false);
         };
 
         loadCart();
@@ -410,7 +414,12 @@ export default function CartPage() {
                     </div>
                 </div>
 
-                {cartItems.length === 0 ? (
+                {isLoading ? (
+                    <div className="cart-loading-state">
+                        <div className="loading-spinner"></div>
+                        <p>Đang tải danh sách sản phẩm...</p>
+                    </div>
+                ) : cartItems.length === 0 ? (
                     <section className="cart-empty-state">
                         <div className="empty-cart-icon">🛒</div>
                         <h2>Giỏ hàng của bạn đang trống</h2>

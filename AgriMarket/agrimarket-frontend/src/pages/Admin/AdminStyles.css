@@ -3903,3 +3903,14 @@
     height: calc(95vh - 70px);
   }
 }
+
+/* Sidebar Logout button */
+.admin-nav-item.logout-item {
+  color: #ef4444 !important;
+}
+
+.admin-nav-item.logout-item:hover {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+

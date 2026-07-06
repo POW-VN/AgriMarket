@@ -2,7 +2,31 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import notificationService from "../../../services/notificationService";
+import apiClient from "../../../services/apiClient";
 import "./NotificationBell.css";
+
+const getNotificationBroadcastId = (n, activeStreams = []) => {
+  if (n.broadcastId) return n.broadcastId;
+  
+  const text = `${n.title} ${n.content}`.toLowerCase();
+  if (
+    text.includes("đang livestream") || 
+    text.includes("phiên live trực tiếp") || 
+    text.includes("mở phiên live") ||
+    text.includes("lên lịch") ||
+    text.includes("lịch live")
+  ) {
+    const matchedStream = activeStreams.find(s => {
+      const brand = (s.farmerBrand || "").toLowerCase();
+      const name = (s.farmerName || "").toLowerCase();
+      return (brand && text.includes(brand)) || (name && text.includes(name));
+    });
+    if (matchedStream) {
+      return matchedStream.id;
+    }
+  }
+  return null;
+};
 
 const NotificationBell = ({ user }) => {
   const navigate = useNavigate();
@@ -11,6 +35,7 @@ const NotificationBell = ({ user }) => {
   const [activeTab, setActiveTab] = useState("all"); // "all" or "unread"
   const [unreadCount, setUnreadCount] = useState(0);
   const [showFullModal, setShowFullModal] = useState(false);
+  const [activeStreams, setActiveStreams] = useState([]);
 
   const dropdownRef = useRef(null);
   const bellRef = useRef(null);
@@ -23,6 +48,14 @@ const NotificationBell = ({ user }) => {
       setNotifications(data);
       const unread = data.filter((n) => !n.isRead).length;
       setUnreadCount(unread);
+
+      // Fetch active livestreams for fallback mapping
+      try {
+        const liveRes = await apiClient.get("/api/livestreams/active");
+        setActiveStreams(liveRes.data || []);
+      } catch (liveErr) {
+        console.error("Lỗi khi tải livestream hoạt động:", liveErr);
+      }
     } catch (error) {
       console.error("Không thể tải thông báo:", error);
     }
@@ -76,6 +109,42 @@ const NotificationBell = ({ user }) => {
       });
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái thông báo:", error);
+    }
+  };
+
+  const handleItemClick = async (n) => {
+    if (!n.isRead) {
+      try {
+        await notificationService.markAsRead(n.id);
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
+        );
+        // Recalculate unread count
+        setNotifications((latest) => {
+          const unread = latest.filter((item) => !item.isRead).length;
+          setUnreadCount(unread);
+          return latest;
+        });
+      } catch (error) {
+        console.error("Lỗi khi cập nhật trạng thái thông báo:", error);
+      }
+    }
+
+    setIsOpen(false);
+    setShowFullModal(false);
+
+    const liveId = getNotificationBroadcastId(n, activeStreams);
+    if (liveId) {
+      navigate(`/livestream/${liveId}`);
+      return;
+    }
+
+    const text = `${n.title} ${n.content}`.toLowerCase();
+    if (text.includes("đơn hàng") || text.includes("giao") || text.includes("ord") || text.includes("thanh toán") || text.includes("payment")) {
+      navigate("/profile/orders");
+    } else if (text.includes("nhà vườn") || text.includes("nông dân") || text.includes("sản phẩm") || text.includes("duyệt") || text.includes("xác minh")) {
+      navigate("/farmer/dashboard");
     }
   };
 
@@ -314,6 +383,26 @@ const NotificationBell = ({ user }) => {
                     <div className="item-body">
                       <h4 className="item-title">{n.title}</h4>
                       <p className="item-content">{n.content}</p>
+                      {getNotificationBroadcastId(n, activeStreams) && (
+                        <div 
+                          className="join-live-text-link"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleItemClick(n);
+                          }}
+                          style={{
+                            color: "#ef4444",
+                            fontWeight: "700",
+                            fontSize: "0.85rem",
+                            marginTop: "4px",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            display: "inline-block"
+                          }}
+                        >
+                          Ấn vào đây để tham gia phiên live
+                        </div>
+                      )}
                       <span className="item-time">{formatTimeAgo(n.createdAt)}</span>
                     </div>
 
@@ -434,9 +523,29 @@ const NotificationBell = ({ user }) => {
                         {iconDetails.icon}
                       </div>
 
-                      <div className="modal-item-body">
+                       <div className="modal-item-body">
                         <h3>{n.title}</h3>
                         <p>{n.content}</p>
+                        {getNotificationBroadcastId(n, activeStreams) && (
+                          <div 
+                            className="join-live-text-link"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleItemClick(n);
+                            }}
+                            style={{
+                              color: "#ef4444",
+                              fontWeight: "700",
+                              fontSize: "0.85rem",
+                              marginTop: "4px",
+                              cursor: "pointer",
+                              textDecoration: "underline",
+                              display: "inline-block"
+                            }}
+                          >
+                            Ấn vào đây để tham gia phiên live
+                          </div>
+                        )}
                         <span className="modal-item-time">{formatTimeAgo(n.createdAt)}</span>
                       </div>
 

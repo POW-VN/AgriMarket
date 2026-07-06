@@ -129,12 +129,12 @@ export const normalizeProduct = (item) => {
             ? Number(item.reviewsCount)
             : ((item.reviews_count !== undefined && item.reviews_count !== null)
                 ? Number(item.reviews_count)
-                : (10 + (Number(item.id || 0) * 7) % 150)),
+                : 0),
 
         // rating and sales (sold)
         rating: (item.rating !== undefined && item.rating !== null)
             ? Number(item.rating)
-            : Number((4.0 + (Number(item.id || 0) % 11) * 0.1).toFixed(1)),
+            : 0,
         sold: (item.sold !== undefined && item.sold !== null)
             ? Number(item.sold)
             : 0,
@@ -155,6 +155,8 @@ export const normalizeProduct = (item) => {
         limitDistance: item.limitDistance !== undefined && item.limitDistance !== null 
             ? item.limitDistance 
             : (item.limit_distance !== undefined && item.limit_distance !== null ? item.limit_distance : null),
+        farmerLatitude: item.farmerLatitude !== undefined && item.farmerLatitude !== null ? Number(item.farmerLatitude) : null,
+        farmerLongitude: item.farmerLongitude !== undefined && item.farmerLongitude !== null ? Number(item.farmerLongitude) : null,
     };
 };
 

@@ -4,7 +4,31 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useNotifications from "../../hooks/useNotifications";
+import apiClient from "../../services/apiClient";
 import "./Notifications.css";
+
+const getNotificationBroadcastId = (n, activeStreams = []) => {
+  if (n.broadcastId) return n.broadcastId;
+  
+  const text = `${n.title} ${n.content}`.toLowerCase();
+  if (
+    text.includes("đang livestream") || 
+    text.includes("phiên live trực tiếp") || 
+    text.includes("mở phiên live") ||
+    text.includes("lên lịch") ||
+    text.includes("lịch live")
+  ) {
+    const matchedStream = activeStreams.find(s => {
+      const brand = (s.farmerBrand || "").toLowerCase();
+      const name = (s.farmerName || "").toLowerCase();
+      return (brand && text.includes(brand)) || (name && text.includes(name));
+    });
+    if (matchedStream) {
+      return matchedStream.id;
+    }
+  }
+  return null;
+};
 
 const fallbackProfile = {
     fullName: "Người dùng",
@@ -185,9 +209,19 @@ const Notifications = () => {
     } = useNotifications();
 
     const [activeTab, setActiveTab] = useState("all");
+    const [activeStreams, setActiveStreams] = useState([]);
 
     useEffect(() => {
         loadNotifications();
+        const fetchActiveStreams = async () => {
+            try {
+                const liveRes = await apiClient.get("/api/livestreams/active");
+                setActiveStreams(liveRes.data || []);
+            } catch (err) {
+                console.error("Lỗi khi tải livestream hoạt động:", err);
+            }
+        };
+        fetchActiveStreams();
     }, []);
 
     const filteredNotifications = useMemo(() => {
@@ -222,15 +256,11 @@ const Notifications = () => {
             await markAsRead(notification.id);
         }
 
-        /*
-          TODO BACKEND:
-          Sau này nếu backend trả thêm targetUrl hoặc referenceId,
-          bạn nên điều hướng theo dữ liệu backend thay vì tự đoán.
-    
-          Ví dụ:
-          notification.targetUrl = "/profile/orders/12"
-          navigate(notification.targetUrl)
-        */
+        const liveId = getNotificationBroadcastId(notification, activeStreams);
+        if (liveId) {
+            navigate(`/livestream/${liveId}`);
+            return;
+        }
 
         if (type === "order" || type === "payment") {
             navigate("/profile/orders");
@@ -342,6 +372,26 @@ const Notifications = () => {
                                             </div>
 
                                             <p>{notification.content}</p>
+                                            {getNotificationBroadcastId(notification, activeStreams) && (
+                                                <div 
+                                                    className="join-live-text-link"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewDetail(notification);
+                                                    }}
+                                                    style={{
+                                                        color: "#ef4444",
+                                                        fontWeight: "700",
+                                                        fontSize: "0.9rem",
+                                                        marginTop: "6px",
+                                                        cursor: "pointer",
+                                                        textDecoration: "underline",
+                                                        display: "inline-block"
+                                                    }}
+                                                >
+                                                    Ấn vào đây để tham gia phiên live
+                                                </div>
+                                            )}
 
                                             <div className="notification-footer">
                                                 <span

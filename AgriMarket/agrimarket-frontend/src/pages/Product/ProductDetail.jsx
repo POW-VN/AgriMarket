@@ -966,15 +966,89 @@ export default function ProductDetail() {
   };
 
   const handleToggleSaveRelated = async (relatedId, relatedName) => {
-    const res = await wishlistService.toggleWishlist(relatedId);
-    const updated = new Set(savedRelatedIds);
-    if (res.saved) {
-      updated.add(String(relatedId));
-    } else {
-      updated.delete(String(relatedId));
+    const idStr = String(relatedId);
+    const isCurrentlySaved = savedRelatedIds.has(idStr);
+
+    // Optimistic UI: flip immediately
+    setSavedRelatedIds((prev) => {
+      const next = new Set(prev);
+      if (isCurrentlySaved) {
+        next.delete(idStr);
+      } else {
+        next.add(idStr);
+      }
+      return next;
+    });
+
+    try {
+      const res = await wishlistService.toggleWishlist(relatedId);
+      // Reconcile with server's authoritative state
+      if (res?.saved !== undefined) {
+        setSavedRelatedIds((prev) => {
+          const next = new Set(prev);
+          if (res.saved) {
+            next.add(idStr);
+          } else {
+            next.delete(idStr);
+          }
+          return next;
+        });
+      }
+      triggerToast(res?.message || "Đã cập nhật danh sách yêu thích.", res?.saved ? "success" : "info");
+    } catch (err) {
+      // Rollback on error
+      console.error("Lỗi wishlist:", err);
+      setSavedRelatedIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) {
+          next.add(idStr);
+        } else {
+          next.delete(idStr);
+        }
+        return next;
+      });
+      triggerToast("Không thể cập nhật danh sách yêu thích. Vui lòng thử lại!", "error");
     }
-    setSavedRelatedIds(updated);
-    triggerToast(res.message, res.saved ? "success" : "info");
+  };
+
+  const handleAddRelatedToCart = async (p) => {
+    const user = authService.getCurrentUser();
+    if (user) {
+      try {
+        const data = await cartService.addToCart(p.id, 1);
+        if (data?.length !== undefined) {
+          setCartItemsCount(data.length);
+        }
+        window.dispatchEvent(new Event("cartUpdated"));
+        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
+      } catch (err) {
+        console.error("Lỗi thêm vào giỏ hàng:", err);
+        triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!", "error");
+      }
+    } else {
+      const cartKey = "agrimarket_cart";
+      const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
+      const idx = currentCart.findIndex((item) => String(item.id) === String(p.id));
+      if (idx > -1) {
+        currentCart[idx].quantity += 1;
+      } else {
+        currentCart.push({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          unit: p.unit,
+          imageUrl: p.imageUrl,
+          quantity: 1,
+          checked: true,
+          stockQuantity: p.stock ?? 100,
+          farmerId: p.farmerId || 1,
+          farmerName: p.farmerName || "",
+        });
+      }
+      localStorage.setItem(cartKey, JSON.stringify(currentCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
+    }
   };
 
   const formatPrice = (price) => {
@@ -2102,6 +2176,57 @@ export default function ProductDetail() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Hiển thị tag đánh giá */}
+                    {rev.tags && rev.tags.length > 0 && (
+                      <div className="detail-review-tags">
+                        {rev.tags.map((tag, idx) => (
+                          <span key={idx} className="detail-tag-badge">✓ {tag}</span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hiển thị đánh giá chi tiết */}
+                    {rev.specificRatings && Object.keys(rev.specificRatings).length > 0 && (
+                      <div className="detail-specific-ratings">
+                        {Object.entries(rev.specificRatings).map(([key, rating]) => {
+                          if (!rating || rating === 0) return null;
+                          let label = "";
+                          switch (key) {
+                            case "quality":
+                              label = "Chất lượng";
+                              break;
+                            case "freshness":
+                              label = "Độ tươi ngon";
+                              break;
+                            case "packaging":
+                              label = "Đóng gói";
+                              break;
+                            case "delivery":
+                              label = "Giao hàng";
+                              break;
+                            default:
+                              label = key;
+                          }
+                          return (
+                            <div key={key} className="detail-specific-rating-item">
+                              <span className="detail-specific-label">{label}:</span>
+                              <span className="detail-specific-stars">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <span
+                                    key={star}
+                                    className={`rating-star-icon ${star <= rating ? "filled" : ""}`}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <p className="review-item-comment">{rev.comment}</p>
 
                     {/* Hiển thị hình ảnh đính kèm */}
@@ -2146,7 +2271,7 @@ export default function ProductDetail() {
 
         <div className="related-grid">
           {relatedProducts.map((p) => {
-            const isRelatedSaved = savedRelatedIds.has(p.id);
+            const isRelatedSaved = savedRelatedIds.has(String(p.id));
             return (
               <div key={p.id} className="related-card">
                 <div className="related-card-img-wrapper" onClick={() => navigate(`/products/${p.id}`)} style={{ cursor: "pointer" }}>
@@ -2176,25 +2301,7 @@ export default function ProductDetail() {
 
                     <button
                       className="related-add-cart-btn"
-                      onClick={() => {
-                        const cartKey = "agrimarket_cart";
-                        const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
-                        const idx = currentCart.findIndex(item => item.id === p.id);
-                        if (idx > -1) {
-                          currentCart[idx].quantity += 1;
-                        } else {
-                          currentCart.push({
-                            id: p.id,
-                            name: p.name,
-                            price: p.price,
-                            unit: p.unit,
-                            imageUrl: p.imageUrl,
-                            quantity: 1
-                          });
-                        }
-                        localStorage.setItem(cartKey, JSON.stringify(currentCart));
-                        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`);
-                      }}
+                      onClick={() => handleAddRelatedToCart(p)}
                       aria-label="Add to cart"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

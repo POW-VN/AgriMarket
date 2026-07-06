@@ -37,31 +37,6 @@ const updateFarmerOrderStatus = async (orderCode, status, reason = "") => {
   return response.data;
 };
 
-const getShipperRequests = async () => {
-  const response = await apiClient.get("/api/orders/shipper/requests");
-  return response.data;
-};
-
-const getShipperAccepted = async () => {
-  const response = await apiClient.get("/api/orders/shipper/accepted");
-  return response.data;
-};
-
-const acceptShipperRequest = async (orderCode, driverInfo = {}) => {
-  const response = await apiClient.post(`/api/orders/shipper/${orderCode}/accept`, driverInfo);
-  return response.data;
-};
-
-const rejectShipperRequest = async (orderCode, reason = "") => {
-  const response = await apiClient.post(`/api/orders/shipper/${orderCode}/reject`, { reason });
-  return response.data;
-};
-
-const updateShipperOrderStatus = async (orderCode, status, notes = "", podPhoto = "") => {
-  const response = await apiClient.post(`/api/orders/shipper/${orderCode}/status`, { status, notes, podPhoto });
-  return response.data;
-};
-
 const createVNPayPaymentUrl = async (orderCode) => {
   const response = await apiClient.get(`/api/payment/create-vnpay-payment?orderCode=${orderCode}`);
   return response.data;
@@ -80,11 +55,6 @@ const orderService = {
   confirmPayment,
   getFarmerOrders,
   updateFarmerOrderStatus,
-  getShipperRequests,
-  getShipperAccepted,
-  acceptShipperRequest,
-  rejectShipperRequest,
-  updateShipperOrderStatus,
   createVNPayPaymentUrl,
   verifyVNPayCallback,
 };

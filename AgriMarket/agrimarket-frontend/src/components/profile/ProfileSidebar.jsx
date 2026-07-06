@@ -18,7 +18,6 @@ const ProfileSidebar = ({ profile }) => {
 
   const userRole = profile?.role?.toLowerCase();
   const isFarmer = userRole === "farmer";
-  const isShipper = userRole === "partner" || userRole === "shipper";
 
 
   return (

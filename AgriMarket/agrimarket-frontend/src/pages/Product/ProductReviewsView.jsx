@@ -47,6 +47,8 @@ const MOCK_REVIEWS = [
         ],
         helpful: 24,
         notHelpful: 1,
+        tags: ["Sản phẩm tươi", "Đóng gói tốt", "Đúng mô tả"],
+        specificRatings: { quality: 5, freshness: 5, packaging: 5, delivery: 5 },
     },
     {
         id: 2,
@@ -60,6 +62,8 @@ const MOCK_REVIEWS = [
         images: [],
         helpful: 8,
         notHelpful: 0,
+        tags: ["Sản phẩm tươi", "Giá hợp lý", "Nhà vườn nhiệt tình"],
+        specificRatings: { quality: 4, freshness: 4, packaging: 3, delivery: 5 },
     },
     {
         id: 3,
@@ -73,6 +77,8 @@ const MOCK_REVIEWS = [
         images: [],
         helpful: 15,
         notHelpful: 2,
+        tags: ["Sản phẩm tươi", "Đóng gói tốt", "Đúng mô tả"],
+        specificRatings: { quality: 5, freshness: 5, packaging: 5, delivery: 5 },
     },
     {
         id: 4,
@@ -88,6 +94,8 @@ const MOCK_REVIEWS = [
         ],
         helpful: 11,
         notHelpful: 0,
+        tags: ["Sản phẩm tươi", "Đóng gói tốt", "Đúng mô tả"],
+        specificRatings: { quality: 5, freshness: 5, packaging: 5, delivery: 5 },
     },
 ];
 
@@ -459,6 +467,56 @@ export default function ProductReviewsView() {
 
                                             <StarDisplay rating={review.rating} />
                                         </div>
+
+                                        {/* Hiển thị tag đánh giá */}
+                                        {review.tags && review.tags.length > 0 && (
+                                            <div className="prv-review-tags">
+                                                {review.tags.map((tag, idx) => (
+                                                    <span key={idx} className="prv-tag-badge">✓ {tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Hiển thị đánh giá chi tiết */}
+                                        {review.specificRatings && Object.keys(review.specificRatings).length > 0 && (
+                                            <div className="prv-specific-ratings">
+                                                {Object.entries(review.specificRatings).map(([key, rating]) => {
+                                                    if (!rating || rating === 0) return null;
+                                                    let label = "";
+                                                    switch (key) {
+                                                        case "quality":
+                                                            label = "Chất lượng";
+                                                            break;
+                                                        case "freshness":
+                                                            label = "Độ tươi ngon";
+                                                            break;
+                                                        case "packaging":
+                                                            label = "Đóng gói";
+                                                            break;
+                                                        case "delivery":
+                                                            label = "Giao hàng";
+                                                            break;
+                                                        default:
+                                                            label = key;
+                                                    }
+                                                    return (
+                                                        <div key={key} className="prv-specific-rating-item">
+                                                            <span className="prv-specific-label">{label}:</span>
+                                                            <span className="prv-specific-stars prv-stars">
+                                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                                    <span
+                                                                        key={star}
+                                                                        className={star <= rating ? "filled" : ""}
+                                                                    >
+                                                                        ★
+                                                                    </span>
+                                                                ))}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
 
                                         <h4>{review.title}</h4>
                                         <p>{review.comment}</p>

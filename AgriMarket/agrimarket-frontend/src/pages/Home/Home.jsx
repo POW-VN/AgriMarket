@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import authService from "../../services/authService";
 import { getAllApprovedProducts } from "../../services/productService";
 import cartService from "../../services/cartService";
+import apiClient from "../../services/apiClient";
+import wishlistService from "../../services/wishlistService";
 import "./Home.css";
 import Header from "../../components/common/Header/Header";
 
@@ -62,6 +64,19 @@ const HERO_SLIDES = [
   }
 ];
 
+const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
+  if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return null;
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,6 +90,8 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState([]);
   const [activeFarms, setActiveFarms] = useState([]);
+  const [activeLives, setActiveLives] = useState([]);
+  const [selectedSort, setSelectedSort] = useState("popular");
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   // Remaining time calculations for Flash Sale (countdown to end of day)
@@ -126,10 +143,6 @@ const Home = () => {
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
-    if (currentUser && (currentUser.role === "partner" || currentUser.role === "shipper")) {
-      navigate("/shipper/requests");
-      return;
-    }
     setUser(currentUser);
 
     const fetchProducts = async () => {
@@ -142,20 +155,46 @@ const Home = () => {
         const uniqueFarmers = [];
         const seenFarmerIds = new Set();
 
+        // Get user coordinates
+        const currentUser = authService.getCurrentUser();
+        const defaultAddress = currentUser?.addresses?.find(addr => addr.isDefault) || currentUser?.addresses?.[0] || null;
+        const userLat = defaultAddress?.latitude !== undefined && defaultAddress?.latitude !== null ? Number(defaultAddress.latitude) : 10.762622;
+        const userLon = defaultAddress?.longitude !== undefined && defaultAddress?.longitude !== null ? Number(defaultAddress.longitude) : 106.660172;
+
         for (const p of data) {
           if (p.farmerId && !seenFarmerIds.has(p.farmerId)) {
             seenFarmerIds.add(p.farmerId);
+
+            // Calculate actual distance
+            let distVal = null;
+            let distanceStr = "";
+            if (p.farmerLatitude !== null && p.farmerLongitude !== null) {
+              distVal = getHaversineDistance(userLat, userLon, p.farmerLatitude, p.farmerLongitude);
+            }
+
+            if (distVal !== null) {
+              distanceStr = `${distVal.toFixed(1)}km`;
+            } else {
+              // fallback random
+              distVal = 2 + Math.random() * 8;
+              distanceStr = `${distVal.toFixed(1)}km`;
+            }
+
             uniqueFarmers.push({
               id: p.farmerId,
               name: p.farmerName || "Nhà vườn AgriMarket",
-              distance: `${(2 + Math.random() * 8).toFixed(1)}km`,
+              distanceVal: distVal,
+              distance: distanceStr,
               description: p.farmDescription || "Chuyên cung cấp các loại rau quả nông sản tươi ngon sạch đạt chuẩn.",
               badge: p.farmerOrganicUrl ? "ORGANIC" : p.farmerGlobalgapUrl ? "GLOBALGAP" : p.farmerVietgapUrl ? "VIETGAP" : "VƯỜN AN TOÀN",
               tags: p.category ? [p.category, "Sạch"] : ["Nông sản", "Hữu cơ"],
-              imageUrl: p.imageUrl || "https://images.unsplash.com/photo-1595855759920-86582396756a?w=600"
+              imageUrl: p.farmerAvatarUrl || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600"
             });
           }
         }
+
+        // Sort uniqueFarmers by distanceVal ascending (closest first)
+        uniqueFarmers.sort((a, b) => a.distanceVal - b.distanceVal);
 
         const combinedFarms = [...uniqueFarmers];
         if (combinedFarms.length < 2) {
@@ -163,6 +202,16 @@ const Home = () => {
           combinedFarms.push(...mockToAdd);
         }
         setActiveFarms(combinedFarms);
+
+        // Fetch active livestreams from backend
+        try {
+          const liveRes = await apiClient.get("/api/livestreams/active");
+          const livesData = Array.isArray(liveRes.data) ? liveRes.data : liveRes.data?.data || [];
+          setActiveLives(livesData);
+        } catch (liveErr) {
+          console.error("Lỗi khi tải phiên livestream hoạt động:", liveErr);
+          setActiveLives([]);
+        }
       } catch (err) {
         console.error("Lỗi khi load sản phẩm trang chủ:", err);
         setProducts([]);
@@ -187,15 +236,43 @@ const Home = () => {
       }
     };
 
+    fetchCartCount();
+
     const loadLocalCartCount = () => {
       const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
       setCartItemsCount(savedCart.length);
     };
 
-    fetchCartCount();
+    const loadWishlist = async () => {
+      try {
+        const ids = await wishlistService.getWishlistIds();
+        setFavorites(ids.map(id => String(id)));
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách yêu thích:", err);
+      }
+    };
+    loadWishlist();
 
-    const savedFavorites = JSON.parse(localStorage.getItem("agrimarket_favorites")) || [];
-    setFavorites(savedFavorites);
+    const handleWishlistUpdate = (e) => {
+      const { productId, saved } = e.detail;
+      const idStr = String(productId);
+      setFavorites((prev) => {
+        const prevStr = prev.map(String);
+        if (saved) {
+          if (!prevStr.includes(idStr)) {
+            return [...prev, idStr];
+          }
+        } else {
+          return prev.filter(id => String(id) !== idStr);
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener("wishlistUpdated", handleWishlistUpdate);
+    return () => {
+      window.removeEventListener("wishlistUpdated", handleWishlistUpdate);
+    };
   }, []);
 
   const handleAddToCart = async (p, e) => {
@@ -250,20 +327,46 @@ const Home = () => {
     }
   };
 
-  const toggleFavorite = (productId, e) => {
+  const toggleFavorite = async (productId, e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    let updatedFavorites = [];
-    if (favorites.includes(productId)) {
-      updatedFavorites = favorites.filter(id => id !== productId);
-      triggerToast("Đã xóa sản phẩm khỏi danh sách yêu thích!", "success");
-    } else {
-      updatedFavorites = [...favorites, productId];
-      triggerToast("Đã thêm sản phẩm vào danh sách yêu thích!", "success");
+    // Optimistic UI: update immediately, then sync with backend
+    const prodIdStr = String(productId);
+    const isCurrentlyFavorite = favorites.map(String).includes(prodIdStr);
+    // Optimistically flip the heart
+    setFavorites((prev) =>
+      isCurrentlyFavorite
+        ? prev.filter(id => String(id) !== prodIdStr)
+        : [...prev, prodIdStr]
+    );
+
+    try {
+      const res = await wishlistService.toggleWishlist(productId);
+      // Confirm the real server state (res.saved is the authoritative answer)
+      const savedOnServer = res?.saved;
+      if (savedOnServer !== undefined) {
+        setFavorites((prev) => {
+          const prevStr = prev.map(String);
+          if (savedOnServer && !prevStr.includes(prodIdStr)) {
+            return [...prev, prodIdStr];
+          } else if (!savedOnServer && prevStr.includes(prodIdStr)) {
+            return prev.filter(id => String(id) !== prodIdStr);
+          }
+          return prev;
+        });
+      }
+      triggerToast(res?.message || "Đã cập nhật danh sách yêu thích.", "success");
+    } catch (err) {
+      // Rollback optimistic update on error
+      console.error("Lỗi khi cập nhật danh sách yêu thích:", err);
+      setFavorites((prev) =>
+        isCurrentlyFavorite
+          ? [...prev, prodIdStr]
+          : prev.filter(id => String(id) !== prodIdStr)
+      );
+      triggerToast("Không thể cập nhật danh sách yêu thích. Vui lòng thử lại sau!", "error");
     }
-    setFavorites(updatedFavorites);
-    localStorage.setItem("agrimarket_favorites", JSON.stringify(updatedFavorites));
   };
 
   const filteredProducts = products.filter((product) => {
@@ -325,6 +428,12 @@ const Home = () => {
     return productCat === selectedCat;
   });
 
+  if (selectedSort === "popular") {
+    filteredProducts.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+  } else if (selectedSort === "rating") {
+    filteredProducts.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }
+
   const renderProductCard = (p) => {
     return (
       <Link
@@ -342,7 +451,7 @@ const Home = () => {
           {p.saleTag && <span className="new-card-sale-tag">{p.saleTag}</span>}
 
           <button
-            className={`new-card-favorite-btn ${favorites.includes(p.id) ? "active" : ""}`}
+            className={`new-card-favorite-btn ${favorites.map(String).includes(String(p.id)) ? "active" : ""}`}
             aria-label="Yêu thích"
             onClick={(e) => toggleFavorite(p.id, e)}
           >
@@ -350,8 +459,8 @@ const Home = () => {
               width="15"
               height="15"
               viewBox="0 0 24 24"
-              fill={favorites.includes(p.id) ? "#DC2626" : "none"}
-              stroke={favorites.includes(p.id) ? "#DC2626" : "currentColor"}
+              fill={favorites.map(String).includes(String(p.id)) ? "#DC2626" : "none"}
+              stroke={favorites.map(String).includes(String(p.id)) ? "#DC2626" : "currentColor"}
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -373,8 +482,8 @@ const Home = () => {
             <div className="new-card-rating-sold-row">
               <div className="new-card-rating">
                 <span className="star-gold">★</span>
-                <span className="rating-value">{p.rating || "4.8"}</span>
-                <span className="reviews-count">({p.reviewsCount || "12"})</span>
+                <span className="rating-value">{p.rating ? p.rating.toFixed(1) : "0.0"}</span>
+                <span className="reviews-count">({p.reviewsCount || 0})</span>
               </div>
               <span className="new-card-sold">Đã bán {p.sold || "0"}</span>
             </div>
@@ -661,8 +770,7 @@ const Home = () => {
           <section className="new-farms-section">
             <div className="new-farms-header">
               <div>
-                <h2 className="new-section-title">Nông trại gần bạn</h2>
-                <p className="new-section-subtitle">Hỗ trợ các nhà vườn địa phương tại TP. Hồ Chí Minh</p>
+                <h2 className="new-section-title">Nhà vườn gần bạn</h2>
               </div>
               <button className="new-farms-map-btn" onClick={() => navigate("/farms")}>
                 Bản đồ nông trại
@@ -728,11 +836,16 @@ const Home = () => {
                 </svg>
               </button>
               <div className="sort-dropdown-container">
-                <select className="sort-select" defaultValue="newest">
-                  <option value="newest">Mới nhất</option>
-                  <option value="popular">Bán chạy nhất</option>
-                  <option value="price-asc">Giá tăng dần</option>
-                  <option value="price-desc">Giá giảm dần</option>
+                <select 
+                  className="sort-select" 
+                  value={selectedSort}
+                  onChange={(e) => {
+                    setSelectedSort(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="popular">Mua nhiều nhất</option>
+                  <option value="rating">Đánh giá cao nhất</option>
                 </select>
               </div>
             </div>
@@ -803,62 +916,61 @@ const Home = () => {
               <h2 className="livestream-title">Phiên Live Nhà Vườn</h2>
               <p className="livestream-subtitle">Theo dõi quy trình thu hoạch sạch trực tiếp tại nông trại</p>
             </div>
-            <button className="livestream-view-all" onClick={() => { setSelectedCategory("Rau củ quả"); document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" }); }}>
+            <button className="livestream-view-all" onClick={() => navigate("/livestream")}>
               Xem tất cả phiên live
             </button>
           </div>
 
           <div className="livestream-grid">
-            <div className="livestream-card">
-              <div className="live-thumbnail" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=600)` }}>
-                <span className="live-badge">● LIVE</span>
-                <span className="live-viewers">1.2k người xem</span>
-              </div>
-              <div className="live-info">
-                <div className="live-farmer">
-                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="Farmer" className="live-farmer-avatar" />
-                  <div className="live-farmer-details">
-                    <h4 className="live-farmer-name">Chú Bảy Nông Dân</h4>
-                    <p className="live-farm-title">Vườn Chôm Chôm Nhãn Đồng Nai</p>
-                  </div>
-                </div>
-                <h3 className="live-stream-headline">Thu hoạch chôm chôm quả to, giòn ngọt tại vườn!</h3>
-              </div>
-            </div>
+            {activeLives.length > 0 ? (
+              activeLives.slice(0, 3).map((live) => {
+                const isLive = live.status === "active" || live.status === "live";
+                const formatViewers = (count) => {
+                  const c = Number(count || 0);
+                  if (c >= 1000) return (c / 1000).toFixed(1) + "k người xem";
+                  return `${c} người xem`;
+                };
 
-            <div className="livestream-card">
-              <div className="live-thumbnail" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1595855759920-86582396756a?w=600)` }}>
-                <span className="live-badge">● LIVE</span>
-                <span className="live-viewers">856 người xem</span>
-              </div>
-              <div className="live-info">
-                <div className="live-farmer">
-                  <img src="https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=80" alt="Farmer" className="live-farmer-avatar" />
-                  <div className="live-farmer-details">
-                    <h4 className="live-farmer-name">Cô Hoa Đà Lạt</h4>
-                    <p className="live-farm-title">Trang trại Rau củ Hữu cơ organic</p>
+                return (
+                  <div 
+                    className="livestream-card" 
+                    key={live.id}
+                    onClick={() => navigate(`/livestream/${live.id}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div 
+                      className="live-thumbnail" 
+                      style={{ backgroundImage: `url(${live.farmerAvatar || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600"})` }}
+                    >
+                      <span className={`live-badge ${isLive ? "" : "upcoming"}`}>
+                        {isLive ? "● LIVE" : "UPCOMING"}
+                      </span>
+                      {isLive && (
+                        <span className="live-viewers">{formatViewers(live.viewersCount)}</span>
+                      )}
+                    </div>
+                    <div className="live-info">
+                      <div className="live-farmer">
+                        <img 
+                          src={live.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80"} 
+                          alt={live.farmerBrand} 
+                          className="live-farmer-avatar" 
+                        />
+                        <div className="live-farmer-details">
+                          <h4 className="live-farmer-name">{live.farmerBrand || "Nhà vườn AgriMarket"}</h4>
+                          <p className="live-farm-title">{live.farmerName || "Nhà vườn"}</p>
+                        </div>
+                      </div>
+                      <h3 className="live-stream-headline">{live.title}</h3>
+                    </div>
                   </div>
-                </div>
-                <h3 className="live-stream-headline">Cắt cải kale, xà lách giòn ngọt chuẩn sạch tại chỗ</h3>
+                );
+              })
+            ) : (
+              <div className="empty-state" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666", fontSize: "15px", background: "#f8f9fa", borderRadius: "12px", border: "1px dashed #ddd" }}>
+                Hiện chưa có phiên livestream nào đang diễn ra hoặc sắp bắt đầu.
               </div>
-            </div>
-
-            <div className="livestream-card">
-              <div className="live-thumbnail" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=600)` }}>
-                <span className="live-badge">● LIVE</span>
-                <span className="live-viewers">2.1k người xem</span>
-              </div>
-              <div className="live-info">
-                <div className="live-farmer">
-                  <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80" alt="Farmer" className="live-farmer-avatar" />
-                  <div className="live-farmer-details">
-                    <h4 className="live-farmer-name">Anh Hải Măng Cụt</h4>
-                    <p className="live-farm-title">Vườn cây ăn trái Lái Thiêu</p>
-                  </div>
-                </div>
-                <h3 className="live-stream-headline">Măng cụt đầu mùa siêu ngọt thanh, bao bù hư hao</h3>
-              </div>
-            </div>
+            )}
           </div>
         </section>
       </main>

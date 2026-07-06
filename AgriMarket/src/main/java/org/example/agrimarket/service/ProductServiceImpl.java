@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,7 +55,132 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
         List<Product> products = productRepository.findByFarmerEmailOrderByCreatedAtDesc(email);
-        return products.stream().map(this::convertToResponse).collect(Collectors.toList());
+        return convertProductsToResponseList(products);
+    }
+
+    private List<ProductResponse> convertProductsToResponseList(List<Product> products) {
+        if (products.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> productIds = products.stream().map(Product::getId).collect(Collectors.toList());
+
+        // Bulk load all ProductImages
+        List<ProductImage> allImages = productImageRepository.findByProductIdIn(productIds);
+        Map<Long, List<ProductImage>> imagesMap = allImages.stream()
+                .collect(Collectors.groupingBy(pi -> pi.getProduct().getId()));
+
+        // Bulk load average ratings and review counts
+        List<Object[]> ratingsData = productReviewRepository.getAverageRatingAndCountByProductIds(productIds);
+        Map<Long, Double> ratingsMap = new HashMap<>();
+        Map<Long, Long> countsMap = new HashMap<>();
+        for (Object[] row : ratingsData) {
+            Long pid = (Long) row[0];
+            Double avg = (Double) row[1];
+            Long cnt = (Long) row[2];
+            ratingsMap.put(pid, avg != null ? avg : 0.0);
+            countsMap.put(pid, cnt != null ? cnt : 0L);
+        }
+
+        // Bulk load sold count
+        List<Object[]> soldData = orderItemRepository.sumQuantityByProductIds(productIds);
+        Map<Long, Integer> soldMap = new HashMap<>();
+        for (Object[] row : soldData) {
+            Long pid = (Long) row[0];
+            Number sum = (Number) row[1];
+            soldMap.put(pid, sum != null ? sum.intValue() : 0);
+        }
+
+        return products.stream()
+                .map(p -> convertToResponseOptimized(p, imagesMap, ratingsMap, countsMap, soldMap))
+                .collect(Collectors.toList());
+    }
+
+    private ProductResponse convertToResponseOptimized(
+            Product product,
+            Map<Long, List<ProductImage>> imagesMap,
+            Map<Long, Double> ratingsMap,
+            Map<Long, Long> countsMap,
+            Map<Long, Integer> soldMap) {
+
+        List<ProductImage> productImages = imagesMap.getOrDefault(product.getId(), Collections.emptyList());
+        
+        String thumbnailUrl = productImages.stream()
+                .filter(pi -> Boolean.TRUE.equals(pi.getIsThumbnail()))
+                .map(ProductImage::getImgUrl)
+                .findFirst()
+                .orElse("");
+        if (thumbnailUrl.isEmpty() && !productImages.isEmpty()) {
+            thumbnailUrl = productImages.get(0).getImgUrl();
+        }
+
+        List<String> imageUrls = productImages.stream()
+                .map(ProductImage::getImgUrl)
+                .collect(Collectors.toList());
+
+        String farmerName = "";
+        String farmLocation = "";
+        String farmDescription = "";
+        String farmerAvatarUrl = "";
+        String farmerVietgapUrl = "";
+        String farmerGlobalgapUrl = "";
+        String farmerOrganicUrl = "";
+        if (product.getFarmer() != null) {
+            Farmer farmer = product.getFarmer();
+            farmerName = farmer.getFarmName() != null && !farmer.getFarmName().isEmpty()
+                    ? farmer.getFarmName()
+                    : farmer.getFullName();
+            farmLocation = farmer.getFarmAddress() != null && !farmer.getFarmAddress().isEmpty()
+                    ? farmer.getFarmAddress()
+                    : "Chưa có địa chỉ";
+            farmDescription = farmer.getDescription() != null && !farmer.getDescription().isEmpty()
+                    ? farmer.getDescription()
+                    : "Chưa có mô tả nông trại";
+            farmerAvatarUrl = farmer.getAvatarUrl();
+            farmerVietgapUrl = farmer.getVietgapUrl() != null ? farmer.getVietgapUrl() : "";
+            farmerGlobalgapUrl = farmer.getGlobalgapUrl() != null ? farmer.getGlobalgapUrl() : "";
+            farmerOrganicUrl = farmer.getOrganicUrl() != null ? farmer.getOrganicUrl() : "";
+        }
+
+        Double avgRating = ratingsMap.getOrDefault(product.getId(), 0.0);
+        Long count = countsMap.getOrDefault(product.getId(), 0L);
+        Integer soldCount = soldMap.getOrDefault(product.getId(), 0);
+
+        return ProductResponse.builder()
+                .id(product.getId())
+                .farmerId(product.getFarmer() != null ? product.getFarmer().getId() : null)
+                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
+                .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stockQuantity(product.getStockQuantity())
+                .unit(product.getUnit())
+                .status(product.getStatus())
+                .harvestDate(product.getHarvestDate())
+                .expirationDate(product.getExpirationDate())
+                .createdAt(product.getCreatedAt())
+                .traceabilityImageUrl(product.getTraceabilityImageUrl())
+                .thumbnailUrl(thumbnailUrl)
+                .images(imageUrls)
+                .farmerName(farmerName)
+                .farmLocation(farmLocation)
+                .farmDescription(farmDescription)
+                .farmerAvatarUrl(farmerAvatarUrl)
+                .rejectionReason(product.getRejectionReason())
+                .adminNotes(product.getAdminNotes())
+                .rating(avgRating)
+                .reviewsCount(count.intValue())
+                .sold(soldCount)
+                .farmerVietgapUrl(farmerVietgapUrl)
+                .farmerGlobalgapUrl(farmerGlobalgapUrl)
+                .farmerOrganicUrl(farmerOrganicUrl)
+                .perishability(product.getPerishability())
+                .limitDistance(product.getLimitDistance())
+                .farmerLatitude(product.getFarmer() != null ? product.getFarmer().getLatitude() : null)
+                .farmerLongitude(product.getFarmer() != null ? product.getFarmer().getLongitude() : null)
+                .farmerMaxDeliveryDistance(product.getFarmer() != null ? product.getFarmer().getMaxDeliveryDistance() : null)
+                .build();
     }
 
     @Override
@@ -375,7 +503,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductResponse> getAllApprovedProducts() {
         List<Product> products = productRepository.findApprovedProductsFromVerifiedFarmers();
-        return products.stream().map(this::convertToResponse).collect(Collectors.toList());
+        return convertProductsToResponseList(products);
     }
 
     @Override
@@ -397,6 +525,6 @@ public class ProductServiceImpl implements ProductService {
                 return -1;
             return p2.getCreatedAt().compareTo(p1.getCreatedAt());
         });
-        return products.stream().map(this::convertToResponse).collect(Collectors.toList());
+        return convertProductsToResponseList(products);
     }
 }

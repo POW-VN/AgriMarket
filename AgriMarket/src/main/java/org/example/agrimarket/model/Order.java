@@ -72,14 +72,9 @@ public class Order {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "partner_id")
-    private Partner partner;
-
     @Column(name = "shipper_notes", length = 1000, columnDefinition = "TEXT")
     private String shipperNotes;
 
-    @Lob
     @Column(name = "pod_photo", columnDefinition = "TEXT")
     private String podPhoto;
 

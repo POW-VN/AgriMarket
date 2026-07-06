@@ -1,7 +1,154 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOutletContext } from "react-router-dom";
 import * as productService from "../../../services/productService";
+import AgoraRTC from "agora-rtc-sdk-ng";
+import apiClient from "../../../services/apiClient";
 import "./FarmerLivestream.css";
+
+const getMinDateTimeLocal = () => {
+  const now = new Date(Date.now() + 5 * 60 * 1000);
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${date}T${hours}:${minutes}`;
+};
+
+const FarmerScheduledCountdown = ({ title, description, scheduledTime, onStartLive }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const diff = new Date(scheduledTime) - new Date();
+      if (diff <= 0) {
+        setTimeLeft("00:00:00");
+        onStartLive();
+      } else {
+        const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, "0");
+        const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, "0");
+        const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, "0");
+        setTimeLeft(`${hours}:${minutes}:${seconds}`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [scheduledTime, onStartLive]);
+
+  return (
+    <div className="farmer-scheduled-countdown-container" style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: "70vh",
+      padding: "24px",
+      textAlign: "center",
+      background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+      borderRadius: "16px",
+      border: "1px solid #bbf7d0",
+      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
+      margin: "20px auto",
+      maxWidth: "800px"
+    }}>
+      <div style={{
+        backgroundColor: "white",
+        borderRadius: "50%",
+        width: "80px",
+        height: "80px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "2.5rem",
+        boxShadow: "0 8px 16px rgba(16, 185, 129, 0.2)",
+        marginBottom: "24px"
+      }}>
+        📅
+      </div>
+      
+      <h2 style={{
+        fontSize: "1.75rem",
+        fontWeight: "800",
+        color: "#065f46",
+        margin: "0 0 8px 0"
+      }}>Phiên Live Đã Được Lên Lịch</h2>
+      
+      <p style={{
+        fontSize: "1rem",
+        color: "#047857",
+        maxWidth: "500px",
+        margin: "0 0 24px 0",
+        lineHeight: "1.5"
+      }}>
+        Phiên phát trực tiếp <strong>{title}</strong> của bạn đã được lên lịch. Hệ thống sẽ tự động bắt đầu live khi thời gian đếm ngược kết thúc.
+      </p>
+
+      {description && (
+        <div style={{
+          backgroundColor: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: "8px",
+          padding: "12px 16px",
+          color: "#475569",
+          fontSize: "0.9rem",
+          maxWidth: "400px",
+          marginBottom: "24px",
+          textAlign: "left"
+        }}>
+          <strong>Mô tả:</strong> {description}
+        </div>
+      )}
+
+      {/* Countdown Timer Display */}
+      <div style={{
+        backgroundColor: "#065f46",
+        borderRadius: "12px",
+        padding: "20px 40px",
+        color: "white",
+        fontFamily: "monospace",
+        fontSize: "3rem",
+        fontWeight: "700",
+        letterSpacing: "2px",
+        boxShadow: "0 4px 12px rgba(6, 95, 70, 0.3)",
+        marginBottom: "32px",
+        display: "inline-block"
+      }}>
+        {timeLeft}
+      </div>
+
+      <div style={{
+        fontSize: "0.9rem",
+        color: "#065f46",
+        marginBottom: "24px"
+      }}>
+        Thời gian hẹn: <strong>{new Date(scheduledTime).toLocaleString("vi-VN")}</strong>
+      </div>
+
+      {/* Manual Start Early Button */}
+      <button
+        onClick={onStartLive}
+        style={{
+          backgroundColor: "#10b981",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          padding: "12px 28px",
+          fontWeight: "700",
+          fontSize: "1rem",
+          cursor: "pointer",
+          boxShadow: "0 4px 14px rgba(16, 185, 129, 0.4)",
+          transition: "all 0.2s"
+        }}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#059669"}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#10b981"}
+      >
+        📡 Phát Sóng Ngay Lập Tức
+      </button>
+    </div>
+  );
+};
 
 export const FarmerLivestream = () => {
   const { farmerProfile, currentUser } = useOutletContext();
@@ -14,6 +161,7 @@ export const FarmerLivestream = () => {
   const [description, setDescription] = useState("");
   const [voucherPercent, setVoucherPercent] = useState(10); // 10%, 15%, 20%, 0 for none
   const [farmerProducts, setFarmerProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [productDiscounts, setProductDiscounts] = useState({}); // { productId: discount% }
 
@@ -35,6 +183,9 @@ export const FarmerLivestream = () => {
   const [pinnedProductId, setPinnedProductId] = useState(null);
   const [isEditProductsOpen, setIsEditProductsOpen] = useState(false);
   const [tempVoucherPercent, setTempVoucherPercent] = useState(10);
+  const [tempSelectedProductIds, setTempSelectedProductIds] = useState([]);
+  const [tempProductDiscounts, setTempProductDiscounts] = useState({});
+  const [scheduledTime, setScheduledTime] = useState("");
   const [pinnedChatMessage, setPinnedChatMessage] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState({}); // { username: expiryTimestamp }
   const [activeBlockMenuMsgId, setActiveBlockMenuMsgId] = useState(null);
@@ -57,10 +208,122 @@ export const FarmerLivestream = () => {
   const viewersTimerRef = useRef(null);
   const chatsTimerRef = useRef(null);
   const chatListRef = useRef(null);
+  const rtcRef = useRef({ client: null, localAudioTrack: null, localVideoTrack: null });
+
+  // Sync hardware mute states during live broadcast
+  useEffect(() => {
+    if (streamState === "live") {
+      if (rtcRef.current.localVideoTrack) {
+        rtcRef.current.localVideoTrack.setEnabled(isCamOn).catch(e => console.error(e));
+      }
+    }
+  }, [isCamOn, streamState]);
+
+  useEffect(() => {
+    if (streamState === "live") {
+      if (isCamOn && rtcRef.current.localVideoTrack) {
+        const timer = setTimeout(() => {
+          if (videoRef.current) {
+            rtcRef.current.localVideoTrack.play(videoRef.current);
+          }
+        }, 150);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [streamState, isCamOn]);
+
+  useEffect(() => {
+    if (streamState === "live") {
+      if (rtcRef.current.localAudioTrack) {
+        rtcRef.current.localAudioTrack.setEnabled(isMicOn).catch(e => console.error(e));
+      }
+    }
+  }, [isMicOn, streamState]);
+
+  // Recovery active session on mount
+  useEffect(() => {
+    if (window.agoraActiveHostSession && window.agoraActiveHostSession.streamState === "live") {
+      const session = window.agoraActiveHostSession;
+
+      rtcRef.current.client = session.client;
+      rtcRef.current.localAudioTrack = session.localAudioTrack;
+      rtcRef.current.localVideoTrack = session.localVideoTrack;
+
+      setLiveSessionId(session.liveSessionId);
+      setTitle(session.title);
+      setDescription(session.description);
+      setSelectedProductIds(session.selectedProductIds);
+      setProductDiscounts(session.productDiscounts);
+      setVoucherPercent(session.voucherPercent);
+      setChatMessages(session.chatMessages);
+      setPinnedProductId(session.pinnedProductId);
+      setStreamDuration(session.streamDuration);
+      setHeartsCount(session.heartsCount);
+      setViewersCount(session.viewersCount);
+      setIsCamOn(session.isCamOn);
+      setIsMicOn(session.isMicOn);
+      setStreamState("live");
+
+      // Tell layout to hide PiP
+      window.dispatchEvent(new Event("agora_pip_hide"));
+    }
+  }, []);
+
+  // Sync state changes to global session object
+  useEffect(() => {
+    if (window.agoraActiveHostSession) {
+      window.agoraActiveHostSession.isCamOn = isCamOn;
+      window.agoraActiveHostSession.isMicOn = isMicOn;
+    }
+  }, [isCamOn, isMicOn]);
+
+  useEffect(() => {
+    if (window.agoraActiveHostSession) {
+      window.agoraActiveHostSession.chatMessages = chatMessages;
+    }
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (window.agoraActiveHostSession) {
+      window.agoraActiveHostSession.streamDuration = streamDuration;
+      window.agoraActiveHostSession.heartsCount = heartsCount;
+      window.agoraActiveHostSession.viewersCount = viewersCount;
+      window.agoraActiveHostSession.pinnedProductId = pinnedProductId;
+    }
+  }, [streamDuration, heartsCount, viewersCount, pinnedProductId]);
+
+  // Cleanup/PiP delegation Agora on unmount
+  useEffect(() => {
+    return () => {
+      const isLive = window.agoraActiveHostSession && window.agoraActiveHostSession.streamState === "live";
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+
+      if (isLive) {
+        // We are navigating away but stream is active! Show PiP
+        window.dispatchEvent(new CustomEvent("agora_pip_show"));
+      } else {
+        // Stream has ended or is not live, clean up everything
+        if (rtcRef.current.localAudioTrack) {
+          rtcRef.current.localAudioTrack.close();
+        }
+        if (rtcRef.current.localVideoTrack) {
+          rtcRef.current.localVideoTrack.close();
+        }
+        if (rtcRef.current.client) {
+          rtcRef.current.client.leave().catch(e => console.error(e));
+        }
+        window.agoraActiveHostSession = null;
+      }
+    };
+  }, [cameraStream]);
 
   // Fetch Farmer Products on mount
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoadingProducts(true);
       try {
         const products = await productService.getFarmerProducts();
         // Only keep approved products
@@ -68,22 +331,21 @@ export const FarmerLivestream = () => {
         setFarmerProducts(approved.length > 0 ? approved : products);
       } catch (err) {
         console.error("Lỗi lấy danh sách sản phẩm nông dân:", err);
+      } finally {
+        setLoadingProducts(false);
       }
     };
     fetchProducts();
   }, []);
 
-  // WebRTC camera setup during preparation or live
+  // WebRTC camera setup during preparation
   useEffect(() => {
-    if (streamState === "setup" || streamState === "live") {
+    if (streamState === "setup") {
       if (isCamOn) {
         navigator.mediaDevices
           .getUserMedia({ video: true, audio: isMicOn })
           .then((stream) => {
             setCameraStream(stream);
-            if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-            }
           })
           .catch((err) => {
             console.warn("Không thể truy cập camera thực tế. Chuyển sang mô phỏng.", err);
@@ -96,13 +358,14 @@ export const FarmerLivestream = () => {
         }
       }
     }
-
-    return () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((track) => track.stop());
-      }
-    };
   }, [isCamOn, streamState]);
+
+  // Bind preview stream to video element when it becomes available
+  useEffect(() => {
+    if (streamState === "setup" && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream, streamState]);
 
   // Audio level simulator
   useEffect(() => {
@@ -124,118 +387,120 @@ export const FarmerLivestream = () => {
     }
   }, [chatMessages]);
 
-  // Manage Active Livestream Timers (Simulated Chat, Viewers, Time Ticker)
+  // Sync livestream data (duration, comments, viewers, likes, ban checks)
   useEffect(() => {
     if (streamState === "live") {
-      // 1. Stream Duration Timer
-      setStreamDuration(0);
+      const isRecovering = window.agoraActiveHostSession && window.agoraActiveHostSession.streamDuration > 0;
+      if (!isRecovering) {
+        setStreamDuration(0);
+      }
       streamTimerRef.current = setInterval(() => {
         setStreamDuration((prev) => prev + 1);
       }, 1000);
 
-      // 2. Viewers simulator
-      setViewersCount(1);
-      viewersTimerRef.current = setInterval(() => {
-        setViewersCount((prev) => {
-          const change = Math.floor(Math.random() * 7) - 2; // general upward trend initially
-          const next = prev + change;
-          return next < 1 ? 1 : next;
-        });
-      }, 3000);
-
-      // 3. Automated Viewer Chats simulator
-      const mockComments = [
-        "Rau củ nhìn sạch và tươi ngon quá chủ vườn ơi! 🌱",
-        "Có giao nhanh trong ngày ở thành phố không ạ?",
-        "Em vừa lấy voucher 15% rồi nha, tí đặt liền.",
-        "Nông trại mình ở đâu vậy anh?",
-        "Nhìn sầu riêng Ri6 chín ngon quá thèm quá đi thui 🤤",
-        "Đã theo dõi kênh! Mong chờ đợt thu hoạch tới.",
-        "Sản phẩm đạt chứng nhận VietGAP chuẩn sạch đúng ko ạ?",
-        "Mới nhận đơn mật ong hôm qua, thơm lừng luôn ạ!",
-        "Cho em hỏi quả này để được mấy ngày thế ạ?",
-        "Đặt mua 2 ký cà chua rồi nha chủ vườn uy tín 👍",
-      ];
-      const mockUsers = [
-        "Minh Khôi", "Thu Trang", "Văn Hùng", "Thanh Thảo",
-        "Hoàng Nam", "Ngọc Ánh", "Hải Đăng", "Lan Anh",
-        "Quốc Bảo", "Mai Phương", "Đức Huy", "Tố Uyên"
-      ];
-
-      setChatMessages([
-        { id: "sys-1", type: "system", text: "Hệ thống: Kết nối livestream ổn định. Phiên live bắt đầu phát sóng!" },
-        { id: "sys-2", type: "system", text: "Mẹo: Hãy ghim nông sản để thu hút người mua bấm đặt hàng trực tiếp." }
-      ]);
-
-      chatsTimerRef.current = setInterval(() => {
-        // Decide whether a chat or a like/heart happens
-        const isComment = Math.random() > 0.4;
-        if (isComment) {
-          const randomUser = mockUsers[Math.floor(Math.random() * mockUsers.length)];
-          const randomText = mockComments[Math.floor(Math.random() * mockComments.length)];
-
-          // Check if user is currently blocked
-          const blockExpiry = blockedUsersRef.current[randomUser];
-          const isBlocked = blockExpiry && (blockExpiry === Infinity || blockExpiry > Date.now());
-
-          if (!isBlocked) {
-            setChatMessages((prev) => [
-              ...prev,
-              {
-                id: `comment-${Date.now()}-${Math.random()}`,
-                type: "buyer",
-                user: randomUser,
-                text: randomText
-              }
-            ]);
+      const syncSessionData = async () => {
+        const handleExternalEnd = async () => {
+          if (rtcRef.current.localAudioTrack) rtcRef.current.localAudioTrack.close();
+          if (rtcRef.current.localVideoTrack) rtcRef.current.localVideoTrack.close();
+          if (rtcRef.current.client) {
+            try {
+              await rtcRef.current.client.leave();
+            } catch (e) {
+              console.error("Error leaving Agora client:", e);
+            }
           }
-        } else {
-          // Trigger a heart burst
-          triggerHeartBurst();
+          clearInterval(streamTimerRef.current);
+          clearInterval(chatsTimerRef.current);
+          setStreamState("banned");
+          setAdminBanReason("Phiên livestream của bạn đã bị chấm dứt hoặc dừng bởi quản trị viên do vi phạm Tiêu chuẩn cộng đồng.");
+        };
+
+        try {
+          if (!liveSessionId) return;
+          const detailRes = await apiClient.get(`/api/livestreams/${liveSessionId}`);
+          
+          if (detailRes.data.status !== "active") {
+            await handleExternalEnd();
+            return;
+          }
+
+          setViewersCount(detailRes.data.viewersCount);
+          setHeartsCount(detailRes.data.heartsCount);
+
+          const commentsRes = await apiClient.get(`/api/livestreams/${liveSessionId}/comments`);
+          setChatMessages((prev) => {
+            const systemMsgs = prev.filter(m => m.type === "system");
+            const dbMsgs = commentsRes.data.map(c => ({
+              id: `comment-${c.id}`,
+              type: c.isHost ? "host" : "buyer",
+              user: c.isHost ? `${c.user} (Bạn)` : c.user,
+              text: c.text,
+              senderId: c.senderId
+            }));
+            return [...systemMsgs, ...dbMsgs];
+          });
+        } catch (err) {
+          console.error("Lỗi đồng bộ dữ liệu live:", err);
+          if (err.response && err.response.status === 404) {
+            await handleExternalEnd();
+          }
         }
-      }, 4000);
+      };
+
+      chatsTimerRef.current = setInterval(syncSessionData, 2000);
     }
 
     return () => {
       clearInterval(streamTimerRef.current);
-      clearInterval(viewersTimerRef.current);
       clearInterval(chatsTimerRef.current);
     };
-  }, [streamState]);
-
-  // Check if banned by admin
-  useEffect(() => {
-    let checkInterval;
-    if (streamState === "live" && liveSessionId) {
-      checkInterval = setInterval(() => {
-        try {
-          const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-          const currentSession = storedLives.find(s => s.id === liveSessionId);
-          if (currentSession && currentSession.isBanned) {
-            // Stop streaming immediately!
-            if (cameraStream) {
-              cameraStream.getTracks().forEach((track) => track.stop());
-              setCameraStream(null);
-            }
-            clearInterval(streamTimerRef.current);
-            clearInterval(viewersTimerRef.current);
-            clearInterval(chatsTimerRef.current);
-            setStreamState("banned");
-            setAdminBanReason(currentSession.banReason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.");
-          }
-        } catch (e) {
-          console.error("Lỗi khi kiểm tra vi phạm livestream:", e);
-        }
-      }, 2000);
-    }
-    return () => clearInterval(checkInterval);
-  }, [streamState, liveSessionId, cameraStream]);
+  }, [streamState, liveSessionId]);
 
   // Format seconds to MM:SS
   const formatTime = (secs) => {
     const mins = Math.floor(secs / 60);
     const remainingSecs = secs % 60;
     return `${mins.toString().padStart(2, "0")}:${remainingSecs.toString().padStart(2, "0")}`;
+  };
+
+  // Sync temporary states when the modal is opened
+  useEffect(() => {
+    if (isEditProductsOpen) {
+      setTempSelectedProductIds([...selectedProductIds]);
+      setTempProductDiscounts({ ...productDiscounts });
+    }
+  }, [isEditProductsOpen, selectedProductIds, productDiscounts]);
+
+  // Handle temporary product selection / checkbox changes in the edit modal
+  const handleTempProductCheckboxChange = (productId) => {
+    setTempSelectedProductIds((prev) => {
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
+      } else {
+        const defaultDiscount = voucherPercent > 0 ? voucherPercent : 10;
+        setTempProductDiscounts((discs) => ({
+          ...discs,
+          [productId]: discs[productId] !== undefined ? discs[productId] : defaultDiscount
+        }));
+        return [...prev, productId];
+      }
+    });
+  };
+
+  // Handle temporary product discount changes in the edit modal
+  const handleTempDiscountChange = (productId, value) => {
+    if (value === "") {
+      setTempProductDiscounts((prev) => ({
+        ...prev,
+        [productId]: ""
+      }));
+      return;
+    }
+    const percent = Math.min(Math.max(parseInt(value) || 0, 0), 90);
+    setTempProductDiscounts((prev) => ({
+      ...prev,
+      [productId]: percent
+    }));
   };
 
   // Handle product selection / checkbox changes
@@ -301,6 +566,8 @@ export const FarmerLivestream = () => {
     setProductDiscounts(newDiscounts);
     setTempVoucherPercent(percent);
 
+    syncDiscountsToBackend(percent, newDiscounts);
+
     try {
       const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
       if (activeSession) {
@@ -338,14 +605,56 @@ export const FarmerLivestream = () => {
     }
   };
 
+  const syncDiscountsToBackend = async (percent, discounts, customProductIds) => {
+    if (!liveSessionId) return;
+    try {
+      const ids = customProductIds || selectedProductIds;
+      const discObj = {};
+      ids.forEach((id) => {
+        discObj[id] = discounts[id] !== undefined ? parseInt(discounts[id]) || 0 : 0;
+      });
+      await apiClient.post(`/api/livestreams/${liveSessionId}/discounts`, {
+        voucherPercent: percent,
+        productDiscounts: discObj
+      });
+    } catch (err) {
+      console.error("Lỗi đồng bộ chiết khấu lên backend:", err);
+    }
+  };
+
   const handleUpdateLiveProducts = () => {
     try {
+      // Commit the temporary state changes to official state
+      setSelectedProductIds(tempSelectedProductIds);
+      setProductDiscounts(tempProductDiscounts);
+
+      // 1. Sync product list to backend
+      if (liveSessionId) {
+        apiClient.post(`/api/livestreams/${liveSessionId}/products`, {
+          productIds: tempSelectedProductIds
+        }).catch(err => console.error("Lỗi đồng bộ sản phẩm lên backend:", err));
+
+        // 2. Sync discounts to backend using the temporary lists
+        syncDiscountsToBackend(voucherPercent, tempProductDiscounts, tempSelectedProductIds);
+      }
+
+      // 3. Update pinned product if the currently pinned product was removed
+      let nextPin = pinnedProductId;
+      if (!tempSelectedProductIds.includes(pinnedProductId)) {
+        nextPin = tempSelectedProductIds.length > 0 ? tempSelectedProductIds[0] : null;
+        setPinnedProductId(nextPin);
+        if (liveSessionId && nextPin) {
+          apiClient.post(`/api/livestreams/${liveSessionId}/pin/${nextPin}`).catch(err => console.error(err));
+        }
+      }
+
+      // 4. Sync session to localStorage
       const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
       if (activeSession) {
         const updatedProducts = farmerProducts
-          .filter((p) => selectedProductIds.includes(p.id))
+          .filter((p) => tempSelectedProductIds.includes(p.id))
           .map((p) => {
-            const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
+            const discount = voucherPercent !== 0 ? (parseInt(tempProductDiscounts[p.id]) || 0) : 0;
             const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
             return {
               id: p.id,
@@ -357,12 +666,6 @@ export const FarmerLivestream = () => {
               discountPercent: discount
             };
           });
-
-        let nextPin = pinnedProductId;
-        if (!selectedProductIds.includes(pinnedProductId)) {
-          nextPin = selectedProductIds.length > 0 ? selectedProductIds[0] : null;
-          setPinnedProductId(nextPin);
-        }
 
         const updatedSession = {
           ...activeSession,
@@ -382,6 +685,12 @@ export const FarmerLivestream = () => {
 
   const handlePinChat = (msg) => {
     setPinnedChatMessage(msg);
+    if (liveSessionId) {
+      apiClient.post(`/api/livestreams/${liveSessionId}/pin-comment`, {
+        user: msg.user,
+        text: msg.text
+      }).catch(err => console.error("Lỗi đồng bộ ghim bình luận lên backend:", err));
+    }
     try {
       const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
       if (activeSession) {
@@ -401,6 +710,10 @@ export const FarmerLivestream = () => {
 
   const handleUnpinChat = () => {
     setPinnedChatMessage(null);
+    if (liveSessionId) {
+      apiClient.post(`/api/livestreams/${liveSessionId}/unpin-comment`)
+        .catch(err => console.error("Lỗi đồng bộ bỏ ghim bình luận lên backend:", err));
+    }
     try {
       const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
       if (activeSession) {
@@ -418,124 +731,272 @@ export const FarmerLivestream = () => {
     }
   };
 
-  const handleDeleteChat = (msgId) => {
-    setChatMessages((prev) => prev.filter((m) => m.id !== msgId));
-    if (pinnedChatMessage && pinnedChatMessage.id === msgId) {
-      handleUnpinChat();
+  const handleDeleteChat = async (msgId) => {
+    try {
+      const commentIdStr = msgId.replace("comment-", "");
+      const commentId = parseInt(commentIdStr);
+      if (!isNaN(commentId)) {
+        await apiClient.delete(`/api/livestreams/${liveSessionId}/comments/${commentId}`);
+      }
+
+      setChatMessages((prev) => prev.filter((m) => m.id !== msgId));
+      if (pinnedChatMessage && pinnedChatMessage.id === msgId) {
+        handleUnpinChat();
+      }
+    } catch (err) {
+      console.error("Lỗi xóa bình luận:", err);
     }
   };
 
-  const handleBlockUser = (username, durationMinutes) => {
-    const expiry = durationMinutes === Infinity ? Infinity : Date.now() + durationMinutes * 60 * 1000;
-    setBlockedUsers((prev) => ({
-      ...prev,
-      [username]: expiry
-    }));
+  const handleBlockUser = async (msg) => {
+    try {
+      if (!msg.senderId) return;
+      await apiClient.post(`/api/livestreams/${liveSessionId}/block-user`, {
+        userId: msg.senderId
+      });
 
-    // Remove all previous messages from this blocked user
-    setChatMessages((prev) => prev.filter((m) => m.user !== username));
+      // Remove all previous messages from this blocked user locally
+      setChatMessages((prev) => prev.filter((m) => m.senderId !== msg.senderId));
 
-    // Clear pin if pinned message belonged to this user
-    if (pinnedChatMessage && pinnedChatMessage.user === username) {
-      handleUnpinChat();
-    }
-
-    let durationText = "";
-    if (durationMinutes === 15) durationText = "15 phút";
-    else if (durationMinutes === 1440) durationText = "1 ngày";
-    else durationText = "vĩnh viễn";
-
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: `sys-block-${Date.now()}`,
-        type: "system",
-        text: `Hệ thống: Người dùng [${username}] đã bị chặn bình luận ${durationText}!`
+      // Clear pin if pinned message belonged to this user
+      if (pinnedChatMessage && pinnedChatMessage.senderId === msg.senderId) {
+        handleUnpinChat();
       }
-    ]);
-    setActiveBlockMenuMsgId(null);
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `sys-block-${Date.now()}`,
+          type: "system",
+          text: `Hệ thống: Người dùng [${msg.user}] đã bị chặn bình luận!`
+        }
+      ]);
+    } catch (err) {
+      console.error("Lỗi khi chặn người dùng:", err);
+    }
   };
 
   // Launch Livestream Session
-  const handleStartLivestream = () => {
+  const handleStartLivestream = async () => {
     if (!title.trim()) {
       alert("Vui lòng nhập Tiêu đề phiên livestream!");
       return;
     }
 
-    const liveId = `custom-live-${Date.now()}`;
-    setLiveSessionId(liveId);
-
-    // Build product objects with discounts applied
-    const selectedProductsDetails = farmerProducts
-      .filter((p) => selectedProductIds.includes(p.id))
-      .map((p) => {
-        const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
-        const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
-        return {
-          id: p.id,
-          name: p.name,
-          originalPrice: p.price,
-          price: livePrice, // discounted price
-          unit: p.unit || "kg",
-          imageUrl: p.imageUrl,
-          discountPercent: discount
-        };
-      });
-
-    // Default pin is the first selected product, if any
-    if (selectedProductsDetails.length > 0) {
-      setPinnedProductId(selectedProductsDetails[0].id);
-    }
-
-    // Save customized live details to localStorage for buyer view
-    const newLiveSession = {
-      id: liveId,
-      farmerName: currentUser?.fullName || "Nhà vườn AgriMarket",
-      farmerBrand: farmerProfile?.farmName || "Nông trại sạch địa phương",
-      farmerAvatar: farmerProfile?.avatarUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
-      title: title,
-      description: description || "Chào mừng quý khách đến với phiên livestream thực tế tại nông trại của chúng tôi!",
-      status: "live",
-      viewers: "0 đang xem",
-      thumbnail: selectedProductsDetails[0]?.imageUrl || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800",
-      tags: ["Trực tiếp tại vườn", "Nông sản sạch", voucherPercent > 0 ? `Voucher ${voucherPercent}%` : "Săn Deal"],
-      scheduledTime: "Đang phát trực tiếp",
-      products: selectedProductsDetails,
-      voucherTitle: voucherPercent > 0 ? `Giảm ${voucherPercent}% Toàn Trang Trại` : null,
-      voucherPercent: voucherPercent
-    };
-
-    // Store in localStorage lists
     try {
-      const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-      localStorage.setItem("farmer_custom_livestreams", JSON.stringify([newLiveSession, ...storedLives]));
-      localStorage.setItem("active_farmer_livestream_session", JSON.stringify(newLiveSession));
-    } catch (e) {
-      console.error("Lỗi lưu trữ dữ liệu livestream:", e);
+      // 1. Create livestream session on Backend
+      const response = await apiClient.post("/api/livestreams/create", {
+        title: title,
+        description: description,
+        productIds: selectedProductIds
+      });
+      const data = response.data; // contains: livestreamId, channelName, token, appId
+
+      // 2. Initialize Agora SDK
+      const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      await client.setClientRole("host");
+
+      // Stop native preview track before Agora takes over
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+        setCameraStream(null);
+      }
+
+      // Join the channel
+      await client.join(data.appId, data.channelName, data.token, null);
+
+      // Create Microphone and Camera audio/video tracks
+      const localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      const localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+      // Publish tracks
+      await client.publish([localAudioTrack, localVideoTrack]);
+
+      // Save refs
+      rtcRef.current.client = client;
+      rtcRef.current.localAudioTrack = localAudioTrack;
+      rtcRef.current.localVideoTrack = localVideoTrack;
+
+      // Play local video track in the video tag
+      if (videoRef.current) {
+        localVideoTrack.play(videoRef.current);
+      }
+
+      setLiveSessionId(data.livestreamId);
+      setStreamState("live");
+
+      // Sync initial discounts to backend
+      const initialDiscs = {};
+      selectedProductIds.forEach((id) => {
+        initialDiscs[id] = productDiscounts[id] !== undefined ? parseInt(productDiscounts[id]) || 0 : (voucherPercent > 0 ? voucherPercent : 10);
+      });
+      apiClient.post(`/api/livestreams/${data.livestreamId}/discounts`, {
+        voucherPercent: voucherPercent,
+        productDiscounts: initialDiscs
+      }).catch(err => console.error("Lỗi đồng bộ chiết khấu ban đầu:", err));
+
+      setChatMessages([
+        { id: "sys-1", type: "system", text: "Hệ thống: Kết nối livestream ổn định. Phiên live bắt đầu phát sóng!" },
+        { id: "sys-2", type: "system", text: "Mẹo: Hãy ghim nông sản để thu hút người mua bấm đặt hàng trực tiếp." }
+      ]);
+
+      // Default pin is the first selected product, if any
+      if (selectedProductIds.length > 0) {
+        setPinnedProductId(selectedProductIds[0]);
+        // Also notify backend about pinned product
+        apiClient.post(`/api/livestreams/${data.livestreamId}/pin/${selectedProductIds[0]}`).catch(err => console.error(err));
+      }
+
+      setTempVoucherPercent(voucherPercent);
+
+      // Initialize active session in localStorage
+      try {
+        const initialProducts = farmerProducts
+          .filter((p) => selectedProductIds.includes(p.id))
+          .map((p) => {
+            const discount = voucherPercent !== 0 ? (parseInt(productDiscounts[p.id]) || 0) : 0;
+            const livePrice = discount > 0 ? Math.round(p.price * (1 - discount / 100)) : p.price;
+            return {
+              id: p.id,
+              name: p.name,
+              originalPrice: p.price,
+              price: livePrice,
+              unit: p.unit || "kg",
+              imageUrl: p.imageUrl,
+              discountPercent: discount
+            };
+          });
+
+        const activeSession = {
+          id: data.livestreamId,
+          farmerId: farmerProfile?.id || currentUser?.id || 1,
+          farmerName: farmerProfile?.fullName || currentUser?.fullName || "Nhà vườn AgriMarket",
+          farmerBrand: farmerProfile?.farmName || "Nông trại sạch địa phương",
+          farmerAvatar: farmerProfile?.avatarUrl || currentUser?.avatarUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+          title: title,
+          description: description,
+          status: "live",
+          viewers: 0,
+          likes: 0,
+          voucherPercent: voucherPercent,
+          voucherTitle: voucherPercent > 0 ? `Giảm ${voucherPercent}% Toàn Trang Trại` : null,
+          tags: ["Trực tiếp tại vườn", "Nông sản sạch", voucherPercent > 0 ? `Voucher ${voucherPercent}%` : "Săn Deal"],
+          products: initialProducts
+        };
+
+        window.agoraActiveHostSession = {
+          client,
+          localAudioTrack,
+          localVideoTrack,
+          liveSessionId: data.livestreamId,
+          title,
+          description,
+          selectedProductIds,
+          productDiscounts,
+          voucherPercent,
+          chatMessages: [
+            { id: "sys-1", type: "system", text: "Hệ thống: Kết nối livestream ổn định. Phiên live bắt đầu phát sóng!" },
+            { id: "sys-2", type: "system", text: "Mẹo: Hãy ghim nông sản để thu hút người mua bấm đặt hàng trực tiếp." }
+          ],
+          pinnedProductId: selectedProductIds.length > 0 ? selectedProductIds[0] : null,
+          streamState: "live",
+          streamDuration: 0,
+          heartsCount: 0,
+          viewersCount: 0,
+          isCamOn,
+          isMicOn
+        };
+
+        localStorage.setItem("active_farmer_livestream_session", JSON.stringify(activeSession));
+
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const filteredLives = storedLives.filter(s => s.id !== data.livestreamId);
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify([...filteredLives, activeSession]));
+      } catch (e) {
+        console.error("Lỗi khi ghi thông tin livestream vào localStorage:", e);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Không thể kết nối đến máy chủ Agora. Chi tiết: " + err.message);
     }
-
-    setTempVoucherPercent(voucherPercent);
-
-    // Move to broadcasting state
-    setStreamState("live");
   };
 
-  // Host sends chat comment
-  const handleHostSendChat = (e) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
+  const handleScheduleLivestream = async () => {
+    if (!title.trim()) {
+      alert("Vui lòng nhập Tiêu đề phiên livestream!");
+      return;
+    }
+    if (!scheduledTime) {
+      alert("Vui lòng chọn thời gian lên lịch phát sóng!");
+      return;
+    }
 
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: `host-${Date.now()}`,
-        type: "host",
-        user: "Nhà vườn (Bạn)",
-        text: chatInput.trim()
+    const scheduledDate = new Date(scheduledTime);
+    const minScheduledDate = new Date(Date.now() + 5 * 60 * 1000);
+    if (scheduledDate < minScheduledDate) {
+      alert("Thời gian lên lịch phát sóng phải cách hiện tại ít nhất 5 phút!");
+      return;
+    }
+
+    try {
+      const response = await apiClient.post("/api/livestreams/schedule", {
+        title: title,
+        description: description,
+        productIds: selectedProductIds,
+        startTime: scheduledTime
+      });
+      const data = response.data;
+      setLiveSessionId(data.livestreamId);
+      setStreamState("scheduled");
+
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+        setCameraStream(null);
       }
-    ]);
-    setChatInput("");
+    } catch (err) {
+      console.error("Lỗi lên lịch livestream:", err);
+      alert("Không thể lên lịch livestream. Vui lòng thử lại sau.");
+    }
+  };
+
+
+  // Host sends chat comment
+  const handleHostSendChat = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !liveSessionId) return;
+
+    try {
+      await apiClient.post(`/api/livestreams/${liveSessionId}/comments`, {
+        comment: chatInput.trim()
+      });
+      
+      const farmerUser = JSON.parse(localStorage.getItem("farmconnect_user")) || {};
+      const farmName = farmerUser.farmName || "Nhà vườn";
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `host-${Date.now()}`,
+          type: "host",
+          user: `${farmName} (Bạn)`,
+          text: chatInput.trim()
+        }
+      ]);
+      setChatInput("");
+    } catch (err) {
+      console.error("Lỗi gửi tin nhắn:", err);
+    }
+  };
+
+  // Pin a product to live
+  const handlePinProduct = async (productId) => {
+    if (!liveSessionId) return;
+    try {
+      await apiClient.post(`/api/livestreams/${liveSessionId}/pin/${productId}`);
+      setPinnedProductId(productId);
+    } catch (err) {
+      console.error("Lỗi khi ghim sản phẩm:", err);
+    }
   };
 
   // Interactive Hearts
@@ -555,50 +1016,55 @@ export const FarmerLivestream = () => {
     setIsConfirmEndOpen(true);
   };
 
-  // End Livestream and Show Stats
-  const executeEndLivestream = () => {
-    // Generate final metrics
-    const durationStr = formatTime(streamDuration);
-    const peakViewers = Math.max(viewersCount + 20, 15); // simulated peak
-    const totalHearts = heartsCount + Math.floor(Math.random() * 50) + 20;
-    const generatedOrders = Math.max(Math.floor(selectedProductIds.length * (Math.random() * 3 + 1)), 2);
-    const newFollowers = Math.floor(Math.random() * 15) + 5;
-
-    setReportStats({
-      duration: durationStr,
-      peakViewers,
-      hearts: totalHearts,
-      orders: generatedOrders,
-      newFollowers
-    });
-
-    // Update session status in localStorage list from 'live' to 'replay'
+  const executeEndLivestream = async () => {
+    if (!liveSessionId) return;
     try {
-      const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-      const updatedLives = storedLives.map((session) => {
-        if (session.id === liveSessionId) {
-          return {
-            ...session,
-            status: "replay",
-            viewers: `${peakViewers} lượt xem`,
-            scheduledTime: "Đã phát trực tiếp"
-          };
-        }
-        return session;
+      const response = await apiClient.post(`/api/livestreams/${liveSessionId}/end`);
+      const report = response.data;
+
+      // Stop Agora tracks and leave channel
+      if (rtcRef.current.localAudioTrack) {
+        rtcRef.current.localAudioTrack.close();
+        rtcRef.current.localAudioTrack = null;
+      }
+      if (rtcRef.current.localVideoTrack) {
+        rtcRef.current.localVideoTrack.close();
+        rtcRef.current.localVideoTrack = null;
+      }
+      if (rtcRef.current.client) {
+        await rtcRef.current.client.leave();
+        rtcRef.current.client = null;
+      }
+
+      setReportStats({
+        duration: report.duration,
+        peakViewers: report.peakViewers,
+        hearts: report.hearts,
+        orders: report.orders,
+        newFollowers: report.newFollowers
       });
-      localStorage.setItem("farmer_custom_livestreams", JSON.stringify(updatedLives));
-      localStorage.removeItem("active_farmer_livestream_session");
-    } catch (err) {
-      console.error(err);
-    }
 
-    // Stop WebRTC tracks
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-      setCameraStream(null);
-    }
+      // Clean up localStorage active session
+      try {
+        localStorage.removeItem("active_farmer_livestream_session");
+        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
+        const updatedLives = storedLives.map((s) => {
+          if (s.id === liveSessionId) {
+            return { ...s, status: "replay" };
+          }
+          return s;
+        });
+        localStorage.setItem("farmer_custom_livestreams", JSON.stringify(updatedLives));
+      } catch (err) {
+        console.error("Lỗi khi dọn dẹp localStorage:", err);
+      }
 
-    setStreamState("ended");
+      setStreamState("ended");
+      window.agoraActiveHostSession = null;
+    } catch (e) {
+      console.error(e);
+      alert("Lỗi khi kết thúc livestream: " + e.message);
+    }
   };
 
   return (
@@ -641,7 +1107,11 @@ export const FarmerLivestream = () => {
               </label>
               
               <div className="products-selection-container">
-                {farmerProducts.length > 0 ? (
+                {loadingProducts ? (
+                  <p style={{ padding: "16px", color: "#64748b", margin: 0, textAlign: "center", fontSize: "0.85rem" }}>
+                    Đang tải sản phẩm...
+                  </p>
+                ) : farmerProducts.length > 0 ? (
                   farmerProducts.map((prod) => (
                     <div
                       key={prod.id}
@@ -659,7 +1129,20 @@ export const FarmerLivestream = () => {
                         <div className="product-row-details">
                           <p className="product-row-name">{prod.name}</p>
                           <p className="product-row-meta">
-                            Giá: <span className="price-bold">{prod.price.toLocaleString()}đ</span>/{prod.unit} • Kho: {prod.stock}
+                            Giá:{" "}
+                            {selectedProductIds.includes(prod.id) && voucherPercent !== 0 && (productDiscounts[prod.id] || 0) > 0 ? (
+                              <>
+                                <span className="price-bold" style={{ textDecoration: "line-through", color: "#94a3b8", marginRight: "6px" }}>
+                                  {prod.price.toLocaleString()}đ
+                                </span>
+                                <span className="price-bold" style={{ color: "#ef4444", fontWeight: 700 }}>
+                                  {(prod.price * (1 - (parseInt(productDiscounts[prod.id]) || 0) / 100)).toLocaleString()}đ
+                                </span>
+                              </>
+                            ) : (
+                              <span className="price-bold">{prod.price.toLocaleString()}đ</span>
+                            )}
+                            /{prod.unit} • Kho: {prod.stock}
                           </p>
                         </div>
                       </div>
@@ -808,21 +1291,98 @@ export const FarmerLivestream = () => {
               </div>
             </div>
 
+            {/* Scheduled Time Input */}
+            <div style={{ marginTop: "16px", marginBottom: "16px", textAlign: "left" }}>
+              <label style={{ display: "block", fontSize: "0.9rem", fontWeight: "600", color: "#334155", marginBottom: "6px" }}>
+                📅 Thời gian lên lịch (Nếu muốn lên lịch live)
+              </label>
+              <input 
+                type="datetime-local" 
+                value={scheduledTime}
+                min={getMinDateTimeLocal()}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "0.9rem",
+                  boxSizing: "border-box",
+                  backgroundColor: "#fff"
+                }}
+              />
+            </div>
+
             <button className="btn-launch-live" onClick={handleStartLivestream}>
               📡 Bắt đầu Phát sóng ngay
+            </button>
+
+            <button 
+              className="btn-schedule-live" 
+              onClick={handleScheduleLivestream}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid #10b981",
+                backgroundColor: "transparent",
+                color: "#10b981",
+                fontWeight: "700",
+                fontSize: "1rem",
+                marginTop: "12px",
+                cursor: "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = "#10b981";
+                e.currentTarget.style.color = "white";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "#10b981";
+              }}
+            >
+              📅 Lên lịch phát sóng
             </button>
           </div>
         </div>
       )}
 
+      {/* 1.5. SCHEDULED COUNTDOWN SCREEN */}
+      {streamState === "scheduled" && (
+        <FarmerScheduledCountdown 
+          title={title}
+          description={description}
+          scheduledTime={scheduledTime}
+          onStartLive={handleStartLivestream}
+        />
+      )}
+
       {/* 2. BROADCASTING LIVE CONSOLE */}
       {streamState === "live" && (
-        <div className="live-console-grid">
+        <>
+          <div className="live-session-info-bar" style={{
+            backgroundColor: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "12px",
+            padding: "16px 20px",
+            marginBottom: "20px"
+          }}>
+            <h3 style={{ margin: "0 0 6px 0", color: "#0f172a", fontSize: "1.15rem", fontWeight: "700" }}>
+              🔴 Phiên live hiện tại: {title}
+            </h3>
+            {description && (
+              <p style={{ margin: 0, color: "#64748b", fontSize: "0.9rem", whiteSpace: "pre-line" }}>
+                {description}
+              </p>
+            )}
+          </div>
+          <div className="live-console-grid">
           {/* Main viewfinder broadcasting feed */}
           <div>
             <div className="live-viewfinder-wrapper">
               {/* Actual camera or animated fallback */}
-              {isCamOn && cameraStream ? (
+              {isCamOn ? (
                 <video
                   ref={videoRef}
                   autoPlay
@@ -845,7 +1405,7 @@ export const FarmerLivestream = () => {
                 >
                   <span style={{ fontSize: "3rem", animation: "bounce 2s infinite" }}>🎥</span>
                   <p style={{ marginTop: "12px", fontSize: "0.95rem", fontWeight: "600", color: "#cbd5e1" }}>
-                    Livestream đang chạy (Hình ảnh giả lập từ camera trang trại)
+                    Camera đang tắt (Livestream đang chạy)
                   </p>
                 </div>
               )}
@@ -872,29 +1432,7 @@ export const FarmerLivestream = () => {
                 </div>
               </div>
 
-              {/* Floating Product overlay */}
-              {pinnedProductId && (() => {
-                const prod = farmerProducts.find((p) => p.id === pinnedProductId);
-                if (!prod) return null;
-                const discount = voucherPercent !== 0 ? (productDiscounts[pinnedProductId] || 0) : 0;
-                const livePrice = discount > 0 ? Math.round(prod.price * (1 - discount / 100)) : prod.price;
 
-                return (
-                  <div className="pinned-product-overlay">
-                    <img src={prod.imageUrl} alt={prod.name} className="pinned-prod-img" />
-                    <div className="pinned-prod-info">
-                      <span className="pinned-prod-badge">🔥 ĐANG GHIM</span>
-                      <h4 className="pinned-prod-name">{prod.name}</h4>
-                      <div className="pinned-prod-prices">
-                        {discount > 0 && (
-                          <span className="pinned-price-orig">{prod.price.toLocaleString()}đ</span>
-                        )}
-                        <span className="pinned-price-live">{livePrice.toLocaleString()}đ</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Floating Hearts effect area */}
               <div className="hearts-fly-area">
@@ -929,13 +1467,6 @@ export const FarmerLivestream = () => {
                   title={isMicOn ? "Tắt Mic" : "Bật Mic"}
                 >
                   {isMicOn ? "🎤" : "🔇"}
-                </button>
-                <button
-                  className="btn-floating-action heart-trigger"
-                  onClick={triggerHeartBurst}
-                  title="Thả Tim"
-                >
-                  ❤️
                 </button>
               </div>
             </div>
@@ -1006,7 +1537,7 @@ export const FarmerLivestream = () => {
                           </div>
                           <button
                             className={`btn-pin-control ${isActivePin ? "active" : ""}`}
-                            onClick={() => setPinnedProductId(p.id)}
+                            onClick={() => handlePinProduct(p.id)}
                           >
                             {isActivePin ? "📌 Đang ghim" : "Ghim lên live"}
                           </button>
@@ -1113,46 +1644,39 @@ export const FarmerLivestream = () => {
                     <span>{msg.text}</span>
                   ) : (
                     <>
-                      {activeBlockMenuMsgId === msg.id ? (
-                        <div className="block-options-menu" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => handleBlockUser(msg.user, 15)} title="Chặn 15 phút">15p</button>
-                          <button onClick={() => handleBlockUser(msg.user, 1440)} title="Chặn 1 ngày">1 ngày</button>
-                          <button onClick={() => handleBlockUser(msg.user, Infinity)} title="Chặn vĩnh viễn">Vô hạn</button>
-                          <button className="close-menu-btn" onClick={() => setActiveBlockMenuMsgId(null)} title="Hủy">✕</button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="chat-message-bubble-left">
-                            <span className={`chat-user-badge ${msg.type}`}>
-                              {msg.user}:
-                            </span>
-                            <span className="chat-msg-text">{msg.text}</span>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center" }}>
-                            <button
-                              className="btn-pin-chat-msg"
-                              onClick={() => handlePinChat(msg)}
-                              title="Ghim tin nhắn"
-                            >
-                              📌
-                            </button>
-                            <button
-                              className="btn-delete-chat-msg"
-                              onClick={() => handleDeleteChat(msg.id)}
-                              title="Xóa bình luận"
-                            >
-                              🗑️
-                            </button>
-                            <button
-                              className="btn-block-user-msg"
-                              onClick={() => setActiveBlockMenuMsgId(msg.id)}
-                              title="Chặn người dùng này"
-                            >
-                              🚫
-                            </button>
-                          </div>
-                        </>
-                      )}
+                      <div className="chat-message-bubble-left">
+                        <span className={`chat-user-badge ${msg.type}`}>
+                          {msg.user}:
+                        </span>
+                        <span className="chat-msg-text">{msg.text}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <button
+                          className="btn-pin-chat-msg"
+                          onClick={() => handlePinChat(msg)}
+                          title="Ghim tin nhắn"
+                        >
+                          📌
+                        </button>
+                        <button
+                          className="btn-delete-chat-msg"
+                          onClick={() => handleDeleteChat(msg.id)}
+                          title="Xóa bình luận"
+                        >
+                          🗑️
+                        </button>
+                        <button
+                          className="btn-block-user-msg"
+                          onClick={() => {
+                            if (window.confirm(`Bạn có chắc chắn muốn chặn bình luận của [${msg.user}] và xóa toàn bộ bình luận cũ của họ không?`)) {
+                              handleBlockUser(msg);
+                            }
+                          }}
+                          title="Chặn người dùng này"
+                        >
+                          🚫
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -1174,6 +1698,7 @@ export const FarmerLivestream = () => {
             </form>
           </div>
         </div>
+        </>
       )}
 
       {/* 3. FINAL REPORT SCREEN */}
@@ -1203,15 +1728,6 @@ export const FarmerLivestream = () => {
                 <p className="stat-card-val">❤️ {reportStats.hearts}</p>
                 <p className="stat-card-lbl">Lượt thả tim</p>
               </div>
-              <div className="report-stat-card">
-                <p className="stat-card-val">📦 {reportStats.orders}</p>
-                <p className="stat-card-lbl">Đơn hàng live</p>
-              </div>
-            </div>
-
-            <div className="report-stat-card" style={{ marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 600, color: "#475569", fontSize: "0.85rem" }}>👥 LƯỢT THEO DÕI MỚI</span>
-              <span style={{ fontWeight: 800, color: "#10b981", fontSize: "1.1rem" }}>+{reportStats.newFollowers}</span>
             </div>
 
             <button className="btn-close-report" onClick={() => setStreamState("setup")}>
@@ -1263,8 +1779,8 @@ export const FarmerLivestream = () => {
             <div className="form-group-live">
               <label className="product-pin-title-row">
                 <span>Chọn sản phẩm hiển thị & giá ưu đãi:</span>
-                {selectedProductIds.length > 0 && (
-                  <span className="selected-count-tag">Đã chọn: {selectedProductIds.length}</span>
+                {tempSelectedProductIds.length > 0 && (
+                  <span className="selected-count-tag">Đã chọn: {tempSelectedProductIds.length}</span>
                 )}
               </label>
               
@@ -1273,25 +1789,38 @@ export const FarmerLivestream = () => {
                   farmerProducts.map((prod) => (
                     <div
                       key={prod.id}
-                      className={`product-row-item ${selectedProductIds.includes(prod.id) ? "selected" : ""}`}
-                      onClick={() => handleProductCheckboxChange(prod.id)}
+                      className={`product-row-item ${tempSelectedProductIds.includes(prod.id) ? "selected" : ""}`}
+                      onClick={() => handleTempProductCheckboxChange(prod.id)}
                     >
                       <div className="product-row-left">
                         <input
                           type="checkbox"
                           className="product-row-checkbox"
-                          checked={selectedProductIds.includes(prod.id)}
+                          checked={tempSelectedProductIds.includes(prod.id)}
                           onChange={() => {}}
                         />
                         <img src={prod.imageUrl} alt={prod.name} className="product-row-thumbnail" />
                         <div className="product-row-details">
                           <p className="product-row-name">{prod.name}</p>
                           <p className="product-row-meta">
-                            Giá: <span className="price-bold">{prod.price.toLocaleString()}đ</span>/{prod.unit} • Kho: {prod.stock}
+                            Giá:{" "}
+                            {tempSelectedProductIds.includes(prod.id) && voucherPercent !== 0 && (tempProductDiscounts[prod.id] || 0) > 0 ? (
+                              <>
+                                <span className="price-bold" style={{ textDecoration: "line-through", color: "#94a3b8", marginRight: "6px" }}>
+                                  {prod.price.toLocaleString()}đ
+                                </span>
+                                <span className="price-bold" style={{ color: "#ef4444", fontWeight: 700 }}>
+                                  {(prod.price * (1 - (parseInt(tempProductDiscounts[prod.id]) || 0) / 100)).toLocaleString()}đ
+                                </span>
+                              </>
+                            ) : (
+                              <span className="price-bold">{prod.price.toLocaleString()}đ</span>
+                            )}
+                            /{prod.unit} • Kho: {prod.stock}
                           </p>
                         </div>
                       </div>
-                      {selectedProductIds.includes(prod.id) && voucherPercent !== 0 && (
+                      {tempSelectedProductIds.includes(prod.id) && voucherPercent !== 0 && (
                         <div className="product-row-inputs" onClick={(e) => e.stopPropagation()}>
                           <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Giảm live:</span>
                           <input
@@ -1299,8 +1828,8 @@ export const FarmerLivestream = () => {
                             className="live-discount-box"
                             min="0"
                             max="90"
-                            value={productDiscounts[prod.id] !== undefined ? productDiscounts[prod.id] : ""}
-                            onChange={(e) => handleDiscountChange(prod.id, e.target.value)}
+                            value={tempProductDiscounts[prod.id] !== undefined ? tempProductDiscounts[prod.id] : ""}
+                            onChange={(e) => handleTempDiscountChange(prod.id, e.target.value)}
                           />
                           <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "#475569" }}>%</span>
                         </div>

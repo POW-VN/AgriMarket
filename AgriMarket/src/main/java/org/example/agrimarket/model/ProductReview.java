@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product_review")
@@ -36,6 +38,31 @@ public class ProductReview {
 
     @Column(columnDefinition = "TEXT")
     private String comment;
+
+    @Column(name = "quality_rating")
+    private Integer qualityRating;
+
+    @Column(name = "freshness_rating")
+    private Integer freshnessRating;
+
+    @Column(name = "packaging_rating")
+    private Integer packagingRating;
+
+    @Column(name = "delivery_rating")
+    private Integer deliveryRating;
+
+    @Column(name = "anonymous")
+    private Boolean anonymous = false;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_review_images", joinColumns = @JoinColumn(name = "review_id"))
+    @Column(name = "image_url")
+    private List<String> images = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_review_tags", joinColumns = @JoinColumn(name = "review_id"))
+    @Column(name = "tag")
+    private List<String> tags = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

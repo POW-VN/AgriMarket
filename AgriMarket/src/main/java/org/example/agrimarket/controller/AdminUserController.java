@@ -4,13 +4,11 @@ import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.CustomerAddress;
-import org.example.agrimarket.model.Partner;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
-import org.example.agrimarket.repository.PartnerRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.service.OrderService;
@@ -43,8 +41,7 @@ public class AdminUserController {
     @Autowired
     private FarmerRepository farmerRepository;
 
-    @Autowired
-    private PartnerRepository partnerRepository;
+
 
     @Autowired
     private ProductRepository productRepository;
@@ -152,20 +149,7 @@ public class AdminUserController {
             userList.add(map);
         }
 
-        // Fetch partners
-        for (Partner p : partnerRepository.findAll()) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", p.getId());
-            map.put("fullName", p.getFullName());
-            map.put("email", p.getEmail());
-            map.put("phone", p.getPhone());
-            map.put("role", "partner");
-            map.put("status", p.getStatus() != null ? p.getStatus() : "active");
-            map.put("avatarUrl", p.getAvatarUrl());
-            map.put("createdAt", p.getCreatedAt());
-            map.put("address", "");
-            userList.add(map);
-        }
+
 
         return ResponseEntity.ok(userList);
     }
@@ -192,8 +176,7 @@ public class AdminUserController {
         if (email != null) {
             if (adminRepository.findByEmail(email).isPresent() ||
                 customerRepository.findByEmail(email).isPresent() ||
-                farmerRepository.findByEmail(email).isPresent() ||
-                partnerRepository.findByEmail(email).isPresent()) {
+                farmerRepository.findByEmail(email).isPresent()) {
                 return ResponseEntity.badRequest().body("Email đã tồn tại trong hệ thống");
             }
         }
@@ -201,8 +184,7 @@ public class AdminUserController {
         if (phone != null && !phone.trim().isEmpty()) {
             String trimmedPhone = phone.trim();
             if (customerRepository.existsByPhone(trimmedPhone) ||
-                farmerRepository.existsByPhone(trimmedPhone) ||
-                partnerRepository.findByPhone(trimmedPhone).isPresent()) {
+                farmerRepository.existsByPhone(trimmedPhone)) {
                 return ResponseEntity.badRequest().body("Số điện thoại đã tồn tại trong hệ thống");
             }
         }
@@ -280,16 +262,7 @@ public class AdminUserController {
             farmer.setLongitude(longitude);
 
             return ResponseEntity.ok(farmerRepository.save(farmer));
-        } else if ("partner".equals(role)) {
-            Partner partner = new Partner();
-            partner.setFullName(fullName);
-            partner.setEmail(email);
-            partner.setPhone(phone);
-            partner.setPassword(encodedPassword);
-            partner.setAvatarUrl(avatarUrl);
-            partner.setStatus(status);
-            partner.setCreatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(partnerRepository.save(partner));
+
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
         }
@@ -334,12 +307,7 @@ public class AdminUserController {
                 customerRepository.save(c);
             });
             return ResponseEntity.ok().build();
-        } else if ("partner".equals(lowerRole)) {
-            Partner p = partnerRepository.findById(id).orElse(null);
-            if (p == null) return ResponseEntity.notFound().build();
-            p.setStatus(newStatus);
-            partnerRepository.save(p);
-            return ResponseEntity.ok().build();
+
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
         }
@@ -389,13 +357,7 @@ public class AdminUserController {
                 farmerRepository.delete(farmer);
             }
             return ResponseEntity.ok().build();
-        } else if ("partner".equals(lowerRole)) {
-            Partner partner = partnerRepository.findById(id).orElse(null);
-            if (partner != null) {
-                deletePhysicalAvatarFile(partner.getAvatarUrl());
-                partnerRepository.delete(partner);
-            }
-            return ResponseEntity.ok().build();
+
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
         }

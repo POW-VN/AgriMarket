@@ -56,8 +56,8 @@ export const LoginFarmconnect = () => {
       console.log("Login successful:", response);
       await syncGuestCart();
       const user = authService.getCurrentUser();
-      if (user && (user.role === "partner" || user.role === "shipper")) {
-        navigate("/shipper/requests");
+      if (user && user.role === "admin") {
+        navigate("/admin/users");
       } else {
         navigate("/");
       }
@@ -82,8 +82,8 @@ export const LoginFarmconnect = () => {
         console.log("Google login successful:", response);
         await syncGuestCart();
         const user = authService.getCurrentUser();
-        if (user && (user.role === "partner" || user.role === "shipper")) {
-          navigate("/shipper/requests");
+        if (user && user.role === "admin") {
+          navigate("/admin/users");
         } else {
           navigate("/");
         }

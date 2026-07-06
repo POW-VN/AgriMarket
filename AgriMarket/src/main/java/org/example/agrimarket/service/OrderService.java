@@ -43,7 +43,7 @@ public class OrderService {
     private CartItemRepository cartItemRepository;
 
     @Autowired
-    private PartnerRepository partnerRepository;
+    private GhnService ghnService;
 
     @Autowired
     private ProductReviewRepository productReviewRepository;
@@ -270,7 +270,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getCustomerOrders(String email) {
         List<Order> orders = orderRepository.findByCustomerEmailOrderByCreatedAtDesc(email);
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return mapToResponseList(orders);
     }
 
     @Transactional(readOnly = true)
@@ -287,10 +287,9 @@ public class OrderService {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 
-        // Verify customer owns the order OR partner is assigned
+        // Verify customer owns the order
         boolean isCustomer = order.getCustomer().getEmail().equalsIgnoreCase(email);
-        boolean isPartner = order.getPartner() != null && order.getPartner().getEmail().equalsIgnoreCase(email);
-        if (!isCustomer && !isPartner) {
+        if (!isCustomer) {
             throw new RuntimeException("Bạn không có quyền xem đơn hàng này.");
         }
 
@@ -412,7 +411,11 @@ public class OrderService {
             }
         }
 
-        order.setStatus(statusLower);
+        if ("confirmed".equals(statusLower)) {
+            ghnService.createShipment(order);
+        } else {
+            order.setStatus(statusLower);
+        }
 
         // If status is rejected or cancelled, and it wasn't already, restore stock for
         // the farmer's items (or all items in the order, depending on the system design
@@ -479,7 +482,33 @@ public class OrderService {
         return base;
     }
 
+    private List<OrderResponse> mapToResponseList(List<Order> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Long> orderIds = orders.stream().map(Order::getId).collect(Collectors.toList());
+
+        // Bulk load all reviewed products for these orders
+        List<Object[]> reviewedData = productReviewRepository.findReviewedProductsForOrders(orderIds);
+        
+        java.util.Set<String> reviewedKeys = new java.util.HashSet<>();
+        for (Object[] row : reviewedData) {
+            Long orderId = (Long) row[0];
+            Long productId = (Long) row[1];
+            reviewedKeys.add(orderId + "-" + productId);
+        }
+
+        return orders.stream()
+                .map(o -> mapToResponseOptimized(o, reviewedKeys))
+                .collect(Collectors.toList());
+    }
+
     private OrderResponse mapToResponse(Order order) {
+        return mapToResponseOptimized(order, java.util.Collections.emptySet());
+    }
+
+    private OrderResponse mapToResponseOptimized(Order order, java.util.Set<String> reviewedKeys) {
         // Date time formatting
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd 'thg' MM, yyyy", new Locale("vi", "VN"));
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", new Locale("vi", "VN"));
@@ -548,8 +577,7 @@ public class OrderService {
         List<OrderItemResponseDTO> itemsMapped = new ArrayList<>();
         if (order.getItems() != null) {
             itemsMapped = order.getItems().stream().map(item -> {
-                boolean isReviewed = productReviewRepository.findByOrderIdAndProductIdAndCustomerId(
-                        order.getId(), item.getProductId(), order.getCustomer().getId()).isPresent();
+                boolean isReviewed = reviewedKeys.contains(order.getId() + "-" + item.getProductId());
                 return OrderItemResponseDTO.builder()
                         .productId(item.getProductId())
                         .farmerId(item.getFarmer() != null ? item.getFarmer().getId() : null)
@@ -606,13 +634,7 @@ public class OrderService {
                 .customerAvatarUrl(order.getCustomer() != null ? order.getCustomer().getAvatarUrl() : null)
                 .shippingNote(order.getShippingNote())
                 .provider(providerInfo)
-                .partner(order.getPartner() != null ? OrderResponse.PartnerInfo.builder()
-                        .id(order.getPartner().getId())
-                        .fullName(order.getPartner().getFullName())
-                        .email(order.getPartner().getEmail())
-                        .phone(order.getPartner().getPhone())
-                        .avatarUrl(order.getPartner().getAvatarUrl())
-                        .build() : null)
+                .partner(null)
                 .shipperNotes(order.getShipperNotes())
                 .podPhoto(order.getPodPhoto())
                 .detailedStatus(order.getDetailedStatus())
@@ -638,93 +660,13 @@ public class OrderService {
                 return -1;
             return o2.getCreatedAt().compareTo(o1.getCreatedAt());
         });
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return mapToResponseList(orders);
     }
 
     @Transactional
     public OrderResponse updateOrderStatusByAdmin(String orderCode, String newStatus, String paymentStatus,
             String reason) {
         throw new RuntimeException("Quản trị viên không có quyền can thiệp vào các đơn hàng.");
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getShipperRequests(String email) {
-        List<Order> orders = orderRepository.findAvailableShipperRequests();
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getShipperAccepted(String email) {
-        List<Order> orders = orderRepository.findByPartnerEmailOrderByCreatedAtDesc(email);
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public OrderResponse acceptShipperRequest(String email, String orderCode, Map<String, String> driverInfo) {
-        Partner partner = partnerRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đối tác vận chuyển."));
-
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
-
-        if (order.getPartner() != null) {
-            throw new RuntimeException("Đơn hàng này đã được một tài xế khác chấp nhận.");
-        }
-
-        order.setPartner(partner);
-        order.setStatus("shipping");
-        order.setDetailedStatus("assigned");
-
-        // Save driver assignment info
-        if (driverInfo != null) {
-            if (driverInfo.get("driverName") != null) order.setDriverName(driverInfo.get("driverName"));
-            if (driverInfo.get("driverCode") != null) order.setDriverCode(driverInfo.get("driverCode"));
-            if (driverInfo.get("driverPhone") != null) order.setDriverPhone(driverInfo.get("driverPhone"));
-            if (driverInfo.get("vehicleType") != null) order.setVehicleType(driverInfo.get("vehicleType"));
-            if (driverInfo.get("licensePlate") != null) order.setLicensePlate(driverInfo.get("licensePlate"));
-        }
-
-        Order updatedOrder = orderRepository.save(order);
-        return mapToResponse(updatedOrder);
-    }
-
-    @Transactional
-    public OrderResponse rejectShipperRequest(String email, String orderCode, String reason) {
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
-        order.setStatus("rejected");
-        order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Đối tác vận chuyển từ chối");
-        order.setCancelBy("partner");
-        order.setCancelledAt(LocalDateTime.now());
-        Order updatedOrder = orderRepository.save(order);
-        return mapToResponse(updatedOrder);
-    }
-
-    @Transactional
-    public OrderResponse updateShipperOrderStatus(String email, String orderCode, String newDetailedStatus,
-            String notes, String podPhoto) {
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
-
-        if (order.getPartner() == null || !order.getPartner().getEmail().equalsIgnoreCase(email)) {
-            throw new RuntimeException("Bạn không có quyền cập nhật trạng thái đơn hàng này.");
-        }
-
-        order.setDetailedStatus(newDetailedStatus);
-        order.setShipperNotes(notes);
-        if (podPhoto != null && !podPhoto.isBlank()) {
-            order.setPodPhoto(podPhoto);
-        }
-
-        if ("delivered".equalsIgnoreCase(newDetailedStatus)) {
-            order.setStatus("delivered");
-            order.setPaymentStatus("paid");
-        } else {
-            order.setStatus("shipping");
-        }
-
-        Order updatedOrder = orderRepository.save(order);
-        return mapToResponse(updatedOrder);
     }
 
     private OrderResponse mapGroupToResponse(OrderGroup group) {
