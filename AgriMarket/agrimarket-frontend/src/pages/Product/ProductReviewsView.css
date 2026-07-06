@@ -242,6 +242,10 @@
     font-weight: 800;
     cursor: pointer;
     transition: 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .prv-add-cart-btn:hover {

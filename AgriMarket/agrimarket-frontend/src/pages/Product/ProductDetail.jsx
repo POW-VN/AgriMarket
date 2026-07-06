@@ -1777,10 +1777,12 @@ export default function ProductDetail() {
                     disabled={product.stock === 0}
                     style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="9" cy="21" r="1"></circle>
                       <circle cx="20" cy="21" r="1"></circle>
                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                      <line x1="12" y1="10" x2="16" y2="10"></line>
+                      <line x1="14" y1="8" x2="14" y2="12"></line>
                     </svg>
                     Thêm vào giỏ hàng
                   </button>
@@ -2318,38 +2320,7 @@ export default function ProductDetail() {
       </section>
 
       {/* Footer Sync from Home */}
-      <footer className="home-footer">
-        <div className="footer-container">
-          <div className="footer-left">
-            <div className="footer-logo">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="logo-tractor"
-              >
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              <span className="logo-text">AgriMarket</span>
-            </div>
-            <p className="footer-copy">© 2026 AgriMarket. Kết nối Nông nghiệp số.</p>
-          </div>
-          <div className="footer-right">
-            <Link to="/help" className="footer-link">Trung tâm trợ giúp</Link>
-            <Link to="/privacy" className="footer-link">Chính sách bảo mật</Link>
-            <Link to="/terms" className="footer-link">Điều khoản dịch vụ</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Lightbox Modal overlay */}
       {isLightboxOpen && allImages.length > 0 && (
