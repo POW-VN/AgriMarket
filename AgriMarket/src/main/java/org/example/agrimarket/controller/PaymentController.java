@@ -22,12 +22,16 @@ public class PaymentController {
     private PaymentService paymentService;
 
     @GetMapping("/create-vnpay-payment")
-    public ResponseEntity<?> createVNPayPayment(HttpServletRequest request, Principal principal, @RequestParam String orderCode) {
+    public ResponseEntity<?> createVNPayPayment(
+            HttpServletRequest request,
+            Principal principal,
+            @RequestParam String orderCode,
+            @RequestParam(required = false) String deliveryMode) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
         try {
-            String paymentUrl = paymentService.createVNPayPaymentUrl(request, orderCode, principal.getName());
+            String paymentUrl = paymentService.createVNPayPaymentUrl(request, orderCode, principal.getName(), deliveryMode);
             Map<String, String> response = new HashMap<>();
             response.put("paymentUrl", paymentUrl);
             return ResponseEntity.ok(response);

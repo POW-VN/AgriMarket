@@ -11,6 +11,7 @@ import {
   CheckSquare,
   Folder,
   ShoppingCart,
+  Package,
   CreditCard,
   MessageSquare,
   BarChart3,
@@ -428,7 +429,7 @@ export default function LiveManagement() {
         {/* Header - Matching Image 1 */}
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input
               type="text"
               placeholder="Tìm kiếm phiên live, nhà vườn..."
@@ -439,8 +440,8 @@ export default function LiveManagement() {
           </div>
 
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => navigate("/admin/notifications")}>
-              <span>🔔</span>
+            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => navigate("/admin/notifications")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
               <span className="admin-notification-dot"></span>
             </button>
             <div className="admin-profile-dropdown-trigger">
@@ -742,7 +743,7 @@ export default function LiveManagement() {
         <div className="products-modal-overlay" onClick={() => setViewingProductsList(null)}>
           <div className="products-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="products-modal-header">
-              <h3>📦 Danh sách sản phẩm live</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: "6px" }}><Package size={18} /> Danh sách sản phẩm live</h3>
               <button className="btn-close-modal" onClick={() => setViewingProductsList(null)}>
                 &times;
               </button>

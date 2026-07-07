@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { MapPin, Calendar, Phone, Leaf, CheckCircle, Star as StarIcon, ShoppingCart, UserCheck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import profileService from "../../../services/profileService";
-import { getAllApprovedProducts } from "../../../services/productService";
+import { getAllApprovedProducts, getApprovedProductsPaged } from "../../../services/productService";
 import wishlistService from "../../../services/wishlistService";
 import apiClient from "../../../services/apiClient";
 import chatLogo from "../../../assets/images/chat-logo.png";
 import authService from "../../../services/authService";
 import cartService from "../../../services/cartService";
 import "./FarmerProfile.css";
+import "../../Home/Home.css";
 
 const formatDate = (dateString) => {
   if (!dateString) return "Chưa cập nhật";
@@ -41,6 +43,7 @@ export default function FarmerProfile() {
   const [activeLiveId, setActiveLiveId] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
+  const [favorites, setFavorites] = useState([]);
 
   const triggerToast = (msg, type = "success") => {
     setToastMessage(msg);
@@ -48,6 +51,38 @@ export default function FarmerProfile() {
     setTimeout(() => {
       setToastMessage("");
     }, 2500);
+  };
+
+  const toggleFavorite = async (productId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const prodIdStr = String(productId);
+    const isCurrentlyFavorite = favorites.map(String).includes(prodIdStr);
+    setFavorites((prev) =>
+      isCurrentlyFavorite
+        ? prev.filter(id => String(id) !== prodIdStr)
+        : [...prev, prodIdStr]
+    );
+    try {
+      const res = await wishlistService.toggleWishlist(productId);
+      const savedOnServer = res?.saved;
+      if (savedOnServer !== undefined) {
+        setFavorites((prev) => {
+          const prevStr = prev.map(String);
+          if (savedOnServer && !prevStr.includes(prodIdStr)) return [...prev, prodIdStr];
+          if (!savedOnServer && prevStr.includes(prodIdStr)) return prev.filter(id => String(id) !== prodIdStr);
+          return prev;
+        });
+      }
+      triggerToast(res?.message || "Đã cập nhật danh sách yêu thích.", "success");
+    } catch (err) {
+      setFavorites((prev) =>
+        isCurrentlyFavorite
+          ? [...prev, prodIdStr]
+          : prev.filter(id => String(id) !== prodIdStr)
+      );
+      triggerToast("Không thể cập nhật danh sách yêu thích.", "error");
+    }
   };
 
   const handleAddToCart = async (product) => {
@@ -107,11 +142,9 @@ export default function FarmerProfile() {
     const loadProfileData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch products first to filter and extract farmer info if needed
-        const allProducts = await getAllApprovedProducts();
-        const farmerProds = allProducts.filter(
-          (p) => String(p.farmerId) === String(id)
-        );
+        // 1. Fetch products from server filtered by farmerId
+        const pagedResult = await getApprovedProductsPaged({ farmerId: id, size: 100 });
+        const farmerProds = pagedResult.content || [];
         setProducts(farmerProds);
 
         // 2. Fetch specific farmer details from backend
@@ -162,6 +195,17 @@ export default function FarmerProfile() {
         setFarmer(finalFarmer);
         const followStatus = await wishlistService.isFarmerFollowed(finalFarmer.id);
         setIsFollowed(followStatus);
+
+        // Load wishlist / favorites for current user
+        try {
+          const currentUser = authService.getCurrentUser();
+          if (currentUser) {
+            const ids = await wishlistService.getWishlistIds();
+            setFavorites((ids || []).map(String));
+          }
+        } catch (wishErr) {
+          console.warn("Failed to load wishlist in FarmerProfile:", wishErr);
+        }
 
         // 3. Check if farmer has active livestream
         let foundLiveId = null;
@@ -386,8 +430,8 @@ export default function FarmerProfile() {
                   Nhắn tin ngay
                 </button>
 
-                <div className="farmer-phone-info">
-                  📞 Gọi điện: {farmer.phone || '0337 222 769'}
+                <div className="farmer-phone-info" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  <Phone size={14} /> Gọi điện: {farmer.phone || '0337 222 769'}
                 </div>
 
                 <button className={`btn-follow-farmer ${isFollowed ? "followed" : ""}`} onClick={handleToggleFollow}>
@@ -399,7 +443,7 @@ export default function FarmerProfile() {
             {/* Info / Metadata Card */}
             <div className="farmer-info-card">
               <div className="info-row">
-                <span className="info-icon">📍</span>
+                <span className="info-icon" style={{ display: "inline-flex", alignItems: "center" }}><MapPin size={18} /></span>
                 <div className="info-text">
                   <span className="info-label">Địa điểm</span>
                   <span className="info-value">{farmer.farmAddress}</span>
@@ -407,13 +451,12 @@ export default function FarmerProfile() {
               </div>
 
               <div className="info-row">
-                <span className="info-icon">📅</span>
+                <span className="info-icon" style={{ display: "inline-flex", alignItems: "center" }}><Calendar size={18} /></span>
                 <div className="info-text">
                   <span className="info-label">Đã tham gia</span>
                   <span className="info-value">{farmer.joinedDate}</span>
                 </div>
               </div>
-
             </div>
 
           </aside>
@@ -438,7 +481,7 @@ export default function FarmerProfile() {
                     onClick={() => handleCertClick("organic", farmer.organicUrl)}
                     title="Click để xem chứng nhận Hữu cơ"
                   >
-                    <span className="cert-dot">🌱</span>
+                    <span className="cert-dot" style={{ display: "inline-flex", alignItems: "center" }}><Leaf size={13} /></span>
                     <span>Chứng nhận Hữu cơ</span>
                   </div>
                 )}
@@ -448,7 +491,7 @@ export default function FarmerProfile() {
                     onClick={() => handleCertClick("vietgap", farmer.vietgapUrl)}
                     title="Click để xem chứng nhận VietGAP"
                   >
-                    <span className="cert-dot">✓</span>
+                    <span className="cert-dot" style={{ display: "inline-flex", alignItems: "center" }}><CheckCircle size={13} /></span>
                     <span>Chứng nhận VietGAP</span>
                   </div>
                 )}
@@ -458,7 +501,7 @@ export default function FarmerProfile() {
                     onClick={() => handleCertClick("globalgap", farmer.globalgapUrl)}
                     title="Click để xem chứng nhận GlobalGAP"
                   >
-                    <span className="cert-dot">★</span>
+                    <span className="cert-dot" style={{ display: "inline-flex", alignItems: "center" }}><StarIcon size={13} /></span>
                     <span>Chứng nhận GlobalGAP</span>
                   </div>
                 )}
@@ -478,45 +521,73 @@ export default function FarmerProfile() {
                 {products.map((p) => (
                   <div
                     key={p.id}
-                    className="product-card-item"
+                    className="new-product-card"
                     onClick={() => navigate(`/products/${p.id}`)}
+                    style={{ cursor: "pointer" }}
                   >
-                    <div className="product-card-img-wrapper">
-                      <img src={p.imageUrl} alt={p.name} className="product-card-img" />
-                      {p.organicUrl || p.farmerOrganicUrl ? (
-                        <span className="product-badge organic">Hữu cơ</span>
-                      ) : p.vietgapUrl || p.farmerVietgapUrl ? (
-                        <span className="product-badge bestseller">VietGAP</span>
-                      ) : (
-                        <span className="product-badge bestseller">Bán chạy</span>
-                      )}
+                    <div className="new-card-img-wrapper">
+                      <img src={p.imageUrl || p.thumbnailUrl} alt={p.name} className="new-card-img" />
+                      {p.farmerOrganicUrl ? (
+                        <span className="new-card-cert-tag">Hữu cơ</span>
+                      ) : p.farmerVietgapUrl ? (
+                        <span className="new-card-cert-tag vietgap-tag">VietGAP</span>
+                      ) : p.farmerGlobalgapUrl ? (
+                        <span className="new-card-cert-tag globalgap-tag">GlobalGAP</span>
+                      ) : null}
+                      <button
+                        className={`new-card-favorite-btn ${favorites.map(String).includes(String(p.id)) ? "active" : ""}`}
+                        aria-label="Yêu thích"
+                        onClick={(e) => toggleFavorite(p.id, e)}
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill={favorites.map(String).includes(String(p.id)) ? "#DC2626" : "none"}
+                          stroke={favorites.map(String).includes(String(p.id)) ? "#DC2626" : "currentColor"}
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
                     </div>
 
-                    <div className="product-card-body">
-                      <span className="product-card-category">{p.category || "Rau củ quả"}</span>
-                      <h4 className="product-card-title">{p.name}</h4>
+                    <div className="new-card-body">
+                      <div className="new-card-body-top">
+                        <span className="new-card-category">{(p.categoryName || p.category || "Nông sản").toUpperCase()}</span>
+                        <h3 className="new-card-title" title={p.name}>{p.name}</h3>
 
-                      <div className="product-card-footer">
-                        <div className="product-card-price-box">
-                          <span className="price-val">{formatPrice(p.price)}</span>
-                          <span className="price-unit">/ {p.unit || "kg"}</span>
+
+
+                        <div className="new-card-rating-sold-row">
+                          <div className="new-card-rating">
+                            <span className="star-gold">★</span>
+                            <span className="rating-value">{p.rating ? p.rating.toFixed(1) : "0.0"}</span>
+                            <span className="reviews-count">({p.reviewsCount || 0})</span>
+                          </div>
+                          <span className="new-card-sold">Đã bán {p.sold || "0"}</span>
+                        </div>
+                      </div>
+
+                      <div className="new-card-price-cart-row">
+                        <div className="new-card-price-col">
+                          <span className="new-card-price">
+                            {(p.price || 0).toLocaleString("vi-VN")}đ
+                          </span>
+                          <span className="price-unit"> / {p.unit || "kg"}</span>
                         </div>
 
                         <button
-                          className="btn-add-quick-cart"
+                          className="new-card-add-cart-btn"
+                          aria-label="Thêm vào giỏ hàng"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAddToCart(p);
                           }}
-                          aria-label="Thêm vào giỏ"
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="9" cy="21" r="1"></circle>
-                            <circle cx="20" cy="21" r="1"></circle>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                            <line x1="12" y1="10" x2="16" y2="10"></line>
-                            <line x1="14" y1="8" x2="14" y2="12"></line>
-                          </svg>
+                          <ShoppingCart size={16} />
                         </button>
                       </div>
                     </div>
@@ -550,24 +621,9 @@ export default function FarmerProfile() {
 
       {toastMessage && (
         <div className={`farmer-toast farmer-toast-${toastType}`}>
-          {toastType === "success" ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          ) : toastType === "error" ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          )}
+          <span style={{ display: "inline-flex", alignItems: "center" }}>
+            {toastType === "success" ? <CheckCircle2 size={16} /> : toastType === "error" ? <XCircle size={16} /> : <AlertTriangle size={16} />}
+          </span>
           <span>{toastMessage}</span>
         </div>
       )}

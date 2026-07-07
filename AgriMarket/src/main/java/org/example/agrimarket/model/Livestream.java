@@ -63,6 +63,9 @@ public class Livestream {
     @Column(name = "pinned_comment_text", columnDefinition = "TEXT")
     private String pinnedCommentText;
 
+    @Column(name = "ban_reason", length = 255)
+    private String banReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

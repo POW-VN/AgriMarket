@@ -21,6 +21,10 @@ public class ConversationResponseDTO {
     private String type;
     private String description;
     private String blockedBy;
+    private String partnerId;
+    private String memberLevel;
+    private String joinedDate;
+    private Long completedOrdersCount;
     private List<ChatMessageResponseDTO> messages;
     private List<String> mediaImages;
 }

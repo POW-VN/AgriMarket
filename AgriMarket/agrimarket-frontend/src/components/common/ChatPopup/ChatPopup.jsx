@@ -22,7 +22,7 @@ import {
   Download,
   MessageCircle
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import chatService from "../../../services/chatService";
 import authService from "../../../services/authService";
 import "./ChatPopup.css";
@@ -54,6 +54,7 @@ const QUICK_REPLIES = [
 
 export const ChatPopup = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isFarmerDashboard = location.pathname === "/farmer" || location.pathname.startsWith("/farmer/");
   const shouldHideChat = isFarmerDashboard || 
@@ -61,11 +62,6 @@ export const ChatPopup = () => {
                          location.pathname.startsWith("/shipper") ||
                          location.pathname.startsWith("/login") ||
                          location.pathname.startsWith("/register");
-
-  if (shouldHideChat) {
-    return null;
-  }
-
   const [isOpen, setIsOpen] = useState(false);
   const [activeView, setActiveView] = useState("list"); // 'list' | 'chat' | 'new-chat'
   const [selectedFarm, setSelectedFarm] = useState(null);
@@ -498,6 +494,10 @@ export const ChatPopup = () => {
   });
 
   const currentChatDetail = selectedFarm ? chats.find(c => String(c.id) === String(selectedFarm.id)) : null;
+
+  if (shouldHideChat) {
+    return null;
+  }
 
   return (
     <div className={`zalo-chat-container ${isOpen ? "zalo-popup-open" : ""}`}>
@@ -1141,7 +1141,18 @@ export const ChatPopup = () => {
                 </div>
                 
                 <div className="zalo-info-modal-footer-two-buttons">
-                  <button className="zalo-info-btn-secondary" onClick={() => handleFeatureUnderDevelopment("Xem cửa hàng nông nghiệp")}>
+                  <button 
+                    className="zalo-info-btn-secondary" 
+                    onClick={() => {
+                      if (currentChatDetail && currentChatDetail.partnerId) {
+                        navigate(`/farmer-profile/${currentChatDetail.partnerId}`);
+                        setShowInfoModal(false);
+                        setIsOpen(false);
+                      } else {
+                        handleFeatureUnderDevelopment("Xem cửa hàng nông nghiệp");
+                      }
+                    }}
+                  >
                     Xem cửa hàng
                   </button>
                   <button className="zalo-info-btn-primary" onClick={() => setShowInfoModal(false)}>

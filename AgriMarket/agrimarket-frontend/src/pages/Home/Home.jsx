@@ -16,7 +16,8 @@ import {
   MapPin
 } from "lucide-react";
 import authService from "../../services/authService";
-import { getAllApprovedProducts } from "../../services/productService";
+import profileService from "../../services/profileService";
+import { getAllApprovedProducts, getApprovedProductsPaged } from "../../services/productService";
 import cartService from "../../services/cartService";
 import apiClient from "../../services/apiClient";
 import wishlistService from "../../services/wishlistService";
@@ -37,24 +38,7 @@ const MAIN_CATEGORIES = [
   { name: "Chăn nuôi", icon: <Egg size={20} /> }
 ];
 
-const MOCK_FARMS = [
-  {
-    id: "farm-1",
-    name: "GreenFarm Củ Chi",
-    distance: "3.2km",
-    description: "Chuyên cung cấp các loại rau lá hữu cơ và nấm sạch theo tiêu chuẩn công nghệ cao. Giao hà...",
-    badge: "VƯỜN AN TOÀN",
-    tags: ["Huu_co", "Giao_nhanh"],
-    imageUrl: "https://images.unsplash.com/photo-1595855759920-86582396756a?w=600"
-  },
-  {
-    id: "farm-2",
-    name: "Vườn Thanh Long 10",
-    distance: "8.5km",
-    description: "Thanh long ruột đỏ xuất khẩu, độ ngọt cao, không thuốc trừ sâu.",
-    imageUrl: "https://images.unsplash.com/photo-1527334919514-3c86290298c1?w=600"
-  }
-];
+const MOCK_FARMS = [];
 
 const HERO_SLIDES = [
   {
@@ -109,6 +93,7 @@ const Home = () => {
   const [activeFarms, setActiveFarms] = useState([]);
   const [activeLives, setActiveLives] = useState([]);
   const [selectedSort, setSelectedSort] = useState("popular");
+  const [hasDefaultAddress, setHasDefaultAddress] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   // Remaining time calculations for Flash Sale (countdown to end of day)
@@ -163,18 +148,46 @@ const Home = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const data = await getAllApprovedProducts();
-        setProducts(data);
+        let freshUser = authService.getCurrentUser();
+        if (freshUser) {
+          try {
+            const freshProfile = await profileService.getCurrentProfile();
+            if (freshProfile) {
+              freshUser = freshProfile;
+              setUser(freshProfile);
+            }
+          } catch (profileErr) {
+            console.warn("Failed to fetch fresh profile in Home:", profileErr);
+          }
+        }
+
+        // Dùng server-side pagination để giới hạn dữ liệu, tải tối đa 100 sản phẩm cho trang chủ
+        const pagedResult = await getApprovedProductsPaged({ page: 0, size: 100, sort: "popular" });
+        const data = pagedResult.content;
+        
+        // Chỉ hiển thị sản phẩm preorder khi ngày hiện tại đã tới hoặc vượt quá ngày thu hoạch
+        const todayStr = new Date().toISOString().split("T")[0];
+        const visibleProducts = data.filter(p => {
+          if (p.isPreorder) {
+            if (!p.harvestDate) return false;
+            return p.harvestDate <= todayStr;
+          }
+          return true;
+        });
+
+        setProducts(visibleProducts);
 
         // Extract active farms from products database data
         const uniqueFarmers = [];
         const seenFarmerIds = new Set();
 
         // Get user coordinates
-        const currentUser = authService.getCurrentUser();
-        const defaultAddress = currentUser?.addresses?.find(addr => addr.isDefault) || currentUser?.addresses?.[0] || null;
-        const userLat = defaultAddress?.latitude !== undefined && defaultAddress?.latitude !== null ? Number(defaultAddress.latitude) : 10.762622;
-        const userLon = defaultAddress?.longitude !== undefined && defaultAddress?.longitude !== null ? Number(defaultAddress.longitude) : 106.660172;
+        const defaultAddress = freshUser?.addresses?.find(addr => addr.isDefault) || null;
+        const hasAddr = defaultAddress !== null && defaultAddress?.latitude !== undefined && defaultAddress?.latitude !== null && defaultAddress?.longitude !== undefined && defaultAddress?.longitude !== null;
+        setHasDefaultAddress(hasAddr);
+
+        const userLat = hasAddr ? Number(defaultAddress.latitude) : 10.762622;
+        const userLon = hasAddr ? Number(defaultAddress.longitude) : 106.660172;
 
         for (const p of data) {
           if (p.farmerId && !seenFarmerIds.has(p.farmerId)) {
@@ -195,14 +208,21 @@ const Home = () => {
               distanceStr = `${distVal.toFixed(1)}km`;
             }
 
+            // Build badges array from all certifications
+            const farmBadges = [];
+            if (p.farmerOrganicUrl) farmBadges.push({ label: "ORGANIC", color: "#16a34a" });
+            if (p.farmerGlobalgapUrl) farmBadges.push({ label: "GLOBALGAP", color: "#2563eb" });
+            if (p.farmerVietgapUrl) farmBadges.push({ label: "VIETGAP", color: "#d97706" });
+            if (farmBadges.length === 0) farmBadges.push({ label: "VƯỜN AN TOÀN", color: "#6b7280" });
+
             uniqueFarmers.push({
               id: p.farmerId,
               name: p.farmerName || "Nhà vườn AgriMarket",
               distanceVal: distVal,
               distance: distanceStr,
               description: p.farmDescription || "Chuyên cung cấp các loại rau quả nông sản tươi ngon sạch đạt chuẩn.",
-              badge: p.farmerOrganicUrl ? "ORGANIC" : p.farmerGlobalgapUrl ? "GLOBALGAP" : p.farmerVietgapUrl ? "VIETGAP" : "VƯỜN AN TOÀN",
-              tags: p.category ? [p.category, "Sạch"] : ["Nông sản", "Hữu cơ"],
+              badges: farmBadges,
+              farmAddress: p.farmLocation || "",
               imageUrl: p.farmerAvatarUrl || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600"
             });
           }
@@ -237,6 +257,11 @@ const Home = () => {
     };
     fetchProducts();
 
+    const loadLocalCartCount = () => {
+      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      setCartItemsCount(savedCart.length);
+    };
+
     const fetchCartCount = async () => {
       if (currentUser) {
         try {
@@ -252,11 +277,6 @@ const Home = () => {
     };
 
     fetchCartCount();
-
-    const loadLocalCartCount = () => {
-      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-      setCartItemsCount(savedCart.length);
-    };
 
     const loadWishlist = async () => {
       try {
@@ -791,56 +811,139 @@ const Home = () => {
         )}
 
         {/* Nông trại gần bạn Section (Synchronized with Database Farmers) */}
-        {activeFarms.length >= 2 && (
-          <section className="new-farms-section">
-            <div className="new-farms-header">
-              <div>
-                <h2 className="new-section-title">Nhà vườn gần bạn</h2>
-              </div>
+        <section className="new-farms-section">
+          <div className="new-farms-header">
+            <div>
+              <h2 className="new-section-title">Nhà vườn gần bạn</h2>
+            </div>
+            {hasDefaultAddress && activeFarms.length >= 1 && (
               <button className="new-farms-map-btn" onClick={() => navigate("/farms")}>
                 Bản đồ nông trại
               </button>
-            </div>
+            )}
+          </div>
 
-            <div className="new-farms-grid">
-              {/* Wide Farm Card (activeFarms[0]) */}
-              <div className="new-farm-card wide-farm-card">
-                <div className="farm-card-left-img" style={{ backgroundImage: `url(${activeFarms[0].imageUrl})` }}></div>
-                <div className="farm-card-right-info">
-                  <div className="farm-card-meta">
-                    <span className="farm-badge-secure">{activeFarms[0].badge}</span>
-                    <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[0].distance}</span>
+          {hasDefaultAddress ? (
+            activeFarms.length >= 1 ? (
+              <div className="new-farms-grid" style={activeFarms.length === 1 ? { gridTemplateColumns: "1fr" } : {}}>
+                {/* Wide Farm Card (activeFarms[0]) */}
+                <div className="new-farm-card wide-farm-card">
+                  <div className="farm-card-left-img" style={{ backgroundImage: `url(${activeFarms[0].imageUrl})` }}></div>
+                  <div className="farm-card-right-info">
+                    <div className="farm-card-meta">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
+                        {(activeFarms[0].badges || [{ label: activeFarms[0].badge || "VƯỜN AN TOÀN", color: "#6b7280" }]).map(b => (
+                          <span key={b.label} className="farm-badge-secure" style={{ backgroundColor: b.color + "18", color: b.color, borderColor: b.color + "40" }}>{b.label}</span>
+                        ))}
+                      </div>
+                      <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[0].distance}</span>
+                    </div>
+                    <h3 className="farm-card-title">{activeFarms[0].name}</h3>
+                    <p className="farm-card-desc">{activeFarms[0].description}</p>
+                    {activeFarms[0].farmAddress && (
+                      <div className="farm-card-tags">
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#6b7280" }}>
+                          <MapPin size={11} />{activeFarms[0].farmAddress}
+                        </span>
+                      </div>
+                    )}
+                    <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[0].id}`)}>
+                      Ghé thăm gian hàng
+                    </button>
                   </div>
-                  <h3 className="farm-card-title">{activeFarms[0].name}</h3>
-                  <p className="farm-card-desc">{activeFarms[0].description}</p>
-                  <div className="farm-card-tags">
-                    {activeFarms[0].tags.map(t => (
-                      <span key={t} className="farm-hashtag">#{t}</span>
-                    ))}
-                  </div>
-                  <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[0].id}`)}>
-                    Ghé thăm gian hàng
-                  </button>
                 </div>
-              </div>
 
-              {/* Standard/Narrow Farm Card (activeFarms[1]) */}
-              <div className="new-farm-card narrow-farm-card">
-                <div className="farm-card-top-img" style={{ backgroundImage: `url(${activeFarms[1].imageUrl})` }}></div>
-                <div className="farm-card-bottom-info">
-                  <div className="farm-card-meta">
-                    <h3 className="farm-card-title">{activeFarms[1].name}</h3>
-                    <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[1].distance}</span>
+                {/* Standard/Narrow Farm Card (activeFarms[1]) */}
+                {activeFarms.length >= 2 && (
+                  <div className="new-farm-card narrow-farm-card">
+                    <div className="farm-card-top-img" style={{ backgroundImage: `url(${activeFarms[1].imageUrl})` }}></div>
+                    <div className="farm-card-bottom-info">
+                      <div className="farm-card-meta">
+                        <h3 className="farm-card-title">{activeFarms[1].name}</h3>
+                        <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[1].distance}</span>
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
+                        {(activeFarms[1].badges || [{ label: activeFarms[1].badge || "VƯỜN AN TOÀN", color: "#6b7280" }]).map(b => (
+                          <span key={b.label} className="farm-badge-secure" style={{ backgroundColor: b.color + "18", color: b.color, borderColor: b.color + "40", fontSize: "10px" }}>{b.label}</span>
+                        ))}
+                      </div>
+                      <p className="farm-card-desc">{activeFarms[1].description}</p>
+                      {activeFarms[1].farmAddress && (
+                        <p style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#6b7280", margin: "0 0 8px 0" }}>
+                          <MapPin size={11} />{activeFarms[1].farmAddress}
+                        </p>
+                      )}
+                      <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[1].id}`)}>
+                        Xem sản phẩm
+                      </button>
+                    </div>
                   </div>
-                  <p className="farm-card-desc">{activeFarms[1].description}</p>
-                  <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[1].id}`)}>
-                    Xem sản phẩm
-                  </button>
-                </div>
+                )}
               </div>
+            ) : (
+              <div className="empty-farms-state" style={{ textAlign: "center", padding: "40px 20px", color: "#6b7280", border: "1px dashed #e5e7eb", borderRadius: "16px" }}>
+                Không tìm thấy nhà vườn nào có sản phẩm được phê duyệt xung quanh bạn.
+              </div>
+            )
+          ) : (
+            <div className="farms-address-required-card" style={{
+              background: "linear-gradient(135deg, rgba(240, 253, 244, 0.5) 0%, rgba(254, 243, 199, 0.3) 100%)",
+              border: "1px dashed #10b981",
+              borderRadius: "24px",
+              padding: "48px 24px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "16px",
+              boxShadow: "0 10px 30px -10px rgba(16, 185, 129, 0.08)",
+              backdropFilter: "blur(8px)"
+            }}>
+              <div style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                color: "#10b981",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "8px"
+              }}>
+                <MapPin size={28} />
+              </div>
+              <h3 style={{ fontSize: "20px", color: "#065f46", fontWeight: "700", margin: 0 }}>Định vị nhà vườn gần bạn</h3>
+              <p style={{ fontSize: "14.5px", color: "#4b5563", maxWidth: "540px", margin: "0 auto 8px auto", lineHeight: "1.6" }}>
+                {user ? "Bạn chưa thiết lập địa chỉ nhận hàng mặc định. Vui lòng cập nhật địa chỉ mặc định để chúng tôi định vị các nhà vườn gần bạn nhất." : "Vui lòng đăng nhập và thiết lập địa chỉ nhận hàng mặc định để tìm kiếm các nhà vườn gần vị trí của bạn nhất."}
+              </p>
+              <button 
+                onClick={() => navigate(user ? "/profile/edit" : "/login")}
+                style={{
+                  backgroundColor: "#10b981",
+                  color: "#ffffff",
+                  padding: "12px 28px",
+                  borderRadius: "14px",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 4px 14px rgba(16, 185, 129, 0.25)"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = "#059669";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "#10b981";
+                  e.currentTarget.style.transform = "none";
+                }}
+              >
+                {user ? "Cập nhật địa chỉ mặc định" : "Đăng nhập để cập nhật"}
+              </button>
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* Sản phẩm nổi bật Section */}
         <section className="new-featured-section">

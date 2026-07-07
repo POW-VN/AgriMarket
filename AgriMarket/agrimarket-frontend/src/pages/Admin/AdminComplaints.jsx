@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Search, Bell, Package } from "lucide-react";
 import supportRequestService from "../../services/supportRequestService";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
@@ -244,7 +245,7 @@ export default function AdminComplaints() {
         {/* Filter Bar */}
         <div className="admin-filters-bar">
           <div className="filter-search-wrapper">
-            <span className="filter-search-icon">🔍</span>
+            <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input
               type="text"
               placeholder="Tìm theo Mã, Tiêu đề, Người gửi..."
@@ -444,8 +445,8 @@ export default function AdminComplaints() {
             {/* Related Order (if any) */}
             {req.orderCode && (
               <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
-                <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  📦 Đơn hàng liên quan
+                <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Package size={18} /> Đơn hàng liên quan
                 </h4>
                 <p style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "#0f766e" }}>
                   {req.orderCode}
@@ -604,7 +605,7 @@ export default function AdminComplaints() {
         {/* Header */}
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input
               type="text"
               className="admin-search-input"
@@ -615,8 +616,8 @@ export default function AdminComplaints() {
           </div>
 
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")}>
-              <span>🔔</span>
+            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
               <span className="admin-notification-dot"></span>
             </button>
             <div className="admin-profile-pill" style={{ display: "flex", alignItems: "center", gap: "8px", borderLeft: "1px solid var(--admin-border)", paddingLeft: "12px" }}>

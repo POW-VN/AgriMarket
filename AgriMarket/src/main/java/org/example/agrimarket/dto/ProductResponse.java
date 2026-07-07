@@ -47,4 +47,7 @@ public class ProductResponse {
     private Double farmerLatitude;
     private Double farmerLongitude;
     private Double farmerMaxDeliveryDistance;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPreorder")
+    private Boolean isPreorder;
+    // Trigger comment
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cart")
@@ -94,4 +95,21 @@ public class CartController {
         List<CartItemResponse> cart = cartService.syncCart(principal.getName(), guestItems);
         return ResponseEntity.ok(cart);
     }
+
+    @PutMapping("/bulk-check")
+    public ResponseEntity<?> bulkCheck(Principal principal, @RequestBody Map<String, Object> payload) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            List<Long> productIds = ((List<?>) payload.get("productIds"))
+                    .stream().map(id -> Long.valueOf(id.toString())).collect(java.util.stream.Collectors.toList());
+            boolean checked = Boolean.parseBoolean(payload.get("checked").toString());
+            cartService.bulkUpdateChecked(principal.getName(), productIds, checked);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
 }
+

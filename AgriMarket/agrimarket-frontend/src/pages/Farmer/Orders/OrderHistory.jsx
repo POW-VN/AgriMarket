@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { ChevronDown, Download, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import orderService from "../../../services/orderService";
+import * as preorderService from "../../../services/preorderService";
 import "./OrderHistory.css";
 
 const ORDER_STATUS_CONFIG = {
@@ -61,6 +62,8 @@ export const OrderHistory = () => {
   const navigate = useNavigate();
   const { farmerProfile } = useOutletContext();
   const [orders, setOrders] = useState([]);
+  const [preorders, setPreorders] = useState([]);
+  const [orderType, setOrderType] = useState("regular"); // "regular" | "preorder"
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
@@ -95,8 +98,12 @@ export const OrderHistory = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = await orderService.getFarmerOrders();
-      setOrders(data);
+      const [regularData, preorderData] = await Promise.all([
+        orderService.getFarmerOrders(),
+        preorderService.getFarmerPreorders()
+      ]);
+      setOrders(regularData);
+      setPreorders(preorderData);
     } catch (err) {
       console.error("Lỗi khi tải đơn hàng:", err);
       showToast("Không thể tải danh sách đơn hàng.", "error");
@@ -104,6 +111,18 @@ export const OrderHistory = () => {
       setLoading(false);
     }
   };
+
+  const handleUpdatePreorderStatus = async (preorderId, newStatus) => {
+    try {
+      await preorderService.updatePreorderStatus(preorderId, newStatus);
+      showToast("Cập nhật trạng thái thành công!", "success");
+      fetchOrders();
+    } catch (err) {
+      console.error("Lỗi khi cập nhật trạng thái đặt trước:", err);
+      showToast("Cập nhật trạng thái thất bại.", "error");
+    }
+  };
+
 
   const handleExportCSV = () => {
     if (orders.length === 0) {
@@ -150,9 +169,51 @@ export const OrderHistory = () => {
     : (farmerProfile?.ratingAverage || 4.8);
   const ratingsCount = ratedOrders.length > 0 ? ratedOrders.length : 0;
 
+  // Normalize preorders
+  const normalizedPreorders = useMemo(() => {
+    return (preorders || []).map(po => {
+      const totalAmount = po.items ? po.items.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0) : 0;
+      const statusLabels = {
+        pending: "Chờ cọc",
+        paid: "Đã cọc / Đang trồng",
+        cancelled: "Đã hủy",
+        completed: "Đã hoàn thành"
+      };
+      
+      const firstItem = po.items && po.items[0] ? po.items[0] : {};
+      
+      return {
+        id: `PO-${po.id}`,
+        dbId: po.id,
+        isPreorder: true,
+        date: po.createdAt ? new Date(po.createdAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
+        recipient: po.customerName || "Khách hàng",
+        phone: "Chờ cọc",
+        amount: totalAmount,
+        rating: null,
+        status: po.status,
+        statusLabel: statusLabels[po.status] || po.status,
+        itemsSummary: po.items ? po.items.map(i => `${i.productName} (${i.quantity} ${i.productUnit || 'kg'})`).join(", ") : "",
+        expectedHarvestDate: firstItem.expectedHarvestDate ? new Date(firstItem.expectedHarvestDate).toLocaleDateString("vi-VN") : "Đang cập nhật",
+      };
+    });
+  }, [preorders]);
+
+  const activeOrdersList = orderType === "regular" ? safeOrders : normalizedPreorders;
+
+  const preorderPendingCount = normalizedPreorders.filter(o => o.status === "pending").length;
+  const preorderPaidCount = normalizedPreorders.filter(o => o.status === "paid").length;
+  const preorderCompletedCount = normalizedPreorders.filter(o => o.status === "completed").length;
+
+  // Reset filter when type changes
+  useEffect(() => {
+    setOrderStatusFilter("all");
+    setOrderCurrentPage(1);
+  }, [orderType]);
+
   // Filtering & Pagination
   const filteredOrders = useMemo(() => {
-    return safeOrders.filter((o) => {
+    return activeOrdersList.filter((o) => {
       if (!o) return false;
       const orderIdStr = o.id ? String(o.id) : "";
       const recipientStr = o.recipient ? String(o.recipient) : "";
@@ -160,7 +221,7 @@ export const OrderHistory = () => {
       const matchFilter = orderStatusFilter === "all" ? true : o.status === orderStatusFilter;
       return matchSearch && matchFilter;
     });
-  }, [safeOrders, orderSearch, orderStatusFilter]);
+  }, [activeOrdersList, orderSearch, orderStatusFilter]);
 
   const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
   const paginatedOrders = useMemo(() => {
@@ -171,30 +232,91 @@ export const OrderHistory = () => {
     setOrderCurrentPage(1);
   }, [orderSearch, orderStatusFilter]);
 
-  const activeOption = STATUS_FILTER_OPTIONS.find(opt => opt.value === orderStatusFilter) || STATUS_FILTER_OPTIONS[0];
+  const PREORDER_STATUS_FILTER_OPTIONS = [
+    { value: "all",        label: "Tất cả đơn đặt trước", dot: null },
+    { value: "pending",    label: "Chờ cọc",             dot: "#f59e0b" },
+    { value: "paid",       label: "Đã cọc / Đang trồng",  dot: "#3b82f6" },
+    { value: "cancelled",  label: "Đã hủy",             dot: "#ef4444" },
+    { value: "completed",  label: "Đã hoàn thành",       dot: "#10b981" },
+  ];
+
+  const currentStatusOptions = orderType === "regular" ? STATUS_FILTER_OPTIONS : PREORDER_STATUS_FILTER_OPTIONS;
+  const activeOption = currentStatusOptions.find(opt => opt.value === orderStatusFilter) || currentStatusOptions[0];
+
+  const PREORDER_STATUS_CONFIG = {
+    pending:   { label: "Chờ cọc",             cls: "oh-st-pending",   color: "#f59e0b" },
+    paid:      { label: "Đã cọc / Đang trồng",  cls: "oh-st-confirmed", color: "#3b82f6" },
+    cancelled: { label: "Đã hủy",             cls: "oh-st-cancelled", color: "#ef4444" },
+    completed: { label: "Đã hoàn thành",       cls: "oh-st-delivered", color: "#10b981" },
+  };
+
 
   return (
     <div className="fd-orders-tab">
+
+      {/* Segment Tabs to toggle between Order types */}
+      <div className="oh-tabs-wrapper" style={{ display: "flex", gap: "12px", marginBottom: "20px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+        <button 
+          className={`oh-tab-item ${orderType === "regular" ? "active" : ""}`}
+          onClick={() => setOrderType("regular")}
+          style={{
+            padding: "8px 16px",
+            border: "none",
+            background: orderType === "regular" ? "#16a34a" : "transparent",
+            color: orderType === "regular" ? "#fff" : "#475569",
+            fontWeight: "700",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "14px",
+            transition: "all 0.2s"
+          }}
+        >
+          Đơn mua ngay
+        </button>
+        <button 
+          className={`oh-tab-item ${orderType === "preorder" ? "active" : ""}`}
+          onClick={() => setOrderType("preorder")}
+          style={{
+            padding: "8px 16px",
+            border: "none",
+            background: orderType === "preorder" ? "#16a34a" : "transparent",
+            color: orderType === "preorder" ? "#fff" : "#475569",
+            fontWeight: "700",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "14px",
+            transition: "all 0.2s"
+          }}
+        >
+          Đơn đặt trước (Preorder)
+        </button>
+      </div>
 
       {/* Overview stats cards */}
       <div className="oh-stats-grid">
         <div className="oh-stat-card">
           <div className="oh-stat-label">Đơn hoàn thành</div>
-          <div className="oh-stat-num">{loading ? "..." : completedCount}</div>
+          <div className="oh-stat-num">{loading ? "..." : (orderType === "regular" ? completedCount : preorderCompletedCount)}</div>
         </div>
         <div className="oh-stat-card">
-          <div className="oh-stat-label">Chờ xác nhận</div>
-          <div className="oh-stat-num oh-num-orange">{loading ? "..." : awaitingCount}</div>
+          <div className="oh-stat-label">{orderType === "regular" ? "Chờ xác nhận" : "Chờ cọc"}</div>
+          <div className="oh-stat-num oh-num-orange">{loading ? "..." : (orderType === "regular" ? awaitingCount : preorderPendingCount)}</div>
         </div>
         <div className="oh-stat-card">
-          <div className="oh-stat-label">Giá trị trung bình</div>
-          <div className="oh-stat-num">{loading ? "..." : avgValue.toLocaleString("vi-VN")} đ</div>
+          <div className="oh-stat-label">{orderType === "regular" ? "Giá trị trung bình" : "Đơn đã cọc (đang trồng)"}</div>
+          <div className="oh-stat-num">
+            {loading ? "..." : (orderType === "regular" ? `${avgValue.toLocaleString("vi-VN")} đ` : preorderPaidCount)}
+          </div>
         </div>
         <div className="oh-stat-card">
-          <div className="oh-stat-label">Đánh giá trung bình</div>
+          <div className="oh-stat-label">{orderType === "regular" ? "Đánh giá trung bình" : "Tổng số đơn đặt trước"}</div>
           <div className="oh-stat-num oh-num-rating">
-            {loading ? "..." : avgRating} <span className="star">★</span>
-            <span className="count">({ratingsCount})</span>
+            {loading ? "..." : (orderType === "regular" ? (
+              <>
+                {avgRating} <span className="star">★</span>
+                <span className="count">({ratingsCount})</span>
+              </>
+            ) : normalizedPreorders.length)}
           </div>
         </div>
       </div>
@@ -207,7 +329,7 @@ export const OrderHistory = () => {
           </svg>
           <input
             type="text"
-            placeholder="Tìm mã đơn hàng hoặc tên khách hàng..."
+            placeholder={orderType === "regular" ? "Tìm mã đơn hàng hoặc tên khách hàng..." : "Tìm mã preorder hoặc tên khách hàng..."}
             value={orderSearch}
             onChange={(e) => setOrderSearch(e.target.value)}
           />
@@ -226,7 +348,7 @@ export const OrderHistory = () => {
 
             {orderDropdownOpen && (
               <div className="oh-dropdown-menu">
-                {STATUS_FILTER_OPTIONS.map((opt) => (
+                {currentStatusOptions.map((opt) => (
                   <button
                     key={opt.value}
                     className={`oh-dropdown-item ${orderStatusFilter === opt.value ? "active" : ""}`}
@@ -241,7 +363,7 @@ export const OrderHistory = () => {
                     {opt.label}
                     {opt.value !== "all" && (
                       <span className="count-badge">
-                        ({opt.value === "all" ? safeOrders.length : safeOrders.filter(o => o.status === opt.value).length})
+                        ({opt.value === "all" ? activeOrdersList.length : activeOrdersList.filter(o => o.status === opt.value).length})
                       </span>
                     )}
                   </button>
@@ -261,11 +383,11 @@ export const OrderHistory = () => {
         <table className="oh-table">
           <thead>
             <tr>
-              <th>MÃ ĐƠN HÀNG</th>
+              <th>{orderType === "regular" ? "MÃ ĐƠN HÀNG" : "MÃ ĐƠN PREORDER"}</th>
               <th>NGÀY ĐẶT</th>
               <th>KHÁCH HÀNG</th>
               <th>TỔNG TIỀN</th>
-              <th>ĐÁNH GIÁ</th>
+              <th>{orderType === "regular" ? "ĐÁNH GIÁ" : "THU HOẠCH DỰ KIẾN"}</th>
               <th>TRẠNG THÁI</th>
               <th>THAO TÁC</th>
             </tr>
@@ -277,13 +399,15 @@ export const OrderHistory = () => {
               <tr><td colSpan="7" className="oh-empty">Không tìm thấy đơn hàng phù hợp.</td></tr>
             ) : (
               paginatedOrders.map((o) => {
-                const conf = ORDER_STATUS_CONFIG[o.status] || { label: o.status, cls: "" };
+                const conf = orderType === "regular" 
+                  ? (ORDER_STATUS_CONFIG[o.status] || { label: o.status, cls: "" })
+                  : (PREORDER_STATUS_CONFIG[o.status] || { label: o.status, cls: "" });
                 const initials = getInitials(o.recipient);
                 const avColor = getAvatarColor(o.recipient);
                 return (
                   <tr key={o.id} className="oh-row">
                     <td>
-                      <span className="oh-id" onClick={() => navigate(`/farmer/orders/orderdetail/${o.id.replace("#", "")}`)} style={{ cursor: "pointer", color: "#10b981", fontWeight: "600" }}>
+                      <span className="oh-id" style={{ color: "#10b981", fontWeight: "600" }}>
                         {o.id}
                       </span>
                     </td>
@@ -304,14 +428,39 @@ export const OrderHistory = () => {
                       </div>
                     </td>
                     <td className="oh-amount">{(o.amount || 0).toLocaleString("vi-VN")} đ</td>
-                    <td><StarRating rating={o.rating} /></td>
+                    <td>
+                      {orderType === "regular" ? (
+                        <StarRating rating={o.rating} />
+                      ) : (
+                        <span style={{ fontWeight: "600", color: "#475569" }}>{o.expectedHarvestDate}</span>
+                      )}
+                    </td>
                     <td>
                       <span className={`oh-status-badge ${conf.cls}`}>{conf.label}</span>
                     </td>
                     <td>
-                      <button className="oh-btn-view" onClick={() => navigate(`/farmer/orders/orderdetail/${o.id.replace("#", "")}`)}>
-                        Xem
-                      </button>
+                      {orderType === "regular" ? (
+                        <button className="oh-btn-view" onClick={() => navigate(`/farmer/orders/orderdetail/${o.id.replace("#", "")}`)}>
+                          Xem
+                        </button>
+                      ) : (
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          {o.status === "paid" && (
+                            <button 
+                              className="oh-btn-view" 
+                              onClick={() => handleUpdatePreorderStatus(o.dbId, "completed")}
+                              style={{ backgroundColor: "#10b981", color: "#fff", borderColor: "#10b981", fontSize: "12px", padding: "4px 8px" }}
+                            >
+                              Hoàn thành thu hoạch
+                            </button>
+                          )}
+                          <span style={{ fontSize: "12.5px", color: "#64748b" }}>
+                            {o.status === "pending" && "Đợi cọc"}
+                            {o.status === "completed" && "Đã thu hoạch"}
+                            {o.status === "cancelled" && "Đã hủy"}
+                          </span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -320,6 +469,7 @@ export const OrderHistory = () => {
           </tbody>
         </table>
       </div>
+
 
       {/* Pagination */}
       {!loading && filteredOrders.length > ORDERS_PER_PAGE && (

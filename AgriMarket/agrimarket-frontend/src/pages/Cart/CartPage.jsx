@@ -84,46 +84,8 @@ export default function CartPage() {
         const loadLocalCart = async () => {
             let savedCart = JSON.parse(localStorage.getItem("agrimarket_cart"));
 
-            if (!savedCart || savedCart.length === 0) {
-                savedCart = [
-                    {
-                        id: "mock-1",
-                        name: "Cà chua Heirloom hữu cơ",
-                        price: 49900,
-                        unit: "kg",
-                        imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300",
-                        quantity: 2,
-                        checked: true,
-                        stockQuantity: 10,
-                        farmerId: 1,
-                        farmerName: "Trang trại Đà Lạt Xanh"
-                    },
-                    {
-                        id: "mock-2",
-                        name: "Cà rốt gia truyền hữu cơ",
-                        price: 112500,
-                        unit: "bó",
-                        imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=300",
-                        quantity: 1,
-                        checked: true,
-                        stockQuantity: 5,
-                        farmerId: 1,
-                        farmerName: "Trang trại Đà Lạt Xanh"
-                    },
-                    {
-                        id: "mock-3",
-                        name: "Táo Honeycrisp giòn ngọt",
-                        price: 69000,
-                        unit: "kg",
-                        imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300",
-                        quantity: 3,
-                        checked: true,
-                        stockQuantity: 12,
-                        farmerId: 2,
-                        farmerName: "Nông trại Hoa Mặt Trời"
-                    }
-                ];
-
+            if (!savedCart) {
+                savedCart = [];
                 localStorage.setItem("agrimarket_cart", JSON.stringify(savedCart));
             }
 
@@ -185,13 +147,9 @@ export default function CartPage() {
     }, [cartItems]);
 
     const serviceFee = subtotal > 0 ? 15000 : 0;
-    const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
+    const shippingFee = 0;
     const discountAmount = 0;
-    const totalAmount = subtotal + serviceFee + shippingFee - discountAmount;
-
-    const freeShipProgress = useMemo(() => {
-        return Math.min((subtotal / 500000) * 100, 100);
-    }, [subtotal]);
+    const totalAmount = subtotal + serviceFee - discountAmount;
 
     const formatVND = (price) => {
         return new Intl.NumberFormat("vi-VN").format(price) + " đ";
@@ -219,108 +177,125 @@ export default function CartPage() {
         return Object.values(groups);
     }, [cartItems]);
 
-    const handleUpdateQuantity = async (itemId, newQuantity) => {
-        if (user) {
-            try {
-                const data = await cartService.updateCartItem(itemId, newQuantity, null);
-                await updateCartState(data);
-            } catch (err) {
-                console.error("Lỗi khi cập nhật số lượng:", err);
-                const errMsg = err.response?.data || "Không thể cập nhật số lượng. Đã vượt quá số lượng tồn kho.";
-                triggerToast(errMsg);
-            }
-        } else {
-            const item = cartItems.find(i => i.id === itemId);
-            if (item && item.stockQuantity !== undefined && newQuantity > item.stockQuantity) {
-                triggerToast(`Không thể cập nhật số lượng vượt quá tồn kho hiện có (${item.stockQuantity}).`);
-                return;
-            }
-            const updatedCart = cartItems.map(item =>
-                item.id === itemId ? { ...item, quantity: newQuantity } : item
-            );
-            await syncCart(updatedCart);
-        }
-    };
-
-    const handleRemoveItem = async (itemId) => {
-        if (user) {
-            try {
-                const data = await cartService.removeFromCart(itemId);
-                await updateCartState(data);
-                triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
-            } catch (err) {
-                console.error("Lỗi khi xóa sản phẩm:", err);
-            }
-        } else {
-            const updatedCart = cartItems.filter(item => item.id !== itemId);
-            await syncCart(updatedCart);
-            triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
-        }
-    };
-
-    const handleSelectItem = async (itemId) => {
+    const handleUpdateQuantity = (itemId, newQuantity) => {
         const item = cartItems.find(i => i.id === itemId);
         if (!item) return;
 
+        // Kiểm tra tồn kho ngay tại client
+        if (item.stockQuantity !== undefined && newQuantity > item.stockQuantity) {
+            triggerToast(`Không thể cập nhật số lượng vượt quá tồn kho hiện có (${item.stockQuantity}).`);
+            return;
+        }
+        if (newQuantity < 1) return;
+
+        const oldQuantity = item.quantity;
+
+        // 1. Cập nhật UI ngay lập tức
+        setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i));
+
+        // 2. Sync với backend ở background
         if (user) {
-            try {
-                const data = await cartService.updateCartItem(itemId, null, !item.checked);
-                await updateCartState(data);
-            } catch (err) {
-                console.error("Lỗi khi chọn sản phẩm:", err);
-            }
+            cartService.updateCartItem(itemId, newQuantity, null).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi cập nhật số lượng:", err);
+                setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: oldQuantity } : i));
+                const errMsg = err.response?.data || "Không thể cập nhật số lượng. Đã vượt quá số lượng tồn kho.";
+                triggerToast(errMsg);
+            });
         } else {
-            const updatedCart = cartItems.map(item =>
-                item.id === itemId ? { ...item, checked: !item.checked } : item
-            );
-            await syncCart(updatedCart);
+            const updatedCart = cartItems.map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
         }
     };
 
-    const handleSelectAllItems = async () => {
+    const handleRemoveItem = (itemId) => {
+        const oldItems = cartItems;
+
+        // 1. Xóa khỏi UI ngay lập tức
+        setCartItems(prev => prev.filter(i => i.id !== itemId));
+        triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
+
+        // 2. Sync với backend ở background
+        if (user) {
+            cartService.removeFromCart(itemId).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi xóa sản phẩm:", err);
+                setCartItems(oldItems);
+                triggerToast("Không thể xóa sản phẩm. Vui lòng thử lại.");
+            });
+        } else {
+            const updatedCart = oldItems.filter(item => item.id !== itemId);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
+        }
+    };
+
+
+    // ─── Optimistic Select: cập nhật UI ngay lập tức, sync DB ở background ───
+    const handleSelectItem = (itemId) => {
+        const item = cartItems.find(i => i.id === itemId);
+        if (!item) return;
+        const newChecked = !item.checked;
+
+        // 1. Cập nhật UI ngay
+        setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, checked: newChecked } : i));
+
+        // 2. Sync với backend ở background (không chờ)
+        if (user) {
+            cartService.updateCartItem(itemId, null, newChecked).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi chọn sản phẩm:", err);
+                setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, checked: !newChecked } : i));
+            });
+        } else {
+            const updatedCart = cartItems.map(i => i.id === itemId ? { ...i, checked: newChecked } : i);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
+        }
+    };
+
+    const handleSelectAllItems = () => {
         const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.checked);
         const newCheckedVal = !isAllSelected;
 
+        // 1. Cập nhật UI ngay
+        setCartItems(prev => prev.map(item => ({ ...item, checked: newCheckedVal })));
+
+        // 2. Sync với backend ở background bằng 1 lần gọi bulk
         if (user) {
-            try {
-                let lastData = cartItems;
-                for (const item of cartItems) {
-                    if (item.checked !== newCheckedVal) {
-                        lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
-                    }
-                }
-                await updateCartState(lastData);
-            } catch (err) {
-                console.error("Lỗi khi chọn tất cả sản phẩm:", err);
-            }
+            const allIds = cartItems.map(item => item.id);
+            cartService.bulkCheck(allIds, newCheckedVal).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi chọn tất cả:", err);
+                setCartItems(prev => prev.map(item => ({ ...item, checked: !newCheckedVal })));
+            });
         } else {
-            const updatedCart = cartItems.map(item => ({
-                ...item,
-                checked: newCheckedVal
-            }));
-            await syncCart(updatedCart);
+            const updatedCart = cartItems.map(item => ({ ...item, checked: newCheckedVal }));
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
         }
     };
 
-    const handleSelectFarmerAll = async (farmerId, newCheckedVal) => {
-        const targetItems = cartItems.filter(item => (item.farmerId || 999) === farmerId);
+    const handleSelectFarmerAll = (farmerId, newCheckedVal) => {
+        // 1. Cập nhật UI ngay
+        setCartItems(prev => prev.map(item =>
+            (item.farmerId || 999) === farmerId ? { ...item, checked: newCheckedVal } : item
+        ));
+
+        // 2. Sync với backend ở background bằng 1 lần gọi bulk
         if (user) {
-            try {
-                let lastData = cartItems;
-                for (const item of targetItems) {
-                    if (item.checked !== newCheckedVal) {
-                        lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
-                    }
-                }
-                await updateCartState(lastData);
-            } catch (err) {
+            const farmerItemIds = cartItems
+                .filter(item => (item.farmerId || 999) === farmerId)
+                .map(item => item.id);
+            cartService.bulkCheck(farmerItemIds, newCheckedVal).catch(err => {
+                // Rollback nếu lỗi
                 console.error("Lỗi khi chọn sản phẩm của nhà vườn:", err);
-            }
+                setCartItems(prev => prev.map(item =>
+                    (item.farmerId || 999) === farmerId ? { ...item, checked: !newCheckedVal } : item
+                ));
+            });
         } else {
             const updatedCart = cartItems.map(item =>
                 (item.farmerId || 999) === farmerId ? { ...item, checked: newCheckedVal } : item
             );
-            await syncCart(updatedCart);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
         }
     };
 
@@ -554,30 +529,8 @@ export default function CartPage() {
                                     <span>{formatVND(serviceFee)}</span>
                                 </div>
 
-                                <div className="summary-row">
-                                    <span>Phí vận chuyển</span>
-                                    <span className={shippingFee === 0 ? "free-shipping-txt" : ""}>
-                                        {shippingFee === 0 ? "Miễn phí" : formatVND(shippingFee)}
-                                    </span>
-                                </div>
-
-                                <div className="freeship-info-container">
-                                    <div className="freeship-progress-wrapper">
-                                        <div className="freeship-progress-bar" style={{ width: `${freeShipProgress}%` }}></div>
-                                    </div>
-                                    {subtotal > 0 && subtotal < 500000 ? (
-                                        <p className="shipping-hint-text">
-                                            Mua thêm <strong>{formatVND(500000 - subtotal)}</strong> để được miễn phí giao hàng.
-                                        </p>
-                                    ) : subtotal >= 500000 ? (
-                                        <p className="shipping-hint-text success-hint">
-                                            🎉 Chúc mừng! Đơn hàng của bạn được miễn phí giao hàng.
-                                        </p>
-                                    ) : (
-                                        <p className="shipping-hint-text">
-                                            Đạt tối thiểu <strong>500.000 đ</strong> để được miễn phí vận chuyển.
-                                        </p>
-                                    )}
+                                <div className="summary-row" style={{ fontSize: "0.82rem", color: "#64748b", fontStyle: "italic", marginTop: "4px", marginBottom: "8px" }}>
+                                    <span>* Phí vận chuyển sẽ được tính ở bước thanh toán</span>
                                 </div>
 
                                 <hr className="summary-divider" />

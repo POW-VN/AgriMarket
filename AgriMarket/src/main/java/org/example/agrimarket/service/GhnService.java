@@ -134,6 +134,194 @@ public class GhnService {
         order.setShipperNotes("GHN Sandbox (Giả lập): " + reason + " Đã điều phối tài xế.");
     }
 
+    public double calculateShippingFee(String fromAddress, String toAddress, int totalWeightInGrams) {
+        if (simulationEnabled) {
+            return 30000.0;
+        }
+
+        try {
+            String[] fromComponents = parseAddressComponents(fromAddress, "Phường 1", "Thành Phố Mỹ Tho", "Tiền Giang");
+            String[] toComponents = parseAddressComponents(toAddress, "Phường 1", "Quận 1", "Hồ Chí Minh");
+
+            Integer fromProvId = getProvinceId(fromComponents[2]);
+            Integer fromDistId = getDistrictId(fromProvId, fromComponents[1]);
+            String fromWardCode = getWardCode(fromDistId, fromComponents[0]);
+
+            Integer toProvId = getProvinceId(toComponents[2]);
+            Integer toDistId = getDistrictId(toProvId, toComponents[1]);
+            String toWardCode = getWardCode(toDistId, toComponents[0]);
+
+            if (fromDistId == null || toDistId == null || toWardCode == null) {
+                return 30000.0;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Token", ghnToken);
+            headers.set("ShopId", ghnShopId);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("from_district_id", fromDistId);
+            body.put("from_ward_code", fromWardCode);
+            body.put("to_district_id", toDistId);
+            body.put("to_ward_code", toWardCode);
+            body.put("weight", totalWeightInGrams > 0 ? totalWeightInGrams : 1000);
+            body.put("length", 15);
+            body.put("width", 15);
+            body.put("height", 15);
+            body.put("service_type_id", 2); // E-commerce delivery
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee",
+                entity,
+                Map.class
+            );
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map responseBody = response.getBody();
+                if (responseBody.containsKey("data")) {
+                    Map data = (Map) responseBody.get("data");
+                    if (data != null && data.containsKey("total")) {
+                        Object totalVal = data.get("total");
+                        if (totalVal instanceof Number) {
+                            return ((Number) totalVal).doubleValue();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tính phí vận chuyển GHN: " + e.getMessage());
+        }
+        return 30000.0;
+    }
+
+    private Integer getProvinceId(String provinceName) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Token", ghnToken);
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            ResponseEntity<Map> response = restTemplate.exchange(
+                "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/province",
+                HttpMethod.GET,
+                entity,
+                Map.class
+            );
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> provinces = (List<Map<String, Object>>) response.getBody().get("data");
+                String normalizedSearch = normalizeName(provinceName);
+                for (Map<String, Object> prov : provinces) {
+                    String name = (String) prov.get("ProvinceName");
+                    if (normalizeName(name).equals(normalizedSearch)) {
+                        return (Integer) prov.get("ProvinceID");
+                    }
+                    List<String> extensions = (List<String>) prov.get("NameExtension");
+                    if (extensions != null) {
+                        for (String ext : extensions) {
+                            if (normalizeName(ext).equals(normalizedSearch)) {
+                                return (Integer) prov.get("ProvinceID");
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching GHN provinces: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private Integer getDistrictId(Integer provinceId, String districtName) {
+        if (provinceId == null) return null;
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Token", ghnToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, Object> body = new HashMap<>();
+            body.put("province_id", provinceId);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/district",
+                entity,
+                Map.class
+            );
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> districts = (List<Map<String, Object>>) response.getBody().get("data");
+                String normalizedSearch = normalizeName(districtName);
+                for (Map<String, Object> dist : districts) {
+                    String name = (String) dist.get("DistrictName");
+                    if (normalizeName(name).equals(normalizedSearch)) {
+                        return (Integer) dist.get("DistrictID");
+                    }
+                    List<String> extensions = (List<String>) dist.get("NameExtension");
+                    if (extensions != null) {
+                        for (String ext : extensions) {
+                            if (normalizeName(ext).equals(normalizedSearch)) {
+                                return (Integer) dist.get("DistrictID");
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching GHN districts: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private String getWardCode(Integer districtId, String wardName) {
+        if (districtId == null) return null;
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Token", ghnToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            Map<String, Object> body = new HashMap<>();
+            body.put("district_id", districtId);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=" + districtId,
+                entity,
+                Map.class
+            );
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> wards = (List<Map<String, Object>>) response.getBody().get("data");
+                String normalizedSearch = normalizeName(wardName);
+                for (Map<String, Object> ward : wards) {
+                    String name = (String) ward.get("WardName");
+                    if (normalizeName(name).equals(normalizedSearch)) {
+                        return (String) ward.get("WardCode");
+                    }
+                    List<String> extensions = (List<String>) ward.get("NameExtension");
+                    if (extensions != null) {
+                        for (String ext : extensions) {
+                            if (normalizeName(ext).equals(normalizedSearch)) {
+                                return (String) ward.get("WardCode");
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching GHN wards: " + e.getMessage());
+        }
+        return null;
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) return "";
+        String normalized = name.toLowerCase()
+                .replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a")
+                .replaceAll("[èéẹẻẽêềếệểễ]", "e")
+                .replaceAll("[ìíịỉĩ]", "i")
+                .replaceAll("[òóọỏõôồốộổỗơờớợởỡ]", "o")
+                .replaceAll("[ùúụủũưừứựửữ]", "u")
+                .replaceAll("[ỳýỵỷỹ]", "y")
+                .replaceAll("đ", "d")
+                .replaceAll("^(tinh|thanh pho|quan|huyen|thi xa|phuong|xa|thi tran|tp)\\s+", "")
+                .trim();
+        return normalized;
+    }
+
     private String[] parseAddressComponents(String fullAddress, String defaultWard, String defaultDistrict, String defaultProvince) {
         if (fullAddress == null || fullAddress.isBlank()) {
             return new String[]{defaultWard, defaultDistrict, defaultProvince};

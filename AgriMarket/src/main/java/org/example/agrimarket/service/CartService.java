@@ -288,4 +288,24 @@ public class CartService {
         cartRepository.save(cart);
         return getCart(email);
     }
+
+    /**
+     * Cập nhật trạng thái checked của nhiều sản phẩm trong một lần gọi DB duy nhất.
+     * Dùng cho "Chọn tất cả" và "Chọn nhà vườn" để tránh N lần gọi API tuần tự.
+     */
+    @Transactional
+    public void bulkUpdateChecked(String email, List<Long> productIds, boolean checked) {
+        Cart cart = getOrCreateCart(email);
+        boolean changed = false;
+        for (CartItem item : cart.getItems()) {
+            if (productIds.contains(item.getProductId()) && !Boolean.valueOf(checked).equals(item.getChecked())) {
+                item.setChecked(checked);
+                changed = true;
+            }
+        }
+        if (changed) {
+            cartItemRepository.saveAll(cart.getItems());
+        }
+    }
 }
+

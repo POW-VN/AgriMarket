@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Search, Bell, Lightbulb } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
@@ -127,7 +128,6 @@ const UserAccounts = () => {
         case "admin": return "Quản trị viên";
         case "farmer": return "Nông dân";
         case "customer": return "Khách hàng";
-        case "partner": return "Đơn vị vận chuyển";
         default: return r;
       }
     };
@@ -147,8 +147,6 @@ const UserAccounts = () => {
           return `${u.fullName} là đối tác nhà vườn có hoạt động tích cực trên AgriMarket. Trang trại "${u.farmName || 'Nông trại sạch'}" thường xuyên cung cấp các sản phẩm hữu cơ đạt chất lượng cao. Đề xuất giữ kết nối tốt và ưu tiên hiển thị các sản phẩm VietGAP của nông hộ này trên trang chủ.`;
         case "customer":
           return `Khách hàng này thường xuyên mua sắm nông sản và có lịch sử giao dịch tốt. Tỷ lệ hủy/hoàn trả đơn hàng dưới 1%. Đây là tài khoản có tiềm năng trở thành Khách hàng thân thiết VIP của hệ thống.`;
-        case "partner":
-          return `Đơn vị vận chuyển này hoạt động ổn định, có tỷ lệ giao hàng đúng hẹn đạt 98% trong tháng qua. Thích hợp để phân bổ các tuyến đường dài hoặc đơn hàng cồng kềnh yêu cầu xe tải bảo ôn.`;
         case "admin":
           return `Tài khoản Quản trị viên hệ thống cấp cao. Có toàn quyền quản trị, phê duyệt nông sản, xử lý khiếu nại và giám sát bảo mật. Luôn khuyến nghị bật xác thực 2 lớp.`;
         default:
@@ -168,11 +166,6 @@ const UserAccounts = () => {
           return [
             { id: "ORD-77110", date: "02/06/2026", details: "Táo hữu cơ Mỹ (3kg) + Cam sành hữu cơ", amount: "320.000 đ", status: "delivered", statusLabel: "Đã giao" },
             { id: "ORD-76890", date: "25/05/2026", details: "Rau muống sạch VietGAP + Xà lách thủy canh", amount: "95.000 đ", status: "delivered", statusLabel: "Đã giao" }
-          ];
-        case "partner":
-          return [
-            { id: "SHIP-5521", date: "04/06/2026", details: "Đà Lạt -> TP. HCM (Vận chuyển rau củ quả bảo ôn)", amount: "1.200.000 đ", status: "delivered", statusLabel: "Đã giao" },
-            { id: "SHIP-5412", date: "30/05/2026", details: "Mộc Châu -> Hà Nội (Vận chuyển dâu tây tươi)", amount: "2.500.000 đ", status: "delivered", statusLabel: "Đã giao" }
           ];
         case "admin":
           return [
@@ -318,7 +311,7 @@ const UserAccounts = () => {
 
             <div className="details-insight-card">
               <div className="insight-header">
-                <span className="insight-icon">💡</span>
+                <span className="insight-icon" style={{ display: "inline-flex", alignItems: "center" }}><Lightbulb size={16} /></span>
                 <span>Gợi ý từ Hệ thống</span>
               </div>
               <p className="insight-text">{insightText}</p>
@@ -352,10 +345,10 @@ const UserAccounts = () => {
                     onClick={() => setDetailActiveTab(user.role === "customer" ? "purchase_history" : "history")}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                    {user.role === "customer" ? "Lịch sử mua hàng" : user.role === "partner" ? "Chuyến hàng vận chuyển" : "Nhật ký tác vụ"}
+                    {user.role === "customer" ? "Lịch sử mua hàng" : "Nhật ký tác vụ"}
                   </button>
                 )}
-                {(user.role === "farmer" || user.role === "partner" || user.role === "admin") && (
+                {(user.role === "farmer" || user.role === "admin") && (
                   <button
                     className={`details-tab-btn ${detailActiveTab === "profile" ? "active" : ""}`}
                     onClick={() => setDetailActiveTab("profile")}
@@ -382,9 +375,7 @@ const UserAccounts = () => {
                           ? "Đơn hàng đã bán gần đây"
                           : detailActiveTab === "purchase_history"
                             ? "Đơn hàng đã mua gần đây"
-                            : user.role === "partner"
-                              ? "Các chuyến hàng gần đây"
-                              : "Các hoạt động hệ thống gần đây"}
+                            : "Các hoạt động hệ thống gần đây"}
                       </h3>
                       <div className="recent-orders-actions">
                         <button className="btn-orders-action" onClick={() => showToast("Bộ lọc lịch sử giao dịch đang tải...")}>Bộ lọc</button>
@@ -575,30 +566,7 @@ const UserAccounts = () => {
                       </>
                     )}
 
-                    {user.role === "partner" && (
-                      <>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Đơn vị chủ quản</span>
-                          <span className="details-field-value">Tổng công ty Vận tải AgriExpress Logistics</span>
-                        </div>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Số hiệu đăng ký xe (Biển số)</span>
-                          <span className="details-field-value">29C-123.45 (Xe tải bảo ôn)</span>
-                        </div>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Tải trọng tối đa</span>
-                          <span className="details-field-value">8.5 Tấn</span>
-                        </div>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Loại thùng xe</span>
-                          <span className="details-field-value">Thùng đông lạnh bảo ôn chuyên dụng cho nông sản tươi</span>
-                        </div>
-                        <div className="details-field-item" style={{ gridColumn: "span 2" }}>
-                          <span className="details-field-label">Các tuyến vận chuyển thường chạy</span>
-                          <span className="details-field-value">Lâm Đồng - TP. Hồ Chí Minh | Đắk Lắk - Bình Dương</span>
-                        </div>
-                      </>
-                    )}
+
 
                     {user.role === "admin" && (
                       <>
@@ -762,16 +730,7 @@ const UserAccounts = () => {
         avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
         createdAt: "2026-04-01T08:00:00"
       },
-      {
-        id: 5,
-        fullName: "Elena Rostova",
-        email: "elena@partner.com",
-        phone: "0777666555",
-        role: "partner",
-        status: "pending",
-        avatarUrl: "",
-        createdAt: "2026-06-05T16:15:00"
-      }
+
     ];
 
     const stored = localStorage.getItem("agri_users");
@@ -1118,7 +1077,7 @@ const UserAccounts = () => {
         {/* Header - Matching Image 1 */}
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input
               type="text"
               placeholder="Tìm kiếm tài khoản..."
@@ -1132,8 +1091,8 @@ const UserAccounts = () => {
           </div>
 
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")}>
-              <span>🔔</span>
+            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
               <span className="admin-notification-dot"></span>
             </button>
             <button className="btn-quick-action" onClick={() => navigate("/admin/users/create")}>
@@ -1204,7 +1163,7 @@ const UserAccounts = () => {
               {/* Advanced Filters & Search Bar */}
               <div className="admin-filters-bar">
                 <div className="filter-search-wrapper">
-                  <span className="filter-search-icon">🔍</span>
+                  <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                   <input
                     type="text"
                     placeholder="Tìm theo tên, email hoặc SĐT..."
@@ -1230,7 +1189,6 @@ const UserAccounts = () => {
                       <option value="admin">Quản trị (Admin)</option>
                       <option value="customer">Khách hàng (Customer)</option>
                       <option value="farmer">Nông dân (Farmer)</option>
-                      <option value="partner">Đơn vị vận chuyển (Partner)</option>
                     </select>
                   </div>
 
@@ -1337,7 +1295,7 @@ const UserAccounts = () => {
                             </td>
                             <td>
                               <span className={`badge-role ${user.role}`}>
-                                {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role === "partner" ? "Đơn vị vận chuyển" : user.role}
+                                {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role}
                               </span>
                             </td>
                             <td style={{ verticalAlign: "middle" }}>

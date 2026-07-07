@@ -416,8 +416,8 @@
 }
 
 .admin-table th {
-  padding: 16px 20px;
-  font-size: 11px;
+  padding: 10px 12px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -427,8 +427,8 @@
 }
 
 .admin-table td {
-  padding: 16px 20px;
-  font-size: 14px;
+  padding: 10px 12px;
+  font-size: 12.5px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
 }
@@ -3394,13 +3394,13 @@
 }
 
 .admin-table th {
-  font-size: 16px !important;
-  padding: 18px 20px !important;
+  font-size: 12px !important;
+  padding: 10px 12px !important;
 }
 
 .admin-table td {
-  font-size: 16.5px !important;
-  padding: 20px 20px !important;
+  font-size: 13px !important;
+  padding: 10px 12px !important;
 }
 
 .user-cell-name {

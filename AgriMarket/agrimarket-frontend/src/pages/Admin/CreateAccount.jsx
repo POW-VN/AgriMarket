@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { User } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
@@ -630,13 +631,6 @@ const CreateAccount = () => {
         vipLevel: customerVipLevel,
         preferences: customerPreferences
       }),
-      ...(role === "partner" && {
-        companyName,
-        licensePlate,
-        maxPayload,
-        vehicleType,
-        routes: partnerRoutes
-      }),
       ...(role === "admin" && {
         adminLevel,
         adminDepartment,
@@ -864,25 +858,6 @@ const CreateAccount = () => {
                     <span className="role-card-name">Nông dân</span>
                   </div>
                   
-                  <div 
-                    className={`role-assignment-card ${role === "partner" ? "active" : ""}`}
-                    onClick={() => setRole("partner")}
-                  >
-                    <span className="role-card-icon" style={{ display: "flex", color: role === "partner" ? "var(--admin-primary)" : "var(--admin-text-muted)" }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    </span>
-                    <span className="role-card-name">Đơn vị vận chuyển</span>
-                  </div>
-                  
-                  <div 
-                    className={`role-assignment-card ${role === "admin" ? "active" : ""}`}
-                    onClick={() => setRole("admin")}
-                  >
-                    <span className="role-card-icon" style={{ display: "flex", color: role === "admin" ? "var(--admin-primary)" : "var(--admin-text-muted)" }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    </span>
-                    <span className="role-card-name">Quản trị viên</span>
-                  </div>
                 </div>
               </div>
               {role === "farmer" && (
@@ -1254,114 +1229,7 @@ const CreateAccount = () => {
 
 
 
-              {/* 3b. Partner/Courier Information (Conditional) */}
-              {role === "partner" && (
-                <div className="form-block">
-                  <div className="form-block-header">
-                    <div className="form-block-icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--admin-primary)" }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                    </div>
-                    <h3>Thông tin đơn vị vận chuyển</h3>
-                  </div>
 
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label>Đơn vị chủ quản / Công ty</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Ví dụ: AgriExpress Logistics"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Biển số xe đăng ký</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Ví dụ: 29C-123.45"
-                        value={licensePlate}
-                        onChange={(e) => setLicensePlate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label>Tải trọng tối đa</label>
-                      <select
-                        className="form-control"
-                        value={maxPayload}
-                        onChange={(e) => setMaxPayload(e.target.value)}
-                      >
-                        <option value="1.5 Tấn">1.5 Tấn</option>
-                        <option value="2.5 Tấn">2.5 Tấn</option>
-                        <option value="5.0 Tấn">5.0 Tấn</option>
-                        <option value="8.5 Tấn">8.5 Tấn</option>
-                        <option value="15 Tấn">15 Tấn</option>
-                        <option value="Xe máy">Xe máy / Phương tiện cá nhân</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Loại thùng xe / Phương tiện</label>
-                      <select
-                        className="form-control"
-                        value={vehicleType}
-                        onChange={(e) => setVehicleType(e.target.value)}
-                      >
-                        <option value="Xe tải bảo ôn (Đông lạnh)">Xe tải bảo ôn (Đông lạnh)</option>
-                        <option value="Xe tải thùng bạt">Xe tải thùng bạt</option>
-                        <option value="Xe tải thùng kín">Xe tải thùng kín</option>
-                        <option value="Xe bán tải">Xe bán tải</option>
-                        <option value="Xe máy gắn thùng hàng">Xe máy gắn thùng hàng</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Các tuyến đường chạy đăng ký (Chọn nhiều)</label>
-                    <div className="category-tags-row">
-                      {partnerRoutes.map((route) => (
-                        <div key={route} className="category-tag">
-                          {route}
-                          <button type="button" className="btn-tag-remove" onClick={() => setPartnerRoutes(partnerRoutes.filter(r => r !== route))}>
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                      {isAddingRoute ? (
-                        <div style={{ display: "inline-flex", gap: "4px" }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Ví dụ: Đà Lạt - TP. HCM..."
-                            style={{ padding: "4px 8px", fontSize: "12px", height: "28px", width: "150px" }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  const val = e.target.value.trim();
-                                  if (val && !partnerRoutes.includes(val)) {
-                                    setPartnerRoutes([...partnerRoutes, val]);
-                                  }
-                                  setIsAddingRoute(false);
-                                }
-                              }}
-                              onBlur={() => setIsAddingRoute(false)}
-                              autoFocus
-                            />
-                          </div>
-                        ) : (
-                          <button type="button" className="btn-tag-add" onClick={() => setIsAddingRoute(true)}>
-                            + Thêm tuyến
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
               {/* 3c. Admin Information (Conditional) */}
               {role === "admin" && (
@@ -1541,12 +1409,12 @@ const CreateAccount = () => {
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Avatar" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                     ) : (
-                      "👤"
+                      <User size={24} style={{ color: "#94a3b8" }} />
                     )}
                   </div>
                   <div>
                     <h5 className="summary-user-name">
-                      {fullName || (role === "admin" ? "Quản trị viên mới" : role === "farmer" ? "Nông dân mới" : role === "customer" ? "Khách hàng mới" : role === "partner" ? "Đơn vị vận chuyển mới" : "Người dùng mới")}
+                      {fullName || (role === "admin" ? "Quản trị viên mới" : role === "farmer" ? "Nông dân mới" : "Khách hàng mới")}
                     </h5>
                     <div className="summary-user-status">
                       <span style={{ display: "inline-block", width: "8px", height: "8px", backgroundColor: "#10b981", borderRadius: "50%" }} />
@@ -1559,7 +1427,7 @@ const CreateAccount = () => {
                   <div className="summary-detail-item">
                     <span className="summary-detail-label">Vai trò</span>
                     <span className="summary-detail-value">
-                      {role === "admin" ? "Quản trị viên" : role === "farmer" ? "Nông dân" : role === "customer" ? "Khách hàng" : role === "partner" ? "Đơn vị vận chuyển" : role}
+                      {role === "admin" ? "Quản trị viên" : role === "farmer" ? "Nông dân" : "Khách hàng"}
                     </span>
                   </div>
                   
@@ -1567,7 +1435,7 @@ const CreateAccount = () => {
                     <div className="summary-detail-item">
                       <span className="summary-detail-label">Quyền hạn</span>
                       <span className="summary-detail-value">
-                        {role === "admin" ? "Toàn quyền quản trị" : role === "partner" ? "Cổng đơn vị vận chuyển" : "Khách hàng"}
+                        {role === "admin" ? "Toàn quyền quản trị" : "Khách hàng"}
                       </span>
                     </div>
                   )}
@@ -1579,18 +1447,7 @@ const CreateAccount = () => {
                     </div>
                   )}
 
-                  {role === "partner" && (
-                    <>
-                      <div className="summary-detail-item">
-                        <span className="summary-detail-label">Đơn vị/Công ty</span>
-                        <span className="summary-detail-value" title={companyName}>{companyName || "Chưa đặt tên"}</span>
-                      </div>
-                      <div className="summary-detail-item">
-                        <span className="summary-detail-label">Xe đăng ký</span>
-                        <span className="summary-detail-value">{licensePlate || "Chưa có BS"} ({maxPayload})</span>
-                      </div>
-                    </>
-                  )}
+
 
                   {role === "admin" && (
                     <>

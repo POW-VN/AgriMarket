@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban } from "lucide-react";
+import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban, Package } from "lucide-react";
 import * as productService from "../../../services/productService";
 import "./ProductList.css";
 
@@ -25,6 +25,71 @@ export const ProductList = () => {
 
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+
+  const [activeStockProductId, setActiveStockProductId] = useState(null);
+  const [stockAddValue, setStockAddValue] = useState("");
+  const [stockSubValue, setStockSubValue] = useState("");
+  const [stockValError, setStockValError] = useState("");
+  const [submittingStock, setSubmittingStock] = useState(false);
+
+  const toggleStockForm = (p) => {
+    if (activeStockProductId === p.id) {
+      setActiveStockProductId(null);
+    } else {
+      setActiveStockProductId(p.id);
+      setStockAddValue("");
+      setStockSubValue("");
+      setStockValError("");
+    }
+  };
+
+  const handleStockAddChange = (val, currentStock) => {
+    setStockAddValue(val);
+    if (val && stockSubValue) {
+      setStockSubValue("");
+    }
+    setStockValError("");
+  };
+
+  const handleStockSubChange = (val, currentStock, unit) => {
+    setStockSubValue(val);
+    if (val && stockAddValue) {
+      setStockAddValue("");
+    }
+
+    const subNum = Number(val);
+    if (subNum > currentStock) {
+      setStockValError(`Số lượng bớt không được lớn hơn số lượng tồn kho hiện tại (${currentStock} ${unit}).`);
+    } else {
+      setStockValError("");
+    }
+  };
+
+  const calculateNewStock = (currentStock) => {
+    const addNum = Number(stockAddValue) || 0;
+    const subNum = Number(stockSubValue) || 0;
+    return Math.max(0, currentStock + addNum - subNum);
+  };
+
+  const handleSaveStock = async (p) => {
+    const newStock = calculateNewStock(p.stock);
+    if (newStock < 0) return;
+    setSubmittingStock(true);
+    try {
+      const updatedProduct = await productService.updateProductStock(p.id, newStock);
+
+      // Update local products state
+      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, stock: updatedProduct.stock, status: updatedProduct.status } : item));
+
+      showToast("Cập nhật số lượng tồn kho thành công!", "success");
+      setActiveStockProductId(null);
+    } catch (err) {
+      console.error(err);
+      showToast("Cập nhật tồn kho thất bại: " + (err.response?.data || err.message), "error");
+    } finally {
+      setSubmittingStock(false);
+    }
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -157,8 +222,9 @@ export const ProductList = () => {
             ) : paginatedProducts.length === 0 ? (
               <tr><td colSpan="7" className="empty-state">Không có sản phẩm nào.</td></tr>
             ) : (
-              paginatedProducts.map(p => {
+              paginatedProducts.map((p, idx) => {
                 const conf = PRODUCT_STATUS_CONFIG[getEffectiveStatus(p)] || { label: p.status, cls: "" };
+                const showAbove = paginatedProducts.length > 2 && idx >= paginatedProducts.length - 2;
                 return (
                   <tr key={p.id} className="row-hover">
                     <td>
@@ -208,13 +274,73 @@ export const ProductList = () => {
                       <span className={`badge-status ${conf.cls}`}>{conf.label}</span>
                     </td>
                     <td>
-                      <div className="actions-cell">
+                      <div className="actions-cell" style={{ position: "relative" }}>
                         <button className="btn-icon edit" title="Sửa" onClick={() => navigate(`/farmer/products/edit/${p.id}`)}>
                           <Pencil size={15} />
+                        </button>
+                        <button 
+                          className={`btn-icon stock-update-btn ${activeStockProductId === p.id ? "active" : ""}`} 
+                          title="Cập nhật tồn kho" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStockForm(p);
+                          }}
+                        >
+                          <Package size={15} />
                         </button>
                         <button className="btn-icon delete" title="Xóa" onClick={() => handleProductDelete(p.id)}>
                           <Trash2 size={15} />
                         </button>
+
+                        {activeStockProductId === p.id && (
+                          <div className={`stock-drop-panel ${showAbove ? "show-above" : ""}`} onClick={(e) => e.stopPropagation()}>
+                            <div className="stock-drop-header">
+                              <strong>Cập nhật tồn kho</strong>
+                              <span className="stock-current">Hiện tại: {p.stock} {p.unit}</span>
+                            </div>
+                            <div className="stock-drop-body">
+                              <div className="stock-input-group">
+                                <label>Số lượng thêm ({p.unit}):</label>
+                                <input 
+                                  type="number" 
+                                  min="0"
+                                  placeholder="Nhập số lượng thêm..."
+                                  value={stockAddValue}
+                                  onChange={(e) => handleStockAddChange(e.target.value, p.stock)}
+                                />
+                              </div>
+                              <div className={`stock-input-group ${Number(p.stock) === 0 ? "disabled-group" : ""}`}>
+                                <label>Số lượng bớt ({p.unit}):</label>
+                                <input 
+                                  type="number" 
+                                  min="0"
+                                  disabled={Number(p.stock) === 0}
+                                  placeholder={Number(p.stock) === 0 ? "Đã hết hàng" : "Nhập số lượng bớt..."}
+                                  value={stockSubValue}
+                                  onChange={(e) => handleStockSubChange(e.target.value, p.stock, p.unit)}
+                                />
+                              </div>
+                              
+                              {stockValError && (
+                                <p className="stock-error-msg">{stockValError}</p>
+                              )}
+                              
+                              <div className="stock-calc-preview">
+                                Tồn kho mới: <strong>{calculateNewStock(p.stock)} {p.unit}</strong>
+                              </div>
+                            </div>
+                            <div className="stock-drop-footer">
+                              <button className="btn-stock-cancel" onClick={() => setActiveStockProductId(null)}>Hủy</button>
+                              <button 
+                                className="btn-stock-save" 
+                                disabled={submittingStock || !!stockValError || (!stockAddValue && !stockSubValue)}
+                                onClick={() => handleSaveStock(p)}
+                              >
+                                {submittingStock ? "Đang lưu..." : "Lưu"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

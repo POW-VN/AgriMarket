@@ -401,6 +401,11 @@ export const FarmDetails = () => {
             return;
         }
 
+        if (!latitude || !longitude) {
+            showToast("error", "Vui lòng chọn vị trí trang trại của bạn trên bản đồ.");
+            return;
+        }
+
         if (hasVietgap && !vietgapUrl) {
             showToast("error", "Bạn đã chọn chứng nhận VietGAP. Vui lòng tải lên hình ảnh chứng minh.");
             return;

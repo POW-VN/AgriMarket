@@ -6,11 +6,13 @@ import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.CustomerAddress;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
+import org.example.agrimarket.model.Notification;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
+import org.example.agrimarket.repository.NotificationRepository;
 import org.example.agrimarket.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +42,9 @@ public class AdminUserController {
 
     @Autowired
     private FarmerRepository farmerRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
 
 
@@ -293,9 +298,28 @@ public class AdminUserController {
         } else if ("farmer".equals(lowerRole)) {
             Farmer f = farmerRepository.findById(id).orElse(null);
             if (f == null) return ResponseEntity.notFound().build();
+            
+            boolean wasNotVerified = !"verified".equals(f.getVerificationStatus());
+            
             f.setStatus(newStatus);
             if ("active".equalsIgnoreCase(newStatus)) {
                 f.setVerificationStatus("verified");
+                if (wasNotVerified) {
+                    try {
+                        Notification notif = Notification.builder()
+                                .receiverType("farmer")
+                                .receiverId(f.getId())
+                                .title("Yêu cầu làm đối tác đã được duyệt!")
+                                .content("Chúc mừng! Yêu cầu đăng ký tài khoản nhà vườn (đối tác) của bạn đã được quản trị viên duyệt thành công. Bạn đã có thể bắt đầu sử dụng các tính năng dành cho nhà vườn.")
+                                .link("/farmer/dashboard")
+                                .createdAt(LocalDateTime.now())
+                                .isRead(false)
+                                .build();
+                        notificationRepository.save(notif);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             } else if ("suspended".equalsIgnoreCase(newStatus) || "rejected".equalsIgnoreCase(newStatus)) {
                 f.setVerificationStatus("rejected");
             }

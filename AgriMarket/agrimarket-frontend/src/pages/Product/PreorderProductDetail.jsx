@@ -1,31 +1,12 @@
-/* PreorderCheckout.jsx */
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import Header from "../../components/common/Header/Header";
-import authService from "../../services/authService";
+import { Link, useNavigate } from "react-router-dom";
 import * as preorderService from "../../services/preorderService";
 import orderService from "../../services/orderService";
-import { Leaf, Shield } from "lucide-react";
+import Header from "../../components/common/Header/Header";
+import Footer from "../../components/common/Footer/Footer";
+import { Leaf, Shield, Check, Award, Globe, Star } from "lucide-react";
+import "./ProductDetail.css";
 import "./PreorderCheckout.css";
-
-const parseDeliveryWindow = (windowStr) => {
-  if (!windowStr) return { min: null, max: null };
-  const regex = /(\d{2})\/(\d{2})(?:\/(\d{4}))?/g;
-  const matches = [...windowStr.matchAll(regex)];
-  if (matches.length >= 2) {
-    const first = matches[0];
-    const second = matches[1];
-    
-    const year2 = second[3] ? parseInt(second[3]) : 2026;
-    const year1 = first[3] ? parseInt(first[3]) : year2;
-    
-    const minDate = new Date(year1, parseInt(first[2]) - 1, parseInt(first[1]));
-    const maxDate = new Date(year2, parseInt(second[2]) - 1, parseInt(second[1]));
-    
-    return { min: minDate, max: maxDate };
-  }
-  return { min: null, max: null };
-};
 
 const InlineCalendar = ({ value, onChange, minDate, maxDate }) => {
   const parsedValue = value ? new Date(value) : new Date();
@@ -158,143 +139,25 @@ const InlineCalendar = ({ value, onChange, minDate, maxDate }) => {
   );
 };
 
-const PreorderCheckout = () => {
+export default function PreorderProductDetail({
+  product,
+  quantity,
+  setQuantity,
+  deliveryMode,
+  setDeliveryMode,
+  customDate,
+  setCustomDate,
+  specialInstructions,
+  setSpecialInstructions,
+  parsedLimits,
+  formatDateString
+}) {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(null);
-  
-  // Checkout data states
-  const [product, setProduct] = useState(null);
-  const [quantity, setQuantity] = useState(5);
-  const [deliveryMode, setDeliveryMode] = useState("shipping"); // 'shipping' or 'pickup'
-  const [customDate, setCustomDate] = useState("2026-09-01");
-  const [specialInstructions, setSpecialInstructions] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [placedPreorderId, setPlacedPreorderId] = useState(null);
-
-  const parsedLimits = useMemo(() => {
-    if (!product) return { min: null, max: null };
-    
-    let minDate = new Date();
-    if (product.harvestDate) {
-      const parts = product.harvestDate.split("-");
-      if (parts.length === 3) {
-        minDate = new Date(parts[0], parts[1] - 1, parts[2]);
-      } else {
-        const partsSlash = product.harvestDate.split("/");
-        if (partsSlash.length === 3) {
-          minDate = new Date(partsSlash[2], partsSlash[1] - 1, partsSlash[0]);
-        } else {
-          const d = new Date(product.harvestDate);
-          if (!isNaN(d.getTime())) {
-            minDate = d;
-          }
-        }
-      }
-    }
-    minDate.setHours(0,0,0,0);
-
-    let maxDate = null;
-    if (product.expirationDate) {
-      const parts = product.expirationDate.split("-");
-      if (parts.length === 3) {
-        maxDate = new Date(parts[0], parts[1] - 1, parts[2]);
-      } else {
-        const partsSlash = product.expirationDate.split("/");
-        if (partsSlash.length === 3) {
-          maxDate = new Date(partsSlash[2], partsSlash[1] - 1, partsSlash[0]);
-        } else {
-          const d = new Date(product.expirationDate);
-          if (!isNaN(d.getTime())) {
-            maxDate = d;
-          }
-        }
-      }
-      if (maxDate) {
-        maxDate.setHours(23,59,59,999);
-      }
-    }
-
-    if (!maxDate) {
-      const fallbackMax = new Date(minDate);
-      fallbackMax.setFullYear(fallbackMax.getFullYear() + 1);
-      maxDate = fallbackMax;
-    }
-
-    return { min: minDate, max: maxDate };
-  }, [product]);
-
-  const formatDateString = (dateStr) => {
-    if (!dateStr) return "";
-    const parts = dateStr.split("-");
-    if (parts.length !== 3) return dateStr;
-    const [y, m, d] = parts;
-    return `${d}/${m}/${y}`;
-  };
 
   // Helper format VND
   const formatVND = (number) => {
     return new Intl.NumberFormat("vi-VN").format(number) + " đ";
   };
-
-  useEffect(() => {
-    // Check auth
-    const user = authService.getCurrentUser();
-    setCurrentUser(user);
-
-    // Load checkout item from localStorage
-    const checkoutDataRaw = localStorage.getItem("agrimarket_checkout");
-    if (checkoutDataRaw) {
-      try {
-        const parsed = JSON.parse(checkoutDataRaw);
-        if (parsed && parsed.selectedItems && parsed.selectedItems.length > 0) {
-          const item = parsed.selectedItems[0];
-          setProduct(item);
-          setQuantity(item.quantity || 5);
-        } else {
-          loadMockFallback();
-        }
-      } catch (err) {
-        console.error("Lỗi parse checkout data:", err);
-        loadMockFallback();
-      }
-    } else {
-      loadMockFallback();
-    }
-  }, []);
-
-  const loadMockFallback = () => {
-    setProduct({
-      id: "mock-2",
-      name: "Cà rốt gia truyền hữu cơ",
-      price: 112500,
-      unit: "bó",
-      imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",
-      farmerId: 102,
-      farmerName: "Nông trại Green Valley",
-      expectedHarvest: "Cuối tháng 08, 2026",
-      deliveryWindow: "Từ 01/09 đến 07/09/2026",
-      isPreorder: true
-    });
-  };
-
-  if (!product) {
-    return (
-      <div className="preorder-checkout-page">
-        <Header activeTab="" />
-        <div style={{ textAlign: "center", padding: "100px 20px", color: "#64748b" }}>
-          Đang tải dữ liệu đơn đặt trước...
-        </div>
-      </div>
-    );
-  }
-
-  // Cost calculations
-  const pricePerUnit = product.price || 0;
-  const subtotal = pricePerUnit * quantity;
-  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
-  const serviceFee = 15000; // Phí dịch vụ cố định
-  const totalAmount = subtotal + deliveryFee + serviceFee;
-  const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
 
   const handleQuantityChange = (newVal) => {
     if (newVal < 1) return;
@@ -313,7 +176,6 @@ const PreorderCheckout = () => {
         ]
       };
       const result = await preorderService.createPreorder(payload);
-      setPlacedPreorderId(result.id);
       
       // Dispatch event to update tabs/badges elsewhere
       window.dispatchEvent(new Event("preordersUpdated"));
@@ -331,6 +193,14 @@ const PreorderCheckout = () => {
     }
   };
 
+  // Cost calculations
+  const pricePerUnit = product.price || 0;
+  const subtotal = pricePerUnit * quantity;
+  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
+  const serviceFee = 15000; // Phí dịch vụ cố định
+  const totalAmount = subtotal + deliveryFee + serviceFee;
+  const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
+
   return (
     <div className="preorder-checkout-page">
       <Header activeTab="preorder" />
@@ -340,9 +210,9 @@ const PreorderCheckout = () => {
         <nav className="preorder-breadcrumb">
           <Link to="/">Trang chủ</Link>
           <span className="separator">&gt;</span>
-          <Link to="/products">Cửa hàng</Link>
+          <Link to="/preorders">Đặt trước</Link>
           <span className="separator">&gt;</span>
-          <span className="current">Đặt trước nông sản</span>
+          <span className="current">{product.name}</span>
         </nav>
 
         {/* Grid Layout */}
@@ -369,35 +239,35 @@ const PreorderCheckout = () => {
                   <div className="preorder-timeline-cards">
                     <div className="timeline-box">
                       <div className="box-label">DỰ KIẾN THU HOẠCH</div>
-                      <div className="box-value">{product.expectedHarvest || "Cuối tháng 08, 2026"}</div>
+                      <div className="box-value">{product.expectedHarvest || product.harvestDate || "Cuối tháng 10, 2026"}</div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Certifications Row */}
+              {/* Certifications Row with Lucide icons (replacing emojis) */}
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "12px 0" }}>
                 {product.farmerOrganicUrl && (
-                  <span style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700" }}>
-                    🌿 Hữu cơ (Organic)
+                  <span style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Leaf size={13} /> Hữu cơ (Organic)
                   </span>
                 )}
                 {product.farmerVietgapUrl && (
-                  <span style={{ backgroundColor: "#fffbeb", color: "#b45309", border: "1px solid #fef3c7", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700" }}>
-                    🏅 VietGAP
+                  <span style={{ backgroundColor: "#fffbeb", color: "#b45309", border: "1px solid #fef3c7", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Award size={13} /> VietGAP
                   </span>
                 )}
                 {product.farmerGlobalgapUrl && (
-                  <span style={{ backgroundColor: "#eff6ff", color: "#1e40af", border: "1px solid #dbeafe", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700" }}>
-                    🌐 GlobalGAP
+                  <span style={{ backgroundColor: "#eff6ff", color: "#1e40af", border: "1px solid #dbeafe", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Globe size={13} /> GlobalGAP
                   </span>
                 )}
               </div>
 
-              {/* Rating & Sold Row */}
+              {/* Rating & Sold Row with Lucide icons (replacing emojis) */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "8px 0", fontSize: "14px", color: "#475569" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <span style={{ color: "#fbbf24", fontSize: "16px" }}>★</span>
+                  <Star size={15} fill="#fbbf24" stroke="#fbbf24" />
                   <strong style={{ color: "#1e293b" }}>{product.rating ? product.rating.toFixed(1) : "0.0"}</strong>
                   <span>({product.reviewsCount || 0} đánh giá)</span>
                 </div>
@@ -435,7 +305,7 @@ const PreorderCheckout = () => {
 
               {/* Quantity */}
               <div className="config-group">
-                <label className="group-label">Chọn số lượng đặt trước ({product.unit || "bó"})</label>
+                <label className="group-label">Chọn số lượng đặt trước ({product.unit || "kg"})</label>
                 <div className="qty-selector-row">
                   <div className="qty-control-buttons">
                     <button 
@@ -460,7 +330,7 @@ const PreorderCheckout = () => {
                       ＋
                     </button>
                   </div>
-                  <span className="price-indicator-text">{formatVND(pricePerUnit)} / {product.unit || "bó"}</span>
+                  <span className="price-indicator-text">{formatVND(pricePerUnit)} / {product.unit || "kg"}</span>
                 </div>
               </div>
 
@@ -474,7 +344,7 @@ const PreorderCheckout = () => {
                   >
                     <div className="opt-header-line">
                       <span className="opt-date">Vận chuyển giao hàng</span>
-                      {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
+                      {deliveryMode === "shipping" && <span className="checkmark-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={10} strokeWidth={3} /></span>}
                     </div>
                     <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
                   </div>
@@ -485,7 +355,7 @@ const PreorderCheckout = () => {
                   >
                     <div className="opt-header-line">
                       <span className="opt-date">Tự nhận tại nông trại</span>
-                      {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
+                      {deliveryMode === "pickup" && <span className="checkmark-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={10} strokeWidth={3} /></span>}
                     </div>
                     <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
                   </div>
@@ -602,63 +472,7 @@ const PreorderCheckout = () => {
         </div>
       </main>
 
-      {/* Success Modal Overlay */}
-      {showSuccessModal && (
-        <div className="preorder-success-overlay">
-          <div className="preorder-success-modal">
-            <div className="success-check-badge">✓</div>
-            <h3>Đặt trước thành công!</h3>
-            <p className="success-msg">
-              Yêu cầu đặt trước sản phẩm mùa vụ của bạn đã được ghi nhận. 
-              Khoản đặt cọc 20% đã được thanh toán thông qua số dư liên kết của bạn.
-            </p>
-
-            <div className="success-receipt-info">
-              <div className="receipt-row">
-                <span className="label">Mã đặt trước:</span>
-                <span className="value">{placedPreorderId}</span>
-              </div>
-              <div className="receipt-row">
-                <span className="label">Nông sản:</span>
-                <span className="value">{quantity}x {product.name}</span>
-              </div>
-              <div className="receipt-row">
-                <span className="label">Đã thanh toán cọc (20%):</span>
-                <span className="value" style={{ color: "#16a34a" }}>{formatVND(depositAmount)}</span>
-              </div>
-              <div className="receipt-row">
-                <span className="label">Dự kiến thu hoạch:</span>
-                <span className="value">{product.expectedHarvest || "Cuối tháng 08, 2026"}</span>
-              </div>
-            </div>
-
-            <div className="success-actions-col">
-              <button 
-                type="button" 
-                className="btn-success-primary"
-                onClick={() => {
-                  navigate("/profile/orders");
-                  // Trigger direct navigation to preorder tab if needed
-                  setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent("setActiveOrderTab", { detail: "preorder" }));
-                  }, 100);
-                }}
-              >
-                Xem đơn đặt trước của tôi
-              </button>
-              <button 
-                type="button" 
-                className="btn-success-outline"
-                onClick={() => navigate("/products")}
-              >
-                Tiếp tục mua sắm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Footer />
     </div>
   );
-};
-
-export default PreorderCheckout;
+}

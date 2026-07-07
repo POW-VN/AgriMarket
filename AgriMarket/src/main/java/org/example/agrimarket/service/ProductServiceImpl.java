@@ -1,18 +1,27 @@
 package org.example.agrimarket.service;
 
+import org.example.agrimarket.dto.PagedProductResponse;
 import org.example.agrimarket.dto.ProductRequest;
 import org.example.agrimarket.dto.ProductResponse;
 import org.example.agrimarket.model.Category;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
+import org.example.agrimarket.model.Notification;
 import org.example.agrimarket.repository.CategoryRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.example.agrimarket.repository.ProductReviewRepository;
 import org.example.agrimarket.repository.OrderItemRepository;
+import org.example.agrimarket.repository.NotificationRepository;
+import org.example.agrimarket.repository.WishlistItemRepository;
+import org.example.agrimarket.repository.ProductSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -51,6 +60,12 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private SupabaseStorageService supabaseStorageService;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
+    private WishlistItemRepository wishlistItemRepository;
 
     @Override
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
@@ -180,6 +195,7 @@ public class ProductServiceImpl implements ProductService {
                 .farmerLatitude(product.getFarmer() != null ? product.getFarmer().getLatitude() : null)
                 .farmerLongitude(product.getFarmer() != null ? product.getFarmer().getLongitude() : null)
                 .farmerMaxDeliveryDistance(product.getFarmer() != null ? product.getFarmer().getMaxDeliveryDistance() : null)
+                .isPreorder(product.getIsPreorder())
                 .build();
     }
 
@@ -265,6 +281,7 @@ public class ProductServiceImpl implements ProductService {
                 .farmerLatitude(product.getFarmer() != null ? product.getFarmer().getLatitude() : null)
                 .farmerLongitude(product.getFarmer() != null ? product.getFarmer().getLongitude() : null)
                 .farmerMaxDeliveryDistance(product.getFarmer() != null ? product.getFarmer().getMaxDeliveryDistance() : null)
+                .isPreorder(product.getIsPreorder())
                 .build();
     }
 
@@ -306,6 +323,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse createProduct(ProductRequest request, String farmerEmail) throws Exception {
+        validateHarvestDate(request);
         Farmer farmer = farmerRepository.findByEmail(farmerEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nông dân với email: " + farmerEmail));
 
@@ -333,6 +351,7 @@ public class ProductServiceImpl implements ProductService {
         product.setExpirationDate(request.getExpirationDate());
         product.setPerishability(request.getPerishability() != null ? request.getPerishability() : "khô");
         product.setLimitDistance(request.getLimitDistance());
+        product.setIsPreorder(request.getIsPreorder() != null ? request.getIsPreorder() : false);
 
         // Handle traceability image Base64 if uploaded
         if (request.getTraceabilityImageBase64() != null && !request.getTraceabilityImageBase64().isEmpty()) {
@@ -363,12 +382,15 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest request, String farmerEmail) throws Exception {
+        validateHarvestDate(request);
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
 
         if (product.getFarmer() == null || !product.getFarmer().getEmail().equalsIgnoreCase(farmerEmail)) {
             throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa sản phẩm này.");
         }
+
+        Integer oldStock = product.getStockQuantity();
 
         // Basic fields
         product.setName(request.getName());
@@ -380,6 +402,7 @@ public class ProductServiceImpl implements ProductService {
         product.setExpirationDate(request.getExpirationDate());
         product.setPerishability(request.getPerishability());
         product.setLimitDistance(request.getLimitDistance());
+        product.setIsPreorder(request.getIsPreorder() != null ? request.getIsPreorder() : false);
         product.setStatus("pending"); // Reset status to pending for admin approval
 
         // Category
@@ -461,6 +484,7 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
+        notifyWishlistUsersIfBackInStock(product, oldStock);
         return convertToResponse(product);
     }
 
@@ -527,4 +551,125 @@ public class ProductServiceImpl implements ProductService {
         });
         return convertProductsToResponseList(products);
     }
+
+    @Override
+    public PagedProductResponse getApprovedProductsPaged(
+            int page, int size, String sort,
+            String category, String search,
+            Double minPrice, Double maxPrice,
+            String location, String shopKeyword,
+            Double minRating, Long farmerId
+    ) {
+        // 1. Xác định Sort
+        Sort sortObj;
+        switch (sort != null ? sort : "popular") {
+            case "price_asc":
+                sortObj = Sort.by(Sort.Direction.ASC, "price");
+                break;
+            case "price_desc":
+                sortObj = Sort.by(Sort.Direction.DESC, "price");
+                break;
+            case "newest":
+                sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
+                break;
+            case "best_selling":
+            case "popular":
+            default:
+                sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
+                break;
+        }
+
+        // 2. Tạo Pageable
+        PageRequest pageable = PageRequest.of(page, size, sortObj);
+
+        // 3. Xây dựng Specification filter
+        Specification<Product> spec = ProductSpecification.buildFilter(
+                category, search, minPrice, maxPrice, location, shopKeyword, minRating, farmerId
+        );
+
+        // 4. Truy vấn DB
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
+
+        // 5. Convert sang ProductResponse (bulk optimized)
+        List<ProductResponse> content = convertProductsToResponseList(productPage.getContent());
+
+        // 6. Trả về kết quả phân trang
+        return PagedProductResponse.builder()
+                .content(content)
+                .totalElements(productPage.getTotalElements())
+                .totalPages(productPage.getTotalPages())
+                .currentPage(productPage.getNumber())
+                .pageSize(productPage.getSize())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse updateProductStock(Long id, Integer newStock, String farmerEmail) throws Exception {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        if (product.getFarmer() == null || !product.getFarmer().getEmail().equalsIgnoreCase(farmerEmail)) {
+            throw new IllegalArgumentException("Bạn không có quyền chỉnh sửa sản phẩm này.");
+        }
+
+        Integer oldStock = product.getStockQuantity();
+        product.setStockQuantity(newStock != null ? newStock : 0);
+
+        if (product.getStockQuantity() == 0) {
+            try {
+                Notification notif = Notification.builder()
+                        .receiverType("farmer")
+                        .receiverId(product.getFarmer().getId())
+                        .title("Sản phẩm hết hàng!")
+                        .content("Sản phẩm \"" + product.getName() + "\" của bạn đã hết hàng trong kho. Vui lòng cập nhật thêm số lượng tồn kho.")
+                        .link("/farmer/products")
+                        .createdAt(java.time.LocalDateTime.now())
+                        .isRead(false)
+                        .build();
+                notificationRepository.save(notif);
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo hết hàng: " + e.getMessage());
+            }
+        }
+
+        product = productRepository.save(product);
+        notifyWishlistUsersIfBackInStock(product, oldStock);
+        return convertToResponse(product);
+    }
+
+    private void notifyWishlistUsersIfBackInStock(Product product, Integer oldStock) {
+        if (oldStock != null && oldStock == 0 && product.getStockQuantity() > 0) {
+            try {
+                List<org.example.agrimarket.model.WishlistItem> wishlistItems = wishlistItemRepository.findByProductId(product.getId());
+                for (org.example.agrimarket.model.WishlistItem item : wishlistItems) {
+                    Notification notif = Notification.builder()
+                            .receiverType("customer")
+                            .receiverId(item.getUser().getId())
+                            .title("Sản phẩm yêu thích đã có hàng!")
+                            .content("Sản phẩm \"" + product.getName() + "\" trong danh sách yêu thích của bạn đã có hàng trở lại (" + product.getStockQuantity() + " " + product.getUnit() + ").")
+                            .link("/products/" + product.getId())
+                            .createdAt(java.time.LocalDateTime.now())
+                            .isRead(false)
+                            .build();
+                    notificationRepository.save(notif);
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo sản phẩm có hàng lại cho wishlist: " + e.getMessage());
+            }
+        }
+    }
+
+    private void validateHarvestDate(ProductRequest request) {
+        if (request.getIsPreorder() != null && request.getIsPreorder()) {
+            if (request.getHarvestDate() != null && !request.getHarvestDate().isAfter(java.time.LocalDate.now())) {
+                throw new IllegalArgumentException("Ngày thu hoạch dự kiến của sản phẩm đặt trước phải ở tương lai.");
+            }
+        } else {
+            if (request.getHarvestDate() != null && request.getHarvestDate().isAfter(java.time.LocalDate.now())) {
+                throw new IllegalArgumentException("Ngày thu hoạch của sản phẩm thường phải ở quá khứ hoặc hôm nay.");
+            }
+        }
+    }
+    // Forced recompile trigger comment
 }

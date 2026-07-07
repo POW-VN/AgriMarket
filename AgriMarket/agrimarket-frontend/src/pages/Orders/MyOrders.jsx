@@ -4,6 +4,7 @@ import { Sprout, Truck, XCircle, Clock, Search, Package, RotateCw } from "lucide
 import authService from "../../services/authService";
 import orderService from "../../services/orderService";
 import useProfile from "../../hooks/useProfile";
+import * as preorderService from "../../services/preorderService";
 import ProfileLayout from "../../components/profile/ProfileLayout";
 import "./MyOrders.css";
 import "../Profile/Profile.css";
@@ -170,6 +171,7 @@ export const MyOrders = () => {
   const { profile } = useProfile();
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [preorders, setPreorders] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,11 +183,48 @@ export const MyOrders = () => {
   const [toastMessage, setToastMessage] = useState("");
   const itemsPerPage = 3;
 
-  useEffect(() => {
-    const loadPreorders = () => {
+  const loadPreorders = async () => {
+    try {
+      const fetched = await preorderService.getMyPreorders();
+      const normalized = fetched.map(po => {
+        const totalAmount = po.items.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
+        const depositPaid = Math.round(totalAmount * 0.2);
+        const primaryItem = po.items[0] || {};
+        
+        const statusLabels = {
+          pending: "Chờ xác nhận",
+          paid: "Đã cọc 20%",
+          cancelled: "Đã hủy cọc",
+          completed: "Hoàn thành"
+        };
+
+        return {
+          id: String(po.id),
+          status: po.status,
+          statusLabel: statusLabels[po.status] || po.status,
+          date: new Date(po.createdAt).toLocaleDateString("vi-VN"),
+          time: new Date(po.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }),
+          amount: totalAmount,
+          depositPaid: depositPaid,
+          expectedHarvestDate: primaryItem.expectedHarvestDate ? new Date(primaryItem.expectedHarvestDate).toLocaleDateString("vi-VN") : "Đang cập nhật",
+          provider: {
+            name: primaryItem.farmerName || "Nông trại địa phương",
+            avatarText: (primaryItem.farmerName || "N").substring(0, 2).toUpperCase(),
+            avatarBg: "#1b5e20"
+          },
+          thumbnails: po.items.map(item => item.productThumbnailUrl || "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=200"),
+          hasMoreItems: Math.max(0, po.items.length - 1)
+        };
+      });
+      setPreorders(normalized);
+    } catch (err) {
+      console.error("Lỗi khi load danh sách đặt trước từ backend:", err);
       const stored = localStorage.getItem("agrimarket_preorders");
       setPreorders(stored ? JSON.parse(stored) : []);
-    };
+    }
+  };
+
+  useEffect(() => {
     loadPreorders();
     window.addEventListener("preordersUpdated", loadPreorders);
     return () => {
@@ -193,20 +232,34 @@ export const MyOrders = () => {
     };
   }, []);
 
-  const handleCancelPreorder = (preorderId) => {
+  const handleCancelPreorder = async (preorderId) => {
     if (window.confirm("Bạn có chắc chắn muốn hủy yêu cầu đặt trước này? Khoản cọc sẽ được hoàn lại theo chính sách của AgriMarket.")) {
-      const stored = localStorage.getItem("agrimarket_preorders");
-      const list = stored ? JSON.parse(stored) : [];
-      const updated = list.map(po => {
-        if (po.id === preorderId) {
-          return { ...po, status: "cancelled", statusLabel: "Đã hủy cọc" };
-        }
-        return po;
-      });
-      localStorage.setItem("agrimarket_preorders", JSON.stringify(updated));
-      setPreorders(updated);
-      setToastMessage("Đã hủy yêu cầu đặt trước thành công!");
-      setTimeout(() => setToastMessage(""), 3000);
+      try {
+        await preorderService.updatePreorderStatus(preorderId, "cancelled");
+        setToastMessage("Đã hủy yêu cầu đặt trước thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+        loadPreorders();
+      } catch (err) {
+        console.error(err);
+        alert("Đã xảy ra lỗi khi hủy đơn đặt trước: " + (err.response?.data || err.message));
+      }
+    }
+  };
+
+  const handleConfirmReceipt = async (orderId) => {
+    const msg = "Bạn có chắc chắn muốn xác nhận đã lấy/nhận đơn hàng này?";
+    if (window.confirm(msg)) {
+      try {
+        const updated = await orderService.confirmOrderReceived(orderId);
+        setOrders(prevOrders =>
+          prevOrders.map(o => o.id === orderId ? updated : o)
+        );
+        setToastMessage("Xác nhận đã nhận/lấy đơn hàng thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+      } catch (err) {
+        console.error("Lỗi xác nhận lấy đơn:", err);
+        alert(err.response?.data || "Xác nhận thất bại. Vui lòng thử lại.");
+      }
     }
   };
 
@@ -216,6 +269,7 @@ export const MyOrders = () => {
     setUser(currentUser);
 
     const loadOrders = async () => {
+      setLoading(true);
       if (currentUser) {
         try {
           const fetched = await orderService.getCustomerOrders();
@@ -224,10 +278,13 @@ export const MyOrders = () => {
           console.error("Lỗi khi load đơn hàng từ API:", err);
           const stored = localStorage.getItem("agrimarket_orders");
           setOrders(stored ? JSON.parse(stored) : INITIAL_ORDERS);
+        } finally {
+          setLoading(false);
         }
       } else {
         const stored = localStorage.getItem("agrimarket_orders");
         setOrders(stored ? JSON.parse(stored) : INITIAL_ORDERS);
+        setLoading(false);
       }
     };
 
@@ -380,7 +437,15 @@ export const MyOrders = () => {
 
         {/* ── ORDERS LIST ── */}
         <div className="orders-list">
-          {paginatedOrders.length === 0 ? (
+          {loading ? (
+            <div className="empty-orders-state">
+              <div className="empty-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
+                <RotateCw className="animate-spin-slow" size={48} style={{ color: "#00412f" }} />
+              </div>
+              <h3>Đang tải đơn hàng...</h3>
+              <p>Vui lòng chờ trong giây lát.</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
             <div className="empty-orders-state">
               <div className="empty-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
                 <Package size={48} style={{ color: "#84918c" }} />
@@ -487,6 +552,16 @@ export const MyOrders = () => {
                       {order.status === "shipping" && (
                         <>
                           <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
+                          <button 
+                            className="btn-solid btn-buy-again" 
+                            style={{ backgroundColor: "#16a34a", color: "#fff", borderColor: "#16a34a", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                            onClick={() => handleConfirmReceipt(order.id)}
+                          >
+                            <RotateCw size={15} style={{ marginRight: "6px" }} className="animate-spin-slow" />
+                            {order.address && (order.address.toLowerCase().includes("tự nhận") || order.address.toLowerCase().includes("nông trại"))
+                              ? "Xác nhận đã lấy đơn"
+                              : "Xác nhận đã nhận hàng"}
+                          </button>
                         </>
                       )}
                       {order.status === "cancelled" && (

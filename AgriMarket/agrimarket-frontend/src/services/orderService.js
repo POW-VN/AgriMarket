@@ -37,13 +37,22 @@ const updateFarmerOrderStatus = async (orderCode, status, reason = "") => {
   return response.data;
 };
 
-const createVNPayPaymentUrl = async (orderCode) => {
-  const response = await apiClient.get(`/api/payment/create-vnpay-payment?orderCode=${orderCode}`);
+const createVNPayPaymentUrl = async (orderCode, deliveryMode) => {
+  let url = `/api/payment/create-vnpay-payment?orderCode=${orderCode}`;
+  if (deliveryMode) {
+    url += `&deliveryMode=${deliveryMode}`;
+  }
+  const response = await apiClient.get(url);
   return response.data;
 };
 
 const verifyVNPayCallback = async (queryParamsString) => {
   const response = await apiClient.get(`/api/payment/vnpay-callback?${queryParamsString}`);
+  return response.data;
+};
+
+const confirmOrderReceived = async (orderCode) => {
+  const response = await apiClient.post(`/api/orders/${orderCode}/received`);
   return response.data;
 };
 
@@ -57,6 +66,7 @@ const orderService = {
   updateFarmerOrderStatus,
   createVNPayPaymentUrl,
   verifyVNPayCallback,
+  confirmOrderReceived,
 };
 
 export default orderService;

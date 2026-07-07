@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Calendar, AlertTriangle, XCircle, Ban, DollarSign, Sparkles, BarChart3, Search, Star, CheckCircle2 } from "lucide-react";
 import * as productService from "../../../services/productService";
 import apiClient from "../../../services/apiClient";
 import "./AddProduct.css";
@@ -55,16 +56,205 @@ const isValidDateStr = (dateStr) => {
   return dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day;
 };
 
-const handleDateInputChange = (value, setter) => {
-  let clean = value.replace(/[^0-9/]/g, "");
-  if (clean.length === 2 && !clean.includes("/")) {
-    clean = clean + "/";
-  } else if (clean.length === 5 && clean.split("/").length === 2) {
-    clean = clean + "/";
+const PopoverDatePicker = ({ value, onChange, minDate, maxDate, placeholder = "Chọn ngày", error }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  
+  const parseDisplayDate = (str) => {
+    if (!str) return null;
+    const parts = str.split("/");
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+        return new Date(year, month - 1, day);
+      }
+    }
+    return null;
+  };
+  
+  const formatDisplayDate = (dateObj) => {
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const y = dateObj.getFullYear();
+    return `${d}/${m}/${y}`;
+  };
+  
+  const parsedValue = parseDisplayDate(value) || new Date();
+  const [viewMonth, setViewMonth] = useState(parsedValue.getMonth());
+  const [viewYear, setViewYear] = useState(parsedValue.getFullYear());
+  
+  useEffect(() => {
+    const d = parseDisplayDate(value);
+    if (d && !isNaN(d.getTime())) {
+      setViewMonth(d.getMonth());
+      setViewYear(d.getFullYear());
+    }
+  }, [value]);
+  
+  const months = [
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+  ];
+  
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+  
+  const getFirstDayOfMonth = (month, year) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1;
+  };
+  
+  const handlePrevMonth = (e) => {
+    e.stopPropagation();
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+  
+  const handleNextMonth = (e) => {
+    e.stopPropagation();
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+  
+  const daysInMonth = getDaysInMonth(viewMonth, viewYear);
+  const firstDay = getFirstDayOfMonth(viewMonth, viewYear);
+  
+  const calendarCells = [];
+  for (let i = 0; i < firstDay; i++) {
+    calendarCells.push({ dayNum: null, dateObj: null, selectable: false });
   }
-  if (clean.length <= 10) {
-    setter(clean);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(viewYear, viewMonth, d);
+    
+    let selectable = true;
+    if (minDate) {
+      const minCopy = new Date(minDate);
+      minCopy.setHours(0,0,0,0);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy < minCopy) selectable = false;
+    }
+    if (maxDate) {
+      const maxCopy = new Date(maxDate);
+      maxCopy.setHours(23,59,59,999);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy > maxCopy) selectable = false;
+    }
+    
+    calendarCells.push({ dayNum: d, dateObj, selectable });
   }
+  
+  const handleSelectDay = (cell, e) => {
+    e.stopPropagation();
+    if (!cell.selectable) return;
+    onChange(formatDisplayDate(cell.dateObj));
+    setIsOpen(false);
+  };
+  
+  const isSelected = (cell) => {
+    if (!cell.dateObj || !value) return false;
+    const valDate = parseDisplayDate(value);
+    if (!valDate) return false;
+    return cell.dateObj.getFullYear() === valDate.getFullYear() &&
+           cell.dateObj.getMonth() === valDate.getMonth() &&
+           cell.dateObj.getDate() === valDate.getDate();
+  };
+  
+  return (
+    <div className="popover-datepicker-wrapper" ref={wrapperRef} style={{ position: "relative" }}>
+      <div 
+        className={`popover-datepicker-input-container ${error ? "ap-input-error" : ""}`} 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 12px",
+          border: error ? "1px solid #ef4444" : "1px solid #d1d5db",
+          borderRadius: "6px",
+          backgroundColor: "#fff",
+          cursor: "pointer",
+          fontSize: "14px",
+          height: "42px",
+          boxSizing: "border-box"
+        }}
+      >
+        <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>
+          {value || placeholder}
+        </span>
+        <Calendar size={18} style={{ color: "#64748b" }} />
+      </div>
+      
+      {isOpen && (
+        <div 
+          className="custom-inline-calendar popover-calendar-dropdown" 
+          style={{ 
+            position: "absolute", 
+            top: "100%", 
+            left: 0, 
+            zIndex: 999, 
+            marginTop: "4px",
+            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)"
+          }}
+        >
+          <div className="calendar-header">
+            <button type="button" onClick={handlePrevMonth} className="calendar-nav-btn">&lt;</button>
+            <span className="calendar-title">{months[viewMonth]} {viewYear}</span>
+            <button type="button" onClick={handleNextMonth} className="calendar-nav-btn">&gt;</button>
+          </div>
+          <div className="calendar-weekdays">
+            <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+          </div>
+          <div className="calendar-grid">
+            {calendarCells.map((cell, idx) => {
+              if (cell.dayNum === null) {
+                return <div key={`empty-${idx}`} className="calendar-cell empty"></div>;
+              }
+              
+              let cellClass = "calendar-cell day";
+              if (!cell.selectable) {
+                cellClass += " disabled";
+              } else if (isSelected(cell)) {
+                cellClass += " selected";
+              }
+              
+              return (
+                <div 
+                  key={`day-${cell.dayNum}`} 
+                  className={cellClass}
+                  onClick={(e) => handleSelectDay(cell, e)}
+                >
+                  {cell.dayNum}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export const AddProduct = () => {
@@ -91,6 +281,7 @@ export const AddProduct = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [perishability, setPerishability] = useState("khô");
   const [limitDistance, setLimitDistance] = useState("");
+  const [isPreorder, setIsPreorder] = useState(false);
 
   const handlePerishabilityChange = (val) => {
     setPerishability(val);
@@ -206,6 +397,7 @@ export const AddProduct = () => {
             setRejectionReason(prod.rejectionReason || "");
             setPerishability(prod.perishability || "khô");
             setLimitDistance(prod.limitDistance !== undefined && prod.limitDistance !== null ? prod.limitDistance : "");
+            setIsPreorder(prod.isPreorder || false);
           }
         } catch (err) {
           console.error("Lỗi khi tải chi tiết sản phẩm để chỉnh sửa:", err);
@@ -355,8 +547,14 @@ export const AddProduct = () => {
         harvest.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        if (harvest > today) {
-          newErrors.harvestDate = "Ngày thu hoạch phải là ngày ở quá khứ hoặc hôm nay.";
+        if (isPreorder) {
+          if (harvest <= today) {
+            newErrors.harvestDate = "Ngày thu hoạch dự kiến phải là ngày trong tương lai (từ ngày mai trở đi).";
+          }
+        } else {
+          if (harvest > today) {
+            newErrors.harvestDate = "Ngày thu hoạch phải là ngày ở quá khứ hoặc hôm nay.";
+          }
         }
       }
     }
@@ -407,6 +605,7 @@ export const AddProduct = () => {
         images: productImages.map((img) => img.url),
         perishability: perishability,
         limitDistance: limitDistance ? parseFloat(limitDistance) : null,
+        isPreorder: isPreorder,
       };
 
       if (isEdit) {
@@ -444,6 +643,7 @@ export const AddProduct = () => {
         images: productImages.map((img) => img.url),
         perishability: perishability || "khô",
         limitDistance: limitDistance ? parseFloat(limitDistance) : null,
+        isPreorder: isPreorder,
       };
 
       if (isEdit) {
@@ -506,8 +706,8 @@ export const AddProduct = () => {
 
         {/* BANNER FOR CHANGES REQUESTED OR REJECTED */}
         {isEdit && productStatus === "request_changes" && adminNotes && (
-          <div className="ap-changes-banner">
-            <div className="ap-changes-banner-icon">⚠️</div>
+          <div className="ap-changes-banner" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div className="ap-changes-banner-icon" style={{ display: "inline-flex", alignItems: "center" }}><AlertTriangle size={24} style={{ color: "#d97706" }} /></div>
             <div className="ap-changes-banner-content">
               <strong>Yêu cầu sửa đổi từ Quản trị viên:</strong>
               <p>{adminNotes}</p>
@@ -516,8 +716,8 @@ export const AddProduct = () => {
         )}
 
         {isEdit && productStatus === "rejected" && rejectionReason && (
-          <div className="ap-changes-banner rejected">
-            <div className="ap-changes-banner-icon">❌</div>
+          <div className="ap-changes-banner rejected" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div className="ap-changes-banner-icon" style={{ display: "inline-flex", alignItems: "center" }}><XCircle size={24} style={{ color: "#dc2626" }} /></div>
             <div className="ap-changes-banner-content">
               <strong>Sản phẩm bị từ chối phê duyệt:</strong>
               <p>{rejectionReason}</p>
@@ -526,8 +726,8 @@ export const AddProduct = () => {
         )}
 
         {isEdit && productStatus === "hidden" && rejectionReason && (
-          <div className="ap-changes-banner rejected">
-            <div className="ap-changes-banner-icon">🚫</div>
+          <div className="ap-changes-banner rejected" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div className="ap-changes-banner-icon" style={{ display: "inline-flex", alignItems: "center" }}><Ban size={24} style={{ color: "#7c2d12" }} /></div>
             <div className="ap-changes-banner-content">
               <strong>Sản phẩm bị ẩn khỏi thị trường công khai:</strong>
               <p>{rejectionReason}</p>
@@ -650,6 +850,25 @@ export const AddProduct = () => {
               )}
 
               <div className="ap-field-group">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", marginTop: "16px", marginBottom: "16px" }}>
+                  <div>
+                    <label className="ap-label" style={{ marginBottom: "2px", color: "#166534", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Calendar size={16} /> Đăng bán dưới dạng đặt trước (Preorder)
+                    </label>
+                    <span style={{ fontSize: "12px", color: "#16a34a" }}>Khách hàng sẽ đặt mua cọc trước khi đến vụ thu hoạch</span>
+                  </div>
+                  <label className="ap-switch">
+                    <input 
+                      type="checkbox" 
+                      checked={isPreorder} 
+                      onChange={(e) => setIsPreorder(e.target.checked)} 
+                    />
+                    <span className="ap-slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="ap-field-group">
                 <div className="ap-label-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                   <label className="ap-label" style={{ marginBottom: 0 }}>Mô tả sản phẩm</label>
                   <button
@@ -663,7 +882,7 @@ export const AddProduct = () => {
                         <span className="ap-ai-spinner" /> Đang tạo...
                       </>
                     ) : (
-                      "✨ AI gợi ý mô tả"
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><Sparkles size={14} /> AI gợi ý mô tả</span>
                     )}
                   </button>
                 </div>
@@ -691,24 +910,51 @@ export const AddProduct = () => {
                   <label className="ap-label">
                     Ngày thu hoạch/đóng gói <span className="ap-required">*</span>
                   </label>
-                  <input
-                    type="text"
-                    className={`ap-input ${errors.harvestDate ? "ap-input-error" : ""}`}
-                    placeholder="dd/mm/yyyy"
+                  <PopoverDatePicker
                     value={harvestDate}
-                    onChange={(e) => handleDateInputChange(e.target.value, setHarvestDate)}
+                    onChange={(val) => setHarvestDate(val)}
+                    minDate={isPreorder ? (() => {
+                      const tomorrow = new Date();
+                      tomorrow.setDate(tomorrow.getDate() + 1);
+                      tomorrow.setHours(0,0,0,0);
+                      return tomorrow;
+                    })() : null}
+                    maxDate={isPreorder ? null : new Date()}
+                    placeholder="dd/mm/yyyy"
+                    error={!!errors.harvestDate}
                   />
                   {errors.harvestDate && <span className="ap-error-msg">{errors.harvestDate}</span>}
                 </div>
 
                 <div className="ap-field-group" style={{ marginBottom: 0 }}>
                   <label className="ap-label">Hạn sử dụng</label>
-                  <input
-                    type="text"
-                    className={`ap-input ${errors.expirationDate ? "ap-input-error" : ""}`}
-                    placeholder="dd/mm/yyyy"
+                  <PopoverDatePicker
                     value={expirationDate}
-                    onChange={(e) => handleDateInputChange(e.target.value, setExpirationDate)}
+                    onChange={(val) => setExpirationDate(val)}
+                    minDate={(() => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      
+                      let harvestLimit = null;
+                      if (harvestDate) {
+                        const parts = harvestDate.split("/");
+                        if (parts.length === 3) {
+                          const d = parseInt(parts[0], 10);
+                          const m = parseInt(parts[1], 10);
+                          const y = parseInt(parts[2], 10);
+                          if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
+                            harvestLimit = new Date(y, m - 1, d + 1);
+                          }
+                        }
+                      }
+                      
+                      if (harvestLimit && harvestLimit > today) {
+                        return harvestLimit;
+                      }
+                      return today;
+                    })()}
+                    placeholder="dd/mm/yyyy"
+                    error={!!errors.expirationDate}
                   />
                   {errors.expirationDate && <span className="ap-error-msg">{errors.expirationDate}</span>}
                 </div>
@@ -800,7 +1046,7 @@ export const AddProduct = () => {
               {/* Pricing Setup */}
               <section className="ap-card">
                 <div className="ap-card-header-row">
-                  <span className="ap-card-icon">💰</span>
+                  <span className="ap-card-icon" style={{ display: "inline-flex", alignItems: "center" }}><DollarSign size={20} style={{ color: "#d97706" }} /></span>
                   <h2 className="ap-card-title">Thiết lập giá</h2>
                 </div>
 
@@ -820,7 +1066,7 @@ export const AddProduct = () => {
                           <span className="ap-ai-spinner" /> Đang gợi ý...
                         </>
                       ) : (
-                        "✨ AI gợi ý giá"
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><Sparkles size={14} /> AI gợi ý giá</span>
                       )}
                     </button>
                   </div>
@@ -887,7 +1133,7 @@ export const AddProduct = () => {
               {/* Inventory Tracking */}
               <section className="ap-card">
                 <div className="ap-card-header-row">
-                  <span className="ap-card-icon">📊</span>
+                  <span className="ap-card-icon" style={{ display: "inline-flex", alignItems: "center" }}><BarChart3 size={20} style={{ color: "#3b82f6" }} /></span>
                   <h2 className="ap-card-title">Theo dõi tồn kho</h2>
                 </div>
 
@@ -938,8 +1184,8 @@ export const AddProduct = () => {
                           }`}
                       />
                       {previewSlides[safeIdx].type === "traceability" && (
-                        <div className="ap-slide-cert-badge" style={{ backgroundColor: "#0284c7" }}>
-                          🔍 Ảnh thông tin truy xuất nguồn gốc
+                        <div className="ap-slide-cert-badge" style={{ backgroundColor: "#0284c7", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <Search size={12} /> Ảnh thông tin truy xuất nguồn gốc
                         </div>
                       )}
                     </div>
@@ -978,7 +1224,7 @@ export const AddProduct = () => {
 
               <div className="ap-preview-meta">
                 <span className="ap-preview-category">{(category === "Khác" ? customCategory : category) || "DANH MỤC"}</span>
-                <span className="ap-preview-new-badge">★ Mới</span>
+                <span className="ap-preview-new-badge" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Star size={10} fill="currentColor" /> Mới</span>
               </div>
 
               <h3 className="ap-preview-name">{displayName}</h3>
@@ -1004,8 +1250,8 @@ export const AddProduct = () => {
       {showAiModal && (
         <div className="custom-modal-overlay">
           <div className="custom-modal ai-modal" style={{ maxWidth: "600px", width: "90%" }}>
-            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
-              <span className="custom-modal-icon" style={{ fontSize: "22px" }}>✨</span>
+            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center" }}><Sparkles size={20} style={{ color: "#d97706" }} /></span>
               <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý mô tả nông sản</h3>
             </div>
             <div className="ai-modal-body" style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
@@ -1059,8 +1305,8 @@ export const AddProduct = () => {
       {showAiPriceModal && (
         <div className="custom-modal-overlay">
           <div className="custom-modal ai-modal" style={{ maxWidth: "550px", width: "90%" }}>
-            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
-              <span className="custom-modal-icon" style={{ fontSize: "22px" }}>💰</span>
+            <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(16, 185, 129, 0.1)", paddingBottom: "12px", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center" }}><DollarSign size={20} style={{ color: "#d97706" }} /></span>
               <h3 style={{ fontSize: "18px", color: "#065f46" }}>AI Gợi ý giá bán nông sản</h3>
             </div>
 
@@ -1199,8 +1445,8 @@ export const AddProduct = () => {
 
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
-          <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+          <span className="custom-toast-icon" style={{ display: "inline-flex", alignItems: "center" }}>
+            {toast.type === "success" ? <CheckCircle2 size={16} /> : toast.type === "error" ? <XCircle size={16} /> : <AlertTriangle size={16} />}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
           <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>

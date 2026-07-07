@@ -154,7 +154,7 @@ CREATE TABLE product (
     rejection_reason NVARCHAR(MAX),
     admin_notes NVARCHAR(MAX),
     perishability NVARCHAR(50) NULL,
-
+    is_preorder BIT DEFAULT 0,
     FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES category(id)
 );

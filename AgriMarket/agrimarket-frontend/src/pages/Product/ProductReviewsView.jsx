@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import { getProductById } from "../../services/productService";
@@ -544,11 +545,11 @@ export default function ProductReviewsView() {
                                             </div>
                                         )}
 
-                                        <div className="prv-helpful-row">
-                                            <span>Đánh giá này có hữu ích không?</span>
-                                            <button>👍 {review.helpful}</button>
-                                            <button>👎 {review.notHelpful}</button>
-                                        </div>
+                                         <div className="prv-helpful-row">
+                                             <span>Đánh giá này có hữu ích không?</span>
+                                             <button style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><ThumbsUp size={14} /> {review.helpful}</button>
+                                             <button style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><ThumbsDown size={14} /> {review.notHelpful}</button>
+                                         </div>
                                     </article>
                                 ))
                             )}

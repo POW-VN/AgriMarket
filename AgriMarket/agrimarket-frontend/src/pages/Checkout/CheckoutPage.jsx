@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { CreditCard, ArrowLeft, Check, ArrowRight, MapPin, AlertTriangle, Sprout, Package, Banknote, Lock, ShoppingCart } from "lucide-react";
+import { CreditCard, ArrowLeft, Check, ArrowRight, MapPin, AlertTriangle, Sprout, Package, Banknote, Lock, ShoppingCart, XCircle } from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import profileService from "../../services/profileService";
@@ -309,6 +309,64 @@ export default function CheckoutPage() {
 
         fetchCartCount();
     }, [isSuccess]);
+
+    const selectedProductIdsRef = useRef([]);
+    useEffect(() => {
+        if (checkoutData && checkoutData.selectedItems) {
+            selectedProductIdsRef.current = checkoutData.selectedItems.map(item => item.id);
+        }
+    }, [checkoutData]);
+
+    const currentFullAddress = useMemo(() => {
+        if (!addrStreet.trim() || !addrWard.name || !addrDistrict.name || !addrProvince.name) {
+            return "";
+        }
+        return addressService.formatAddress({
+            street: addrStreet.trim(),
+            ward: addrWard.name,
+            district: addrDistrict.name,
+            province: addrProvince.name
+        });
+    }, [addrStreet, addrWard.name, addrDistrict.name, addrProvince.name]);
+
+    useEffect(() => {
+        if (currentFullAddress && selectedProductIdsRef.current.length > 0 && checkoutData) {
+            if (checkoutData.subtotal >= 500000) {
+                setCheckoutData(prev => {
+                    if (!prev) return null;
+                    const total = prev.subtotal + prev.serviceFee + 0 - prev.discountAmount;
+                    return {
+                        ...prev,
+                        shippingFee: 0,
+                        totalAmount: total
+                    };
+                });
+                return;
+            }
+
+            const calculateDynamicShippingFee = async () => {
+                try {
+                    const response = await apiClient.post("/api/orders/calculate-shipping-fee", {
+                        toAddress: currentFullAddress,
+                        productIds: selectedProductIdsRef.current
+                    });
+                    const actualFee = response.data.shippingFee;
+                    setCheckoutData(prev => {
+                        if (!prev) return null;
+                        const total = prev.subtotal + prev.serviceFee + actualFee - prev.discountAmount;
+                        return {
+                            ...prev,
+                            shippingFee: actualFee,
+                            totalAmount: total
+                        };
+                    });
+                } catch (err) {
+                    console.error("Lỗi tính phí vận chuyển động từ GHN API:", err);
+                }
+            };
+            calculateDynamicShippingFee();
+        }
+    }, [currentFullAddress]);
 
     // Load provinces on mount
     useEffect(() => {
@@ -760,6 +818,8 @@ export default function CheckoutPage() {
         }
         if (!addrProvince.code || !addrDistrict.code || !addrWard.code || !addrStreet.trim()) {
             formErrors.recipientAddress = "Vui lòng nhập đầy đủ địa chỉ giao hàng 4 cấp";
+        } else if (!latitude || !longitude) {
+            formErrors.recipientAddress = "Vui lòng chọn vị trí của bạn trên bản đồ";
         } else if (activeDistanceInfo.distance !== null && !activeDistanceInfo.isValid) {
             formErrors.recipientAddress = `Địa chỉ nhận hàng vượt quá khoảng cách giao hàng tối đa của một số sản phẩm trong đơn hàng: ${activeDistanceInfo.invalidDetails.join("; ")}. Vui lòng chọn địa chỉ nhận hàng khác.`;
         }
@@ -1616,7 +1676,7 @@ export default function CheckoutPage() {
                 <div className="custom-modal-overlay">
                     <div className="custom-modal-card">
                         <div className="custom-modal-header">
-                            <span className="custom-modal-icon">🚫</span>
+                            <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center" }}><XCircle size={32} style={{ color: "#dc2626" }} /></span>
                             <h4>{errorModal.title}</h4>
                         </div>
                         <div className="custom-modal-body">

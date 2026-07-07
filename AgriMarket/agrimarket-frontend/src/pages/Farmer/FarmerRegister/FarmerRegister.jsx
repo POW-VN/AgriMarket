@@ -341,6 +341,11 @@ export const FarmerRegister = () => {
             return;
         }
 
+        if (!latitude || !longitude) {
+            setError("Vui lòng chọn vị trí trang trại của bạn trên bản đồ.");
+            return;
+        }
+
         if (!description.trim()) {
             setError("Vui lòng điền mô tả trang trại.");
             return;

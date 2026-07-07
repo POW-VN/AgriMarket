@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import orderService from "../../services/orderService";
 import authService from "../../services/authService";
+import * as preorderService from "../../services/preorderService";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
 import "./PaymentPage.css"; // Reuse styling for visual consistency
@@ -54,21 +55,51 @@ export default function VNPayCallbackPage() {
                 if (verifyResult && verifyResult.success) {
                     setTransactionNo(verifyResult.transactionNo || "");
                     
-                    // 2. Fetch full order details to display the receipt
-                    const fullOrder = await orderService.getOrderById(verifyResult.orderCode);
-                    setReceiptOrder(fullOrder);
-                    
-                    // Clear pending checkout sessions
-                    localStorage.removeItem("agrimarket_pending_order");
-                    localStorage.removeItem("agrimarket_checkout");
-                    
-                    // Clear cart items if they match
-                    if (fullOrder && fullOrder.items) {
-                        const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-                        const remainingCart = savedCart.filter(item => 
-                            !fullOrder.items.some(poi => poi.productId === item.id || poi.name === item.name)
-                        );
-                        localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
+                    if (verifyResult.orderCode && verifyResult.orderCode.startsWith("PRE-")) {
+                        // It is a Preorder!
+                        const preorderId = verifyResult.orderCode.substring(4);
+                        const po = await preorderService.getPreorderById(preorderId);
+                        
+                        // Adapt preorder response to receiptOrder structure for display
+                        const subtotal = po.items ? po.items.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0) : 0;
+                        // Let's check from query parameters vnp_Amount what was actually paid
+                        const vnpAmountPaid = verifyResult.amount || (subtotal * 0.2);
+                        
+                        const adaptedOrder = {
+                            id: `PO-${po.id}`,
+                            isPreorder: true,
+                            date: po.createdAt ? new Date(po.createdAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
+                            time: po.createdAt ? new Date(po.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }) : "",
+                            recipient: po.customerName || "Khách hàng",
+                            phone: "N/A",
+                            address: "Địa chỉ giao nhận (Cung cấp khi nông trại thu hoạch nông sản)",
+                            trackingNumber: "Đang cập nhật sau khi thu hoạch",
+                            amount: vnpAmountPaid,
+                            items: po.items ? po.items.map(item => ({
+                                name: `${item.productName} (Cọc 20%)`,
+                                qty: item.quantity,
+                                price: item.productPrice * 0.2
+                            })) : []
+                        };
+                        
+                        setReceiptOrder(adaptedOrder);
+                    } else {
+                        // 2. Fetch full order details to display the receipt
+                        const fullOrder = await orderService.getOrderById(verifyResult.orderCode);
+                        setReceiptOrder(fullOrder);
+                        
+                        // Clear pending checkout sessions
+                        localStorage.removeItem("agrimarket_pending_order");
+                        localStorage.removeItem("agrimarket_checkout");
+                        
+                        // Clear cart items if they match
+                        if (fullOrder && fullOrder.items) {
+                            const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+                            const remainingCart = savedCart.filter(item => 
+                                !fullOrder.items.some(poi => poi.productId === item.id || poi.name === item.name)
+                            );
+                            localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
+                        }
                     }
                 } else {
                     restoreLocalCart();

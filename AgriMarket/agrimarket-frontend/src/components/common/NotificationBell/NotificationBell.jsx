@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Bell } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import notificationService from "../../../services/notificationService";
 import apiClient from "../../../services/apiClient";
 import "./NotificationBell.css";
@@ -26,6 +27,34 @@ const getNotificationBroadcastId = (n, activeStreams = []) => {
     }
   }
   return null;
+};
+
+const getNotificationLink = (n, activeStreams = []) => {
+  if (n.link) return n.link;
+  const liveId = getNotificationBroadcastId(n, activeStreams);
+  if (liveId) return `/livestream/${liveId}`;
+  return null;
+};
+
+const getLinkInfo = (link) => {
+  if (!link) return null;
+  const l = link.toLowerCase();
+  if (l.includes("/livestream")) {
+    return {
+      text: "Tham gia phiên live →",
+      color: "#ef4444"
+    };
+  }
+  if (l.includes("/orders") || l.includes("/order")) {
+    return {
+      text: "Xem chi tiết đơn hàng →",
+      color: "#16a34a"
+    };
+  }
+  return {
+    text: "Xem sản phẩm →",
+    color: "#16a34a"
+  };
 };
 
 const NotificationBell = ({ user }) => {
@@ -140,9 +169,18 @@ const NotificationBell = ({ user }) => {
       return;
     }
 
+    if (n.link) {
+      navigate(n.link);
+      return;
+    }
+
     const text = `${n.title} ${n.content}`.toLowerCase();
     if (text.includes("đơn hàng") || text.includes("giao") || text.includes("ord") || text.includes("thanh toán") || text.includes("payment")) {
-      navigate("/profile/orders");
+      if (user && (user.role === "farmer" || user.userType === "farmer")) {
+        navigate("/farmer/orders");
+      } else {
+        navigate("/profile/orders");
+      }
     } else if (text.includes("nhà vườn") || text.includes("nông dân") || text.includes("sản phẩm") || text.includes("duyệt") || text.includes("xác minh")) {
       navigate("/farmer/dashboard");
     }
@@ -359,7 +397,7 @@ const NotificationBell = ({ user }) => {
           <div className="notifications-list">
             {filteredNotifications.length === 0 ? (
               <div className="empty-notifications">
-                <div className="empty-icon">🔔</div>
+                <div className="empty-icon" style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}><Bell size={48} style={{ opacity: 0.5, color: "#64748b" }} /></div>
                 <p>Bạn không có thông báo nào</p>
               </div>
             ) : (
@@ -383,26 +421,32 @@ const NotificationBell = ({ user }) => {
                     <div className="item-body">
                       <h4 className="item-title">{n.title}</h4>
                       <p className="item-content">{n.content}</p>
-                      {getNotificationBroadcastId(n, activeStreams) && (
-                        <div 
-                          className="join-live-text-link"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleItemClick(n);
-                          }}
-                          style={{
-                            color: "#ef4444",
-                            fontWeight: "700",
-                            fontSize: "0.85rem",
-                            marginTop: "4px",
-                            cursor: "pointer",
-                            textDecoration: "underline",
-                            display: "inline-block"
-                          }}
-                        >
-                          Ấn vào đây để tham gia phiên live
-                        </div>
-                      )}
+                      {(() => {
+                        const resolvedLink = getNotificationLink(n, activeStreams);
+                        const linkInfo = getLinkInfo(resolvedLink);
+                        if (linkInfo) {
+                          return (
+                            <Link
+                              to={resolvedLink}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleItemClick(n);
+                              }}
+                              style={{
+                                color: linkInfo.color,
+                                fontWeight: "700",
+                                fontSize: "0.82rem",
+                                marginTop: "4px",
+                                textDecoration: "underline",
+                                display: "inline-block"
+                              }}
+                            >
+                              {linkInfo.text}
+                            </Link>
+                          );
+                        }
+                        return null;
+                      })()}
                       <span className="item-time">{formatTimeAgo(n.createdAt)}</span>
                     </div>
 
@@ -504,7 +548,7 @@ const NotificationBell = ({ user }) => {
             <div className="modal-list-body">
               {filteredNotifications.length === 0 ? (
                 <div className="modal-empty">
-                  <span>🔔</span>
+                  <span style={{ display: "flex", justifyContent: "center" }}><Bell size={48} style={{ opacity: 0.5, color: "#64748b", marginBottom: "12px" }} /></span>
                   <p>Không có thông báo nào trong danh mục này.</p>
                 </div>
               ) : (
@@ -526,26 +570,32 @@ const NotificationBell = ({ user }) => {
                        <div className="modal-item-body">
                         <h3>{n.title}</h3>
                         <p>{n.content}</p>
-                        {getNotificationBroadcastId(n, activeStreams) && (
-                          <div 
-                            className="join-live-text-link"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleItemClick(n);
-                            }}
-                            style={{
-                              color: "#ef4444",
-                              fontWeight: "700",
-                              fontSize: "0.85rem",
-                              marginTop: "4px",
-                              cursor: "pointer",
-                              textDecoration: "underline",
-                              display: "inline-block"
-                            }}
-                          >
-                            Ấn vào đây để tham gia phiên live
-                          </div>
-                        )}
+                        {(() => {
+                          const resolvedLink = getNotificationLink(n, activeStreams);
+                          const linkInfo = getLinkInfo(resolvedLink);
+                          if (linkInfo) {
+                            return (
+                              <Link
+                                to={resolvedLink}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleItemClick(n);
+                                }}
+                                style={{
+                                  color: linkInfo.color,
+                                  fontWeight: "700",
+                                  fontSize: "0.85rem",
+                                  marginTop: "4px",
+                                  textDecoration: "underline",
+                                  display: "inline-block"
+                                }}
+                              >
+                                {linkInfo.text}
+                              </Link>
+                            );
+                          }
+                          return null;
+                        })()}
                         <span className="modal-item-time">{formatTimeAgo(n.createdAt)}</span>
                       </div>
 

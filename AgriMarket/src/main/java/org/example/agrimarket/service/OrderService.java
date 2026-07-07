@@ -51,6 +51,9 @@ public class OrderService {
     @Autowired
     private DistanceService distanceService;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @Transactional
     public OrderResponse createOrder(String email, OrderCreateRequest request) {
         Customer customer = customerRepository.findByEmail(email)
@@ -137,6 +140,23 @@ public class OrderService {
             // Decrement stock
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            if (product.getStockQuantity() == 0) {
+                try {
+                    Notification notif = Notification.builder()
+                            .receiverType("farmer")
+                            .receiverId(product.getFarmer().getId())
+                            .title("Sản phẩm hết hàng!")
+                            .content("Sản phẩm \"" + product.getName() + "\" của bạn đã hết hàng trong kho. Vui lòng cập nhật thêm số lượng tồn kho.")
+                            .link("/farmer/products")
+                            .createdAt(LocalDateTime.now())
+                            .isRead(false)
+                            .build();
+                    notificationRepository.save(notif);
+                } catch (Exception e) {
+                    System.err.println("Lỗi gửi thông báo hết hàng: " + e.getMessage());
+                }
+            }
 
             // Get product image
             String imageUrl = "";
@@ -244,6 +264,22 @@ public class OrderService {
             order.setItems(orderItems);
             Order savedOrder = orderRepository.save(order);
             savedSubOrders.add(savedOrder);
+
+            // Send notification to farmer
+            try {
+                Notification notif = Notification.builder()
+                        .receiverType("farmer")
+                        .receiverId(farmer.getId())
+                        .title("Đơn hàng mới!")
+                        .content("Bạn có một đơn hàng mới từ khách hàng " + customer.getFullName() + ". Mã đơn hàng: " + savedOrder.getOrderCode())
+                        .link("/farmer/orders/orderdetail/" + savedOrder.getOrderCode())
+                        .createdAt(LocalDateTime.now())
+                        .isRead(false)
+                        .build();
+                notificationRepository.save(notif);
+            } catch (Exception e) {
+                System.err.println("Lỗi tạo thông báo đơn hàng mới cho farmer: " + e.getMessage());
+            }
         }
 
         orderGroup.getSubOrders().clear();
@@ -412,7 +448,15 @@ public class OrderService {
         }
 
         if ("confirmed".equals(statusLower)) {
-            ghnService.createShipment(order);
+            String address = order.getOrderGroup() != null ? order.getOrderGroup().getDeliveryAddress() : "";
+            boolean isPickup = address != null && (address.toLowerCase().contains("tự nhận") || address.toLowerCase().contains("nông trại"));
+            if (!isPickup) {
+                ghnService.createShipment(order);
+            } else {
+                order.setStatus("shipping");
+                order.setDetailedStatus("ready_for_pickup");
+                order.setShipperNotes("Đơn hàng đã sẵn sàng tại nông trại. Vui lòng đến lấy nhận hàng.");
+            }
         } else {
             order.setStatus(statusLower);
         }
@@ -768,6 +812,55 @@ public class OrderService {
                 .itemCount(itemCount)
                 .hasMoreItems(hasMoreItems)
                 .build();
+    }
+
+    public double calculateTotalShippingFee(List<Integer> productIds, String toAddress) {
+        Map<Farmer, Integer> farmerWeights = new HashMap<>();
+        for (Integer pid : productIds) {
+            Optional<Product> prodOpt = productRepository.findById(pid.longValue());
+            if (prodOpt.isPresent()) {
+                Product prod = prodOpt.get();
+                Farmer farmer = prod.getFarmer();
+                farmerWeights.put(farmer, farmerWeights.getOrDefault(farmer, 0) + 1000);
+            }
+        }
+
+        double totalFee = 0.0;
+        for (Map.Entry<Farmer, Integer> entry : farmerWeights.entrySet()) {
+            Farmer farmer = entry.getKey();
+            int weight = entry.getValue();
+            String fromAddr = farmer.getFarmAddress();
+            if (fromAddr == null || fromAddr.isBlank()) {
+                fromAddr = "Tiền Giang, Việt Nam";
+            }
+            totalFee += ghnService.calculateShippingFee(fromAddr, toAddress, weight);
+        }
+
+        return totalFee;
+    }
+
+    @Transactional
+    public OrderResponse confirmOrderReceived(String email, String orderCode) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng."));
+
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+
+        if (!order.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Bạn không có quyền xác nhận đơn hàng này.");
+        }
+
+        if (!"shipping".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Đơn hàng chưa ở trạng thái vận chuyển hoặc chờ lấy hàng.");
+        }
+
+        order.setStatus("delivered");
+        order.setDetailedStatus("delivered");
+        order.setPaymentStatus("paid");
+        order.setShipperNotes("Người mua đã đến nhận hàng tại nông trại và xác nhận lấy đơn hàng thành công.");
+        Order saved = orderRepository.save(order);
+        return mapToResponse(saved);
     }
 
     private static class OrderItemDraft {

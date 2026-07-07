@@ -69,6 +69,9 @@ public class Product {
     @Column(name = "limit_distance")
     private Double limitDistance;
 
+    @Column(name = "is_preorder")
+    private Boolean isPreorder = false;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

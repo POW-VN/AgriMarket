@@ -1,7 +1,11 @@
 package org.example.agrimarket.controller;
 
 import org.example.agrimarket.dto.ProductResponse;
+import org.example.agrimarket.model.FollowedFarmer;
+import org.example.agrimarket.model.Notification;
 import org.example.agrimarket.model.Product;
+import org.example.agrimarket.repository.FollowedFarmerRepository;
+import org.example.agrimarket.repository.NotificationRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.example.agrimarket.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +25,12 @@ public class AdminProductController {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private FollowedFarmerRepository followedFarmerRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
@@ -55,14 +65,12 @@ public class AdminProductController {
                 pr.getCategoryName() != null ? pr.getCategoryName() : "Nông sản",
                 (pr.getFarmerOrganicUrl() != null && !pr.getFarmerOrganicUrl().isEmpty()) ? "Hữu cơ (+30%)" : "VietGAP",
                 String.format("%,.0f", pr.getPrice()),
-                pr.getUnit() != null ? pr.getUnit() : "kg"
-        ));
+                pr.getUnit() != null ? pr.getUnit() : "kg"));
         insights.put("suggestedDescription", String.format(
                 "Gợi ý mô tả lại cho sản phẩm %s chuẩn SEO:\n1. Giới thiệu: Nông sản tươi ngon cao cấp thu hoạch trực tiếp từ %s.\n2. Đặc sắc: Canh tác an toàn tự nhiên giữ trọn hương vị đặc trưng, giàu vitamin và khoáng chất thiết yếu.\n3. Bảo quản: Giữ ngăn mát tủ lạnh từ 3–7°C, sử dụng trong vòng %s.",
                 pr.getName(),
                 pr.getFarmLocation() != null ? pr.getFarmLocation() : "vùng trồng đạt chuẩn",
-                "bó".equalsIgnoreCase(pr.getUnit()) ? "2–3 ngày" : "7–10 ngày"
-        ));
+                "bó".equalsIgnoreCase(pr.getUnit()) ? "2–3 ngày" : "7–10 ngày"));
 
         return ResponseEntity.ok(insights);
     }
@@ -76,9 +84,62 @@ public class AdminProductController {
         product.setStatus("approved");
         product.setRejectionReason(null);
         productRepository.save(product);
-        
+
+        // Send notification to farmer
+        sendProductStatusNotificationToFarmer(product, "Sản phẩm đã được duyệt!", 
+                "Sản phẩm \"" + product.getName() + "\" của bạn đã được quản trị viên duyệt và đăng bán thành công.");
+
+        // Send notification to all followers of this farmer
+        sendNewProductNotificationToFollowers(product);
+
         // Return updated product response so frontend updates UI state
         return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    private void sendProductStatusNotificationToFarmer(Product product, String title, String content) {
+        if (product.getFarmer() == null) return;
+        try {
+            Notification notification = Notification.builder()
+                    .receiverType("farmer")
+                    .receiverId(product.getFarmer().getId())
+                    .title(title)
+                    .content(content)
+                    .link("/farmer/products")
+                    .createdAt(java.time.LocalDateTime.now())
+                    .isRead(false)
+                    .build();
+            notificationRepository.save(notification);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Sends a notification to all customers who follow the farmer of the given
+     * product.
+     * Called when admin approves a product.
+     */
+    private void sendNewProductNotificationToFollowers(Product product) {
+        if (product.getFarmer() == null)
+            return;
+        Long farmerId = product.getFarmer().getId();
+        String farmerName = product.getFarmer().getFarmName() != null && !product.getFarmer().getFarmName().isEmpty()
+                ? product.getFarmer().getFarmName()
+                : product.getFarmer().getFullName();
+        List<FollowedFarmer> followers = followedFarmerRepository.findByFarmerId(farmerId);
+        for (FollowedFarmer follow : followers) {
+            Long customerId = follow.getUser().getId();
+            Notification notification = Notification.builder()
+                    .receiverType("customer")
+                    .receiverId(customerId)
+                    .title("Sản phẩm mới: " + farmerName)
+                    .content("Nhà vườn " + farmerName + " vừa đăng bán sản phẩm mới: \""
+                            + product.getName() + "\". Bấm vào đây để xem chi tiết!")
+                    .link("/products/" + product.getId())
+                    .isRead(false)
+                    .build();
+            notificationRepository.save(notification);
+        }
     }
 
     @PostMapping("/{id}/reject")
@@ -91,7 +152,11 @@ public class AdminProductController {
         product.setStatus("rejected");
         product.setRejectionReason(reason);
         productRepository.save(product);
-        
+
+        // Send notification to farmer
+        sendProductStatusNotificationToFarmer(product, "Sản phẩm bị từ chối duyệt!", 
+                "Sản phẩm \"" + product.getName() + "\" của bạn đã bị từ chối duyệt. Lý do: " + (reason != null ? reason : "Không đạt tiêu chí chất lượng"));
+
         // Return updated product response
         return ResponseEntity.ok(productService.getProductById(id));
     }
@@ -106,7 +171,11 @@ public class AdminProductController {
         product.setStatus("request_changes");
         product.setAdminNotes(feedback);
         productRepository.save(product);
-        
+
+        // Send notification to farmer
+        sendProductStatusNotificationToFarmer(product, "Yêu cầu chỉnh sửa sản phẩm!", 
+                "Sản phẩm \"" + product.getName() + "\" của bạn cần chỉnh sửa thông tin. Phản hồi: " + (feedback != null ? feedback : "Vui lòng xem lại thông tin"));
+
         // Return updated product response
         return ResponseEntity.ok(productService.getProductById(id));
     }
@@ -121,7 +190,11 @@ public class AdminProductController {
         product.setStatus("hidden");
         product.setRejectionReason(reason);
         productRepository.save(product);
-        
+
+        // Send notification to farmer
+        sendProductStatusNotificationToFarmer(product, "Sản phẩm đã bị ẩn!", 
+                "Sản phẩm \"" + product.getName() + "\" của bạn đã bị quản trị viên ẩn. Lý do: " + (reason != null ? reason : "Vi phạm quy định đăng bán"));
+
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
@@ -134,7 +207,11 @@ public class AdminProductController {
         product.setStatus("approved");
         product.setRejectionReason(null);
         productRepository.save(product);
-        
+
+        // Send notification to farmer
+        sendProductStatusNotificationToFarmer(product, "Sản phẩm đã được hiển thị lại!", 
+                "Sản phẩm \"" + product.getName() + "\" của bạn đã được quản trị viên hiển thị lại trên sàn.");
+
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
@@ -149,6 +226,13 @@ public class AdminProductController {
                 product.setStatus("approved");
                 product.setRejectionReason(null);
                 productRepository.save(product);
+
+                // Send notification to farmer
+                sendProductStatusNotificationToFarmer(product, "Sản phẩm đã được duyệt!", 
+                        "Sản phẩm \"" + product.getName() + "\" của bạn đã được quản trị viên duyệt và đăng bán thành công.");
+
+                // Send follower notifications for each approved product
+                sendNewProductNotificationToFollowers(product);
             }
         }
         return ResponseEntity.ok(Map.of("message", "Đã duyệt thành công " + ids.size() + " sản phẩm."));

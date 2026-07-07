@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Search, Bell, User, Lightbulb, DollarSign } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
@@ -388,6 +389,7 @@ const ProductApproval = () => {
   // ─── DETAIL VIEW ─────────────────────────────────────────────────────────────
   const renderDetailView = () => {
     const prod = selectedProduct;
+    const isPreorder = prod.isPreorder || prod.preorder;
 
     const statusColors = {
       pending: { bg: "#fff7ed", text: "#92400e", border: "#fcd34d" },
@@ -414,7 +416,14 @@ const ProductApproval = () => {
         {/* ── Header: title + action buttons ── */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "24px", gap: "20px", flexWrap: "wrap" }}>
           <div>
-            <h2 style={{ margin: "0 0 6px 0", fontSize: "24px", fontWeight: "800", color: "#111827" }}>{prod.name}</h2>
+            <h2 style={{ margin: "0 0 6px 0", fontSize: "24px", fontWeight: "800", color: "#111827", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {prod.name}
+              {isPreorder && (
+                <span style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #a7f3d0", borderRadius: "20px", padding: "2px 10px", fontSize: "12px", fontWeight: "700" }}>
+                  Đặt trước (Preorder)
+                </span>
+              )}
+            </h2>
             <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
               Đăng tải bởi: <strong style={{ color: "#374151" }}>{prod.farmerName}</strong>
               {prod.farmLocation && <> &bull; {prod.farmLocation}</>}
@@ -506,7 +515,7 @@ const ProductApproval = () => {
               <InfoCard label="Danh mục" value={prod.categoryName || "—"} />
               <InfoCard label="Giá bán" value={`${prod.price?.toLocaleString("vi-VN")} đ / ${prod.unit}`} highlight />
               <InfoCard label="Tồn kho" value={prod.stockQuantity ? `${prod.stockQuantity} ${prod.unit}` : "—"} />
-              <InfoCard label="Ngày thu hoạch" value={prod.harvestDate || "—"} />
+              <InfoCard label={isPreorder ? "Ngày thu hoạch dự kiến" : "Ngày thu hoạch"} value={prod.harvestDate || "—"} />
               <InfoCard label="Hạn sử dụng" value={prod.expirationDate || "—"} />
               <InfoCard
                 label="Độ hư hỏng / Vận chuyển"
@@ -522,12 +531,17 @@ const ProductApproval = () => {
                 label="Bán kính giới hạn"
                 value={prod.limitDistance !== undefined && prod.limitDistance !== null ? `${prod.limitDistance} km` : "Không giới hạn"}
               />
+              <InfoCard 
+                label="Hình thức bán" 
+                value={isPreorder ? "Đặt trước (Preorder)" : "Bán ngay (Thông thường)"} 
+                highlight={isPreorder} 
+              />
             </div>
 
             {/* Farmer Info */}
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
-              <h4 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                🧑‍🌾 Thông tin nhà vườn
+              <h4 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                <User size={16} /> Thông tin nhà vườn
               </h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[
@@ -547,7 +561,7 @@ const ProductApproval = () => {
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fafafa" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "18px" }}>💰</span>
+                  <DollarSign size={18} style={{ color: "#0f766e" }} />
                   <span style={{ fontSize: "13px", fontWeight: "700", color: "#374151" }}>AI Price Monitoring Engine</span>
                 </div>
                 {aiLoading ? (
@@ -570,8 +584,8 @@ const ProductApproval = () => {
                       <strong style={{ color: "#111827" }}>{value}</strong>
                     </div>
                   ))}
-                  <p style={{ margin: "10px 0 0 0", fontSize: "12px", color: "#6b7280", fontStyle: "italic", borderTop: "1px solid #e5e7eb", paddingTop: "10px", lineHeight: "1.5" }}>
-                    💡 {aiInsights.explanation}
+                  <p style={{ margin: "10px 0 0 0", fontSize: "12px", color: "#6b7280", fontStyle: "italic", borderTop: "1px solid #e5e7eb", paddingTop: "10px", lineHeight: "1.5", display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                    <Lightbulb size={16} style={{ color: "#d97706", flexShrink: 0 }} /> {aiInsights.explanation}
                   </p>
                 </div>
               )}
@@ -671,22 +685,38 @@ const ProductApproval = () => {
   };
 
   // ─── LIST VIEW ───────────────────────────────────────────────────────────────
-  const renderListView = () => (
-    <>
-      <div className="admin-page-title-row">
-        <div className="admin-page-title-info">
-          <h2>Kiểm duyệt sản phẩm</h2>
-          <p>Duyệt, từ chối hoặc yêu cầu sửa đổi sản phẩm từ nông dân trước khi hiển thị trên chợ.</p>
-        </div>
-        <div className="admin-page-actions">
-          {selectedProductIds.length >= 2 && (
-            <button className="btn-admin-primary" onClick={handleBulkApprove} style={{ marginRight: "10px", padding: "10px 20px" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Duyệt nhanh ({selectedProductIds.length})
-            </button>
-          )}
+  const renderListView = () => {
+    const selectedProducts = products.filter((p) => selectedProductIds.includes(p.id));
+    const hasApprovedSelected = selectedProducts.some((p) => p.status === "approved");
+
+    return (
+      <>
+        <div className="admin-page-title-row">
+          <div className="admin-page-title-info">
+            <h2>Kiểm duyệt sản phẩm</h2>
+            <p>Duyệt, từ chối hoặc yêu cầu sửa đổi sản phẩm từ nông dân trước khi hiển thị trên chợ.</p>
+          </div>
+          <div className="admin-page-actions">
+            {selectedProductIds.length >= 2 && (
+              <button 
+                className="btn-admin-primary" 
+                onClick={handleBulkApprove} 
+                disabled={hasApprovedSelected}
+                style={{ 
+                  marginRight: "10px", 
+                  padding: "10px 20px",
+                  opacity: hasApprovedSelected ? 0.4 : 1,
+                  backgroundColor: hasApprovedSelected ? "#374151" : undefined,
+                  borderColor: hasApprovedSelected ? "#374151" : undefined,
+                  cursor: hasApprovedSelected ? "not-allowed" : "pointer"
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Duyệt nhanh ({selectedProductIds.length})
+              </button>
+            )}
           <button className="btn-admin-outline" onClick={handleExport}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -708,7 +738,7 @@ const ProductApproval = () => {
       {/* Filters */}
       <div className="admin-filters-bar">
         <div className="filter-search-wrapper">
-          <span className="filter-search-icon">🔍</span>
+          <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
           <input type="text" placeholder="Tìm theo tên sản phẩm, nông dân..." className="filter-search-input"
             value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
         </div>
@@ -759,7 +789,14 @@ const ProductApproval = () => {
                           className="user-cell-avatar" style={{ borderRadius: "6px" }}
                           onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150"; }} />
                         <div>
-                          <p className="user-cell-name">{prod.name}</p>
+                          <p className="user-cell-name" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", margin: 0 }}>
+                            {prod.name}
+                            {(prod.isPreorder || prod.preorder) && (
+                              <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "10px", backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", fontWeight: "700" }}>
+                                Đặt trước
+                              </span>
+                            )}
+                          </p>
                           <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>#{prod.id} • {prod.categoryName}</span>
                         </div>
                       </div>
@@ -859,7 +896,8 @@ const ProductApproval = () => {
         </div>
       </div>
     </>
-  );
+    );
+  };
 
   // ─── MAIN RENDER ─────────────────────────────────────────────────────────────
   return (
@@ -869,13 +907,14 @@ const ProductApproval = () => {
       <div className="admin-main-container">
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input type="text" placeholder="Tìm kiếm sản phẩm, nông dân..." className="admin-search-input"
               value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
           </div>
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" onClick={() => showToast("Không có thông báo mới.")}>
-              <span>🔔</span><span className="admin-notification-dot"></span>
+            <button className="admin-notification-btn" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
+              <span className="admin-notification-dot"></span>
             </button>
             <button className="btn-quick-action" onClick={() => showToast("Tính năng thao tác nhanh đang chuẩn bị.")}>
               + Thao tác nhanh

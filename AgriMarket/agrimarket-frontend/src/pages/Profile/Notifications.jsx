@@ -1,7 +1,7 @@
 // src/pages/Profile/Notifications.jsx
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     RotateCw,
     Check,
@@ -38,6 +38,34 @@ const getNotificationBroadcastId = (n, activeStreams = []) => {
         }
     }
     return null;
+};
+
+const getNotificationLink = (n, activeStreams = []) => {
+    if (n.link) return n.link;
+    const liveId = getNotificationBroadcastId(n, activeStreams);
+    if (liveId) return `/livestream/${liveId}`;
+    return null;
+};
+
+const getLinkInfo = (link) => {
+    if (!link) return null;
+    const l = link.toLowerCase();
+    if (l.includes("/livestream")) {
+        return {
+            text: "Tham gia phiên live →",
+            color: "#ef4444"
+        };
+    }
+    if (l.includes("/orders") || l.includes("/order")) {
+        return {
+            text: "Xem chi tiết đơn hàng →",
+            color: "#16a34a"
+        };
+    }
+    return {
+        text: "Xem sản phẩm →",
+        color: "#16a34a"
+    };
 };
 
 const fallbackProfile = {
@@ -253,9 +281,12 @@ const Notifications = () => {
             .length;
     };
 
-    const handleNotificationClick = async (notification) => {
+    const handleNotificationClick = async (notification, skipNavigate = false) => {
         if (!notification.isRead) {
             await markAsRead(notification.id);
+        }
+        if (!skipNavigate) {
+            handleViewDetail(notification);
         }
     };
 
@@ -272,8 +303,17 @@ const Notifications = () => {
             return;
         }
 
+        if (notification.link) {
+            navigate(notification.link);
+            return;
+        }
+
         if (type === "order" || type === "payment") {
-            navigate("/profile/orders");
+            if (profile.role === "farmer") {
+                navigate("/farmer/orders");
+            } else {
+                navigate("/profile/orders");
+            }
             return;
         }
 
@@ -388,26 +428,32 @@ const Notifications = () => {
                                             </div>
 
                                             <p>{notification.content}</p>
-                                            {getNotificationBroadcastId(notification, activeStreams) && (
-                                                <div
-                                                    className="join-live-text-link"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleViewDetail(notification);
-                                                    }}
-                                                    style={{
-                                                        color: "#ef4444",
-                                                        fontWeight: "700",
-                                                        fontSize: "0.9rem",
-                                                        marginTop: "6px",
-                                                        cursor: "pointer",
-                                                        textDecoration: "underline",
-                                                        display: "inline-block"
-                                                    }}
-                                                >
-                                                    Ấn vào đây để tham gia phiên live
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const resolvedLink = getNotificationLink(notification, activeStreams);
+                                                const linkInfo = getLinkInfo(resolvedLink);
+                                                if (linkInfo) {
+                                                    return (
+                                                        <Link
+                                                            to={resolvedLink}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleNotificationClick(notification, true);
+                                                            }}
+                                                            style={{
+                                                                color: linkInfo.color,
+                                                                fontWeight: "700",
+                                                                fontSize: "0.88rem",
+                                                                marginTop: "6px",
+                                                                textDecoration: "underline",
+                                                                display: "inline-block"
+                                                            }}
+                                                        >
+                                                            {linkInfo.text}
+                                                        </Link>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
 
                                             <div className="notification-footer">
                                                 <span
@@ -418,8 +464,9 @@ const Notifications = () => {
 
                                                 {(type === "order" ||
                                                     type === "payment" ||
-                                                    type === "farmer") && (
-                                                                                        <button
+                                                    type === "farmer" ||
+                                                    notification.link) && (
+                                                        <button
                                                             className="notification-detail-button"
                                                             onClick={(event) => {
                                                                 event.stopPropagation();

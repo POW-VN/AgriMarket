@@ -121,5 +121,33 @@ public class OrderController {
         }
     }
 
+    @PostMapping("/calculate-shipping-fee")
+    public ResponseEntity<?> calculateShippingFee(@RequestBody Map<String, Object> payload) {
+        try {
+            String toAddress = (String) payload.get("toAddress");
+            List<Integer> productIds = (List<Integer>) payload.get("productIds");
+            if (toAddress == null || toAddress.isBlank() || productIds == null || productIds.isEmpty()) {
+                return ResponseEntity.badRequest().body("Thiếu thông tin địa chỉ hoặc sản phẩm");
+            }
+            double totalFee = orderService.calculateTotalShippingFee(productIds, toAddress);
+            return ResponseEntity.ok(Map.of("shippingFee", totalFee));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{orderCode}/received")
+    public ResponseEntity<?> confirmOrderReceived(Principal principal, @PathVariable String orderCode) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            OrderResponse order = orderService.confirmOrderReceived(principal.getName(), orderCode);
+            return ResponseEntity.ok(order);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { Leaf } from "lucide-react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
@@ -667,7 +668,7 @@ export default function PaymentPage() {
                                                 {pendingOrder.items[0].img ? (
                                                     <img src={pendingOrder.items[0].img} alt={pendingOrder.items[0].name} />
                                                 ) : (
-                                                    <div style={{ fontSize: "20px" }}>🌾</div>
+                                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}><Leaf size={24} style={{ color: "#16a34a" }} /></div>
                                                 )}
                                             </div>
                                             <div className="preview-details">

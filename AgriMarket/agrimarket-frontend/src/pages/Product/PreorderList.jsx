@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
 import { getAllApprovedProducts } from "../../services/productService";
@@ -19,121 +20,17 @@ const MAIN_CATEGORIES = [
 
 const VIETNAM_PROVINCES = [
   "Toàn quốc",
-  "Bắc Giang",
-  "Tiền Giang",
-  "Lâm Đồng",
-  "Bình Thuận",
-  "Bến Tre",
-  "Khánh Hòa",
-  "Điện Biên",
-  "Hưng Yên",
-  "Đà Lạt"
+  "An Giang", "Bà Rịa - Vũng Tàu", "Bạc Liêu", "Bắc Giang", "Bắc Kạn", "Bắc Ninh", "Bến Tre", "Bình Dương", "Bình Định", "Bình Phước", "Bình Thuận", "Cà Mau", "Cao Bằng", "Cần Thơ", "Đà Nẵng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Nội", "Hà Tĩnh", "Hải Dương", "Hải Phòng", "Hậu Giang", "Hòa Bình", "Hưng Yên", "Khánh Hòa", "Kiên Giang", "Kon Tum", "Lai Châu", "Lạng Sơn", "Lào Cai", "Lâm Đồng", "Long An", "Nam Định", "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình", "Quảng Nam", "Quảng Ngãi", "Quảng Ninh", "Quảng Trị", "Sóc Trăng", "Sơn La", "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang", "TP. Hồ Chí Minh", "Trà Vinh", "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
 ];
 
-const PREORDER_PRODUCTS_MOCK = [
-  {
-    id: "preorder-litchi",
-    name: "Vải Thiều Lục Ngạn",
-    category: "Trái cây",
-    farmerName: "Hợp tác xã Lục Ngạn",
-    farmLocation: "Bắc Giang",
-    price: 45000,
-    unit: "kg",
-    imageUrl: "https://images.unsplash.com/photo-1587334206506-6b7c9a204390?w=600",
-    progressPercent: 65,
-    remainingQty: 350,
-    totalQty: 1000,
-    harvestDate: "15/06/2026",
-    isPreorder: true,
-    status: "open" // "open", "upcoming", "closed"
-  },
-  {
-    id: "preorder-durian",
-    name: "Sầu Riêng Ri6",
-    category: "Trái cây",
-    farmerName: "Chín Hóa (Bến Tre)",
-    farmLocation: "Bến Tre",
-    price: 120000,
-    unit: "kg",
-    imageUrl: "https://images.unsplash.com/photo-1595304675549-30113c2db7fe?w=600",
-    progressPercent: 0,
-    remainingQty: 2000,
-    totalQty: 2000,
-    harvestDate: "20/06/2026",
-    openTime: "08:00 - 10/05",
-    isPreorder: true,
-    status: "upcoming"
-  },
-  {
-    id: "preorder-avocado",
-    name: "Bơ Sáp 034",
-    category: "Trái cây",
-    farmerName: "Bảo Lâm Organic",
-    farmLocation: "Lâm Đồng",
-    price: 65000,
-    unit: "kg",
-    imageUrl: "https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=600",
-    progressPercent: 100,
-    remainingQty: 0,
-    totalQty: 500,
-    harvestDate: "05/07/2026",
-    isPreorder: true,
-    status: "closed"
-  },
-  {
-    id: "preorder-dragonfruit",
-    name: "Thanh Long Ruột Đỏ",
-    category: "Trái cây",
-    farmerName: "Farm Bình Thuận",
-    farmLocation: "Bình Thuận",
-    price: 32000,
-    unit: "kg",
-    imageUrl: "https://images.unsplash.com/photo-1527324688151-0e627063f2b1?w=600",
-    progressPercent: 20,
-    remainingQty: 800,
-    totalQty: 1000,
-    harvestDate: "20/06/2026",
-    isPreorder: true,
-    status: "open"
-  },
-  {
-    id: "preorder-pomelo",
-    name: "Bưởi Da Xanh Bến Tre",
-    category: "Trái cây",
-    farmerName: "Vườn Bưởi Da Xanh",
-    farmLocation: "Bến Tre",
-    price: 65000,
-    unit: "kg",
-    imageUrl: "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=600",
-    progressPercent: 50,
-    remainingQty: 50,
-    totalQty: 100,
-    harvestDate: "20/10/2026",
-    isPreorder: true,
-    status: "open"
-  },
-  {
-    id: "mock-2",
-    name: "Cà rốt gia truyền hữu cơ",
-    category: "Rau củ quả",
-    farmerName: "Nông trại Green Valley",
-    farmLocation: "Lâm Đồng",
-    price: 112500,
-    unit: "bó",
-    imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=600",
-    progressPercent: 40,
-    remainingQty: 45,
-    totalQty: 75,
-    harvestDate: "31/08/2026",
-    isPreorder: true,
-    status: "open"
-  }
-];
+const PREORDER_PRODUCTS_MOCK = [];
 
 export default function PreorderList() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
+  const [provinceSearch, setProvinceSearch] = useState("");
 
   // Filters state
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -150,6 +47,28 @@ export default function PreorderList() {
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest(".filter-searchable-select")) {
+        setShowProvinceDropdown(false);
+      }
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, []);
+
+  const filteredProvinces = useMemo(() => {
+    return VIETNAM_PROVINCES.filter((prov) =>
+      prov.toLowerCase().includes(provinceSearch.toLowerCase())
+    );
+  }, [provinceSearch]);
+
+  const handleSelectProvince = (prov) => {
+    setSelectedProvince(prov);
+    setProvinceSearch("");
+    setShowProvinceDropdown(false);
   };
 
   useEffect(() => {
@@ -184,18 +103,10 @@ export default function PreorderList() {
           };
         });
 
-        // Combine DB preorders and Mock ones (avoiding duplicates)
-        const combined = [...normalizedDb];
-        PREORDER_PRODUCTS_MOCK.forEach((mock) => {
-          if (!combined.some((p) => String(p.id) === String(mock.id))) {
-            combined.push(mock);
-          }
-        });
-
-        setProducts(combined);
+        setProducts(normalizedDb);
       } catch (err) {
         console.error("Lỗi khi load danh sách đặt trước:", err);
-        setProducts(PREORDER_PRODUCTS_MOCK);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -307,17 +218,103 @@ export default function PreorderList() {
 
             <div className="filter-item">
               <label>Tỉnh / Thành phố</label>
-              <select
-                value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}
-                className="filter-select"
+              <div 
+                className="filter-searchable-select" 
+                style={{ 
+                  position: "relative",
+                  width: "100%",
+                }}
               >
-                {VIETNAM_PROVINCES.map((prov) => (
-                  <option key={prov} value={prov}>
-                    {prov}
-                  </option>
-                ))}
-              </select>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="Tìm hoặc chọn..."
+                    value={showProvinceDropdown ? provinceSearch : selectedProvince}
+                    onChange={(e) => {
+                      setProvinceSearch(e.target.value);
+                      setShowProvinceDropdown(true);
+                    }}
+                    onFocus={() => {
+                      setShowProvinceDropdown(true);
+                      setProvinceSearch("");
+                    }}
+                    className="filter-select"
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      cursor: "text",
+                      paddingRight: "30px"
+                    }}
+                  />
+                  <span 
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: "10px",
+                      color: "#94A3B8",
+                      pointerEvents: "none"
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
+
+                {showProvinceDropdown && (
+                  <div 
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: 0,
+                      right: 0,
+                      maxHeight: "260px",
+                      overflowY: "auto",
+                      backgroundColor: "#ffffff",
+                      border: "1.5px solid #E2E8F0",
+                      borderRadius: "8px",
+                      marginTop: "6px",
+                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                      zIndex: 999,
+                      padding: "4px 0"
+                    }}
+                  >
+                    {filteredProvinces.length === 0 ? (
+                      <div style={{ padding: "10px 16px", color: "#64748B", fontSize: "14px" }}>
+                        Không tìm thấy tỉnh thành
+                      </div>
+                    ) : (
+                      filteredProvinces.map((prov) => (
+                        <div
+                          key={prov}
+                          onClick={() => handleSelectProvince(prov)}
+                          style={{
+                            padding: "10px 16px",
+                            fontSize: "14px",
+                            fontWeight: selectedProvince === prov ? "700" : "500",
+                            color: selectedProvince === prov ? "#16A34A" : "#1E293B",
+                            backgroundColor: selectedProvince === prov ? "#F0FDF4" : "transparent",
+                            cursor: "pointer",
+                            transition: "background-color 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => {
+                            if (selectedProvince !== prov) {
+                              e.target.style.backgroundColor = "#F8FAFC";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedProvince !== prov) {
+                              e.target.style.backgroundColor = "transparent";
+                            }
+                          }}
+                        >
+                          {prov}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -521,8 +518,8 @@ export default function PreorderList() {
       <div className="toast-container">
         {toasts.map((t) => (
           <div key={t.id} className={`custom-toast ${t.type}`}>
-            <span className="custom-toast-icon">
-              {t.type === "success" ? "✅" : t.type === "error" ? "❌" : "⚠️"}
+            <span className="custom-toast-icon" style={{ display: "inline-flex", alignItems: "center" }}>
+              {t.type === "success" ? <CheckCircle2 size={16} /> : t.type === "error" ? <XCircle size={16} /> : <AlertTriangle size={16} />}
             </span>
             <span className="custom-toast-message">{t.message}</span>
             <button

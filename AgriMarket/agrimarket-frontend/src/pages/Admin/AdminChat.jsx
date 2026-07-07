@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Bell, Search } from "lucide-react";
 import supportRequestService from "../../services/supportRequestService";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
@@ -255,13 +256,13 @@ export default function AdminChat() {
         {/* Header */}
         <header className="admin-header">
           <div className="admin-search-wrapper" style={{ visibility: "hidden" }}>
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input type="text" className="admin-search-input" placeholder="Search..." disabled />
           </div>
 
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")}>
-              <span>🔔</span>
+            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
               <span className="admin-notification-dot"></span>
             </button>
             <div className="admin-profile-pill" style={{ display: "flex", alignItems: "center", gap: "8px", borderLeft: "1px solid var(--admin-border)", paddingLeft: "12px" }}>

@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Check, Star } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
-import { getAllApprovedProducts } from "../../services/productService";
+import { getApprovedProductsPaged } from "../../services/productService";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import wishlistService from "../../services/wishlistService";
@@ -104,6 +104,8 @@ export default function ProductListing() {
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
     const [wishlistIds, setWishlistIds] = useState(new Set());
     const [toastMessage, setToastMessage] = useState("");
     const [toastType, setToastType] = useState("success");
@@ -122,8 +124,10 @@ export default function ProductListing() {
     const [debouncedPriceMin, setDebouncedPriceMin] = useState(null);
     const [debouncedPriceMax, setDebouncedPriceMax] = useState(null);
     const [selectedRating, setSelectedRating] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1); // UI: 1-indexed
     const locationFilterRef = useRef(null);
+
+    const itemsPerPage = 6;
 
     const triggerToast = (msg, type = "success") => {
         setToastMessage(msg);
@@ -201,23 +205,57 @@ export default function ProductListing() {
         }
     };
 
-    useEffect(() => {
-        const loadProductsAndWishlist = async () => {
-            setLoading(true);
-            try {
-                const data = await getAllApprovedProducts();
-                setProducts(data);
+    // Chuyển đổi selectedSort (UI label) sang sort key cho API
+    const sortKeyMap = {
+        "Phổ biến": "popular",
+        "Mới nhất": "newest",
+        "Bán chạy": "best_selling",
+        "Giá tăng dần": "price_asc",
+        "Giá giảm dần": "price_desc",
+    };
 
-                const ids = await wishlistService.getWishlistIds();
-                setWishlistIds(new Set(ids.map((id) => String(id))));
-            } catch (err) {
-                console.error("Lỗi khi tải dữ liệu sản phẩm:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadProductsAndWishlist();
-    }, []);
+    // Tải dữ liệu từ server mỗi khi filter/sort/page thay đổi
+    const fetchProducts = useCallback(async () => {
+        setLoading(true);
+        try {
+            const searchQuery = searchParams.get("search") || undefined;
+            const sortKey = sortKeyMap[selectedSort] || "popular";
+            // Location: gộp các location đã chọn thành chuỗi (lấy cái đầu tiên, hoặc bỏ nếu multi)
+            const location = selectedLocations.length === 1 ? selectedLocations[0] : undefined;
+
+            const result = await getApprovedProductsPaged({
+                page: currentPage - 1, // API 0-indexed
+                size: itemsPerPage,
+                sort: sortKey,
+                category: selectedCategory || undefined,
+                search: searchQuery,
+                minPrice: debouncedPriceMin || undefined,
+                maxPrice: debouncedPriceMax || undefined,
+                location,
+                shopKeyword: shopKeyword.trim() || undefined,
+                minRating: selectedRating > 0 ? selectedRating : undefined,
+            });
+
+            setProducts(result.content);
+            setTotalPages(result.totalPages || 1);
+            setTotalElements(result.totalElements || 0);
+
+            // Load wishlist ids
+            const ids = await wishlistService.getWishlistIds();
+            setWishlistIds(new Set(ids.map((id) => String(id))));
+        } catch (err) {
+            console.error("Lỗi khi tải sản phẩm:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [
+        currentPage, selectedCategory, selectedSort, selectedLocations,
+        shopKeyword, debouncedPriceMin, debouncedPriceMax, selectedRating, searchParams
+    ]);
+
+    useEffect(() => {
+        fetchProducts();
+    }, [fetchProducts]);
 
 
 
@@ -272,28 +310,16 @@ export default function ProductListing() {
         return () => clearTimeout(timeoutId);
     }, [priceMinInput, priceMaxInput]);
 
-    const itemsPerPage = 6;
+    // Sản phẩm hiển thị = đã nhận từ server (không cần slice thêm)
+    const paginatedProducts = products;
 
-    const locationsList = useMemo(() => {
-        const uniqueLocs = new Set(mockLocations);
-        products.forEach(p => {
-            const loc = p.farmLocation || p.location;
-            if (loc) {
-                const parts = loc.split(",");
-                const province = parts[parts.length - 1].trim();
-                if (province) uniqueLocs.add(province);
-            }
-        });
-        return Array.from(uniqueLocs);
-    }, [products]);
+    // locationsList dùng cho dropdown (dùng mockLocations vì đây là UI helper)
+    const locationsList = mockLocations;
 
-    const filteredLocationOptions = useMemo(() => {
-        const query = normalizeLocation(locationQuery);
-        return locationsList.filter((location) => {
-            if (!query) return true;
-            return normalizeLocation(location).includes(query);
-        });
-    }, [locationsList, locationQuery]);
+    const filteredLocationOptions = locationsList.filter((loc) => {
+        if (!locationQuery) return true;
+        return normalizeLocation(loc).includes(normalizeLocation(locationQuery));
+    });
 
     const toggleLocation = (location) => {
         setSelectedLocations((current) => {
@@ -319,79 +345,6 @@ export default function ProductListing() {
         setIsLocationDropdownOpen(false);
         setCurrentPage(1);
     };
-
-    const filteredProducts = useMemo(() => {
-        let result = [...products];
-
-        // Lọc theo search query từ URL
-        const searchQuery = searchParams.get("search") || "";
-        if (searchQuery.trim()) {
-            result = result.filter((item) =>
-                item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.category.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        // Lọc theo danh mục
-        if (selectedCategory) {
-            result = result.filter((item) => item.category === selectedCategory);
-        }
-
-        // Lọc theo nơi bán
-        if (selectedLocations.length > 0) {
-            result = result.filter((item) => {
-                const itemLocation = normalizeLocation(item.farmLocation || item.location || "");
-                return selectedLocations.some((location) =>
-                    itemLocation.includes(normalizeLocation(location))
-                );
-            });
-        }
-
-        // Lọc theo tên cửa hàng
-        if (shopKeyword.trim()) {
-            result = result.filter((item) => {
-                const shop = item.farmerName || item.shopName || "";
-                return shop.toLowerCase().includes(shopKeyword.toLowerCase());
-            });
-        }
-
-        // Lọc theo giá tiền
-        if (debouncedPriceMin !== null) {
-            result = result.filter((item) => item.price >= debouncedPriceMin);
-        }
-        if (debouncedPriceMax !== null) {
-            result = result.filter((item) => item.price <= debouncedPriceMax);
-        }
-
-        // Lọc theo đánh giá
-        if (selectedRating > 0) {
-            result = result.filter((item) => item.rating >= selectedRating);
-        }
-
-        // Sắp xếp
-        if (selectedSort === "Mới nhất") {
-            result = [...result].sort((a, b) => {
-                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                return dateB - dateA;
-            });
-        } else if (selectedSort === "Bán chạy") {
-            result = [...result].sort((a, b) => (b.sold || 0) - (a.sold || 0));
-        } else if (selectedSort === "Giá tăng dần") {
-            result = [...result].sort((a, b) => a.price - b.price);
-        } else if (selectedSort === "Giá giảm dần") {
-            result = [...result].sort((a, b) => b.price - a.price);
-        }
-
-        return result;
-    }, [products, searchParams, selectedCategory, selectedLocations, shopKeyword, debouncedPriceMin, debouncedPriceMax, selectedRating, selectedSort]);
-
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-    const paginatedProducts = filteredProducts.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
 
     if (loading) {
         return (
@@ -706,9 +659,9 @@ export default function ProductListing() {
 
                         <div className="toolbar-right">
                             <span className="result-count">
-                                {filteredProducts.length > 0 ? "1" : "0"}-
-                                {Math.min(currentPage * itemsPerPage, filteredProducts.length)} của{" "}
-                                {filteredProducts.length} sản phẩm
+                                {totalElements > 0
+                                    ? `${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalElements)}`
+                                    : "0"} của {totalElements} sản phẩm
                             </span>
                         </div>
                     </div>

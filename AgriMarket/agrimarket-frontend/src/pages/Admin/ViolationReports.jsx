@@ -275,7 +275,7 @@ export default function ViolationReports() {
             <div className="admin-main-container">
                 <header className="admin-header">
                     <div className="admin-search-wrapper">
-                        <span className="admin-search-icon">🔍</span>
+                        <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                         <input
                             type="text"
                             placeholder="Tìm kiếm báo cáo..."
@@ -290,8 +290,9 @@ export default function ViolationReports() {
                             className="admin-notification-btn"
                             onClick={() => showToast("Không có thông báo mới.")}
                             aria-label="Thông báo"
+                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                         >
-                            <span>🔔</span>
+                            <Bell size={18} />
                             <span className="admin-notification-dot"></span>
                         </button>
                     </div>
@@ -336,7 +337,7 @@ export default function ViolationReports() {
 
                     <section className="violation-filter-bar">
                         <div className="filter-search-wrapper violation-search-inline">
-                            <span className="filter-search-icon">🔍</span>
+                            <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                             <input
                                 type="text"
                                 placeholder="Tìm theo mã báo cáo, lý do, người gửi hoặc đối tượng..."

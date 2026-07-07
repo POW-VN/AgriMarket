@@ -15,9 +15,7 @@ import {
   XCircle, 
   AlertTriangle, 
   FileText, 
-  Star, 
   Phone, 
-  MessageCircle, 
   Tractor, 
   ShoppingCart 
 } from "lucide-react";
@@ -621,45 +619,6 @@ export const CustomerOrderDetail = () => {
 
           {/* RIGHT COLUMN: Assigned Driver, Pickup Origin, Destination details */}
           <div className="cod-side-col">
-
-            {/* 1. Assigned Driver Card (Marcus Johnson info) */}
-            {(order.status === "shipping" || order.status === "delivered" || order.status === "confirmed" || order.status === "preparing") && (
-              <div className="cod-card assigned-driver-card">
-                <h3 className="sidebar-sec-title">Tài xế vận chuyển</h3>
-                <div className="driver-profile-row">
-                  <div className="driver-avatar-box">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
-                      alt="Marcus Johnson"
-                      className="driver-avatar-img"
-                    />
-                  </div>
-                  <div className="driver-meta">
-                    <span className="driver-name-text">Marcus Johnson</span>
-                    <span className="driver-id-text" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                      ID: D-4092 &nbsp;•&nbsp; <Star size={14} style={{ fill: "#f59e0b", stroke: "#f59e0b" }} /> 4.9
-                    </span>
-                  </div>
-                </div>
-
-                <div className="driver-vehicle-box">
-                  <span className="vehicle-icon" style={{ display: "inline-flex", alignItems: "center" }}><Truck size={18} /></span>
-                  <div className="vehicle-meta">
-                    <span className="vehicle-type">Xe tải lạnh Sprinter Van</span>
-                    <span className="vehicle-plate">Biển số: XYZ-789</span>
-                  </div>
-                </div>
-
-                <div className="driver-actions-row">
-                  <a href="tel:+84909333444" className="driver-action-btn call" style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
-                    <Phone size={14} /> Gọi điện
-                  </a>
-                  <a href="sms:+84909333444" className="driver-action-btn message" style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
-                    <MessageCircle size={14} /> Nhắn tin
-                  </a>
-                </div>
-              </div>
-            )}
 
             {/* 2. Pickup Origin Card (Sunrise Valley Farms info) */}
             <div className="cod-card location-card origin">

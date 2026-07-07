@@ -53,6 +53,8 @@ public class LivestreamController {
 
     private static final Map<Long, Set<String>> activeViewersMap = new java.util.concurrent.ConcurrentHashMap<>();
 
+    private static final Map<Long, String> bannedLiveReasons = new java.util.concurrent.ConcurrentHashMap<>();
+
     @PostMapping("/create")
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> createLivestream(@RequestBody Map<String, Object> payload, Principal principal) {
@@ -122,6 +124,7 @@ public class LivestreamController {
                                 + " đang Livestream!")
                         .content("Trang trại yêu thích của bạn hiện đang mở phiên live trực tiếp")
                         .broadcastId(livestream.getId())
+                        .link("/livestream/" + livestream.getId())
                         .createdAt(LocalDateTime.now())
                         .isRead(false)
                         .build();
@@ -253,6 +256,7 @@ public class LivestreamController {
                         .content("Trang trại yêu thích của bạn hiện đang lên lịch phát sóng trực tiếp vào lúc "
                                 + timeFormatted)
                         .broadcastId(livestream.getId())
+                        .link("/livestream/" + livestream.getId())
                         .createdAt(LocalDateTime.now())
                         .isRead(false)
                         .build();
@@ -278,6 +282,13 @@ public class LivestreamController {
     public ResponseEntity<?> getLivestreamDetails(@PathVariable Long id, Principal principal) {
         Optional<Livestream> streamOpt = livestreamRepository.findById(id);
         if (streamOpt.isEmpty()) {
+            if (bannedLiveReasons.containsKey(id)) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", id);
+                map.put("status", "banned");
+                map.put("banReason", bannedLiveReasons.get(id));
+                return ResponseEntity.ok(map);
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy phiên livestream");
         }
 
@@ -299,6 +310,7 @@ public class LivestreamController {
         map.put("title", stream.getTitle());
         map.put("description", stream.getDescription());
         map.put("status", stream.getStatus());
+        map.put("banReason", stream.getBanReason());
         map.put("startTime", stream.getStartTime());
         map.put("endTime", stream.getEndTime());
         map.put("channelName", stream.getChannelName());
@@ -392,7 +404,9 @@ public class LivestreamController {
 
         List<Map<String, Object>> productsList = new ArrayList<>();
         if (stream.getProducts() != null) {
-            for (Product p : stream.getProducts()) {
+            List<Product> sortedProducts = new ArrayList<>(stream.getProducts());
+            sortedProducts.sort(Comparator.comparing(Product::getId));
+            for (Product p : sortedProducts) {
                 Map<String, Object> pMap = new HashMap<>();
                 pMap.put("id", p.getId());
                 pMap.put("name", p.getName());
@@ -965,7 +979,14 @@ public class LivestreamController {
             livestreamCommentRepository.deleteAll(comments);
         }
 
-        // Delete the livestream record
+        // Cache the ban reason
+        String reason = "Vi phạm tiêu chuẩn cộng đồng";
+        if (payload != null && payload.containsKey("reason")) {
+            reason = payload.get("reason");
+        }
+        bannedLiveReasons.put(id, reason);
+
+        // Delete the livestream record from DB completely
         livestreamRepository.delete(stream);
 
         // Remove active viewer mapping

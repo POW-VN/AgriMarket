@@ -35,6 +35,9 @@ public class Notification {
     @Column(name = "broadcast_id")
     private Long broadcastId;
 
+    @Column(name = "link", length = 500)
+    private String link;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

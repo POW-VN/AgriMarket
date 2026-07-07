@@ -13,7 +13,9 @@ import {
   Ban, 
   Phone,
   Paperclip,
-  Send
+  Send,
+  MapPin,
+  User
 } from "lucide-react";
 import "./FarmerChat.css";
 import chatService from "../../../services/chatService";
@@ -578,16 +580,17 @@ export const FarmerChat = () => {
                                 onClick={() => {
                                   alert(`Đang chuẩn bị tải xuống tệp tin: ${msg.text}`);
                                 }}
+                                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                               >
-                                ⬇️
+                                <ChevronDown size={18} />
                               </button>
                             </div>
                           )}
 
                           {msg.type === "location" && (
                             <div className="fc-msg-location-card">
-                              <div className="location-card-map-header">
-                                <span className="map-badge-pin">📍</span>
+                              <div className="location-card-map-header" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span className="map-badge-pin" style={{ display: "inline-flex", alignItems: "center" }}><MapPin size={16} /></span>
                                 <span className="map-location-title">Vị trí chia sẻ</span>
                               </div>
                               <div className="location-card-body-map">
@@ -602,14 +605,14 @@ export const FarmerChat = () => {
                           {msg.type === "contact" && (
                             <div className="fc-msg-contact-card">
                               <div className="contact-card-header">
-                                <span className="contact-card-avatar-fallback">👤</span>
+                                <span className="contact-card-avatar-fallback" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", backgroundColor: "#e2e8f0", borderRadius: "50%", width: "32px", height: "32px" }}><User size={18} /></span>
                                 <div className="contact-card-title-box">
                                   <span className="contact-card-name">{msg.text || "Khách hàng mua nông sản"}</span>
                                   <span className="contact-card-sub">Khách hàng của hệ thống</span>
                                 </div>
                               </div>
                               <div className="contact-card-footer-action">
-                                <a href={`tel:${msg.phone || '0900000000'}`} className="btn-contact-action-call">📞 Gọi ngay</a>
+                                <a href={`tel:${msg.phone || '0900000000'}`} className="btn-contact-action-call" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Phone size={14} /> Gọi ngay</a>
                               </div>
                             </div>
                           )}
@@ -720,25 +723,27 @@ export const FarmerChat = () => {
               <div className="zalo-info-avatar-section">
                 <img src={activeChat.avatar} alt={activeChat.name} />
                 <h4>{activeChat.name}</h4>
-                <span className="badge-member">Thành viên đồng hành</span>
+                <span className="badge-member">{activeChat.memberLevel || "Thành viên Đồng hành"}</span>
               </div>
               
               <div className="zalo-info-details-list">
                 <div className="zalo-info-row">
                   <span className="info-label">Số điện thoại:</span>
-                  <span className="info-value text-primary">{activeChat.phone}</span>
+                  <span className="info-value text-primary">{activeChat.phone || "Chưa cập nhật"}</span>
                 </div>
                 <div className="zalo-info-row">
                   <span className="info-label">Địa chỉ giao hàng:</span>
-                  <span className="info-value">{activeChat.farmAddress || "Thành phố Đà Nẵng"}</span>
+                  <span className="info-value">{activeChat.farmAddress || "Chưa cập nhật"}</span>
                 </div>
                 <div className="zalo-info-row">
                   <span className="info-label">Ngày tham gia:</span>
-                  <span className="info-value">30/06/2026</span>
+                  <span className="info-value">{activeChat.joinedDate || "Chưa rõ"}</span>
                 </div>
                 <div className="zalo-info-row">
                   <span className="info-label">Lịch sử mua sắm:</span>
-                  <span className="info-value text-success">3 đơn hàng thành công</span>
+                  <span className="info-value text-success">
+                    {activeChat.completedOrdersCount !== undefined ? `${activeChat.completedOrdersCount} đơn hàng thành công` : "0 đơn hàng thành công"}
+                  </span>
                 </div>
               </div>
             </div>
