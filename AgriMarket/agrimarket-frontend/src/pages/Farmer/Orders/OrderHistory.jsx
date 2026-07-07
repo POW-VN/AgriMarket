@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { ChevronDown, Download, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import orderService from "../../../services/orderService";
 import "./OrderHistory.css";
 
@@ -220,7 +221,7 @@ export const OrderHistory = () => {
                 <span className="dot" style={{ backgroundColor: activeOption.dot }} />
               )}
               {activeOption.label}
-              <span className="arrow">▼</span>
+              <span className="arrow" style={{ display: "inline-flex", alignItems: "center" }}><ChevronDown size={14} /></span>
             </button>
 
             {orderDropdownOpen && (
@@ -249,8 +250,8 @@ export const OrderHistory = () => {
             )}
           </div>
 
-          <button className="oh-btn-csv" onClick={handleExportCSV}>
-            📥 Xuất CSV
+          <button className="oh-btn-csv" onClick={handleExportCSV} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <Download size={15} /> Xuất CSV
           </button>
         </div>
       </div>
@@ -348,7 +349,7 @@ export const OrderHistory = () => {
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+            {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <AlertTriangle size={18} />}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
           <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>

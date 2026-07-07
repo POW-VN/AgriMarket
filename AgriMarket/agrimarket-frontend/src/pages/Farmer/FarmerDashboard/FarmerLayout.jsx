@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { 
+  LayoutDashboard, 
+  Package, 
+  Tractor, 
+  Store, 
+  MessageSquare, 
+  Tv, 
+  LogOut, 
+  ArrowRight 
+} from "lucide-react";
 import profileService from "../../../services/profileService";
 import authService from "../../../services/authService";
 import apiClient from "../../../services/apiClient";
 import "./FarmerDashboard.css";
 
 const TABS = [
-  { id: "overview",     label: "Tổng quan",          icon: "📊", path: "/farmer/dashboard" },
-  { id: "products",     label: "Quản lý sản phẩm",    icon: "📦", path: "/farmer/products" },
-  { id: "orders",       label: "Đơn hàng của tôi",   icon: "🚜", path: "/farmer/orders" },
-  { id: "farm-profile", label: "Thông tin trang trại", icon: "🏡", path: "/farmer/farm-profile" },
-  { id: "chat",         label: "Tin nhắn khách hàng", icon: "💬", path: "/farmer/chat" },
-  { id: "livestream",   label: "Quản lý Livestream", icon: "📺", path: "/farmer/livestream" },
+  { id: "overview",     label: "Tổng quan",          icon: <LayoutDashboard size={18} />, path: "/farmer/dashboard" },
+  { id: "products",     label: "Quản lý sản phẩm",    icon: <Package size={18} />, path: "/farmer/products" },
+  { id: "orders",       label: "Đơn hàng của tôi",   icon: <Tractor size={18} />, path: "/farmer/orders" },
+  { id: "farm-profile", label: "Thông tin trang trại", icon: <Store size={18} />, path: "/farmer/farm-profile" },
+  { id: "chat",         label: "Tin nhắn khách hàng", icon: <MessageSquare size={18} />, path: "/farmer/chat" },
+  { id: "livestream",   label: "Quản lý Livestream", icon: <Tv size={18} />, path: "/farmer/livestream" },
 ];
 
 const FarmerPiPOverlay = ({ onClose }) => {
@@ -322,12 +332,7 @@ export const FarmerLayout = () => {
       {/* SIDEBAR */}
       <aside className="fd-sidebar">
         <div className="fd-brand" onClick={() => handleSafeNavigate("/")} style={{ cursor: "pointer" }}>
-          <svg className="logo-tractor" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="7" cy="18" r="2" />
-            <circle cx="18" cy="18" r="2" />
-            <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z" />
-            <path d="M16 9h3l2 3v4" />
-          </svg>
+          <Tractor className="logo-tractor" size={24} />
           <span className="brand-text">AgriMarket</span>
         </div>
 
@@ -336,7 +341,9 @@ export const FarmerLayout = () => {
             {avatarUrl ? (
               <img src={avatarUrl} alt="Farm avatar" />
             ) : (
-              <div className="avatar-fallback">{farmName ? farmName.charAt(0).toUpperCase() : "🚜"}</div>
+              <div className="avatar-fallback" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <Tractor size={20} />
+              </div>
             )}
           </div>
           <div className="fd-user-text">
@@ -353,15 +360,15 @@ export const FarmerLayout = () => {
               className={`fd-nav-item ${currentTab === tab.id ? "active" : ""}`}
               onClick={() => handleTabChange(tab.path)}
             >
-              <span className="icon">{tab.icon}</span>
+              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}>{tab.icon}</span>
               <span className="label">{tab.label}</span>
             </button>
           ))}
         </nav>
 
         <div className="fd-sidebar-footer">
-          <button className="fd-btn-logout" onClick={() => handleSafeNavigate("/login", true)}>
-            <span>↪</span> Đăng xuất
+          <button className="fd-btn-logout" onClick={() => handleSafeNavigate("/login", true)} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <LogOut size={16} /> Đăng xuất
           </button>
         </div>
       </aside>
@@ -385,9 +392,9 @@ export const FarmerLayout = () => {
             </div>
 
             <div className="topbar-right">
-              <div className="user-profile-badge" onClick={() => handleSafeNavigate("/profile")} style={{ cursor: "pointer" }}>
+              <div className="user-profile-badge" onClick={() => handleSafeNavigate("/profile")} style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}>
                 <span>Hồ sơ cá nhân</span>
-                <span className="arrow">→</span>
+                <span className="arrow" style={{ display: "inline-flex", alignItems: "center" }}><ArrowRight size={16} /></span>
               </div>
             </div>
           </header>

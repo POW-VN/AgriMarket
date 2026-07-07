@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban } from "lucide-react";
 import * as productService from "../../../services/productService";
 import "./ProductList.css";
 
@@ -162,7 +163,7 @@ export const ProductList = () => {
                   <tr key={p.id} className="row-hover">
                     <td>
                       <div className="table-thumb">
-                        {p.imageUrl ? <img src={p.imageUrl} alt={p.name} /> : <span>🌾</span>}
+                        {p.imageUrl ? <img src={p.imageUrl} alt={p.name} /> : <span style={{ display: "inline-flex", alignItems: "center", color: "#81c784" }}><Sprout size={24} /></span>}
                       </div>
                     </td>
                     <td>
@@ -170,7 +171,7 @@ export const ProductList = () => {
                       <span className="p-id">ID: {p.id}</span>
                       {p.status === "request_changes" && p.adminNotes && (
                         <div className="admin-feedback-note" style={{ color: "#c2410c", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fff7ed", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ffedd5" }}>
-                          <span style={{ fontSize: "14px", lineHeight: "1" }}>⚠️</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", lineHeight: "1" }}><AlertTriangle size={14} color="#c2410c" /></span>
                           <div>
                             <strong style={{ display: "block", fontSize: "11px", color: "#9a3412", marginBottom: "2px" }}>Yêu cầu sửa đổi:</strong>
                             <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.adminNotes}</span>
@@ -179,7 +180,7 @@ export const ProductList = () => {
                       )}
                       {p.status === "rejected" && p.rejectionReason && (
                         <div className="admin-feedback-note" style={{ color: "#991b1b", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fef2f2", padding: "6px 10px", borderRadius: "6px", border: "1px solid #fee2e2" }}>
-                          <span style={{ fontSize: "14px", lineHeight: "1" }}>❌</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", lineHeight: "1" }}><XCircle size={14} color="#991b1b" /></span>
                           <div>
                             <strong style={{ display: "block", fontSize: "11px", color: "#991b1b", marginBottom: "2px" }}>Lý do từ chối:</strong>
                             <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.rejectionReason}</span>
@@ -188,7 +189,7 @@ export const ProductList = () => {
                       )}
                       {p.status === "hidden" && p.rejectionReason && (
                         <div className="admin-feedback-note" style={{ color: "#c2410c", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fff7ed", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ffedd5" }}>
-                          <span style={{ fontSize: "14px", lineHeight: "1" }}>🚫</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", lineHeight: "1" }}><Ban size={14} color="#9a3412" /></span>
                           <div>
                             <strong style={{ display: "block", fontSize: "11px", color: "#9a3412", marginBottom: "2px" }}>Lý do ẩn:</strong>
                             <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.rejectionReason}</span>
@@ -209,10 +210,10 @@ export const ProductList = () => {
                     <td>
                       <div className="actions-cell">
                         <button className="btn-icon edit" title="Sửa" onClick={() => navigate(`/farmer/products/edit/${p.id}`)}>
-                          ✏️
+                          <Pencil size={15} />
                         </button>
                         <button className="btn-icon delete" title="Xóa" onClick={() => handleProductDelete(p.id)}>
-                          🗑️
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
@@ -253,7 +254,7 @@ export const ProductList = () => {
         <div className="custom-modal-overlay">
           <div className="custom-modal">
             <div className="custom-modal-header">
-              <span className="custom-modal-icon">⚠️</span>
+              <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><AlertTriangle size={24} /></span>
               <h3>{confirmModal.title}</h3>
             </div>
             <p className="custom-modal-message">{confirmModal.message}</p>
@@ -273,7 +274,7 @@ export const ProductList = () => {
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+            {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <AlertTriangle size={18} />}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
           <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Check, Star } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
 import { getAllApprovedProducts } from "../../services/productService";
@@ -536,10 +537,11 @@ export default function ProductListing() {
                                             type="button"
                                             className={`multi-select-option ${selectedLocations.length === 0 ? "selected" : ""}`}
                                             onClick={clearAllLocations}
+                                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                         >
                                             <span className="multi-select-option-label">Tất cả nơi bán</span>
-                                            <span className="multi-select-option-check">
-                                                {selectedLocations.length === 0 ? "✓" : ""}
+                                            <span className="multi-select-option-check" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                                {selectedLocations.length === 0 ? <Check size={14} /> : ""}
                                             </span>
                                         </button>
 
@@ -551,10 +553,11 @@ export default function ProductListing() {
                                                     type="button"
                                                     className={`multi-select-option ${isSelected ? "selected" : ""}`}
                                                     onClick={() => toggleLocation(location)}
+                                                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                                 >
                                                     <span className="multi-select-option-label">{location}</span>
-                                                    <span className="multi-select-option-check">
-                                                        {isSelected ? "✓" : ""}
+                                                    <span className="multi-select-option-check" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                                        {isSelected ? <Check size={14} /> : ""}
                                                     </span>
                                                 </button>
                                             );
@@ -750,7 +753,10 @@ export default function ProductListing() {
                                         <div className="product-body">
                                             <div className="product-top-row">
                                                 <span className="product-category">{product.category}</span>
-                                                <span className="product-rating">⭐ {product.rating ? Number(product.rating).toFixed(1) : "0.0"}</span>
+                                                <span className="product-rating" style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                                                    <Star size={14} style={{ fill: "#f59e0b", stroke: "#f59e0b" }} />
+                                                    {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
+                                                </span>
                                             </div>
 
                                             <h4 className="product-name">{product.name}</h4>

@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { 
+  Wheat, 
+  Carrot, 
+  Apple, 
+  Trees, 
+  Sprout, 
+  Package, 
+  Egg, 
+  Truck, 
+  UserCheck, 
+  ShieldCheck,
+  Zap,
+  ArrowRight,
+  MapPin
+} from "lucide-react";
 import authService from "../../services/authService";
 import { getAllApprovedProducts } from "../../services/productService";
 import cartService from "../../services/cartService";
@@ -13,13 +28,13 @@ import Footer from "../../components/common/Footer/Footer";
 import heroBanner from "./assets/hero_banner.png";
 
 const MAIN_CATEGORIES = [
-  { name: "Cây lương thực", icon: "🌾" },
-  { name: "Rau củ quả", icon: "🥕" },
-  { name: "Trái cây", icon: "🍎" },
-  { name: "Cây công nghiệp", icon: "🪵" },
-  { name: "Giống cây trồng", icon: "🌱" },
-  { name: "Nông sản chế biến", icon: "🥫" },
-  { name: "Chăn nuôi", icon: "🐄" }
+  { name: "Cây lương thực", icon: <Wheat size={20} /> },
+  { name: "Rau củ quả", icon: <Carrot size={20} /> },
+  { name: "Trái cây", icon: <Apple size={20} /> },
+  { name: "Cây công nghiệp", icon: <Trees size={20} /> },
+  { name: "Giống cây trồng", icon: <Sprout size={20} /> },
+  { name: "Nông sản chế biến", icon: <Package size={20} /> },
+  { name: "Chăn nuôi", icon: <Egg size={20} /> }
 ];
 
 const MOCK_FARMS = [
@@ -446,7 +461,7 @@ const Home = () => {
           {p.imageUrl ? (
             <img src={p.imageUrl} alt={p.name} className="new-card-img" />
           ) : (
-            <div className="new-card-img-fallback">🌾</div>
+            <div className="new-card-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={32} /></div>
           )}
           {p.saleTag && <span className="new-card-sale-tag">{p.saleTag}</span>}
 
@@ -476,7 +491,7 @@ const Home = () => {
             <h3 className="new-card-title" title={p.name}>{p.name}</h3>
 
             <div className="new-card-farm-row">
-              <span>🧑‍🌾 {p.farmerName || "Nhà vườn Agri"}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><UserCheck size={14} /> {p.farmerName || "Nhà vườn Agri"}</span>
             </div>
 
             <div className="new-card-rating-sold-row">
@@ -642,7 +657,7 @@ const Home = () => {
                 <h2 className="hero-sub-title">Sản phẩm giảm giá ưu đãi</h2>
                 <div className="hero-sub-link-row" onClick={() => navigate("/products")} style={{ cursor: "pointer" }}>
                   <span>Xem danh sách</span>
-                  <span className="sub-link-arrow">→</span>
+                  <span className="sub-link-arrow" style={{ display: "inline-flex", alignItems: "center" }}><ArrowRight size={14} /></span>
                 </div>
               </div>
             </div>
@@ -653,28 +668,36 @@ const Home = () => {
         <section className="value-proposition-section">
           <div className="value-prop-grid">
             <div className="value-prop-card">
-              <div className="value-prop-icon">🌾</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <Sprout size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">100% Nông sản sạch</h4>
                 <p className="value-prop-desc">VietGAP, GlobalGAP & Hữu cơ tiêu chuẩn</p>
               </div>
             </div>
             <div className="value-prop-card">
-              <div className="value-prop-icon">🚚</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <Truck size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">Giao nhanh siêu tốc 2h</h4>
                 <p className="value-prop-desc">Bảo đảm tươi ngon nguyên bản đến nhà bạn</p>
               </div>
             </div>
             <div className="value-prop-card">
-              <div className="value-prop-icon">🧑‍🌾</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <UserCheck size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">Giá tận gốc từ vườn</h4>
                 <p className="value-prop-desc">Không qua trung gian thương lái, mua trực tiếp</p>
               </div>
             </div>
             <div className="value-prop-card">
-              <div className="value-prop-icon">🛡️</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <ShieldCheck size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">Bảo đảm chất lượng</h4>
                 <p className="value-prop-desc">Đổi trả 100% nếu có lỗi từ nhà vườn</p>
@@ -688,10 +711,10 @@ const Home = () => {
           <h2
             className="section-title"
             onClick={() => navigate("/products/listing")}
-            style={{ cursor: "pointer", display: "inline-block" }}
+            style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
             title="Xem tất cả danh mục"
           >
-            Danh mục →
+            Danh mục <ArrowRight size={18} />
           </h2>
           <div className="categories-grid">
             {MAIN_CATEGORIES.map((cat) => (
@@ -704,7 +727,9 @@ const Home = () => {
                 }}
                 style={{ cursor: "pointer" }}
               >
-                <span className="category-icon">{cat.icon}</span>
+                <span className="category-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  {cat.icon}
+                </span>
                 <span className="category-name">{cat.name}</span>
               </div>
             ))}
@@ -716,7 +741,7 @@ const Home = () => {
           <section className="flash-sale-section">
             <div className="flash-sale-header">
               <div className="flash-sale-title-box">
-                <span className="flash-sale-icon">⚡</span>
+                <span className="flash-sale-icon" style={{ display: "inline-flex", alignItems: "center" }}><Zap size={20} /></span>
                 <h2 className="flash-sale-title">GIỜ VÀNG GIÁ SỐC</h2>
                 <div className="countdown-box">
                   <span className="countdown-number">{timeLeft.hours}</span>
@@ -784,7 +809,7 @@ const Home = () => {
                 <div className="farm-card-right-info">
                   <div className="farm-card-meta">
                     <span className="farm-badge-secure">{activeFarms[0].badge}</span>
-                    <span className="farm-distance-tag">📍 {activeFarms[0].distance}</span>
+                    <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[0].distance}</span>
                   </div>
                   <h3 className="farm-card-title">{activeFarms[0].name}</h3>
                   <p className="farm-card-desc">{activeFarms[0].description}</p>
@@ -805,7 +830,7 @@ const Home = () => {
                 <div className="farm-card-bottom-info">
                   <div className="farm-card-meta">
                     <h3 className="farm-card-title">{activeFarms[1].name}</h3>
-                    <span className="farm-distance-tag">📍 {activeFarms[1].distance}</span>
+                    <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[1].distance}</span>
                   </div>
                   <p className="farm-card-desc">{activeFarms[1].description}</p>
                   <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[1].id}`)}>

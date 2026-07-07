@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Tractor, Search, ShoppingCart, Sprout, UserCheck } from "lucide-react";
 import authService from "../../../services/authService";
 import cartService from "../../../services/cartService";
 import { getAllApprovedProducts } from "../../../services/productService";
@@ -140,23 +141,7 @@ const Header = ({ activeTab }) => {
     <header className="home-header">
       <div className="header-container">
         <div className="header-logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="logo-tractor"
-          >
-            <circle cx="7" cy="18" r="2"></circle>
-            <circle cx="18" cy="18" r="2"></circle>
-            <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-            <path d="M16 9h3l2 3v4"></path>
-          </svg>
+          <Tractor className="logo-tractor" size={24} />
           <span className="logo-text">AgriMarket</span>
         </div>
 
@@ -179,20 +164,7 @@ const Header = ({ activeTab }) => {
                   }
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
+                <Search size={20} />
               </button>
               <input
                 type="text"
@@ -222,11 +194,13 @@ const Header = ({ activeTab }) => {
                     {p.imageUrl ? (
                       <img src={p.imageUrl} alt={p.name} className="suggestion-img" />
                     ) : (
-                      <div className="suggestion-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', fontSize: '18px' }}>🌾</div>
+                      <div className="suggestion-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6', color: '#10b981' }}>
+                        <Sprout size={18} />
+                      </div>
                     )}
                     <div className="suggestion-info">
                       <span className="suggestion-title">{p.name}</span>
-                      <span className="suggestion-farm">🧑‍🌾 {p.farmerName || "Nhà vườn Agri"}</span>
+                      <span className="suggestion-farm" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><UserCheck size={12} /> {p.farmerName || "Nhà vườn Agri"}</span>
                     </div>
                     <span className="suggestion-price">{p.price.toLocaleString("vi-VN")}đ</span>
                   </div>
@@ -238,21 +212,7 @@ const Header = ({ activeTab }) => {
           {/* Cart Icon */}
           {showCart && (
             <button className="icon-btn" aria-label="Giỏ hàng" onClick={() => navigate("/cart")}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="9" cy="21" r="1"></circle>
-                <circle cx="20" cy="21" r="1"></circle>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-              </svg>
+              <ShoppingCart size={20} />
               {cartItemsCount > 0 && (
                 <span className="cart-badge">{cartItemsCount}</span>
               )}

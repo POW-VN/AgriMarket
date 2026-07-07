@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, Pencil, Copy, Trash2, Image, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import "./ProductPage.css";
 import { getFarmerProducts, deleteFarmerProduct } from "../../services/productService";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
@@ -179,7 +180,7 @@ export default function ProductPage() {
                     </div>
 
                     <div className="product-search-box">
-                        <span>🔍</span>
+                        <span style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                         <input
                             type="text"
                             placeholder="Tìm kiếm sản phẩm..."
@@ -235,7 +236,7 @@ export default function ProductPage() {
                                                 <td>
                                                     <div className="product-info">
                                                         <div className="product-image">
-                                                            {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span>🖼️</span>}
+                                                            {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span style={{ display: "inline-flex", alignItems: "center", color: "#94a3b8" }}><Image size={24} /></span>}
                                                         </div>
                                                         <div>
                                                             <h3>{product.name}</h3>
@@ -253,9 +254,9 @@ export default function ProductPage() {
                                                 <td>{renderStatus(product.status, product.stock)}</td>
                                                 <td>
                                                     <div className="product-actions">
-                                                        <button title="Chỉnh sửa sản phẩm">✏️</button>
-                                                        <button title="Sao chép sản phẩm">📋</button>
-                                                        <button title="Xóa sản phẩm" onClick={() => handleDelete(product.id)}>🗑️</button>
+                                                        <button title="Chỉnh sửa sản phẩm" style={{ display: "inline-flex", alignItems: "center" }}><Pencil size={15} /></button>
+                                                        <button title="Sao chép sản phẩm" style={{ display: "inline-flex", alignItems: "center" }}><Copy size={15} /></button>
+                                                        <button title="Xóa sản phẩm" onClick={() => handleDelete(product.id)} style={{ display: "inline-flex", alignItems: "center" }}><Trash2 size={15} /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -293,7 +294,7 @@ export default function ProductPage() {
                 <div className="custom-modal-overlay">
                     <div className="custom-modal">
                         <div className="custom-modal-header">
-                            <span className="custom-modal-icon">⚠️</span>
+                            <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><AlertTriangle size={24} /></span>
                             <h3>{confirmModal.title}</h3>
                         </div>
                         <p className="custom-modal-message">{confirmModal.message}</p>
@@ -313,7 +314,7 @@ export default function ProductPage() {
             {toast.show && (
                 <div className={`custom-toast ${toast.type}`}>
                     <span className="custom-toast-icon">
-                        {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+                        {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <AlertTriangle size={18} />}
                     </span>
                     <span className="custom-toast-message">{toast.message}</span>
                     <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>
