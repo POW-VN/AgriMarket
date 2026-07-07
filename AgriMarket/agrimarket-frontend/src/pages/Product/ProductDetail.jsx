@@ -12,7 +12,7 @@ import "./ProductDetail.css";
 import "./PreorderCheckout.css";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
-import { Leaf, Shield } from "lucide-react";
+import { Leaf, Shield, Truck, Globe, Star, MapPin, Calendar, Hourglass, Award, Check, FileText, ChevronDown, MessageCircle, Plus, X } from "lucide-react";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -1236,7 +1236,7 @@ export default function ProductDetail() {
                     >
                       <div className="opt-header-line">
                         <span className="opt-date">Vận chuyển giao hàng</span>
-                        {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
+                        {deliveryMode === "shipping" && <span className="checkmark-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={10} strokeWidth={3} /></span>}
                       </div>
                       <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
                     </div>
@@ -1247,7 +1247,7 @@ export default function ProductDetail() {
                     >
                       <div className="opt-header-line">
                         <span className="opt-date">Tự nhận tại nông trại</span>
-                        {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
+                        {deliveryMode === "pickup" && <span className="checkmark-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={10} strokeWidth={3} /></span>}
                       </div>
                       <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
                     </div>
@@ -1362,7 +1362,7 @@ export default function ProductDetail() {
           {showSuccessModal && (
             <div className="preorder-success-overlay">
               <div className="preorder-success-modal">
-                <div className="success-check-badge">✓</div>
+                <div className="success-check-badge" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={28} strokeWidth={3} /></div>
                 <h3>Đặt trước thành công!</h3>
                 <p className="success-msg">
                   Đơn đặt trước của bạn đã được ghi nhận. Khoản đặt cọc 20% đã được mô phỏng thanh toán thành công.
@@ -1856,7 +1856,15 @@ export default function ProductDetail() {
                 className={`btn-follow-farmer ${isFarmerFollowed ? "followed" : ""}`}
                 onClick={handleToggleFollowFarmer}
               >
-                {isFarmerFollowed ? "✓ Đang theo dõi" : "＋ Theo dõi"}
+                {isFarmerFollowed ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Check size={14} /> Đang theo dõi
+                  </span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Plus size={14} /> Theo dõi
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -1865,7 +1873,9 @@ export default function ProductDetail() {
 
       {/* Premium Product Details Section */}
       <section className="premium-details-section">
-        <h2 className="premium-main-title">📋 Thông tin chi tiết nông sản</h2>
+        <h2 className="premium-main-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <FileText size={22} /> Thông tin chi tiết nông sản
+        </h2>
 
         <div className="premium-grid-container">
           {/* CARD 1 - THÔNG TIN CƠ BẢN */}
@@ -1933,7 +1943,7 @@ export default function ProductDetail() {
             <div className="premium-header-green-line"></div>
             <div className="premium-card-content">
               <div className={`premium-info-block premium-address-block`}>
-                <div className="premium-info-icon-wrapper">📍</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><MapPin size={18} /></div>
                 <div className="premium-info-text-box premium-address-text-box">
                   <span className="premium-info-label">Nơi thu hoạch</span>
                   <span className="premium-info-value premium-address-value">
@@ -1953,28 +1963,28 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">📅</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Calendar size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Ngày thu hoạch</span>
                   <span className="premium-info-value">{formatDate(product.harvestDate)}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">⏳</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Hourglass size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Hạn sử dụng</span>
                   <span className="premium-info-value">{formatDate(product.expirationDate)}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">🚚</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Truck size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Độ hư hỏng / Vận chuyển</span>
                   <span className="premium-info-value">{formatPerishability(product.perishability)}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">🌍</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Globe size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Khoảng cách giao</span>
                   <span className="premium-info-value">
@@ -1983,7 +1993,7 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">⭐</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Star size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Tiêu chuẩn chất lượng</span>
                   <span className="premium-info-value">
@@ -1997,12 +2007,8 @@ export default function ProductDetail() {
           {/* CARD 3 - CAM KẾT AGRIMARKET */}
           <div className="premium-commitment-card">
             <div className="premium-commitment-header">
-              <div className="premium-header-icon-circle">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
-                  <circle cx="12" cy="8" r="6"></circle>
-                  <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
-                  <path d="m9 8 2 2 4-4"></path>
-                </svg>
+              <div className="premium-header-icon-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <Award size={22} className="premium-header-svg" />
               </div>
               <div className="premium-header-title-box">
                 <h3 className="premium-commitment-title">Cam kết từ AgriMarket</h3>
@@ -2012,10 +2018,8 @@ export default function ProductDetail() {
 
             <div className="premium-commitment-content">
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">100% Tươi sạch tự nhiên</h4>
@@ -2023,10 +2027,8 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">Đền bù nếu nông sản dập nát</h4>
@@ -2034,10 +2036,8 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">Nhà vườn được xác minh</h4>
@@ -2045,10 +2045,8 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">Quy trình vận chuyển an toàn</h4>
@@ -2068,13 +2066,8 @@ export default function ProductDetail() {
         {/* CARD 4 - MÔ TẢ SẢN PHẨM (Full-width) */}
         <div className="premium-card description-card-full">
           <div className="premium-card-header">
-            <div className="premium-header-icon-circle">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
+            <div className="premium-header-icon-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <FileText size={22} className="premium-header-svg" />
             </div>
             <div className="premium-header-title-box">
               <h3 className="premium-card-title">Mô tả sản phẩm</h3>
@@ -2097,7 +2090,9 @@ export default function ProductDetail() {
 
         {/* FAQ Accordion */}
         <div className="details-faq-accordion-section">
-          <h2 className="faq-section-title-main">💬 Câu hỏi thường gặp (FAQ)</h2>
+          <h2 className="faq-section-title-main" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <MessageCircle size={22} /> Câu hỏi thường gặp (FAQ)
+          </h2>
           <div className="faq-accordion-container">
             {agriDetails.faq.map((faqItem, idx) => {
               const isOpen = activeFaq === idx;
@@ -2105,10 +2100,8 @@ export default function ProductDetail() {
                 <div key={idx} className={`faq-accordion-item ${isOpen ? "open" : ""}`}>
                   <button className="faq-accordion-question" onClick={() => toggleFaq(idx)} aria-expanded={isOpen}>
                     <span>{faqItem.q}</span>
-                    <span className="faq-arrow-icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                    <span className="faq-arrow-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                      <ChevronDown size={18} style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
                     </span>
                   </button>
                   <div className="faq-accordion-answer">
@@ -2181,7 +2174,10 @@ export default function ProductDetail() {
                     {rev.tags && rev.tags.length > 0 && (
                       <div className="detail-review-tags">
                         {rev.tags.map((tag, idx) => (
-                          <span key={idx} className="detail-tag-badge">✓ {tag}</span>
+                          <span key={idx} className="detail-tag-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <Check size={12} />
+                            {tag}
+                          </span>
                         ))}
                       </div>
                     )}

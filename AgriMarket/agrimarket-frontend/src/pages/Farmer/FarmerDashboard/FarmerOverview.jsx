@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
+import { AlertTriangle, Package, Clock, Lightbulb, Zap } from "lucide-react";
 import * as productService from "../../../services/productService";
 import orderService from "../../../services/orderService";
 
@@ -47,7 +48,7 @@ export const FarmerOverview = () => {
       {/* Verification status alert */}
       {!loading && (!farmerProfile?.verificationStatus || farmerProfile.verificationStatus !== "verified") && (
         <div className="fd-alert alert-warning">
-          <span className="icon">⚠️</span>
+          <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><AlertTriangle size={18} /></span>
           <div className="body">
             {farmerProfile?.verificationStatus === "rejected" ? (
               <>
@@ -67,7 +68,9 @@ export const FarmerOverview = () => {
       {/* Stats Grid */}
       <div className="fd-stats-grid">
         <div className="stat-card">
-          <div className="stat-icon-bg bg-green">📦</div>
+          <div className="stat-icon-bg bg-green" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <Package size={24} />
+          </div>
           <div className="stat-details">
             <p className="label">TỔNG SẢN PHẨM</p>
             <p className="value">{loading ? "..." : overviewStats.totalProducts}</p>
@@ -76,7 +79,9 @@ export const FarmerOverview = () => {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-bg bg-red">⚠️</div>
+          <div className="stat-icon-bg bg-red" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <AlertTriangle size={24} />
+          </div>
           <div className="stat-details">
             <p className="label">TỒN KHO SẮP HẾT</p>
             <p className="value">{loading ? "..." : overviewStats.lowStockCount}</p>
@@ -85,7 +90,9 @@ export const FarmerOverview = () => {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-bg bg-orange">⏳</div>
+          <div className="stat-icon-bg bg-orange" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <Clock size={24} />
+          </div>
           <div className="stat-details">
             <p className="label">ĐƠN HÀNG CHỜ XÁC NHẬN</p>
             <p className="value">{loading ? "..." : overviewStats.pendingOrdersCount}</p>
@@ -105,7 +112,7 @@ export const FarmerOverview = () => {
       {/* Quick links & tips */}
       <div className="fd-overview-extra">
         <div className="extra-card tips-card">
-          <h3>💡 Mẹo bán hàng hiệu quả</h3>
+          <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}><Lightbulb size={20} /> Mẹo bán hàng hiệu quả</h3>
           <ul>
             <li>Sử dụng tính năng <strong>AI gợi ý mô tả</strong> để viết nội dung hấp dẫn, thu hút người mua.</li>
             <li>Nên cập nhật chính xác ngày thu hoạch và hạn sử dụng để tạo độ tin cậy tuyệt đối.</li>
@@ -113,7 +120,7 @@ export const FarmerOverview = () => {
           </ul>
         </div>
         <div className="extra-card actions-card">
-          <h3>⚡ Thao tác nhanh</h3>
+          <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}><Zap size={20} /> Thao tác nhanh</h3>
           <div className="actions-button-grid">
             <button className="btn-primary" onClick={() => navigate("/farmer/products/add")}>
               + Thêm sản phẩm mới

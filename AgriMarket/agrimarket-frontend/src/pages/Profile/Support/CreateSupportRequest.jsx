@@ -1,5 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { 
+  Paperclip, 
+  X, 
+  UploadCloud, 
+  Clock, 
+  Phone, 
+  Truck, 
+  CreditCard, 
+  User, 
+  Wrench, 
+  Settings, 
+  ChevronDown, 
+  ChevronRight 
+} from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
@@ -178,11 +192,11 @@ export default function CreateSupportRequest() {
                     onChange={(e) => setCategory(e.target.value)}
                     required
                   >
-                    <option value="Theo dõi Giao hàng">🚚 Theo dõi Giao hàng</option>
-                    <option value="Thanh toán & Hóa đơn">💳 Thanh toán & Hóa đơn</option>
-                    <option value="Tài khoản & Bảo mật">👤 Tài khoản & Bảo mật</option>
-                    <option value="Hỗ trợ Kỹ thuật">🛠️ Hỗ trợ Kỹ thuật</option>
-                    <option value="Khác">⚙️ Khác</option>
+                    <option value="Theo dõi Giao hàng">Theo dõi Giao hàng</option>
+                    <option value="Thanh toán & Hóa đơn">Thanh toán & Hóa đơn</option>
+                    <option value="Tài khoản & Bảo mật">Tài khoản & Bảo mật</option>
+                    <option value="Hỗ trợ Kỹ thuật">Hỗ trợ Kỹ thuật</option>
+                    <option value="Khác">Khác</option>
                   </select>
                 </div>
               </div>
@@ -240,7 +254,7 @@ export default function CreateSupportRequest() {
                   </div>
                 ) : attachmentUrl ? (
                   <div className="uploaded-file-preview">
-                    <span className="file-preview-icon">📎</span>
+                    <span className="file-preview-icon" style={{ display: "inline-flex", alignItems: "center" }}><Paperclip size={16} /></span>
                     <span className="file-preview-name">{attachmentName || "file_dinh_kem"}</span>
                     <button 
                       type="button" 
@@ -249,13 +263,14 @@ export default function CreateSupportRequest() {
                         setAttachmentUrl("");
                         setAttachmentName("");
                       }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
                     >
-                      Xóa tệp ×
+                      Xóa tệp <X size={14} />
                     </button>
                   </div>
                 ) : (
                   <div className="drop-zone-content">
-                    <span className="upload-cloud-icon">☁️</span>
+                    <span className="upload-cloud-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><UploadCloud size={32} /></span>
                     <p className="drop-zone-main-text">Kéo thả file vào đây hoặc</p>
                     <label className="browse-file-btn">
                       Duyệt file
@@ -299,7 +314,7 @@ export default function CreateSupportRequest() {
               <h3>Thông tin hỗ trợ</h3>
               <ul className="info-list">
                 <li>
-                  <span className="info-icon">⏰</span>
+                  <span className="info-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Clock size={18} /></span>
                   <div>
                     <strong>GIỜ LÀM VIỆC</strong>
                     <p>Thứ 2 - Thứ 6: 08:00 - 17:30</p>
@@ -307,14 +322,14 @@ export default function CreateSupportRequest() {
                   </div>
                 </li>
                 <li>
-                  <span className="info-icon">⏱️</span>
+                  <span className="info-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Clock size={18} /></span>
                   <div>
                     <strong>THỜI GIAN PHẢN HỒI DỰ KIẾN</strong>
                     <p>Trong vòng 24 giờ làm việc</p>
                   </div>
                 </li>
                 <li>
-                  <span className="info-icon">📞</span>
+                  <span className="info-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Phone size={18} /></span>
                   <div>
                     <strong>HOTLINE KHẨN CẤP</strong>
                     <p className="highlight-text">1900 123 456</p>
@@ -331,7 +346,7 @@ export default function CreateSupportRequest() {
                   <li key={idx} className={`faq-accordion-item ${openFaqIndex === idx ? "active" : ""}`}>
                     <div className="faq-accordion-header" onClick={() => toggleFaq(idx)}>
                       <span>{faq.question}</span>
-                      <span className="faq-chevron">{openFaqIndex === idx ? "▼" : "▶"}</span>
+                      <span className="faq-chevron" style={{ display: "inline-flex", alignItems: "center" }}>{openFaqIndex === idx ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
                     </div>
                     {openFaqIndex === idx && (
                       <div className="faq-accordion-answer">

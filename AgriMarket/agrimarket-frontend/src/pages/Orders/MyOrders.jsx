@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sprout, Truck, XCircle, Clock, Search, Package, RotateCw } from "lucide-react";
 import authService from "../../services/authService";
 import orderService from "../../services/orderService";
 import useProfile from "../../hooks/useProfile";
@@ -317,46 +318,29 @@ export const MyOrders = () => {
   const renderStatusIcon = (status) => {
     if (status === "delivered") {
       return (
-        <div className="order-icon-box status-delivered-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-            <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
+        <div className="order-icon-box status-delivered-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Truck size={22} />
         </div>
       );
     }
     if (status === "shipping" || status === "preparing" || status === "confirmed") {
       return (
-        <div className="order-icon-box status-shipping-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-            <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
+        <div className="order-icon-box status-shipping-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Truck size={22} />
         </div>
       );
     }
     if (status === "cancelled") {
       return (
-        <div className="order-icon-box status-cancelled-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
+        <div className="order-icon-box status-cancelled-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <XCircle size={22} />
         </div>
       );
     }
     // Default / Pending
     return (
-      <div className="order-icon-box status-pending-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
+      <div className="order-icon-box status-pending-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <Clock size={22} />
       </div>
     );
   };
@@ -370,7 +354,7 @@ export const MyOrders = () => {
 
           {/* Search box */}
           <div className="myorders-search-wrapper">
-            <span className="myorders-search-icon-glass">🔍</span>
+            <Search className="myorders-search-icon-glass" size={16} />
             <input
               type="text"
               className="myorders-search-input"
@@ -398,7 +382,9 @@ export const MyOrders = () => {
         <div className="orders-list">
           {paginatedOrders.length === 0 ? (
             <div className="empty-orders-state">
-              <div className="empty-icon">📦</div>
+              <div className="empty-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
+                <Package size={48} style={{ color: "#84918c" }} />
+              </div>
               <h3>Không tìm thấy đơn hàng nào</h3>
               <p>Thử thay đổi từ khóa tìm kiếm hoặc lọc theo trạng thái khác.</p>
             </div>
@@ -409,8 +395,8 @@ export const MyOrders = () => {
                 <div className="order-card-header">
                   <div className="order-header-left">
                     {activeTab === "preorder" ? (
-                      <div className="order-icon-box status-preorder-icon" style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "50%", marginRight: "12px", fontSize: "18px" }}>
-                        🌱
+                      <div className="order-icon-box status-preorder-icon" style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "50%", marginRight: "12px" }}>
+                        <Sprout size={20} />
                       </div>
                     ) : (
                       renderStatusIcon(order.status)
@@ -426,8 +412,8 @@ export const MyOrders = () => {
                         <span>Đặt ngày {order.date} • {order.time}</span>
                       </div>
                       {activeTab === "preorder" && (
-                        <div className="preorder-harvest-date-badge" style={{ marginTop: "4px", fontSize: "12px", color: "#1b5e20", fontWeight: "600" }}>
-                          🌾 Thu hoạch dự kiến: {order.expectedHarvestDate}
+                        <div className="preorder-harvest-date-badge" style={{ marginTop: "4px", fontSize: "12px", color: "#1b5e20", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <Sprout size={14} /> Thu hoạch dự kiến: {order.expectedHarvestDate}
                         </div>
                       )}
                     </div>
@@ -492,10 +478,8 @@ export const MyOrders = () => {
                             onClick={() => navigate(`/profile/orders/${order.id}`, { state: { openReviewSection: true } })}>
                             Đánh giá sản phẩm
                           </button>
-                          <button className="btn-solid btn-buy-again">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="15" height="15" style={{ marginRight: "6px" }}>
-                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
-                            </svg>
+                          <button className="btn-solid btn-buy-again" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <RotateCw size={15} style={{ marginRight: "6px" }} />
                             Mua lại
                           </button>
                         </>

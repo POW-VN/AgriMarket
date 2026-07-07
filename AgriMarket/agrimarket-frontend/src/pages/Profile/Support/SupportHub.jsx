@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FileText, ShieldAlert, MessageCircle, Phone, Truck, CreditCard, User, Wrench, ChevronRight } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
@@ -217,7 +218,7 @@ export default function SupportHub() {
           <div className="support-options-grid">
             {/* Card 1 */}
             <div className="support-card glass-card">
-              <div className="card-icon-wrapper purple-icon">🎫</div>
+              <div className="card-icon-wrapper purple-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><FileText size={20} /></div>
               <h2>Tạo Yêu cầu Hỗ trợ</h2>
               <p>Gửi yêu cầu hỗ trợ chi tiết cho các vấn đề phức tạp cần sự trợ giúp tận tình.</p>
               <button className="support-btn btn-primary-green" onClick={handleCreateRequestClick}>
@@ -227,7 +228,7 @@ export default function SupportHub() {
 
             {/* Card 2 */}
             <div className="support-card glass-card">
-              <div className="card-icon-wrapper red-icon">🛡️</div>
+              <div className="card-icon-wrapper red-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ShieldAlert size={20} /></div>
               <h2>Báo cáo Vi phạm</h2>
               <p>
                 Báo cáo các hoạt động nghi vấn, gian lận hoặc vi phạm chính sách
@@ -250,7 +251,7 @@ export default function SupportHub() {
 
             {/* Card 3 */}
             <div className="support-card glass-card">
-              <div className="card-icon-wrapper blue-icon">💬</div>
+              <div className="card-icon-wrapper blue-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><MessageCircle size={20} /></div>
               <h2>Chat trực tiếp</h2>
               <p>Nhận sự trợ giúp ngay lập tức từ các chuyên viên hỗ trợ của chúng tôi cho các thắc mắc khẩn cấp.</p>
               <button
@@ -267,7 +268,7 @@ export default function SupportHub() {
               </button>
             </div>
             <div className="support-card glass-card">
-              <div className="card-icon-wrapper orange-icon">📞</div>
+              <div className="card-icon-wrapper orange-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Phone size={20} /></div>
               <h2>Liên hệ Hỗ trợ</h2>
               <p>Tìm số điện thoại và giờ làm việc để liên lạc trực tiếp.</p>
               <button className="support-btn btn-secondary" onClick={() => alert("Hotline hỗ trợ: 1900 123 456 (08:00 - 17:30)")}>
@@ -281,25 +282,25 @@ export default function SupportHub() {
           <aside className="support-categories-sidebar">
             <h3 className="section-title">Danh mục</h3>
             <ul className="support-cat-list">
-              <li onClick={() => user ? navigate("/support/create?category=Theo dõi Giao hàng") : navigate("/login")}>
-                <span className="cat-icon">🚚</span>
+              <li onClick={() => user ? navigate("/support/create?category=Theo dõi Giao hàng") : navigate("/login")} style={{ display: "flex", alignItems: "center" }}>
+                <span className="cat-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Truck size={18} /></span>
                 <span className="cat-text">Theo dõi Giao hàng</span>
-                <span className="cat-arrow">›</span>
+                <span className="cat-arrow" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ChevronRight size={14} /></span>
               </li>
-              <li onClick={() => user ? navigate("/support/create?category=Thanh toán %26 Hóa đơn") : navigate("/login")}>
-                <span className="cat-icon">💳</span>
+              <li onClick={() => user ? navigate("/support/create?category=Thanh toán %26 Hóa đơn") : navigate("/login")} style={{ display: "flex", alignItems: "center" }}>
+                <span className="cat-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><CreditCard size={18} /></span>
                 <span className="cat-text">Thanh toán & Hóa đơn</span>
-                <span className="cat-arrow">›</span>
+                <span className="cat-arrow" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ChevronRight size={14} /></span>
               </li>
-              <li onClick={() => user ? navigate("/support/create?category=Tài khoản %26 Bảo mật") : navigate("/login")}>
-                <span className="cat-icon">👤</span>
+              <li onClick={() => user ? navigate("/support/create?category=Tài khoản %26 Bảo mật") : navigate("/login")} style={{ display: "flex", alignItems: "center" }}>
+                <span className="cat-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><User size={18} /></span>
                 <span className="cat-text">Tài khoản & Bảo mật</span>
-                <span className="cat-arrow">›</span>
+                <span className="cat-arrow" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ChevronRight size={14} /></span>
               </li>
-              <li onClick={() => user ? navigate("/support/create?category=Hỗ trợ Kỹ thuật") : navigate("/login")}>
-                <span className="cat-icon">🛠️</span>
+              <li onClick={() => user ? navigate("/support/create?category=Hỗ trợ Kỹ thuật") : navigate("/login")} style={{ display: "flex", alignItems: "center" }}>
+                <span className="cat-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Wrench size={18} /></span>
                 <span className="cat-text">Hỗ trợ Kỹ thuật</span>
-                <span className="cat-arrow">›</span>
+                <span className="cat-arrow" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><ChevronRight size={14} /></span>
               </li>
             </ul>
           </aside>
@@ -351,10 +352,12 @@ export default function SupportHub() {
                       <div className="activity-meta">
                         <span className="activity-id">
                           {item._type === "report" ? (
-                            <>🛡️ RP-{item.id}</>
-                          ) : (
-                            <>#REQ-{item.id}</>
-                          )}
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <ShieldAlert size={14} style={{ color: "#ef5350" }} /> RP-{item.id}
+                          </span>
+                        ) : (
+                          <>#REQ-{item.id}</>
+                        )}
                         </span>
                         <span className={`activity-status-badge ${getStatusClass(item.status, item._type)}`}>
                           {getStatusLabel(item.status, item._type)}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Sprout, Minus, Plus, Trash2, AlertTriangle } from "lucide-react";
 
 export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectItem }) {
     const [imageError, setImageError] = useState(false);
@@ -72,7 +73,9 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                 </div>
                 <div className="cart-item-image">
                     {imageError || !item.imageUrl ? (
-                        <div className="cart-item-image-fallback">🌾</div>
+                        <div className="cart-item-image-fallback" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", color: "#10b981" }}>
+                            <Sprout size={20} />
+                        </div>
                     ) : (
                         <img
                             src={item.imageUrl}
@@ -101,15 +104,16 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
             </div>
 
             <div className="cart-item-quantity-col">
-                <div className="quantity-controls">
+                <div className="quantity-controls" style={{ display: "inline-flex", alignItems: "center" }}>
                     <button
                         type="button"
                         className="qty-btn btn-minus"
                         onClick={handleDecrease}
                         disabled={item.quantity <= 1}
                         aria-label="Giảm số lượng"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                     >
-                        -
+                        <Minus size={12} />
                     </button>
                     <input
                         type="text"
@@ -126,8 +130,9 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                         onClick={handleIncrease}
                         disabled={item.stockQuantity !== undefined && item.quantity >= item.stockQuantity}
                         aria-label="Tăng số lượng"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                     >
-                        +
+                        <Plus size={12} />
                     </button>
                 </div>
             </div>
@@ -139,29 +144,15 @@ export default function CartItem({ item, onUpdateQuantity, onRemove, onSelectIte
                     className="btn-remove-item"
                     onClick={() => onRemove(item.id)}
                     aria-label="Xóa sản phẩm khỏi giỏ hàng"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                 >
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
+                    <Trash2 size={18} />
                 </button>
             </div>
 
             {item.isWithinDeliveryRange === false && (
-                <div className="cart-item-delivery-warning">
-                    <span className="warning-icon">⚠️</span>
+                <div className="cart-item-delivery-warning" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <AlertTriangle size={14} className="warning-icon" style={{ color: "#f59e0b" }} />
                     <span className="warning-text">
                         Ngoài phạm vi giao hàng của nhà vườn (Khoảng cách: <strong>{item.distance != null ? item.distance.toFixed(1) : "?"} km</strong> / phạm vi tối đa: <strong>{item.maxDeliveryRange != null ? item.maxDeliveryRange.toFixed(1) : "?"} km</strong>)
                     </span>

@@ -1,6 +1,17 @@
 // src/components/profile/ProfileSidebar.jsx
 
 import { useLocation, useNavigate } from "react-router-dom";
+import { 
+  Home, 
+  User, 
+  Tractor, 
+  Bell, 
+  Lock, 
+  ShoppingBag, 
+  Heart, 
+  LifeBuoy, 
+  LogOut 
+} from "lucide-react";
 import profileService from "../../services/profileService";
 import ProfileAvatar from "./ProfileAvatar";
 import useNotifications from "../../hooks/useNotifications";
@@ -23,23 +34,7 @@ const ProfileSidebar = ({ profile }) => {
   return (
     <aside className="profile-sidebar">
       <div className="profile-brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="logo-tractor"
-        >
-          <circle cx="7" cy="18" r="2"></circle>
-          <circle cx="18" cy="18" r="2"></circle>
-          <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-          <path d="M16 9h3l2 3v4"></path>
-        </svg>
+        <Tractor className="logo-tractor" size={24} />
         <span className="logo-text">AgriMarket</span>
       </div>
 
@@ -64,7 +59,7 @@ const ProfileSidebar = ({ profile }) => {
           className="sidebar-menu-item"
           onClick={() => navigate("/home")}
         >
-          <span>🏠</span>
+          <Home size={18} />
           Trang chủ
         </button>
 
@@ -73,7 +68,7 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/profile")}
         >
-          <span>👤</span>
+          <User size={18} />
           Hồ sơ
         </button>
 
@@ -83,7 +78,7 @@ const ProfileSidebar = ({ profile }) => {
               }`}
             onClick={() => navigate("/farmer/dashboard")}
           >
-            <span>🚜</span>
+            <Tractor size={18} />
             Kênh nhà vườn
           </button>
         )}
@@ -93,7 +88,7 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/profile/notifications")}
         >
-          <span>🔔</span>
+          <Bell size={18} />
           <span className="sidebar-menu-label">Thông báo</span>
 
           {unreadCount > 0 && (
@@ -110,7 +105,7 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/security")}
         >
-          <span>🔒</span>
+          <Lock size={18} />
           Bảo mật
         </button>
 
@@ -118,7 +113,7 @@ const ProfileSidebar = ({ profile }) => {
           className={`sidebar-menu-item ${location.pathname === "/profile/orders" ? "active" : ""}`}
           onClick={() => navigate("/profile/orders")}
         >
-          <span>🕘</span>
+          <ShoppingBag size={18} />
           Đơn hàng của tôi
         </button>
 
@@ -126,7 +121,7 @@ const ProfileSidebar = ({ profile }) => {
           className={`sidebar-menu-item ${location.pathname === "/profile/wishlist" ? "active" : ""}`}
           onClick={() => navigate("/profile/wishlist")}
         >
-          <span>❤️</span>
+          <Heart size={18} />
           Mục yêu thích
         </button>
 
@@ -134,13 +129,13 @@ const ProfileSidebar = ({ profile }) => {
           className={`sidebar-menu-item ${location.pathname.startsWith("/support") ? "active" : ""}`}
           onClick={() => navigate("/support")}
         >
-          <span>🛠️</span>
+          <LifeBuoy size={18} />
           Hỗ trợ & Yêu cầu
         </button>
       </nav>
 
       <button className="profile-logout-button" onClick={handleLogout}>
-        <span>↪</span>
+        <LogOut size={18} />
         Đăng xuất
       </button>
     </aside>

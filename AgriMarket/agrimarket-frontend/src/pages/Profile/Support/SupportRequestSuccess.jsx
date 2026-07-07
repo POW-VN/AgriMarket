@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { AlertTriangle, Check, MessageCircle, ArrowLeft } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
@@ -106,7 +107,7 @@ export default function SupportRequestSuccess() {
       <div className="success-page">
         <Header activeTab="support" />
         <div className="success-error-container glass-card-main">
-          <span className="error-icon-lg">⚠️</span>
+          <span className="error-icon-lg" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><AlertTriangle size={40} /></span>
           <h2>Lỗi truy cập</h2>
           <p>{errorMsg}</p>
           <button className="support-btn btn-primary-green" onClick={() => navigate("/support")}>
@@ -129,7 +130,7 @@ export default function SupportRequestSuccess() {
         <div className="success-content-card glass-card-main">
           {/* Main Success Title */}
           <div className="success-header-section">
-            <div className="success-check-circle">✓</div>
+            <div className="success-check-circle" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={28} strokeWidth={3} /></div>
             <h2>Yêu cầu của bạn đã được tiếp nhận</h2>
             <p>
               Cảm ơn bạn đã gửi yêu cầu. Đội ngũ hỗ trợ của chúng tôi sẽ xử lý
@@ -182,7 +183,7 @@ export default function SupportRequestSuccess() {
               className="support-btn btn-primary-green"
               onClick={() => navigate(`/support/chat/${request.id}`)}
             >
-              💬 Trò chuyện ngay
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><MessageCircle size={16} /> Trò chuyện ngay</span>
             </button>
             <button 
               className="support-btn btn-secondary"
@@ -198,7 +199,7 @@ export default function SupportRequestSuccess() {
             className="back-to-hub-link"
             onClick={() => navigate("/support")}
           >
-            ← Quay lại Trung tâm hỗ trợ
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><ArrowLeft size={14} /> Quay lại Trung tâm hỗ trợ</span>
           </button>
         </div>
       </div>

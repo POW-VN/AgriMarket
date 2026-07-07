@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, X, FolderOpen, ArrowLeft } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
@@ -203,7 +204,7 @@ export default function MySupportRequests() {
 
           {/* Search bar */}
           <div className="search-bar-wrapper">
-            <span className="search-icon">🔍</span>
+            <Search className="search-icon" size={16} />
             <input 
               type="text" 
               className="search-input" 
@@ -212,7 +213,7 @@ export default function MySupportRequests() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {searchQuery && (
-              <button className="clear-search-btn" onClick={() => setSearchQuery("")}>×</button>
+              <button className="clear-search-btn" onClick={() => setSearchQuery("")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><X size={14} /></button>
             )}
           </div>
         </div>
@@ -223,7 +224,7 @@ export default function MySupportRequests() {
             <div className="table-loading">Đang tải danh sách yêu cầu...</div>
           ) : filteredRequests.length === 0 ? (
             <div className="table-empty-state">
-              <span className="empty-icon">📂</span>
+              <span className="empty-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><FolderOpen size={40} /></span>
               <h3>Không tìm thấy yêu cầu hỗ trợ nào</h3>
               <p>Thử thay đổi bộ lọc hoặc tìm kiếm bằng từ khóa khác.</p>
             </div>
@@ -297,7 +298,7 @@ export default function MySupportRequests() {
           className="back-to-hub-btn-bottom"
           onClick={() => navigate("/support")}
         >
-          ← Quay lại Trung tâm hỗ trợ
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><ArrowLeft size={14} /> Quay lại Trung tâm hỗ trợ</span>
         </button>
       </div>
 

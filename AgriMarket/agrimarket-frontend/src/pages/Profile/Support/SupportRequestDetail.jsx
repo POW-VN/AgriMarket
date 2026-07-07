@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { AlertTriangle, Wrench } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import Footer from "../../../components/common/Footer/Footer";
 import supportRequestService from "../../../services/supportRequestService";
@@ -106,7 +107,7 @@ export default function SupportRequestDetail() {
       <div className="detail-page">
         <Header activeTab="support" />
         <div className="detail-error-container glass-card-main">
-          <span className="error-icon-lg">⚠️</span>
+          <AlertTriangle size={36} className="error-icon-lg" style={{ color: "#f59e0b", marginBottom: "16px" }} />
           <h2>Lỗi truy cập</h2>
           <p>{errorMsg}</p>
           <button className="support-btn btn-primary-green" onClick={() => navigate("/support")}>
@@ -129,7 +130,7 @@ export default function SupportRequestDetail() {
           
           {/* Header Title */}
           <div className="detail-header-section">
-            <span className="detail-badge-icon">🛠️</span>
+            <span className="detail-badge-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Wrench size={24} /></span>
             <h2>Chi tiết yêu cầu hỗ trợ</h2>
             <p className="detail-desc-subtitle">Theo dõi trạng thái xử lý và phản hồi trực tuyến từ ban quản trị.</p>
           </div>

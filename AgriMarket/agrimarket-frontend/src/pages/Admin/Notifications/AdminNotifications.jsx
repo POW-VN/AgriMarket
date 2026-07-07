@@ -148,7 +148,7 @@ const AdminNotifications = () => {
             return users;
         }
         const q = userSearchQuery.toLowerCase();
-        return users.filter(u => 
+        return users.filter(u =>
             String(u.id).includes(q) ||
             u.fullName.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q) ||
@@ -298,8 +298,8 @@ const AdminNotifications = () => {
             channels: form.channels,
             sendMode,
             scheduledAt: sendMode === "schedule" ? form.scheduledAt : null,
-            targetUsers: form.targetAudience === "single" 
-                ? selectedUsers.map(u => `${u.type}:${u.id}`).join(",") 
+            targetUsers: form.targetAudience === "single"
+                ? selectedUsers.map(u => `${u.type}:${u.id}`).join(",")
                 : null
         };
 
@@ -510,15 +510,15 @@ const AdminNotifications = () => {
                                             <label>
                                                 Chọn một hoặc nhiều người nhận cụ thể *
                                             </label>
-                                            <div 
+                                            <div
                                                 className="searchable-dropdown-trigger"
                                                 onClick={() => setShowUserDropdown(!showUserDropdown)}
                                             >
                                                 {selectedUsers.length > 0 ? (
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", width: "90%" }}>
                                                         {selectedUsers.map(u => (
-                                                            <span 
-                                                                key={`${u.type}-${u.id}`} 
+                                                            <span
+                                                                key={`${u.type}-${u.id}`}
                                                                 className={`dropdown-selected-pill ${u.type}`}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -566,7 +566,7 @@ const AdminNotifications = () => {
                                                                         }}
                                                                         className="searchable-user-item"
                                                                     >
-                                                                        <input 
+                                                                        <input
                                                                             type="checkbox"
                                                                             checked={isChecked}
                                                                             readOnly
@@ -574,10 +574,10 @@ const AdminNotifications = () => {
                                                                         <div style={{ flex: 1 }}>
                                                                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
                                                                                 <strong>{u.fullName}</strong>
-                                                                                <span style={{ 
-                                                                                    fontSize: "11px", 
-                                                                                    padding: "2px 6px", 
-                                                                                    borderRadius: "4px", 
+                                                                                <span style={{
+                                                                                    fontSize: "11px",
+                                                                                    padding: "2px 6px",
+                                                                                    borderRadius: "4px",
                                                                                     backgroundColor: u.type === "farmer" ? "#eef9f1" : u.type === "customer" ? "#e8f4fd" : "#f1f1f1",
                                                                                     color: u.type === "farmer" ? "#2e7d32" : u.type === "customer" ? "#1565c0" : "#616161",
                                                                                     fontWeight: "600"

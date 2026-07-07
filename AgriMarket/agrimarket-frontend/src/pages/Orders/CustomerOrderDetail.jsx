@@ -1,5 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { 
+  Check, 
+  Clock, 
+  Store, 
+  Package, 
+  Truck, 
+  Home, 
+  Banknote, 
+  Landmark, 
+  CreditCard, 
+  Printer, 
+  RotateCw, 
+  XCircle, 
+  AlertTriangle, 
+  FileText, 
+  Star, 
+  Phone, 
+  MessageCircle, 
+  Tractor, 
+  ShoppingCart 
+} from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import orderService from "../../services/orderService";
@@ -311,55 +332,20 @@ export const CustomerOrderDetail = () => {
   // Helper to render timeline step icons as SVGs
   const renderStepIcon = (key, isCompleted, isCurrent) => {
     if (isCompleted) {
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      );
+      return <Check className="od-icon-svg" size={16} strokeWidth={3.5} />;
     }
 
     switch (key) {
       case "placed":
-        return (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        );
+        return <Clock className="od-icon-svg" size={16} />;
       case "confirmed":
-        return (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-            <path d="M3 21h18" />
-            <path d="M3 7l1-4h16l1 4" />
-            <path d="M4 7v14" />
-            <path d="M20 7v14" />
-            <path d="M9 21v-7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7" />
-          </svg>
-        );
+        return <Store className="od-icon-svg" size={16} />;
       case "preparing":
-        return (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-            <line x1="12" y1="22.08" x2="12" y2="12" />
-          </svg>
-        );
+        return <Package className="od-icon-svg" size={16} />;
       case "shipping":
-        return (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-            <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
-        );
+        return <Truck className="od-icon-svg" size={16} />;
       case "delivered":
-        return (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="od-icon-svg">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-        );
+        return <Home className="od-icon-svg" size={16} />;
       default:
         return null;
     }
@@ -414,14 +400,7 @@ export const CustomerOrderDetail = () => {
 
     if (isCod) {
       return {
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
-            <rect x="2" y="6" width="20" height="12" rx="2" />
-            <circle cx="12" cy="12" r="3" />
-            <line x1="6" y1="12" x2="6.01" y2="12" />
-            <line x1="18" y1="12" x2="18.01" y2="12" />
-          </svg>
-        ),
+        icon: <Banknote size={20} />,
         name: "Thanh to\u00e1n khi nh\u1eadn h\u00e0ng (COD)",
         statusText: order.status === "delivered"
           ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng"
@@ -429,14 +408,7 @@ export const CustomerOrderDetail = () => {
       };
     } else if (isBank) {
       return {
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <line x1="9" y1="22" x2="9" y2="12" />
-            <line x1="15" y1="22" x2="15" y2="12" />
-            <line x1="3" y1="9" x2="21" y2="9" />
-          </svg>
-        ),
+        icon: <Landmark size={20} />,
         name: asciiMethod.includes("vnpay")
           ? "C\u1ed5ng thanh to\u00e1n VNPAY"
           : "Chuy\u1ec3n kho\u1ea3n ng\u00e2n h\u00e0ng",
@@ -446,24 +418,13 @@ export const CustomerOrderDetail = () => {
       };
     } else if (isCard) {
       return {
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <line x1="2" y1="10" x2="22" y2="10" />
-            <line x1="6" y1="13" x2="10" y2="13" />
-          </svg>
-        ),
+        icon: <CreditCard size={20} />,
         name: "Thanh to\u00e1n b\u1eb1ng th\u1ebb Visa",
         statusText: isPaid ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng" : "Ch\u1edd thanh to\u00e1n"
       };
     } else {
       return {
-        icon: (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="20" height="20">
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <line x1="2" y1="10" x2="22" y2="10" />
-          </svg>
-        ),
+        icon: <CreditCard size={20} />,
         name: raw || "Ch\u01b0a x\u00e1c \u0111\u1ecbnh",
         statusText: isPaid ? "Thanh to\u00e1n th\u00e0nh c\u00f4ng" : "Ch\u1edd thanh to\u00e1n"
       };
@@ -489,19 +450,13 @@ export const CustomerOrderDetail = () => {
             </div>
           </div>
           <div className="cod-header-actions">
-            <button className="cod-invoice-btn" onClick={() => window.print()}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
+            <button className="cod-invoice-btn" onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <Printer size={16} />
               In Manifest đơn hàng
             </button>
             {order.status === "delivered" && (
-              <button className="cod-rebuy-btn" onClick={() => alert("Đã thêm các sản phẩm vào giỏ hàng!")}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
-                </svg>
+              <button className="cod-rebuy-btn" onClick={() => alert("Đã thêm các sản phẩm vào giỏ hàng!")} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <RotateCw size={15} />
                 Mua lại đơn hàng
               </button>
             )}
@@ -650,7 +605,9 @@ export const CustomerOrderDetail = () => {
                   </div>
                 ) : (
                   <div className="pod-pending-content">
-                    <div className="pod-pending-icon">📝</div>
+                    <div className="pod-pending-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                      <FileText size={24} />
+                    </div>
                     <span className="pod-pending-title">Đang chờ giao hàng</span>
                     <p className="pod-pending-desc">
                       Chữ ký người nhận và ảnh chụp drop-off tại cửa hàng sẽ tự động hiển thị ở đây sau khi tài xế giao hàng thành công.
@@ -679,12 +636,14 @@ export const CustomerOrderDetail = () => {
                   </div>
                   <div className="driver-meta">
                     <span className="driver-name-text">Marcus Johnson</span>
-                    <span className="driver-id-text">ID: D-4092 &nbsp;•&nbsp; ⭐ 4.9</span>
+                    <span className="driver-id-text" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      ID: D-4092 &nbsp;•&nbsp; <Star size={14} style={{ fill: "#f59e0b", stroke: "#f59e0b" }} /> 4.9
+                    </span>
                   </div>
                 </div>
 
                 <div className="driver-vehicle-box">
-                  <span className="vehicle-icon">🚚</span>
+                  <span className="vehicle-icon" style={{ display: "inline-flex", alignItems: "center" }}><Truck size={18} /></span>
                   <div className="vehicle-meta">
                     <span className="vehicle-type">Xe tải lạnh Sprinter Van</span>
                     <span className="vehicle-plate">Biển số: XYZ-789</span>
@@ -692,11 +651,11 @@ export const CustomerOrderDetail = () => {
                 </div>
 
                 <div className="driver-actions-row">
-                  <a href="tel:+84909333444" className="driver-action-btn call">
-                    📞 Gọi điện
+                  <a href="tel:+84909333444" className="driver-action-btn call" style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
+                    <Phone size={14} /> Gọi điện
                   </a>
-                  <a href="sms:+84909333444" className="driver-action-btn message">
-                    💬 Nhắn tin
+                  <a href="sms:+84909333444" className="driver-action-btn message" style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}>
+                    <MessageCircle size={14} /> Nhắn tin
                   </a>
                 </div>
               </div>
@@ -706,7 +665,7 @@ export const CustomerOrderDetail = () => {
             <div className="cod-card location-card origin">
               <h3 className="sidebar-sec-title">Điểm lấy hàng (Pickup Origin)</h3>
               <div className="location-header-row">
-                <span className="loc-icon">🚜</span>
+                <span className="loc-icon" style={{ display: "inline-flex", alignItems: "center" }}><Tractor size={18} /></span>
                 <div className="loc-meta">
                   <span className="loc-name">{order.provider?.name || "Nông trại hữu cơ Sông Hồng"}</span>
                   <span className="loc-address">{order.provider?.location || "Gia Lâm, Hà Nội"}</span>
@@ -721,11 +680,13 @@ export const CustomerOrderDetail = () => {
             <div className="cod-card location-card destination">
               <h3 className="sidebar-sec-title">Điểm giao hàng (Destination)</h3>
               <div className="location-header-row">
-                <span className="loc-icon">🛒</span>
+                <span className="loc-icon" style={{ display: "inline-flex", alignItems: "center" }}><ShoppingCart size={18} /></span>
                 <div className="loc-meta">
                   <span className="loc-name">{order.recipient || "Cửa hàng bán lẻ"}</span>
                   <span className="loc-address">{order.address || "Chưa có địa chỉ"}</span>
-                  <span className="loc-phone">☎️ {order.phone}</span>
+                  <span className="loc-phone" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Phone size={14} /> {order.phone}
+                  </span>
                 </div>
               </div>
             </div>
@@ -774,10 +735,8 @@ export const CustomerOrderDetail = () => {
       {/* ── TOAST ── */}
       {toastMessage && (
         <div className="cod-toast">
-          <span className="cod-toast-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="16" height="16">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+          <span className="cod-toast-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <Check size={16} strokeWidth={3} />
           </span>
           <span>{toastMessage}</span>
         </div>

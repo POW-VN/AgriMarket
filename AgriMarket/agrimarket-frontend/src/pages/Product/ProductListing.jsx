@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Check, Star } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
 import { getAllApprovedProducts } from "../../services/productService";
@@ -105,6 +106,7 @@ export default function ProductListing() {
     const [loading, setLoading] = useState(true);
     const [wishlistIds, setWishlistIds] = useState(new Set());
     const [toastMessage, setToastMessage] = useState("");
+    const [toastType, setToastType] = useState("success");
     const [priceError, setPriceError] = useState("");
 
     const [selectedCategory, setSelectedCategory] = useState(() => {
@@ -123,8 +125,9 @@ export default function ProductListing() {
     const [currentPage, setCurrentPage] = useState(1);
     const locationFilterRef = useRef(null);
 
-    const triggerToast = (msg) => {
+    const triggerToast = (msg, type = "success") => {
         setToastMessage(msg);
+        setToastType(type);
         setTimeout(() => {
             setToastMessage("");
         }, 2500);
@@ -534,10 +537,11 @@ export default function ProductListing() {
                                             type="button"
                                             className={`multi-select-option ${selectedLocations.length === 0 ? "selected" : ""}`}
                                             onClick={clearAllLocations}
+                                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                         >
                                             <span className="multi-select-option-label">Tất cả nơi bán</span>
-                                            <span className="multi-select-option-check">
-                                                {selectedLocations.length === 0 ? "✓" : ""}
+                                            <span className="multi-select-option-check" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                                {selectedLocations.length === 0 ? <Check size={14} /> : ""}
                                             </span>
                                         </button>
 
@@ -549,10 +553,11 @@ export default function ProductListing() {
                                                     type="button"
                                                     className={`multi-select-option ${isSelected ? "selected" : ""}`}
                                                     onClick={() => toggleLocation(location)}
+                                                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                                 >
                                                     <span className="multi-select-option-label">{location}</span>
-                                                    <span className="multi-select-option-check">
-                                                        {isSelected ? "✓" : ""}
+                                                    <span className="multi-select-option-check" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                                        {isSelected ? <Check size={14} /> : ""}
                                                     </span>
                                                 </button>
                                             );
@@ -718,15 +723,15 @@ export default function ProductListing() {
                                 if (resolvedBadges.length === 0) resolvedBadges.push("NÔNG SẢN");
 
                                 return (
-                                    <div 
-                                        className="product-card" 
+                                    <div
+                                        className="product-card"
                                         key={product.id}
                                         onClick={() => navigate(`/products/${product.id}`)}
                                         style={{ cursor: "pointer" }}
                                     >
                                         <div className="product-image-wrap">
                                             <img src={product.imageUrl || product.image} alt={product.name} className="product-image" />
-                                            <button 
+                                            <button
                                                 className={`wishlist-btn ${wishlistIds.has(String(product.id)) ? "active" : ""}`}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -748,7 +753,10 @@ export default function ProductListing() {
                                         <div className="product-body">
                                             <div className="product-top-row">
                                                 <span className="product-category">{product.category}</span>
-                                                <span className="product-rating">⭐ {product.rating ? Number(product.rating).toFixed(1) : "0.0"}</span>
+                                                <span className="product-rating" style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                                                    <Star size={14} style={{ fill: "#f59e0b", stroke: "#f59e0b" }} />
+                                                    {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
+                                                </span>
                                             </div>
 
                                             <h4 className="product-name">{product.name}</h4>
@@ -761,7 +769,7 @@ export default function ProductListing() {
                                                     <span className="product-price">{formatPrice(product.price)}đ</span>
                                                     <span className="product-unit"> / {product.unit}</span>
                                                 </div>
-                                                <button 
+                                                <button
                                                     className="add-cart-btn"
                                                     aria-label="Thêm vào giỏ hàng"
                                                     onClick={(e) => {
@@ -841,8 +849,25 @@ export default function ProductListing() {
             <Footer />
 
             {toastMessage && (
-                <div className="pl-toast">
-                    <span>✅</span>
+                <div className={`pl-toast pl-toast-${toastType}`}>
+                    {toastType === "success" ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    ) : toastType === "error" ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                    ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    )}
                     <span>{toastMessage}</span>
                 </div>
             )}

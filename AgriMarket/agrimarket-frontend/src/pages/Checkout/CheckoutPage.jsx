@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { CreditCard, ArrowLeft, Check, ArrowRight, MapPin, AlertTriangle, Sprout, Package, Banknote, Lock, ShoppingCart } from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import profileService from "../../services/profileService";
@@ -1057,11 +1058,11 @@ export default function CheckoutPage() {
 
                 <main className="payment-main-container empty-checkout-container">
                     <div className="empty-checkout-card">
-                        <div className="empty-checkout-icon">💳</div>
+                        <div className="empty-checkout-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><CreditCard size={48} /></div>
                         <h2>Thông tin thanh toán trống</h2>
                         <p>Không tìm thấy sản phẩm nào được thiết lập thanh toán. Vui lòng chọn sản phẩm và thanh toán từ giỏ hàng.</p>
-                        <button className="btn-back-to-cart" onClick={() => navigate("/cart")}>
-                            ← Quay lại giỏ hàng
+                        <button className="btn-back-to-cart" onClick={() => navigate("/cart")} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            <ArrowLeft size={15} /> Quay lại giỏ hàng
                         </button>
                     </div>
                 </main>
@@ -1102,7 +1103,7 @@ export default function CheckoutPage() {
                     <section className="payment-success-card">
                         <div className="success-icon-wrapper">
                             <div className="success-checkmark-ring"></div>
-                            <div className="success-checkmark-line">✓</div>
+                            <div className="success-checkmark-line" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><Check size={28} strokeWidth={3} /></div>
                         </div>
 
                         <h2>{placedOrder.isPreorder ? "Đặt trước thành công!" : "Đặt hàng thành công!"}</h2>
@@ -1176,8 +1177,8 @@ export default function CheckoutPage() {
                                 </svg>
                                 Xem đơn hàng của tôi
                             </button>
-                            <button className="btn-success-home" onClick={() => navigate("/")}>
-                                Tiếp tục mua sắm →
+                            <button className="btn-success-home" onClick={() => navigate("/")} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                Tiếp tục mua sắm <ArrowRight size={15} />
                             </button>
                         </div>
                     </section>
@@ -1192,7 +1193,7 @@ export default function CheckoutPage() {
                                 <p className="form-card-subtitle">Vui lòng nhập địa chỉ nhận hàng chính xác để chúng tôi giao sản phẩm tươi ngon nhất.</p>                                {savedAddresses.length > 0 ? (
                                     <div className={`shopee-address-section ${activeDistanceInfo.distance !== null && !activeDistanceInfo.isValid ? "has-error" : ""}`} style={{ marginBottom: "24px" }}>
                                         <div className="shopee-address-header">
-                                            <span className="shopee-address-pin">📍</span>
+                                            <span className="shopee-address-pin" style={{ display: "inline-flex", alignItems: "center" }}><MapPin size={16} /></span>
                                             <span className="shopee-address-title">Địa chỉ nhận hàng</span>
                                         </div>
                                         <div className="shopee-address-content">
@@ -1217,7 +1218,7 @@ export default function CheckoutPage() {
                                                     </div>
                                                     {activeDistanceInfo.distance !== null && (
                                                         <div className={`address-distance-banner ${activeDistanceInfo.isValid ? "valid" : "invalid"}`}>
-                                                            <span className="distance-banner-icon">{activeDistanceInfo.isValid ? "📍" : "⚠️"}</span>
+                                                            <span className="distance-banner-icon" style={{ display: "inline-flex", alignItems: "center" }}>{activeDistanceInfo.isValid ? <MapPin size={16} /> : <AlertTriangle size={16} />}</span>
                                                             <span className="distance-banner-message">{activeDistanceInfo.message}</span>
                                                         </div>
                                                     )}
@@ -1248,7 +1249,7 @@ export default function CheckoutPage() {
                                                     </div>
                                                     {activeDistanceInfo.distance !== null && (
                                                         <div className={`address-distance-banner ${activeDistanceInfo.isValid ? "valid" : "invalid"}`}>
-                                                            <span className="distance-banner-icon">{activeDistanceInfo.isValid ? "📍" : "⚠️"}</span>
+                                                            <span className="distance-banner-icon" style={{ display: "inline-flex", alignItems: "center" }}>{activeDistanceInfo.isValid ? <MapPin size={16} /> : <AlertTriangle size={16} />}</span>
                                                             <span className="distance-banner-message">{activeDistanceInfo.message}</span>
                                                         </div>
                                                     )}
@@ -1307,7 +1308,7 @@ export default function CheckoutPage() {
                                                                     if (distInfo.distance !== null) {
                                                                         return (
                                                                             <div className={`shopee-item-distance ${distInfo.isValid ? "valid" : "invalid"}`}>
-                                                                                📍 {distInfo.message}
+                                                                            <MapPin size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: "3px" }} /> {distInfo.message}
                                                                             </div>
                                                                         );
                                                                     }
@@ -1485,7 +1486,7 @@ export default function CheckoutPage() {
                                             onChange={() => setPaymentMethod("cod")}
                                         />
                                         <div className="method-option-info">
-                                            <span className="method-icon">💵</span>
+                                            <span className="method-icon" style={{ display: "inline-flex", alignItems: "center" }}><Banknote size={22} /></span>
                                             <div className="method-text">
                                                 <span className="method-title">Thanh toán khi nhận hàng (COD)</span>
                                                 <span className="method-desc">Thanh toán bằng tiền mặt cho shipper khi nhận được hàng.</span>
@@ -1502,7 +1503,7 @@ export default function CheckoutPage() {
                                             onChange={() => setPaymentMethod("vnpay")}
                                         />
                                         <div className="method-option-info">
-                                            <span className="method-icon">💳</span>
+                                            <span className="method-icon" style={{ display: "inline-flex", alignItems: "center" }}><CreditCard size={22} /></span>
                                             <div className="method-text">
                                                 <span className="method-title">Thanh toán trực tuyến qua VNPAY</span>
                                                 <span className="method-desc">Thanh toán an toàn qua VietQR, thẻ ATM nội địa hoặc thẻ quốc tế Visa/Mastercard.</span>
@@ -1515,18 +1516,18 @@ export default function CheckoutPage() {
                                 {paymentMethod === "cod" && (
                                     <div className="method-detail-box cod-box">
                                         {checkoutData.isPreorder ? (
-                                            <p>📦 Bạn sẽ thanh toán khoản cọc giữ chỗ 20% trị giá <strong>{formatVND(checkoutData.totalAmount * 0.20)}</strong> và thanh toán 80% còn lại khi nhận nông sản thu hoạch.</p>
+                                            <p><span style={{ display: "inline-flex", alignItems: "center", verticalAlign: "middle", marginRight: "4px" }}><Package size={15} /></span> Bạn sẽ thanh toán khoản cọc giữ chỗ 20% trị giá <strong>{formatVND(checkoutData.totalAmount * 0.20)}</strong> và thanh toán 80% còn lại khi nhận nông sản thu hoạch.</p>
                                         ) : (
-                                            <p>📦 Bạn sẽ thanh toán tổng số tiền là <strong>{formatVND(checkoutData.totalAmount)}</strong> cho nhân viên giao hàng khi đơn hàng được giao đến. Vui lòng chuẩn bị sẵn số tiền mặt để thuận tiện giao dịch.</p>
+                                            <p><span style={{ display: "inline-flex", alignItems: "center", verticalAlign: "middle", marginRight: "4px" }}><Package size={15} /></span> Bạn sẽ thanh toán tổng số tiền là <strong>{formatVND(checkoutData.totalAmount)}</strong> cho nhân viên giao hàng khi đơn hàng được giao đến. Vui lòng chuẩn bị sẵn số tiền mặt để thuận tiện giao dịch.</p>
                                         )}
                                     </div>
                                 )}
                                 {paymentMethod === "vnpay" && (
                                     <div className="method-detail-box cod-box">
                                         {checkoutData.isPreorder ? (
-                                            <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch đặt cọc trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount * 0.20)}</strong>.</p>
+                                            <p><span style={{ display: "inline-flex", alignItems: "center", verticalAlign: "middle", marginRight: "4px" }}><Lock size={15} /></span> Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch đặt cọc trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount * 0.20)}</strong>.</p>
                                         ) : (
-                                            <p>🔒 Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount)}</strong>.</p>
+                                            <p><span style={{ display: "inline-flex", alignItems: "center", verticalAlign: "middle", marginRight: "4px" }}><Lock size={15} /></span> Bạn sẽ được chuyển sang cổng thanh toán bảo mật VNPAY để hoàn thành giao dịch trực tuyến trị giá <strong>{formatVND(checkoutData.totalAmount)}</strong>.</p>
                                         )}
                                     </div>
                                 )}
@@ -1545,7 +1546,7 @@ export default function CheckoutPage() {
                                                 {item.imageUrl ? (
                                                     <img src={item.imageUrl} alt={item.name} />
                                                 ) : (
-                                                    <div className="checkout-item-fallback">🌾</div>
+                                                    <div className="checkout-item-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={20} /></div>
                                                 )}
                                             </div>
                                             <div className="checkout-item-details">

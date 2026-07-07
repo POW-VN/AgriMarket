@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertTriangle, Smartphone, Sprout, Home, CheckCircle2, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useProfile from "../../hooks/useProfile";
 import ProfileLayout from "../../components/profile/ProfileLayout";
@@ -84,9 +85,10 @@ const ViewProfile = () => {
             boxShadow: "0 4px 12px rgba(245, 158, 11, 0.05)"
           }}>
             <div style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
               fontSize: "24px",
               color: "#d97706"
-            }}>⚠️</div>
+            }}><AlertTriangle size={24} /></div>
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: "0 0 4px 0", color: "#92400e", fontWeight: "700", fontSize: "15px" }}>
                 Tài khoản chưa có mật khẩu đăng nhập trực tiếp
@@ -137,9 +139,10 @@ const ViewProfile = () => {
             boxShadow: "0 4px 12px rgba(59, 130, 246, 0.05)"
           }}>
             <div style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
               fontSize: "24px",
               color: "#2563eb"
-            }}>📱</div>
+            }}><Smartphone size={24} /></div>
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: "0 0 4px 0", color: "#1e3a8a", fontWeight: "700", fontSize: "15px" }}>
                 Số điện thoại chưa được cập nhật
@@ -199,7 +202,7 @@ const ViewProfile = () => {
               gap: "16px"
             }}>
               <div style={{ flex: "1 1 300px" }}>
-                <h3 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", color: "#ffffff" }}>Trở thành đối tác Nhà vườn 🌾</h3>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "8px" }}><Sprout size={22} /> Trở thành đối tác Nhà vườn</h3>
                 <p style={{ margin: 0, fontSize: "14.5px", opacity: 0.95, lineHeight: "1.5" }}>Bắt đầu bán nông sản của bạn trực tiếp tới khách hàng trên AgriMarket.</p>
               </div>
               <button 
@@ -251,7 +254,7 @@ const ViewProfile = () => {
               gap: "16px"
             }}>
               <div style={{ flex: "1 1 300px" }}>
-                <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "700", color: "#ffffff" }}>🏡 Quản lý trang trại của bạn</h3>
+                <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "8px" }}><Home size={20} /> Quản lý trang trại của bạn</h3>
                 <p style={{ margin: 0, fontSize: "14px", opacity: 0.85, lineHeight: "1.5" }}>Cập nhật thông tin trang trại, chứng nhận chất lượng và hình ảnh trong Kênh nhà vườn.</p>
               </div>
               <button
@@ -295,7 +298,7 @@ const ViewProfile = () => {
         <div className="custom-modal-overlay">
           <div className="custom-modal">
             <div className="custom-modal-header">
-              <span className="custom-modal-icon">⚠️</span>
+              <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><AlertTriangle size={24} /></span>
               <h3>{confirmModal.title}</h3>
             </div>
             <p className="custom-modal-message">{confirmModal.message}</p>
@@ -315,7 +318,7 @@ const ViewProfile = () => {
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+            {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <AlertTriangle size={18} />}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
           <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { ShoppingCart, Trash2, Store, ArrowLeft } from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import { getProductById } from "../../services/productService";
@@ -421,7 +422,9 @@ export default function CartPage() {
                     </div>
                 ) : cartItems.length === 0 ? (
                     <section className="cart-empty-state">
-                        <div className="empty-cart-icon">🛒</div>
+                        <div className="empty-cart-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
+                            <ShoppingCart size={64} style={{ color: "#84918c" }} />
+                        </div>
                         <h2>Giỏ hàng của bạn đang trống</h2>
                         <p>Bạn chưa thêm sản phẩm nào vào giỏ hàng hoặc đã hoàn tất thanh toán.</p>
 
@@ -443,11 +446,9 @@ export default function CartPage() {
                                     type="button"
                                     className="btn-clear-all"
                                     onClick={handleClearCart}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
                                 >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
+                                    <Trash2 size={16} />
                                     Làm trống giỏ hàng
                                 </button>
                             </div>
@@ -487,7 +488,7 @@ export default function CartPage() {
                                                 />
                                                 <span className="custom-checkbox-span"></span>
                                             </label>
-                                            <span className="farmer-icon">🏡</span>
+                                            <span className="farmer-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginRight: "6px", color: "#16a34a" }}><Store size={18} /></span>
                                             <span className="farmer-name">{group.farmerName}</span>
                                             <span className="farmer-badge">Nhà vườn</span>
                                         </div>
@@ -510,8 +511,9 @@ export default function CartPage() {
                                 type="button"
                                 className="btn-continue-shopping"
                                 onClick={() => navigate("/products")}
+                                style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}
                             >
-                                ← Tiếp tục mua sắm
+                                <ArrowLeft size={16} /> Tiếp tục mua sắm
                             </button>
                         </div>
 
