@@ -40,9 +40,11 @@ export default function FarmerProfile() {
   const [chatInput, setChatInput] = useState("");
   const [activeLiveId, setActiveLiveId] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
 
-  const triggerToast = (msg) => {
+  const triggerToast = (msg, type = "success") => {
     setToastMessage(msg);
+    setToastType(type);
     setTimeout(() => {
       setToastMessage("");
     }, 2500);
@@ -247,11 +249,11 @@ export default function FarmerProfile() {
   const handleSendChatMessage = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    
+
     const userText = chatInput.trim();
     setChatMessages(prev => [...prev, { sender: "user", text: userText }]);
     setChatInput("");
-    
+
     setTimeout(() => {
       setChatMessages(prev => [
         ...prev,
@@ -343,13 +345,13 @@ export default function FarmerProfile() {
 
       <main className="farmer-profile-container">
         <div className="farmer-profile-grid">
-          
+
           {/* Left Column: Sidebar Cards */}
           <aside className="farmer-sidebar">
-            
+
             {/* Identity Card */}
             <div className="farmer-identity-card">
-              <div 
+              <div
                 className={`farmer-avatar-wrapper ${activeLiveId ? "is-live-broadcasting" : ""}`}
                 onClick={activeLiveId ? () => navigate(`/livestream/${activeLiveId}`) : null}
                 style={activeLiveId ? { cursor: "pointer" } : null}
@@ -366,7 +368,7 @@ export default function FarmerProfile() {
                   <span className="live-avatar-badge">Live</span>
                 )}
               </div>
-              
+
               <h2 className="farmer-name-title">
                 {farmer.farmName}
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" className="verified-tick-icon" title="Nhà vườn uy tín">
@@ -374,11 +376,11 @@ export default function FarmerProfile() {
                   <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </h2>
-              
+
               <div className="farmer-sidebar-desc">
                 {farmer.description || "Nhà vườn liên kết chuyên canh nông sản hữu cơ, đảm bảo an toàn sinh học và nguồn hàng tươi sạch mỗi ngày."}
               </div>
-              
+
               <div className="sidebar-action-buttons">
                 <button className="btn-chat-farmer" onClick={handleChat}>
                   Nhắn tin ngay
@@ -387,7 +389,7 @@ export default function FarmerProfile() {
                 <div className="farmer-phone-info">
                   📞 Gọi điện: {farmer.phone || '0337 222 769'}
                 </div>
-                
+
                 <button className={`btn-follow-farmer ${isFollowed ? "followed" : ""}`} onClick={handleToggleFollow}>
                   {isFollowed ? "Đang theo dõi" : "Theo dõi"}
                 </button>
@@ -403,7 +405,7 @@ export default function FarmerProfile() {
                   <span className="info-value">{farmer.farmAddress}</span>
                 </div>
               </div>
-              
+
               <div className="info-row">
                 <span className="info-icon">📅</span>
                 <div className="info-text">
@@ -411,14 +413,14 @@ export default function FarmerProfile() {
                   <span className="info-value">{farmer.joinedDate}</span>
                 </div>
               </div>
-              
+
             </div>
-            
+
           </aside>
-          
+
           {/* Right Column: Bio, Gallery, Products */}
           <section className="farmer-content">
-            
+
             {/* Bio Card */}
             <div className="farmer-bio-card">
               <div className="content-section-title-row">
@@ -428,11 +430,11 @@ export default function FarmerProfile() {
                 </button>
               </div>
               <p className="farmer-description-text">{farmer.description}</p>
-              
+
               <div className="certificates-badges-row">
                 {farmer.organicUrl && (
-                  <div 
-                    className="cert-pill organic clickable" 
+                  <div
+                    className="cert-pill organic clickable"
                     onClick={() => handleCertClick("organic", farmer.organicUrl)}
                     title="Click để xem chứng nhận Hữu cơ"
                   >
@@ -441,8 +443,8 @@ export default function FarmerProfile() {
                   </div>
                 )}
                 {farmer.vietgapUrl && (
-                  <div 
-                    className="cert-pill vietgap clickable" 
+                  <div
+                    className="cert-pill vietgap clickable"
                     onClick={() => handleCertClick("vietgap", farmer.vietgapUrl)}
                     title="Click để xem chứng nhận VietGAP"
                   >
@@ -451,8 +453,8 @@ export default function FarmerProfile() {
                   </div>
                 )}
                 {farmer.globalgapUrl && (
-                  <div 
-                    className="cert-pill globalgap clickable" 
+                  <div
+                    className="cert-pill globalgap clickable"
                     onClick={() => handleCertClick("globalgap", farmer.globalgapUrl)}
                     title="Click để xem chứng nhận GlobalGAP"
                   >
@@ -471,11 +473,11 @@ export default function FarmerProfile() {
                 <h3 className="content-section-title">Sản phẩm nổi bật</h3>
                 <span className="products-count-link">Tất cả ({products.length})</span>
               </div>
-              
+
               <div className="products-grid">
                 {products.map((p) => (
-                  <div 
-                    key={p.id} 
+                  <div
+                    key={p.id}
                     className="product-card-item"
                     onClick={() => navigate(`/products/${p.id}`)}
                   >
@@ -489,18 +491,18 @@ export default function FarmerProfile() {
                         <span className="product-badge bestseller">Bán chạy</span>
                       )}
                     </div>
-                    
+
                     <div className="product-card-body">
                       <span className="product-card-category">{p.category || "Rau củ quả"}</span>
                       <h4 className="product-card-title">{p.name}</h4>
-                      
+
                       <div className="product-card-footer">
                         <div className="product-card-price-box">
                           <span className="price-val">{formatPrice(p.price)}</span>
                           <span className="price-unit">/ {p.unit || "kg"}</span>
                         </div>
-                        
-                        <button 
+
+                        <button
                           className="btn-add-quick-cart"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -524,7 +526,7 @@ export default function FarmerProfile() {
             </div>
 
           </section>
-          
+
         </div>
       </main>
 
@@ -534,8 +536,8 @@ export default function FarmerProfile() {
       {isCertModalOpen && (
         <div className="cert-modal-backdrop" onClick={() => setIsCertModalOpen(false)}>
           <div className="cert-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="cert-modal-close-btn" 
+            <button
+              className="cert-modal-close-btn"
               onClick={() => setIsCertModalOpen(false)}
               aria-label="Đóng"
             >
@@ -547,8 +549,25 @@ export default function FarmerProfile() {
       )}
 
       {toastMessage && (
-        <div className="farmer-toast">
-          <span>✅</span>
+        <div className={`farmer-toast farmer-toast-${toastType}`}>
+          {toastType === "success" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          ) : toastType === "error" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          )}
           <span>{toastMessage}</span>
         </div>
       )}
