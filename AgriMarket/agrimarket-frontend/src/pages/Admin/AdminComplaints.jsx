@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Bell, Package } from "lucide-react";
+import { Search, Bell, Package, FolderOpen, Clock, Settings, CheckCircle2, XCircle } from "lucide-react";
 import supportRequestService from "../../services/supportRequestService";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
@@ -187,35 +187,45 @@ export default function AdminComplaints() {
         {/* Stats Section */}
         <div className="admin-complaints-stats">
           <div className="admin-stat-card">
-            <span className="stat-icon gray">📂</span>
+            <span className="stat-icon gray">
+              <FolderOpen size={20} />
+            </span>
             <div>
               <p>Tổng yêu cầu</p>
               <strong>{stats.total}</strong>
             </div>
           </div>
           <div className="admin-stat-card">
-            <span className="stat-icon orange">⏳</span>
+            <span className="stat-icon orange">
+              <Clock size={20} />
+            </span>
             <div>
               <p>Chờ duyệt</p>
               <strong>{stats.pending}</strong>
             </div>
           </div>
           <div className="admin-stat-card">
-            <span className="stat-icon blue">⚙️</span>
+            <span className="stat-icon blue">
+              <Settings size={20} />
+            </span>
             <div>
               <p>Đang xử lý</p>
               <strong>{stats.processing}</strong>
             </div>
           </div>
           <div className="admin-stat-card">
-            <span className="stat-icon green">✓</span>
+            <span className="stat-icon green">
+              <CheckCircle2 size={20} />
+            </span>
             <div>
               <p>Đã giải quyết</p>
               <strong>{stats.resolved}</strong>
             </div>
           </div>
           <div className="admin-stat-card">
-            <span className="stat-icon red">×</span>
+            <span className="stat-icon red">
+              <XCircle size={20} />
+            </span>
             <div>
               <p>Từ chối</p>
               <strong>{stats.rejected}</strong>

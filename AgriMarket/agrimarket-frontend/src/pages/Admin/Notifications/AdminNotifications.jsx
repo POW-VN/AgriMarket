@@ -1,7 +1,7 @@
 // src/pages/Admin/Notifications/AdminNotifications.jsx
 
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Calendar, Bell, Search } from "lucide-react";
+import { Calendar, Bell, Search, Package, CreditCard, Tractor, Gift } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import adminNotificationService from "../../../services/adminNotificationService";
 import authService from "../../../services/authService";
@@ -231,27 +231,27 @@ const notificationTypes = [
     {
         value: "system",
         label: "Thông báo hệ thống",
-        icon: "🔔",
+        icon: <Bell size={16} />,
     },
     {
         value: "order",
         label: "Thông báo đơn hàng",
-        icon: "📦",
+        icon: <Package size={16} />,
     },
     {
         value: "payment",
         label: "Thông báo thanh toán",
-        icon: "💳",
+        icon: <CreditCard size={16} />,
     },
     {
         value: "farmer",
         label: "Thông báo nhà vườn",
-        icon: "🚜",
+        icon: <Tractor size={16} />,
     },
     {
         value: "promotion",
         label: "Thông báo khuyến mãi",
-        icon: "🎁",
+        icon: <Gift size={16} />,
     },
 ];
 
@@ -349,6 +349,7 @@ const AdminNotifications = () => {
     const [users, setUsers] = useState([]);
     const [userSearchQuery, setUserSearchQuery] = useState("");
     const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
 
     const handleToggleUser = (user) => {
@@ -380,6 +381,9 @@ const AdminNotifications = () => {
         const handleClickOutside = (event) => {
             if (showUserDropdown && !event.target.closest(".single-user-selector-container")) {
                 setShowUserDropdown(false);
+            }
+            if (showTypeDropdown && !event.target.closest(".custom-type-selector-container")) {
+                setShowTypeDropdown(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -674,19 +678,45 @@ const AdminNotifications = () => {
                                     />
                                 </div>
 
-                                <div className="form-group">
+                                <div className="form-group custom-type-selector-container" style={{ position: "relative" }}>
                                     <label>Loại thông báo *</label>
-                                    <select
-                                        name="notificationType"
-                                        value={form.notificationType}
-                                        onChange={handleChange}
+                                    <div
+                                        className="searchable-dropdown-trigger"
+                                        onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                                     >
-                                        {notificationTypes.map((type) => (
-                                            <option key={type.value} value={type.value}>
-                                                {type.icon} {type.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ display: "inline-flex", color: "#1B5E20" }}>
+                                                {selectedTypeInfo.icon}
+                                            </span>
+                                            <span>{selectedTypeInfo.label}</span>
+                                        </span>
+                                        <svg className="dropdown-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: "transform 0.2s", transform: showTypeDropdown ? "rotate(180deg)" : "none" }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                    
+                                    {showTypeDropdown && (
+                                        <div className="searchable-dropdown-menu" style={{ width: "100%", zIndex: 110 }}>
+                                            <div className="searchable-dropdown-list" style={{ maxHeight: "250px", overflowY: "auto" }}>
+                                                {notificationTypes.map((type) => (
+                                                    <div
+                                                        key={type.value}
+                                                        className={`searchable-type-item ${form.notificationType === type.value ? "selected" : ""}`}
+                                                        onClick={() => {
+                                                            setForm(prev => ({ ...prev, notificationType: type.value }));
+                                                            setShowTypeDropdown(false);
+                                                        }}
+                                                    >
+                                                        <span style={{ display: "inline-flex" }}>
+                                                            {type.icon}
+                                                        </span>
+                                                        <span>{type.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

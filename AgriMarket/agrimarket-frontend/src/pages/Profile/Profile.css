@@ -45,46 +45,86 @@
 /* Sidebar */
 
 .profile-sidebar {
-  width: 250px;
-  min-width: 250px;
-  max-width: 250px;
+  width: 74px;
+  min-width: 74px;
   height: 100vh;
   position: sticky;
   top: 0;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--profile-sidebar-bg);
-  padding: 28px 24px;
+  padding: 28px 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   flex-grow: 0;
   box-sizing: border-box;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.profile-sidebar:hover {
+  width: 250px;
+  min-width: 250px;
+}
+
+
+
+.sidebar-icon-col {
+  width: 74px;
+  min-width: 74px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Opacity hide text when collapsed, reveal on hover */
+.profile-sidebar .nav-label,
+.profile-sidebar .logo-text {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.profile-sidebar:hover .nav-label,
+.profile-sidebar:hover .logo-text {
+  opacity: 1;
+  transition: opacity 0.2s ease 0.15s;
+  pointer-events: auto;
 }
 
 .profile-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   cursor: pointer;
   margin-bottom: 34px;
+  min-width: 250px;
+  white-space: nowrap;
 }
 
 .profile-brand .logo-text {
   font-size: 24px;
   font-weight: 800;
   color: var(--profile-green);
+  white-space: nowrap;
 }
 
 .profile-brand .logo-tractor {
   stroke: var(--profile-green);
   fill: none;
+  flex-shrink: 0;
 }
 
 .profile-sidebar-user {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 42px;
+  gap: 0;
+  margin-bottom: 30px;
+  min-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar-welcome {
@@ -108,28 +148,42 @@
 .profile-sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  padding-bottom: 8px;
+}
+
+.profile-sidebar-menu::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar-menu-item {
   border: none;
   background: transparent;
   text-align: left;
-  padding: 13px 12px;
+  padding: 6px 0;
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0;
   color: var(--profile-text);
   font-weight: 700;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+  min-width: 250px;
+  width: 250px;
 }
 
 .sidebar-menu-item:hover,
 .sidebar-menu-item.active {
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(0, 40, 25, 0.06);
+  border-radius: 12px;
 }
 
 .profile-logout-button {
@@ -139,10 +193,12 @@
   color: var(--profile-danger);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   font-weight: 700;
   cursor: pointer;
-  padding: 12px;
+  padding: 6px 0;
+  white-space: nowrap;
+  min-width: 250px;
 }
 
 /* Main */

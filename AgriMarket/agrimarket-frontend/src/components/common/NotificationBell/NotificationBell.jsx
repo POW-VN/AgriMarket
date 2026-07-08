@@ -343,7 +343,7 @@ const NotificationBell = ({ user }) => {
       {/* Bell Button */}
       <button
         ref={bellRef}
-        className={`icon-btn ${isOpen ? "active-bell" : ""}`}
+        className={`round-action-btn ${isOpen ? "active-bell" : ""}`}
         aria-label="Thông báo"
         onClick={handleToggleDropdown}
         style={{ position: "relative" }}
