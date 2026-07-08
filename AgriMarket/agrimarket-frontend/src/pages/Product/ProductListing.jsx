@@ -259,13 +259,26 @@ export default function ProductListing() {
 
 
 
-    // Đồng bộ category từ URL nếu user điều hướng lại với category khác
+    // Đồng bộ các bộ lọc từ URL params (locations, priceMin, priceMax, rating, category)
     useEffect(() => {
-        const cat = searchParams.get("category");
-        if (cat) {
-            setSelectedCategory(cat);
-            setCurrentPage(1);
-        }
+        const cat = searchParams.get("category") || "";
+        setSelectedCategory(cat);
+
+        const locs = searchParams.get("locations");
+        setSelectedLocations(locs ? locs.split(",") : []);
+
+        const minP = searchParams.get("priceMin");
+        setPriceMinInput(minP || "");
+        setDebouncedPriceMin(minP ? Number(minP) : null);
+
+        const maxP = searchParams.get("priceMax");
+        setPriceMaxInput(maxP || "");
+        setDebouncedPriceMax(maxP ? Number(maxP) : null);
+
+        const rating = searchParams.get("rating");
+        setSelectedRating(Number(rating) || 0);
+
+        setCurrentPage(1);
     }, [searchParams]);
 
     // Cuộn lên đầu trang khi thay đổi danh mục (với độ trễ nhỏ để tránh cơ chế tự động cuộn của trình duyệt)

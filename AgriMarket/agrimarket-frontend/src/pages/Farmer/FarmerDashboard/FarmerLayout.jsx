@@ -332,19 +332,23 @@ export const FarmerLayout = () => {
       {/* SIDEBAR */}
       <aside className="fd-sidebar">
         <div className="fd-brand" onClick={() => handleSafeNavigate("/")} style={{ cursor: "pointer" }}>
-          <Tractor className="logo-tractor" size={24} />
+          <div className="logo-icon-wrap">
+            <Tractor className="logo-tractor" size={24} />
+          </div>
           <span className="brand-text">AgriMarket</span>
         </div>
 
         <div className="fd-user-meta">
-          <div className="fd-user-avatar">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Farm avatar" />
-            ) : (
-              <div className="avatar-fallback" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                <Tractor size={20} />
-              </div>
-            )}
+          <div className="fd-user-avatar-wrap">
+            <div className="fd-user-avatar">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Farm avatar" />
+              ) : (
+                <div className="avatar-fallback" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Tractor size={20} />
+                </div>
+              )}
+            </div>
           </div>
           <div className="fd-user-text">
             <p className="greeting">Xin chào,</p>
@@ -360,15 +364,18 @@ export const FarmerLayout = () => {
               className={`fd-nav-item ${currentTab === tab.id ? "active" : ""}`}
               onClick={() => handleTabChange(tab.path)}
             >
-              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}>{tab.icon}</span>
+              <span className="icon">{tab.icon}</span>
               <span className="label">{tab.label}</span>
             </button>
           ))}
         </nav>
 
         <div className="fd-sidebar-footer">
-          <button className="fd-btn-logout" onClick={() => handleSafeNavigate("/login", true)} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-            <LogOut size={16} /> Đăng xuất
+          <button className="fd-btn-logout" onClick={() => handleSafeNavigate("/login", true)}>
+            <span className="btn-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <LogOut size={16} />
+            </span>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>

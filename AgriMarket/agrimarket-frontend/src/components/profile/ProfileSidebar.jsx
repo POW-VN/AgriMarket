@@ -34,24 +34,28 @@ const ProfileSidebar = ({ profile }) => {
   return (
     <aside className="profile-sidebar">
       <div className="profile-brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-        <Tractor className="logo-tractor" size={24} />
+        <span className="sidebar-icon-col">
+          <Tractor className="logo-tractor" size={24} />
+        </span>
         <span className="logo-text">AgriMarket</span>
       </div>
 
       <div className="profile-sidebar-user">
-        <ProfileAvatar
-          src={profile?.avatarUrl}
-          name={profile?.fullName}
-          email={profile?.email}
-          size="small"
-        />
+        <span className="sidebar-icon-col">
+          <ProfileAvatar
+            src={profile?.avatarUrl}
+            name={profile?.fullName}
+            email={profile?.email}
+            size="small"
+          />
+        </span>
 
-        <div>
+        <span className="nav-label" style={{ display: "flex", flexDirection: "column" }}>
           <p className="sidebar-welcome">Xin chào,</p>
           <p className="sidebar-name">
             {profile?.fullName || "Người dùng"}
           </p>
-        </div>
+        </span>
       </div>
 
       <nav className="profile-sidebar-menu">
@@ -59,8 +63,8 @@ const ProfileSidebar = ({ profile }) => {
           className="sidebar-menu-item"
           onClick={() => navigate("/home")}
         >
-          <Home size={18} />
-          Trang chủ
+          <span className="sidebar-icon-col"><Home size={18} /></span>
+          <span className="nav-label">Trang chủ</span>
         </button>
 
         <button
@@ -68,8 +72,8 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/profile")}
         >
-          <User size={18} />
-          Hồ sơ
+          <span className="sidebar-icon-col"><User size={18} /></span>
+          <span className="nav-label">Hồ sơ</span>
         </button>
 
         {isFarmer && (
@@ -78,8 +82,8 @@ const ProfileSidebar = ({ profile }) => {
               }`}
             onClick={() => navigate("/farmer/dashboard")}
           >
-            <Tractor size={18} />
-            Kênh nhà vườn
+            <span className="sidebar-icon-col"><Tractor size={18} /></span>
+            <span className="nav-label">Kênh nhà vườn</span>
           </button>
         )}
 
@@ -88,8 +92,8 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/profile/notifications")}
         >
-          <Bell size={18} />
-          <span className="sidebar-menu-label">Thông báo</span>
+          <span className="sidebar-icon-col"><Bell size={18} /></span>
+          <span className="nav-label sidebar-menu-label">Thông báo</span>
 
           {unreadCount > 0 && (
             <span className="sidebar-notification-badge">
@@ -99,44 +103,43 @@ const ProfileSidebar = ({ profile }) => {
         </button>
 
 
-
         <button
           className={`sidebar-menu-item ${location.pathname === "/security" ? "active" : ""
             }`}
           onClick={() => navigate("/security")}
         >
-          <Lock size={18} />
-          Bảo mật
+          <span className="sidebar-icon-col"><Lock size={18} /></span>
+          <span className="nav-label">Bảo mật</span>
         </button>
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/profile/orders" ? "active" : ""}`}
           onClick={() => navigate("/profile/orders")}
         >
-          <ShoppingBag size={18} />
-          Đơn hàng của tôi
+          <span className="sidebar-icon-col"><ShoppingBag size={18} /></span>
+          <span className="nav-label">Đơn hàng của tôi</span>
         </button>
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/profile/wishlist" ? "active" : ""}`}
           onClick={() => navigate("/profile/wishlist")}
         >
-          <Heart size={18} />
-          Mục yêu thích
+          <span className="sidebar-icon-col"><Heart size={18} /></span>
+          <span className="nav-label">Mục yêu thích</span>
         </button>
 
         <button
           className={`sidebar-menu-item ${location.pathname.startsWith("/support") ? "active" : ""}`}
           onClick={() => navigate("/support")}
         >
-          <LifeBuoy size={18} />
-          Hỗ trợ & Yêu cầu
+          <span className="sidebar-icon-col"><LifeBuoy size={18} /></span>
+          <span className="nav-label">Hỗ trợ & Yêu cầu</span>
         </button>
       </nav>
 
       <button className="profile-logout-button" onClick={handleLogout}>
-        <LogOut size={18} />
-        Đăng xuất
+        <span className="sidebar-icon-col"><LogOut size={18} /></span>
+        <span className="nav-label">Đăng xuất</span>
       </button>
     </aside>
   );
