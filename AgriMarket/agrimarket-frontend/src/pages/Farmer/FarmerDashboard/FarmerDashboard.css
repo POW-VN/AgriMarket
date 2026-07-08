@@ -38,6 +38,7 @@
   flex-shrink: 0;
   z-index: 100;
   overflow: hidden;
+  box-sizing: border-box;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -236,20 +237,20 @@
 }
 
 .fd-sidebar .fd-btn-logout {
-  width: 100%;
+  width: 260px;
   display: flex;
   align-items: center;
   gap: 0;
   padding: 4px 0;
-  background: none;
+  background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  color: #ef4444;
   font-weight: 600;
   font-size: 14.5px;
   cursor: pointer;
-  transition: color var(--transition-speed) ease;
+  transition: background var(--transition-speed), color var(--transition-speed);
   white-space: nowrap;
-  min-width: 260px;
 }
 
 .fd-sidebar .fd-btn-logout .btn-icon {
@@ -260,9 +261,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: transparent;
+  border: none;
 }
 
 .fd-sidebar .fd-btn-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
 }
 

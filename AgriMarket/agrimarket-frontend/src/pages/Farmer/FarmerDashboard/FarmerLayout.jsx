@@ -8,7 +8,8 @@ import {
   MessageSquare, 
   Tv, 
   LogOut, 
-  ArrowRight 
+  ArrowRight,
+  Tag
 } from "lucide-react";
 import profileService from "../../../services/profileService";
 import authService from "../../../services/authService";
@@ -22,6 +23,7 @@ const TABS = [
   { id: "farm-profile", label: "Thông tin trang trại", icon: <Store size={18} />, path: "/farmer/farm-profile" },
   { id: "chat",         label: "Tin nhắn khách hàng", icon: <MessageSquare size={18} />, path: "/farmer/chat" },
   { id: "livestream",   label: "Quản lý Livestream", icon: <Tv size={18} />, path: "/farmer/livestream" },
+  { id: "promotions",   label: "Khuyến mãi",         icon: <Tag size={18} />, path: "/farmer/promotions" },
 ];
 
 const FarmerPiPOverlay = ({ onClose }) => {
@@ -289,6 +291,7 @@ export const FarmerLayout = () => {
     if (path.startsWith("/farmer/farm-profile")) return "farm-profile";
     if (path.startsWith("/farmer/chat")) return "chat";
     if (path.startsWith("/farmer/livestream")) return "livestream";
+    if (path.startsWith("/farmer/promotions")) return "promotions";
     return "overview";
   };
 
@@ -333,7 +336,12 @@ export const FarmerLayout = () => {
       <aside className="fd-sidebar">
         <div className="fd-brand" onClick={() => handleSafeNavigate("/")} style={{ cursor: "pointer" }}>
           <div className="logo-icon-wrap">
-            <Tractor className="logo-tractor" size={24} />
+            <svg className="logo-tractor" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="7" cy="18" r="2"></circle>
+              <circle cx="18" cy="18" r="2"></circle>
+              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+              <path d="M16 9h3l2 3v4"></path>
+            </svg>
           </div>
           <span className="brand-text">AgriMarket</span>
         </div>
@@ -395,6 +403,7 @@ export const FarmerLayout = () => {
                 {currentTab === "farm-profile" && "Hoàn thiện hồ sơ trang trại giúp tăng độ tin cậy."}
                 {currentTab === "chat" && "Xem và trả lời các tin nhắn tư vấn từ người tiêu dùng."}
                 {currentTab === "livestream" && "Thiết lập, chuẩn bị thiết bị phát sóng và tương tác trực tiếp với khách hàng."}
+                {currentTab === "promotions" && "Quản lý các chương trình khuyến mãi và mã giảm giá để thúc đẩy doanh số."}
               </p>
             </div>
 

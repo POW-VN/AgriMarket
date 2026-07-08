@@ -9,9 +9,10 @@ import {
   CreditCard, 
   HelpCircle, 
   BarChart2, 
-  Video, 
+  Video,
   Bell, 
-  LogOut 
+  LogOut,
+  Tag
 } from "lucide-react";
 import authService from "../../../services/authService";
 
@@ -111,6 +112,13 @@ const AdminSidebar = ({ activeItem, showToast, onProductsClick, onComplaintsClic
             <BarChart2 className="admin-nav-icon-svg" size={18} />
           </span>
           <span className="nav-label">Báo cáo</span>
+        </button>
+
+        <button className={`admin-nav-item ${activeItem === "promotions" ? "active" : ""}`} onClick={() => navigate("/admin/promotions")}>
+          <span className="admin-nav-icon">
+            <Tag className="admin-nav-icon-svg" size={18} />
+          </span>
+          <span className="nav-label">Khuyến mãi</span>
         </button>
 
         <button className={`admin-nav-item ${activeItem === "livestreams" ? "active" : ""}`} onClick={() => navigate("/admin/livestreams")}>
