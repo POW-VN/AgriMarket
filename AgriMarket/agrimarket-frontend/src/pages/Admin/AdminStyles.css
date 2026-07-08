@@ -30,8 +30,10 @@
 
 /* Sidebar styling */
 .admin-sidebar {
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
+  bottom: 0;
   height: 100vh;
   overflow: hidden;
   width: 74px;
@@ -42,7 +44,7 @@
   padding: 16px 0;
   flex-shrink: 0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 100;
+  z-index: 1000;
 }
 
 .admin-sidebar:hover {
@@ -99,11 +101,10 @@
 .admin-nav-menu {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   scrollbar-width: none;
   padding: 0 0 8px 0;
 }
@@ -231,6 +232,7 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  margin-left: 74px;
 }
 
 /* Header */
@@ -3974,5 +3976,61 @@
 .admin-nav-item.logout-item:hover {
   background-color: #fee2e2 !important;
   color: #b91c1c !important;
+}
+
+/* Sidebar alignment and centering overrides for collapsed state */
+.admin-sidebar:not(:hover) .admin-nav-item {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.admin-nav-item.active {
+  background-color: #f3f4f6 !important;
+  color: var(--admin-primary) !important;
+  font-weight: 600 !important;
+  border-left: none !important; /* Remove shifting border */
+  position: relative !important;
+}
+
+.admin-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  background-color: var(--admin-primary);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Center logo section */
+.admin-logo-section {
+  padding-left: 0 !important;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/* Compact sidebar layout overrides to fit all menu items in one viewport frame */
+.admin-sidebar {
+  padding: 10px 0 !important;
+}
+
+.admin-logo-section {
+  margin-bottom: 8px !important;
+}
+
+.admin-nav-item {
+  font-size: 14.5px !important;
+  padding: 6px 14px !important; /* Spacious but fitting vertical padding */
+}
+
+.admin-nav-icon {
+  height: 32px !important; /* Shorter icon height container */
+}
+
+.admin-sidebar-footer {
+  padding-top: 8px !important;
+  margin-top: auto !important;
 }
 

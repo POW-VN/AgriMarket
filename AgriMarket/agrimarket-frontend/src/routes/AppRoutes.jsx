@@ -59,6 +59,7 @@ import LivestreamListPage from "../pages/Livestream/LivestreamListPage";
 import ViolationReports from "../pages/Admin/ViolationReports";
 import ProductListing from "../pages/Product/ProductListing";
 import LiveManagement from "../pages/Admin/LiveManagement";
+import CategoryManagement from "../pages/Admin/CategoryManagement";
 
 
 const FarmsRoute = () => {
@@ -161,6 +162,7 @@ const AppRoutes = () => {
         <Route path="/admin/users/create" element={<CreateAccount />} />
         <Route path="/admin/products" element={<ProductApproval />} />
         <Route path="/admin/orders" element={<OrderManagement />} />
+        <Route path="/admin/categories" element={<CategoryManagement />} />
         <Route path="/admin/livestreams" element={<LiveManagement />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/complaints" element={<AdminComplaints />} />
