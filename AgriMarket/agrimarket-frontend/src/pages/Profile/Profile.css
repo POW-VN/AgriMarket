@@ -51,8 +51,9 @@
   position: sticky;
   top: 0;
   overflow: hidden;
-  background: var(--profile-sidebar-bg);
-  padding: 28px 0;
+  background: #ffffff;
+  border-right: 1px solid var(--profile-border);
+  padding: 24px 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -148,7 +149,7 @@
 .profile-sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -165,25 +166,32 @@
   border: none;
   background: transparent;
   text-align: left;
-  padding: 6px 0;
-  border-radius: 12px;
+  padding: 8px 0;
+  border-radius: 0 12px 12px 0;
+  border-left: 4px solid transparent;
   display: flex;
   align-items: center;
   gap: 0;
-  color: var(--profile-text);
-  font-weight: 700;
+  color: var(--profile-muted);
+  font-weight: 500;
+  font-size: 14.5px;
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
   white-space: nowrap;
   min-width: 250px;
   width: 250px;
 }
 
-.sidebar-menu-item:hover,
+.sidebar-menu-item:hover {
+  background: #f1f5f9;
+  color: var(--profile-text);
+}
+
 .sidebar-menu-item.active {
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(0, 40, 25, 0.06);
-  border-radius: 12px;
+  background: var(--profile-green-light);
+  color: var(--profile-green);
+  font-weight: 700;
+  border-left: 4px solid var(--profile-green);
 }
 
 .profile-logout-button {
@@ -194,11 +202,17 @@
   display: flex;
   align-items: center;
   gap: 0;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 14.5px;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 4px 0;
   white-space: nowrap;
   min-width: 250px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.profile-logout-button:hover {
+  background: rgba(198, 40, 40, 0.08);
 }
 
 /* Main */

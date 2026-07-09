@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Zap,
   ArrowRight,
-  MapPin
+  MapPin,
+  Percent
 } from "lucide-react";
 import authService from "../../services/authService";
 import profileService from "../../services/profileService";
@@ -95,6 +96,7 @@ const Home = () => {
   const [selectedSort, setSelectedSort] = useState("popular");
   const [hasDefaultAddress, setHasDefaultAddress] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [activePromotions, setActivePromotions] = useState([]);
 
   // Remaining time calculations for Flash Sale (countdown to end of day)
   const getRemainingTime = () => {
@@ -142,6 +144,12 @@ const Home = () => {
   };
 
   useEffect(() => {
+    const saved = localStorage.getItem('mockPromotions');
+    if (saved) {
+      const allPromos = JSON.parse(saved);
+      setActivePromotions(allPromos.filter(p => p.status === 'active'));
+    }
+
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
 
@@ -592,6 +600,37 @@ const Home = () => {
             </button>
           </section>
         )}
+
+        {/* Nhà vườn Promotions Section */}
+        {activePromotions.length > 0 && (
+          <section className="flash-sale-section" style={{ background: "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)", marginTop: '24px' }}>
+            <div className="flash-sale-header">
+              <div className="flash-sale-title-box">
+                <span className="flash-sale-icon" style={{ display: "inline-flex", alignItems: "center", color: '#2e7d32' }}><Percent size={20} /></span>
+                <h2 className="flash-sale-title" style={{ color: '#2e7d32' }}>KHUYẾN MÃI TỪ NHÀ VƯỜN</h2>
+              </div>
+            </div>
+            
+            <div className="flash-sale-grid">
+              {activePromotions.map((promo) => (
+                <div key={promo.id} className="flash-sale-card" style={{ borderColor: '#81c784' }}>
+                  <div className="flash-card-link">
+                    <div className="flash-card-img-wrapper">
+                      <img src={promo.image} alt={promo.title} className="flash-card-img" />
+                      <span className="flash-card-discount-tag" style={{ background: '#2e7d32' }}>{promo.discountVal}</span>
+                    </div>
+                    <div className="flash-card-info">
+                      <h3 className="flash-card-title">{promo.title}</h3>
+                      <p style={{ fontSize: '13px', color: '#555', marginTop: '4px' }}>Mã: <strong style={{color: '#2e7d32'}}>{promo.code || 'SALE'+promo.id}</strong></p>
+                      <p style={{ fontSize: '12px', color: '#777', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{promo.desc || promo.products.join(', ')}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Hero Section Split Layout */}
         <section className="hero-section-split">
           {/* Left Large Banner */}

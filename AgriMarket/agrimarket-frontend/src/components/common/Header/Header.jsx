@@ -493,7 +493,7 @@ const Header = ({ activeTab }) => {
             {/* Profile & Auth dropdown */}
             {user ? (
               <div className="nav-item-wrapper" ref={profileRef}>
-                <div className="profile-card-trigger" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+                <div className="profile-card-trigger" onClick={() => navigate("/profile")}>
                   {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.fullName} className="profile-avatar-circle" />
                   ) : (
@@ -502,28 +502,7 @@ const Header = ({ activeTab }) => {
                     </div>
                   )}
                   <span className="profile-card-name">{user.fullName}</span>
-                  <svg className="profile-chevron-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
                 </div>
-
-                {isProfileDropdownOpen && (
-                  <div className="filter-dropdown-menu-card" style={{ width: "160px", top: "44px" }}>
-                    <button className="dropdown-list-item-btn" onClick={() => { setIsProfileDropdownOpen(false); navigate("/profile"); }}>
-                      👤 Hồ sơ
-                    </button>
-                    <button className="dropdown-list-item-btn" onClick={() => { setIsProfileDropdownOpen(false); navigate("/profile/orders"); }}>
-                      📦 Đơn mua
-                    </button>
-                    <button className="dropdown-list-item-btn" onClick={() => { setIsProfileDropdownOpen(false); navigate("/profile/wishlist"); }}>
-                      ❤️ Yêu thích
-                    </button>
-                    <hr style={{ margin: "6px 0", border: "none", borderTop: "1px solid #f3f4f6" }} />
-                    <button className="dropdown-list-item-btn" style={{ color: "#ef4444" }} onClick={handleLogout}>
-                      🚪 Đăng xuất
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
               <button className="search-submit-pill-btn" onClick={() => navigate("/login")}>

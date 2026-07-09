@@ -60,6 +60,8 @@ import ViolationReports from "../pages/Admin/ViolationReports";
 import ProductListing from "../pages/Product/ProductListing";
 import LiveManagement from "../pages/Admin/LiveManagement";
 import CategoryManagement from "../pages/Admin/CategoryManagement";
+import FarmerPromotions from "../pages/Farmer/FarmerPromotions/FarmerPromotions";
+import AdminPromotions from "../pages/Admin/Promotions/AdminPromotions";
 
 
 const FarmsRoute = () => {
@@ -123,6 +125,7 @@ const AppRoutes = () => {
             <Route path="farm-profile" element={<FarmDetails />} />
             <Route path="chat" element={<FarmerChat />} />
             <Route path="livestream" element={<FarmerLivestream />} />
+            <Route path="promotions" element={<FarmerPromotions />} />
           </Route>
 
           <Route path="/products" element={<ProductPage />} />
@@ -164,6 +167,7 @@ const AppRoutes = () => {
         <Route path="/admin/orders" element={<OrderManagement />} />
         <Route path="/admin/categories" element={<CategoryManagement />} />
         <Route path="/admin/livestreams" element={<LiveManagement />} />
+        <Route path="/admin/promotions" element={<AdminPromotions />} />
         <Route path="/admin/notifications" element={<AdminNotifications />} />
         <Route path="/admin/complaints" element={<AdminComplaints />} />
         <Route path="/admin/chat" element={<AdminChat />} />
