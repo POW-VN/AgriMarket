@@ -381,7 +381,7 @@ const Header = ({ activeTab }) => {
                       }`}
                   >
                     {link.icon}
-                    {link.label}
+                    <span className="nav-label">{link.label}</span>
                   </Link>
                   {link.hasBadge && <span className="nav-live-badge">LIVE</span>}
                 </div>
@@ -493,7 +493,7 @@ const Header = ({ activeTab }) => {
             {/* Profile & Auth dropdown */}
             {user ? (
               <div className="nav-item-wrapper" ref={profileRef}>
-                <div className="profile-card-trigger" onClick={() => navigate("/profile")}>
+                <div className="profile-card-trigger" onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
                   {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.fullName} className="profile-avatar-circle" />
                   ) : (
@@ -503,6 +503,35 @@ const Header = ({ activeTab }) => {
                   )}
                   <span className="profile-card-name">{user.fullName}</span>
                 </div>
+
+                {isProfileDropdownOpen && (
+                  <div className="profile-dropdown-menu">
+                    <button 
+                      className="profile-dropdown-item" 
+                      onClick={() => {
+                        setIsProfileDropdownOpen(false);
+                        navigate("/profile");
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Vào trang cá nhân
+                    </button>
+                    <button 
+                      className="profile-dropdown-item logout" 
+                      onClick={() => {
+                        setIsProfileDropdownOpen(false);
+                        handleLogout();
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button className="search-submit-pill-btn" onClick={() => navigate("/login")}>
@@ -513,216 +542,9 @@ const Header = ({ activeTab }) => {
         </div>
       </div>
 
-      {/* 2. State 1 Sub-bar: Popular Searches (Rendered on Home page when search query is empty) */}
-      {isHomepage && !searchQuery && (
-        <div className="header-popular-searches-bar">
-          <span className="popular-searches-title">
-            <svg className="popular-search-fire-icon" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Tìm kiếm phổ biến:
-          </span>
-          <div className="popular-search-tags-row">
-            {popularTags.map((tag) => (
-              <button
-                key={tag.name}
-                className="popular-search-tag-pill"
-                onClick={() => {
-                  setSearchQuery(tag.name);
-                  executeSearch(tag.name);
-                }}
-              >
-                <span className="popular-tag-icon">{tag.icon}</span>
-                {tag.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* 3. State 3 Sub-bar: Top Filter Bar (Rendered on listing / when filtering search results) */}
-      {isSearchPage && (
-        <div className="header-filter-bar" ref={filterRef}>
-          <div className="filter-bar-content">
-            {/* Tabs Group */}
-            <div className="filter-tabs-group">
-              <button
-                className={`filter-tab-pill-btn ${activeFilterTab === "all" ? "active" : ""}`}
-                onClick={() => handleTabClick("all")}
-              >
-                <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                Tất cả
-              </button>
-              <button
-                className={`filter-tab-pill-btn ${activeFilterTab === "product" ? "active" : ""}`}
-                onClick={() => handleTabClick("product")}
-              >
-                <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                Sản phẩm
-              </button>
-              <button
-                className={`filter-tab-pill-btn ${activeFilterTab === "farm" ? "active" : ""}`}
-                onClick={() => handleTabClick("farm")}
-              >
-                <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                Nông trại
-              </button>
-              <button
-                className={`filter-tab-pill-btn ${activeFilterTab === "live" ? "active" : ""}`}
-                onClick={() => handleTabClick("live")}
-              >
-                <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Phiên Live
-              </button>
-            </div>
 
-            <div className="filter-bar-divider"></div>
 
-            {/* Dropdowns Group */}
-            <div className="filter-dropdowns-group">
-              {/* Region Dropdown */}
-              <div style={{ position: "relative" }}>
-                <button
-                  className={`filter-dropdown-trigger-btn ${selectedLocations.length > 0 ? "active" : ""} ${isRegionOpen ? "open" : ""}`}
-                  onClick={() => {
-                    setIsRegionOpen(!isRegionOpen);
-                    setIsPriceOpen(false);
-                    setIsRatingOpen(false);
-                  }}
-                >
-                  <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {selectedLocations.length > 0 ? `Khu vực (${selectedLocations.length})` : "Khu vực"}
-                  <svg className="dropdown-chevron-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {isRegionOpen && (
-                  <div className="filter-dropdown-menu-card">
-                    <div className="filter-region-list">
-                      {regionsList.map((region) => {
-                        const isSelected = selectedLocations.includes(region);
-                        return (
-                          <div
-                            key={region}
-                            className={`region-option-row ${isSelected ? "selected" : ""}`}
-                            onClick={() => handleRegionSelect(region)}
-                          >
-                            {region}
-                            {isSelected && (
-                              <svg className="region-check-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Price Dropdown */}
-              <div style={{ position: "relative" }}>
-                <button
-                  className={`filter-dropdown-trigger-btn ${(priceMin || priceMax) ? "active" : ""} ${isPriceOpen ? "open" : ""}`}
-                  onClick={() => {
-                    setIsPriceOpen(!isPriceOpen);
-                    setIsRegionOpen(false);
-                    setIsRatingOpen(false);
-                  }}
-                >
-                  <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Giá
-                  <svg className="dropdown-chevron-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {isPriceOpen && (
-                  <div className="filter-dropdown-menu-card filter-price-card">
-                    <div className="price-inputs-row">
-                      <input
-                        type="number"
-                        placeholder="Từ (đ)"
-                        className="price-input-box"
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(e.target.value)}
-                      />
-                      <span className="price-range-dash">-</span>
-                      <input
-                        type="number"
-                        placeholder="Đến (đ)"
-                        className="price-input-box"
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(e.target.value)}
-                      />
-                    </div>
-                    <button className="price-apply-submit-btn" onClick={handlePriceApply}>
-                      Áp dụng
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Rating Dropdown */}
-              <div style={{ position: "relative" }}>
-                <button
-                  className={`filter-dropdown-trigger-btn ${selectedRating > 0 ? "active" : ""} ${isRatingOpen ? "open" : ""}`}
-                  onClick={() => {
-                    setIsRatingOpen(!isRatingOpen);
-                    setIsRegionOpen(false);
-                    setIsPriceOpen(false);
-                  }}
-                >
-                  <svg className="filter-tab-icon" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
-                  Đánh giá
-                  <svg className="dropdown-chevron-icon" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {isRatingOpen && (
-                  <div className="filter-dropdown-menu-card" style={{ width: "160px" }}>
-                    {[5, 4, 3].map((stars) => (
-                      <div
-                        key={stars}
-                        className={`rating-option-row ${selectedRating === stars ? "selected" : ""}`}
-                        onClick={() => handleRatingSelect(stars)}
-                      >
-                        <div className="rating-option-stars">
-                          {Array.from({ length: stars }).map((_, i) => (
-                            <svg key={i} className="rating-option-star-icon" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                          ))}
-                        </div>
-                        <span className="rating-option-text"> trở lên</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };

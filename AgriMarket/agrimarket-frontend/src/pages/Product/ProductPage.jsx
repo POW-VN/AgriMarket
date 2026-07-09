@@ -2,9 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Pencil, Copy, Trash2, Image, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Search, Pencil, Copy, Trash2, Image, AlertTriangle, CheckCircle2, XCircle, Leaf } from "lucide-react";
 import "./ProductPage.css";
-import { getFarmerProducts, deleteFarmerProduct } from "../../services/productService";
+import { getFarmerProducts, deleteFarmerProduct, earlyHarvestProduct } from "../../services/productService";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useProfile from "../../hooks/useProfile";
 import Footer from "../../components/common/Footer/Footer";
@@ -114,6 +114,55 @@ export default function ProductPage() {
                 }
             }
         });
+    };
+
+    const handleEarlyHarvest = (productId) => {
+        const prod = products.find(p => p.id === productId);
+        const prodName = prod ? prod.name : "này";
+        setConfirmModal({
+            show: true,
+            title: "Xác nhận thu hoạch sớm",
+            message: `Bạn có chắc chắn muốn thực hiện thu hoạch sớm cho sản phẩm "${prodName}" không? Trạng thái đặt trước sẽ kết thúc và chuyển thành sản phẩm bình thường.`,
+            onConfirm: async () => {
+                try {
+                    await earlyHarvestProduct(productId);
+                    const data = await getFarmerProducts();
+                    setProducts(data);
+                    showToast("Thu hoạch sớm sản phẩm thành công!", "success");
+                } catch (error) {
+                    console.error("Lỗi khi thu hoạch sớm:", error);
+                    showToast(
+                        error.response?.data ||
+                        error.message ||
+                        "Không thể thực hiện thu hoạch sớm. Vui lòng thử lại sau.",
+                        "error"
+                    );
+                }
+            }
+        });
+    };
+
+    const isUnharvestedPreorder = (product) => {
+        if (!product.isPreorder) return false;
+        if (!product.harvestDate) return false;
+        
+        let harvestStr = "";
+        if (product.harvestDate.includes("/")) {
+            const parts = product.harvestDate.split("/");
+            if (parts.length === 3) {
+                harvestStr = `${parts[2]}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+            }
+        } else {
+            harvestStr = product.harvestDate.substring(0, 10);
+        }
+
+        const today = new Date();
+        const y = today.getFullYear();
+        const m = String(today.getMonth() + 1).padStart(2, '0');
+        const d = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+
+        return harvestStr > todayStr;
     };
 
     const formatPrice = (price) => {
@@ -231,36 +280,48 @@ export default function ProductPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {paginatedProducts.map((product) => (
-                                            <tr key={product.id}>
-                                                <td>
-                                                    <div className="product-info">
-                                                        <div className="product-image">
-                                                            {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span style={{ display: "inline-flex", alignItems: "center", color: "#94a3b8" }}><Image size={24} /></span>}
+                                        {paginatedProducts.map((product) => {
+                                            console.log("Rendering product:", product.id, product.name, "isPreorder:", product.isPreorder, "harvestDate:", product.harvestDate, "isUnharvested:", isUnharvestedPreorder(product));
+                                            return (
+                                                <tr key={product.id}>
+                                                    <td>
+                                                        <div className="product-info">
+                                                            <div className="product-image">
+                                                                {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span style={{ display: "inline-flex", alignItems: "center", color: "#94a3b8" }}><Image size={24} /></span>}
+                                                            </div>
+                                                            <div>
+                                                                <h3>{product.name}</h3>
+                                                                <p>Mã SP: SP-{product.id}</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <h3>{product.name}</h3>
-                                                            <p>Mã SP: SP-{product.id}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>{product.category}</td>
-                                                <td>
-                                                    <span className={Number(product.stock) <= 0 ? "stock-danger" : ""}>
-                                                        {product.stock} {product.unit}
-                                                    </span>
-                                                </td>
-                                                <td>{formatPrice(product.price)} / {product.unit}</td>
-                                                <td>{renderStatus(product.status, product.stock)}</td>
-                                                <td>
-                                                    <div className="product-actions">
-                                                        <button title="Chỉnh sửa sản phẩm" style={{ display: "inline-flex", alignItems: "center" }}><Pencil size={15} /></button>
-                                                        <button title="Sao chép sản phẩm" style={{ display: "inline-flex", alignItems: "center" }}><Copy size={15} /></button>
-                                                        <button title="Xóa sản phẩm" onClick={() => handleDelete(product.id)} style={{ display: "inline-flex", alignItems: "center" }}><Trash2 size={15} /></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td>{product.category}</td>
+                                                    <td>
+                                                        <span className={Number(product.stock) <= 0 ? "stock-danger" : ""}>
+                                                            {product.stock} {product.unit}
+                                                        </span>
+                                                    </td>
+                                                    <td>{formatPrice(product.price)} / {product.unit}</td>
+                                                    <td>{renderStatus(product.status, product.stock)}</td>
+                                                    <td>
+                                                         <div className="product-actions">
+                                                             {isUnharvestedPreorder(product) && (
+                                                                 <button 
+                                                                     title="Thu hoạch sớm" 
+                                                                     onClick={() => handleEarlyHarvest(product.id)} 
+                                                                     style={{ display: "inline-flex", alignItems: "center", color: "#16a34a" }}
+                                                                 >
+                                                                     <Leaf size={15} />
+                                                                 </button>
+                                                             )}
+                                                             <button title="Chỉnh sửa sản phẩm" style={{ display: "inline-flex", alignItems: "center" }}><Pencil size={15} /></button>
+                                                             <button title="Sao chép sản phẩm" style={{ display: "inline-flex", alignItems: "center" }}><Copy size={15} /></button>
+                                                             <button title="Xóa sản phẩm" onClick={() => handleDelete(product.id)} style={{ display: "inline-flex", alignItems: "center" }}><Trash2 size={15} /></button>
+                                                         </div>
+                                                     </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

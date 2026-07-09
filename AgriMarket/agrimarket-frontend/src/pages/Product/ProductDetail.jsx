@@ -1352,8 +1352,6 @@ export default function ProductDetail() {
         product={product}
         quantity={quantity}
         setQuantity={setQuantity}
-        deliveryMode={deliveryMode}
-        setDeliveryMode={setDeliveryMode}
         customDate={customDate}
         setCustomDate={setCustomDate}
         specialInstructions={specialInstructions}

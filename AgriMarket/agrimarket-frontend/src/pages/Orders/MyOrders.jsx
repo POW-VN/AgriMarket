@@ -198,12 +198,25 @@ export const MyOrders = () => {
           completed: "Hoàn thành"
         };
 
+        const d = new Date(po.createdAt);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const dateFormatted = `${day} thg ${month}, ${year}`;
+
+        const hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'CH' : 'SA';
+        const displayHours = String(hours % 12 || 12).padStart(2, '0');
+        const timeFormatted = `${displayHours}:${minutes} ${ampm}`;
+ 
         return {
           id: String(po.id),
+          isPreorder: true,
           status: po.status,
           statusLabel: statusLabels[po.status] || po.status,
-          date: new Date(po.createdAt).toLocaleDateString("vi-VN"),
-          time: new Date(po.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }),
+          date: dateFormatted,
+          time: timeFormatted,
           amount: totalAmount,
           depositPaid: depositPaid,
           expectedHarvestDate: primaryItem.expectedHarvestDate ? new Date(primaryItem.expectedHarvestDate).toLocaleDateString("vi-VN") : "Đang cập nhật",
@@ -341,6 +354,53 @@ export const MyOrders = () => {
     }
   };
 
+  // Helper to parse "dd thg MM, yyyy" and "hh:mm SA/CH" into timestamp for sorting
+  const parseOrderDateTime = (dateStr, timeStr) => {
+    try {
+      if (!dateStr) return 0;
+      if (dateStr.includes("thg")) {
+        const parts = dateStr.split(" thg ");
+        const day = parseInt(parts[0], 10);
+        const yearParts = parts[1].split(", ");
+        const month = parseInt(yearParts[0], 10) - 1;
+        const year = parseInt(yearParts[1], 10);
+        
+        let hours = 0;
+        let minutes = 0;
+        if (timeStr) {
+          const timeParts = timeStr.split(":");
+          hours = parseInt(timeParts[0], 10);
+          const minParts = timeParts[1].split(" ");
+          minutes = parseInt(minParts[0], 10);
+          const ampm = minParts[1];
+          if (ampm === "CH" && hours < 12) hours += 12;
+          if (ampm === "SA" && hours === 12) hours = 0;
+        }
+        return new Date(year, month, day, hours, minutes).getTime();
+      } else {
+        const parts = dateStr.split("/");
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        
+        let hours = 0;
+        let minutes = 0;
+        if (timeStr) {
+          const timeParts = timeStr.split(":");
+          hours = parseInt(timeParts[0], 10);
+          const minParts = timeParts[1].split(" ");
+          minutes = parseInt(minParts[0], 10);
+          const ampm = minParts[1];
+          if (ampm === "CH" && hours < 12) hours += 12;
+          if (ampm === "SA" && hours === 12) hours = 0;
+        }
+        return new Date(year, month, day, hours, minutes).getTime();
+      }
+    } catch (e) {
+      return 0;
+    }
+  };
+
   // Filter logic
   const filteredOrders = activeTab === "preorder"
     ? preorders.filter(po => {
@@ -349,8 +409,21 @@ export const MyOrders = () => {
           po.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesSearch;
       })
+    : activeTab === "all"
+    ? [...orders, ...preorders]
+        .filter(item => {
+          const matchesSearch =
+            item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesSearch;
+        })
+        .sort((a, b) => {
+          const timeA = parseOrderDateTime(a.date, a.time);
+          const timeB = parseOrderDateTime(b.date, b.time);
+          return timeB - timeA; // Latest orders first
+        })
     : orders.filter(order => {
-        const matchesTab = activeTab === "all" || order.status === activeTab;
+        const matchesTab = order.status === activeTab;
         const matchesSearch =
           order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
           order.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -455,11 +528,11 @@ export const MyOrders = () => {
             </div>
           ) : (
             paginatedOrders.map(order => (
-              <div className="order-card" key={order.id} style={activeTab === "preorder" ? { borderLeft: "4px solid #1b5e20" } : {}}>
+              <div className="order-card" key={order.id} style={order.isPreorder ? { borderLeft: "4px solid #1b5e20" } : {}}>
                 {/* Card Top Info */}
                 <div className="order-card-header">
                   <div className="order-header-left">
-                    {activeTab === "preorder" ? (
+                    {order.isPreorder ? (
                       <div className="order-icon-box status-preorder-icon" style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "50%", marginRight: "12px" }}>
                         <Sprout size={20} />
                       </div>
@@ -468,15 +541,15 @@ export const MyOrders = () => {
                     )}
                     <div className="order-title-info">
                       <div className="order-id-row">
-                        <span className="order-id-label">{activeTab === "preorder" ? "MÃ ĐẶT TRƯỚC" : "MÃ ĐƠN HÀNG"} #{order.id}</span>
-                        <span className={`status-badge status-${order.status}`} style={activeTab === "preorder" && order.status === "paid" ? { backgroundColor: "#e8f5e9", color: "#1b5e20" } : {}}>
+                        <span className="order-id-label">{order.isPreorder ? "MÃ ĐẶT TRƯỚC" : "MÃ ĐƠN HÀNG"} #{order.id}</span>
+                        <span className={`status-badge status-${order.status}`} style={order.isPreorder && order.status === "paid" ? { backgroundColor: "#e8f5e9", color: "#1b5e20" } : {}}>
                           {order.statusLabel}
                         </span>
                       </div>
                       <div className="order-date-row">
                         <span>Đặt ngày {order.date} • {order.time}</span>
                       </div>
-                      {activeTab === "preorder" && (
+                      {order.isPreorder && (
                         <div className="preorder-harvest-date-badge" style={{ marginTop: "4px", fontSize: "12px", color: "#1b5e20", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                           <Sprout size={14} /> Thu hoạch dự kiến: {order.expectedHarvestDate}
                         </div>
@@ -486,7 +559,7 @@ export const MyOrders = () => {
                   <div className="order-header-right">
                     <span className="order-amount">{formatVND(order.amount)}</span>
                     <span className="order-items-count">
-                      {activeTab === "preorder" ? `Đã đặt cọc 20%: ${formatVND(order.depositPaid)}` : `${order.itemCount} sản phẩm`}
+                      {order.isPreorder ? `Đã đặt cọc 20%: ${formatVND(order.depositPaid)}` : `${order.itemCount} sản phẩm`}
                     </span>
                   </div>
                 </div>
@@ -502,7 +575,7 @@ export const MyOrders = () => {
                       )}
                     </div>
                     <div className="provider-details">
-                      <span className="provider-label">{activeTab === "preorder" ? "HỘ GIA ĐÌNH SẢN XUẤT" : "NHÀ CUNG CẤP"}</span>
+                      <span className="provider-label">{order.isPreorder ? "HỘ GIA ĐÌNH SẢN XUẤT" : "NHÀ CUNG CẤP"}</span>
                       <span className="provider-name">{order.provider.name}</span>
                     </div>
                   </div>
@@ -524,7 +597,7 @@ export const MyOrders = () => {
 
                 {/* Card Footer Actions */}
                 <div className="order-card-footer">
-                  {activeTab === "preorder" ? (
+                  {order.isPreorder ? (
                     <>
                       <button className="btn-outline">Liên hệ nhà vườn</button>
                       {order.status === "paid" && (

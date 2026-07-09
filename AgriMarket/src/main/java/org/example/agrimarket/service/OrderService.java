@@ -54,6 +54,12 @@ public class OrderService {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private PreorderRepository preorderRepository;
+
+    @Autowired
+    private PreorderItemRepository preorderItemRepository;
+
     @Transactional
     public OrderResponse createOrder(String email, OrderCreateRequest request) {
         Customer customer = customerRepository.findByEmail(email)
@@ -861,6 +867,185 @@ public class OrderService {
         order.setShipperNotes("Người mua đã đến nhận hàng tại nông trại và xác nhận lấy đơn hàng thành công.");
         Order saved = orderRepository.save(order);
         return mapToResponse(saved);
+    }
+
+    @Transactional
+    public void convertPreorderToNormalOrder(Preorder preorder) {
+        Customer customer = preorder.getCustomer();
+        List<PreorderItem> preorderItems = preorderItemRepository.findByPreorderId(preorder.getId());
+        if (preorderItems.isEmpty()) return;
+
+        // Xử lý thông tin người nhận mặc định từ danh sách địa chỉ của khách hàng
+        String recipientName = customer.getFullName();
+        String recipientPhone = customer.getPhone() != null ? customer.getPhone() : "0000000000";
+        String deliveryAddress = "Chưa cập nhật địa chỉ";
+        Double latitude = null;
+        Double longitude = null;
+
+        if (customer.getAddresses() != null && !customer.getAddresses().isEmpty()) {
+            CustomerAddress address = customer.getAddresses().stream()
+                    .filter(addr -> Boolean.TRUE.equals(addr.getIsDefault()))
+                    .findFirst()
+                    .orElse(customer.getAddresses().get(0));
+            recipientName = address.getReceiverName() != null ? address.getReceiverName() : customer.getFullName();
+            recipientPhone = address.getPhone() != null ? address.getPhone() : customer.getPhone();
+            deliveryAddress = address.getAddress();
+            latitude = address.getLatitude();
+            longitude = address.getLongitude();
+        }
+
+        // Tính tổng tiền sản phẩm
+        double subtotal = 0;
+        for (PreorderItem item : preorderItems) {
+            subtotal += item.getProduct().getPrice() * item.getQuantity();
+        }
+
+        double shippingFee = 35000.0; // Mặc định GHN giao hàng
+        double serviceFee = 15000.0;
+        double discount = 0.0;
+        double totalAmount = subtotal + shippingFee + serviceFee;
+
+        // Tạo OrderGroup
+        Random random = new Random();
+        String groupCode;
+        do {
+            groupCode = "OG-2026-" + (1000 + random.nextInt(9000));
+        } while (orderGroupRepository.findByGroupCode(groupCode).isPresent());
+
+        OrderGroup orderGroup = new OrderGroup();
+        orderGroup.setGroupCode(groupCode);
+        orderGroup.setCustomer(customer);
+        orderGroup.setTotalSubtotal(subtotal);
+        orderGroup.setTotalShippingFee(shippingFee);
+        orderGroup.setTotalServiceFee(serviceFee);
+        orderGroup.setTotalDiscount(discount);
+        orderGroup.setGrandTotal(totalAmount);
+        orderGroup.setRecipientName(recipientName);
+        orderGroup.setRecipientPhone(recipientPhone);
+        orderGroup.setDeliveryAddress(deliveryAddress);
+        orderGroup.setPaymentMethod("VNPAY");
+        orderGroup.setPaymentStatus("paid");
+
+        orderGroup = orderGroupRepository.save(orderGroup);
+
+        // Gom các preorder items theo từng nhà vườn
+        Map<Farmer, List<PreorderItem>> farmerItemsMap = new HashMap<>();
+        for (PreorderItem item : preorderItems) {
+            Farmer farmer = item.getProduct().getFarmer();
+            if (farmer != null) {
+                farmerItemsMap.computeIfAbsent(farmer, k -> new ArrayList<>()).add(item);
+            }
+        }
+
+        List<Order> savedSubOrders = new ArrayList<>();
+        int farmerIndex = 0;
+        int numFarmers = farmerItemsMap.size();
+        double allocatedShippingSum = 0;
+        double allocatedServiceSum = 0;
+
+        for (Map.Entry<Farmer, List<PreorderItem>> entry : farmerItemsMap.entrySet()) {
+            Farmer farmer = entry.getKey();
+            List<PreorderItem> items = entry.getValue();
+
+            double farmerSubtotal = 0;
+            for (PreorderItem item : items) {
+                farmerSubtotal += item.getProduct().getPrice() * item.getQuantity();
+            }
+
+            double ratio = subtotal > 0 ? (farmerSubtotal / subtotal) : (1.0 / numFarmers);
+            double farmerShippingFee;
+            double farmerServiceFee;
+
+            farmerIndex++;
+            if (farmerIndex == numFarmers) {
+                farmerShippingFee = shippingFee - allocatedShippingSum;
+                farmerServiceFee = serviceFee - allocatedServiceSum;
+            } else {
+                farmerShippingFee = Math.round((ratio * shippingFee) * 100.0) / 100.0;
+                farmerServiceFee = Math.round((ratio * serviceFee) * 100.0) / 100.0;
+                allocatedShippingSum += farmerShippingFee;
+                allocatedServiceSum += farmerServiceFee;
+            }
+
+            double farmerAmount = farmerSubtotal + farmerShippingFee + farmerServiceFee;
+
+            String orderCode;
+            do {
+                orderCode = "FH-2026-" + (1000 + random.nextInt(9000));
+            } while (orderRepository.findByOrderCode(orderCode).isPresent());
+
+            Order order = new Order();
+            order.setOrderCode(orderCode);
+            order.setOrderGroup(orderGroup);
+            order.setFarmer(farmer);
+            order.setCustomer(customer);
+            order.setPaymentStatus("paid");
+            order.setStatus("confirmed"); // Chờ lấy hàng - đã chuẩn bị xong
+            order.setDetailedStatus("ready_for_ghn");
+            order.setSubtotal(farmerSubtotal);
+            order.setShippingFee(farmerShippingFee);
+            order.setServiceFee(farmerServiceFee);
+            order.setDiscount(0.0);
+            order.setAmount(farmerAmount);
+            order.setTrackingNumber("FH-TRACK-" + (100000 + random.nextInt(900000)));
+
+            List<OrderItem> orderItems = new ArrayList<>();
+            for (PreorderItem preorderItem : items) {
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrder(order);
+                orderItem.setProductId(preorderItem.getProduct().getId());
+                orderItem.setProductName(preorderItem.getProduct().getName());
+                orderItem.setProductPrice(preorderItem.getProduct().getPrice());
+                orderItem.setProductUnit(preorderItem.getProduct().getUnit());
+                orderItem.setQuantity(preorderItem.getQuantity());
+                orderItem.setFarmer(farmer);
+
+                String imageUrl = "";
+                List<ProductImage> prodImages = productImageRepository.findByProductId(preorderItem.getProduct().getId());
+                if (prodImages != null && !prodImages.isEmpty()) {
+                    imageUrl = prodImages.stream()
+                            .filter(img -> img.getIsThumbnail() != null && img.getIsThumbnail())
+                            .map(ProductImage::getImgUrl)
+                            .findFirst()
+                            .orElse(prodImages.get(0).getImgUrl());
+                } else {
+                    imageUrl = preorderItem.getProduct().getTraceabilityImageUrl();
+                }
+                orderItem.setImageUrl(imageUrl);
+
+                orderItems.add(orderItem);
+            }
+
+            order.setItems(orderItems);
+            Order savedOrder = orderRepository.save(order);
+            savedSubOrders.add(savedOrder);
+
+            // Tự động gọi API tạo vận chuyển giao hàng nhanh (GHN)
+            try {
+                ghnService.createShipment(savedOrder);
+            } catch (Exception e) {
+                System.err.println("Lỗi tạo vận chuyển GHN cho đơn preorder: " + e.getMessage());
+            }
+
+            // Gửi thông báo đến cho Farmer
+            try {
+                Notification notif = Notification.builder()
+                        .receiverType("farmer")
+                        .receiverId(farmer.getId())
+                        .title("Đơn đặt trước đã thu hoạch!")
+                        .content("Đơn hàng đặt trước " + preorder.getId() + " đã thu hoạch xong và tự động tạo đơn vận chuyển mới. Mã đơn hàng: " + savedOrder.getOrderCode())
+                        .link("/farmer/orders/orderdetail/" + savedOrder.getOrderCode())
+                        .createdAt(LocalDateTime.now())
+                        .isRead(false)
+                        .build();
+                notificationRepository.save(notif);
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo đơn preorder cho farmer: " + e.getMessage());
+            }
+        }
+
+        orderGroup.setSubOrders(savedSubOrders);
+        orderGroupRepository.save(orderGroup);
     }
 
     private static class OrderItemDraft {

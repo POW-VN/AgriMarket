@@ -171,4 +171,21 @@ public class ProductController {
                     .body("Lỗi khi lấy danh sách sản phẩm: " + e.getMessage());
         }
     }
+
+    @PostMapping("/farmer/products/{id}/early-harvest")
+    public ResponseEntity<?> earlyHarvest(Principal principal, @PathVariable Long id) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Vui lòng đăng nhập.");
+        }
+
+        try {
+            productService.earlyHarvest(id, principal.getName());
+            return ResponseEntity.ok("Sản phẩm đã được thu hoạch sớm thành công.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi thực hiện thu hoạch sớm: " + e.getMessage());
+        }
+    }
 }

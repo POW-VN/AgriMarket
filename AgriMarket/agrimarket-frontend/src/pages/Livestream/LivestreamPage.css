@@ -82,7 +82,8 @@
 
 @media (min-width: 1400px) {
   .livestream-layout-grid {
-    grid-template-columns: 76fr 24fr; /* Make video screen wider on large desktop */
+    grid-template-columns: 76fr 24fr;
+    /* Make video screen wider on large desktop */
     gap: 32px;
   }
 }
@@ -133,7 +134,8 @@
 /* Animated Play Indicator Overlay */
 .center-play-overlay {
   position: absolute;
-  background: rgba(27, 94, 32, 0.85); /* primary-color with opacity */
+  background: rgba(27, 94, 32, 0.85);
+  /* primary-color with opacity */
   border-radius: 50%;
   padding: 18px;
   display: flex;
@@ -149,10 +151,12 @@
     transform: scale(0.6);
     opacity: 0;
   }
+
   30% {
     transform: scale(1.1);
     opacity: 1;
   }
+
   100% {
     transform: scale(1);
     opacity: 0;
@@ -199,10 +203,12 @@
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
   }
+
   70% {
     transform: scale(1.1);
     box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
   }
+
   100% {
     transform: scale(0.95);
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
@@ -254,7 +260,8 @@
 
 .progress-fill {
   height: 100%;
-  background-color: #ef4444; /* Live red bar */
+  background-color: #ef4444;
+  /* Live red bar */
   border-radius: 2px;
   transition: width 0.1s linear;
 }
@@ -265,7 +272,8 @@
   justify-content: space-between;
 }
 
-.controls-left, .controls-right {
+.controls-left,
+.controls-right {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -500,7 +508,8 @@
 }
 
 .claim-voucher-action-btn.active-state {
-  background-color: #103314; /* Dark forest green */
+  background-color: #103314;
+  /* Dark forest green */
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(16, 51, 20, 0.3);
 }
@@ -588,6 +597,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -678,7 +688,8 @@
 }
 
 .chat-submit-action-btn {
-  background-color: #103314; /* Dark forest green */
+  background-color: #103314;
+  /* Dark forest green */
   color: #ffffff;
   width: 36px;
   height: 36px;
@@ -1028,6 +1039,7 @@
     transform: translateY(50px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -1507,15 +1519,22 @@
   align-items: center;
   gap: 12px;
   max-width: 300px;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
   animation: slide-up-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 10;
   border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 @keyframes slide-up-in {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .pinned-prod-img {

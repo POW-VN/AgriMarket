@@ -230,6 +230,13 @@ public class PaymentService {
             Long preorderId = Long.parseLong(orderCode.substring(4));
             Preorder preorder = preorderRepository.findById(preorderId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt trước: " + orderCode));
+            
+            // Kiểm tra trùng lặp (Idempotency) để tránh trừ kho 2 lần khi callback gọi trùng
+            if ("paid".equalsIgnoreCase(preorder.getStatus())) {
+                System.out.println("[VNPay Callback] Đơn đặt trước " + orderCode + " đã được xử lý thanh toán trước đó. Bỏ qua trừ kho.");
+                return;
+            }
+
             preorder.setStatus("paid");
             preorderRepository.save(preorder);
 
@@ -249,6 +256,13 @@ public class PaymentService {
         Optional<OrderGroup> groupOpt = orderGroupRepository.findByGroupCode(orderCode);
         if (groupOpt.isPresent()) {
             OrderGroup group = groupOpt.get();
+
+            // Kiểm tra trùng lặp (Idempotency)
+            if ("paid".equalsIgnoreCase(group.getPaymentStatus())) {
+                System.out.println("[VNPay Callback] Nhóm đơn hàng " + orderCode + " đã được xử lý thanh toán trước đó. Bỏ qua.");
+                return;
+            }
+
             group.setPaymentStatus("paid");
             if (paymentMethod != null && !paymentMethod.isEmpty()) {
                 group.setPaymentMethod(paymentMethod);
@@ -267,6 +281,12 @@ public class PaymentService {
 
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng hoặc nhóm đơn hàng: " + orderCode));
+
+        // Kiểm tra trùng lặp (Idempotency)
+        if ("paid".equalsIgnoreCase(order.getPaymentStatus())) {
+            System.out.println("[VNPay Callback] Đơn hàng " + orderCode + " đã được xử lý thanh toán trước đó. Bỏ qua.");
+            return;
+        }
 
         order.setStatus("pending");
         order.setPaymentStatus("paid");

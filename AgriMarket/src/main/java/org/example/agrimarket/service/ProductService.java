@@ -40,5 +40,6 @@ public interface ProductService {
             String location, String shopKeyword,
             Double minRating, Long farmerId
     );
+    void earlyHarvest(Long productId, String farmerEmail);
 }
 

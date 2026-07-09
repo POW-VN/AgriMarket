@@ -7,15 +7,7 @@
   flex-direction: column;
 }
 
-/* Header Navbar Sync */
-.home-header {
-  background: var(--white);
-  border-bottom: 1px solid #e2ebd5;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
+
 
 /* Breadcrumbs styling */
 .breadcrumb-container {

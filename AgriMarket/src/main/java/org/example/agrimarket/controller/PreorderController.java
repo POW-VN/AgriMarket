@@ -4,6 +4,7 @@ import org.example.agrimarket.dto.PreorderRequest;
 import org.example.agrimarket.dto.PreorderResponse;
 import org.example.agrimarket.model.*;
 import org.example.agrimarket.repository.*;
+import org.example.agrimarket.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,9 @@ public class PreorderController {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private OrderService orderService;
 
     // 1. Create Preorder
     @PostMapping
@@ -230,6 +234,10 @@ public class PreorderController {
 
         preorder.setStatus(status);
         preorder = preorderRepository.save(preorder);
+
+        if ("completed".equalsIgnoreCase(status)) {
+            orderService.convertPreorderToNormalOrder(preorder);
+        }
 
         List<PreorderItem> items = preorderItemRepository.findByPreorderId(preorder.getId());
         return ResponseEntity.ok(convertToResponse(preorder, items));

@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface PreorderItemRepository extends JpaRepository<PreorderItem, Long> {
     List<PreorderItem> findByPreorderId(Long preorderId);
+    List<PreorderItem> findByProductId(Long productId);
 }

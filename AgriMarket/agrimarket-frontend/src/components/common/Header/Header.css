@@ -18,14 +18,15 @@
   align-items: center;
   justify-content: space-between;
   max-width: 100%;
-  padding: 16px 40px;
+  padding: 12px 24px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 16px;
   flex: 0 0 auto;
 }
 
@@ -34,8 +35,8 @@
   align-items: center;
   justify-content: center;
   flex: 1;
-  margin: 0 32px;
-  min-width: 250px;
+  margin: 0 16px;
+  min-width: 200px;
 }
 
 .header-right {
@@ -92,7 +93,7 @@
 .header-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .nav-item-wrapper {
@@ -102,12 +103,12 @@
 .nav-link-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   text-decoration: none;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #4b5563;
-  padding: 8px 16px;
+  color: #374151;
+  padding: 6px 12px;
   border-radius: 30px;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -115,7 +116,7 @@
 
 .nav-link-pill:hover {
   background-color: #f3f4f6;
-  color: #111827;
+  color: #1B5E20;
 }
 
 .nav-link-pill.active {
@@ -212,7 +213,7 @@
   gap: 8px;
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
-  padding: 6px 14px 6px 6px;
+  padding: 4px 10px 4px 4px;
   border-radius: 30px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -242,6 +243,10 @@
   font-size: 13.5px;
   font-weight: 600;
   color: #374151;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-chevron-icon {
@@ -267,7 +272,7 @@
   border: 1.5px solid #d1d5db;
   border-radius: 9999px;
   background-color: #ffffff;
-  padding: 4px;
+  padding: 2px 2px 2px 6px;
   width: 100%;
   transition: all 0.25s ease;
   position: relative;
@@ -286,10 +291,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 8px;
+  padding: 5px;
   border-radius: 50%;
   transition: background-color 0.2s;
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
 .search-prefix-btn:hover {
@@ -297,8 +302,8 @@
 }
 
 .search-input-prefix-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   color: #9ca3af;
   flex-shrink: 0;
   transition: color 0.2s;
@@ -313,7 +318,7 @@
   outline: none !important;
   box-shadow: none !important;
   background: transparent;
-  padding: 8px 16px 8px 8px;
+  padding: 5px 12px 5px 6px;
   font-size: 13.5px;
   font-weight: 500;
   color: #1f2937;
@@ -332,7 +337,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   color: #9ca3af;
   border-radius: 50%;
   transition: background-color 0.2s;
@@ -345,8 +350,8 @@
 }
 
 .search-clear-icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .search-submit-pill-btn {
@@ -378,6 +383,8 @@
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background-color: #ffffff;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .popular-searches-title {
@@ -398,7 +405,11 @@
 .popular-search-tags-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .popular-search-tag-pill {
@@ -407,7 +418,7 @@
   gap: 6px;
   background-color: #f3f4f6;
   border: 1px solid transparent;
-  color: #4b5563;
+  color: #374151;
   padding: 6px 14px;
   border-radius: 20px;
   font-size: 12.5px;
@@ -418,8 +429,9 @@
 }
 
 .popular-search-tag-pill:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
+  background-color: #E8F5E9;
+  color: #1B5E20;
+  border-color: #c8e6c9;
   transform: translateY(-1px);
 }
 
@@ -435,7 +447,7 @@
    ========================================== */
 .search-overlay-dropdown-card {
   position: absolute;
-  top: 56px;
+  top: 46px;
   left: 50%;
   transform: translateX(-50%);
   width: 580px;
@@ -701,6 +713,8 @@
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   background-color: #ffffff;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-bar-content {
@@ -710,6 +724,9 @@
   max-width: 100%;
   margin: 0;
   width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .filter-tabs-group {
@@ -969,4 +986,222 @@
 
 .rating-option-row.selected .rating-option-text {
   color: #1B5E20;
+}
+
+/* ==========================================
+   Responsive Media Queries for Header
+   ========================================== */
+
+/* 1. Large Screens & Laptops (up to 1280px) */
+@media (max-width: 1280px) {
+  .logo-subtitle {
+    font-size: 9.5px;
+  }
+  
+  .profile-card-name {
+    max-width: 90px;
+  }
+}
+
+/* 2. Tablet Landscape & Small Desktop (up to 1100px) */
+@media (max-width: 1100px) {
+  .header-main-row {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 20px;
+  }
+  
+  .header-left {
+    order: 1;
+    flex: 1;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .header-right {
+    order: 2;
+    flex: 0 0 auto;
+  }
+  
+  .header-center {
+    order: 3;
+    flex: 0 0 100%;
+    margin: 8px 0 0 0;
+    max-width: 100%;
+  }
+
+  .nav-link-pill {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .profile-card-name {
+    max-width: 80px;
+  }
+}
+
+/* 3. Small Tablet & Mobile Landscape (up to 768px) */
+@media (max-width: 768px) {
+  .header-main-row {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 16px;
+  }
+
+  .header-left {
+    order: 1;
+    flex: 1;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .header-right {
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  .header-center {
+    order: 3;
+    flex: 0 0 100%;
+    margin: 6px 0 0 0;
+    max-width: 100%;
+  }
+
+  .nav-link-pill {
+    padding: 5px 8px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .logo-subtitle {
+    display: none;
+  }
+
+  .profile-card-name,
+  .profile-chevron-icon {
+    display: none;
+  }
+
+  .profile-card-trigger {
+    padding: 5px;
+  }
+
+  .header-popular-searches-bar {
+    padding: 10px 16px;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .popular-search-tags-row {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .header-filter-bar {
+    padding: 10px 16px;
+  }
+
+  .filter-bar-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .filter-tabs-group,
+  .filter-dropdowns-group {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* 4. Small Mobile (up to 600px) */
+@media (max-width: 600px) {
+  .header-nav {
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    padding-bottom: 4px;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .header-nav::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  .nav-item-wrapper {
+    flex-shrink: 0;
+  }
+}
+
+/* 5. Mobile Portrait (up to 480px) */
+@media (max-width: 480px) {
+  .logo-title {
+    display: none;
+  }
+
+  .header-left {
+    gap: 8px;
+  }
+
+  .search-overlay-dropdown-card {
+    width: calc(100vw - 24px);
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 12px;
+    top: 48px;
+  }
+}
+
+/* Profile Dropdown Menu */
+.profile-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  min-width: 185px;
+  width: max-content;
+  z-index: 1000;
+  animation: dropdown-fade-slide 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.profile-dropdown-item {
+  background: none;
+  border: none;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #374151;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.profile-dropdown-item:hover {
+  background-color: #f3f4f6;
+  color: #1B5E20;
+}
+
+.profile-dropdown-item.logout {
+  color: #dc2626;
+}
+
+.profile-dropdown-item.logout:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
 }

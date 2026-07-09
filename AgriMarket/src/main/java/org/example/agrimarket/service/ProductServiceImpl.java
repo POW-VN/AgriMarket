@@ -16,6 +16,10 @@ import org.example.agrimarket.repository.ProductReviewRepository;
 import org.example.agrimarket.repository.OrderItemRepository;
 import org.example.agrimarket.repository.NotificationRepository;
 import org.example.agrimarket.repository.WishlistItemRepository;
+import org.example.agrimarket.repository.PreorderItemRepository;
+import org.example.agrimarket.repository.PreorderRepository;
+import org.example.agrimarket.model.Preorder;
+import org.example.agrimarket.model.PreorderItem;
 import org.example.agrimarket.repository.ProductSpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -66,6 +70,15 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private WishlistItemRepository wishlistItemRepository;
+
+    @Autowired
+    private PreorderItemRepository preorderItemRepository;
+
+    @Autowired
+    private PreorderRepository preorderRepository;
+
+    @Autowired
+    private OrderService orderService;
 
     @Override
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
@@ -671,5 +684,65 @@ public class ProductServiceImpl implements ProductService {
             }
         }
     }
-    // Forced recompile trigger comment
+
+    @Override
+    @Transactional
+    public void earlyHarvest(Long productId, String farmerEmail) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
+
+        if (!product.getFarmer().getEmail().equalsIgnoreCase(farmerEmail)) {
+            throw new IllegalArgumentException("Bạn không có quyền thao tác trên sản phẩm này.");
+        }
+
+        if (product.getIsPreorder() == null || !product.getIsPreorder()) {
+            throw new IllegalArgumentException("Sản phẩm này không phải là sản phẩm đặt trước.");
+        }
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (product.getHarvestDate() != null && !product.getHarvestDate().isAfter(today)) {
+            throw new IllegalArgumentException("Sản phẩm đã tới thời điểm thu hoạch.");
+        }
+
+        // 1. Chuyển đổi trạng thái đặt trước thành sản phẩm bình thường
+        product.setIsPreorder(false);
+        product.setHarvestDate(today);
+        productRepository.save(product);
+
+        // 2. Lấy danh sách preorder_item liên quan đến sản phẩm này để gửi thông báo và chuyển đổi đơn hàng thường
+        List<PreorderItem> items = preorderItemRepository.findByProductId(productId);
+        
+        java.util.Set<Long> processedPreorderIds = new java.util.HashSet<>();
+        for (PreorderItem item : items) {
+            Preorder preorder = item.getPreorder();
+            if (preorder != null && preorder.getCustomer() != null) {
+                if (!"cancelled".equalsIgnoreCase(preorder.getStatus()) && !"completed".equalsIgnoreCase(preorder.getStatus())) {
+                    Long preorderId = preorder.getId();
+                    if (!processedPreorderIds.contains(preorderId)) {
+                        processedPreorderIds.add(preorderId);
+                        
+                        // Cập nhật trạng thái Preorder thành completed
+                        preorder.setStatus("completed");
+                        preorderRepository.save(preorder);
+
+                        // Chuyển đổi cọc đặt trước thành đơn hàng thường chuẩn bị giao
+                        orderService.convertPreorderToNormalOrder(preorder);
+
+                        // Gửi thông báo cho khách hàng
+                        Long customerId = preorder.getCustomer().getId();
+                        Notification notif = Notification.builder()
+                                .receiverType("customer")
+                                .receiverId(customerId)
+                                .title("Sản phẩm đặt trước đã được thu hoạch")
+                                .content("Sản phẩm đặt trước \"" + product.getName() + "\" của bạn đã được thu hoạch sớm, đơn hàng của bạn đã sẵn sàng.")
+                                .link("/profile/orders")
+                                .createdAt(java.time.LocalDateTime.now())
+                                .isRead(false)
+                                .build();
+                        notificationRepository.save(notif);
+                    }
+                }
+            }
+        }
+    }
 }

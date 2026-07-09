@@ -79,11 +79,11 @@ export default function PreorderList() {
         // Keep approved preorder products
         const dbPreorders = approved.filter((p) => p.isPreorder === true);
 
-        // Normalize DB preorders to match mockup schema
         const normalizedDb = dbPreorders.map((p) => {
-          const total = p.stock > 0 ? p.stock + 100 : 100;
           const remaining = p.stock || 0;
-          const pct = Math.round(((total - remaining) / total) * 100);
+          const sold = p.sold || 0;
+          const total = remaining + sold > 0 ? remaining + sold : 100;
+          const pct = remaining === 0 ? 100 : Math.round((sold / total) * 100);
 
           return {
             id: p.id,
@@ -425,18 +425,11 @@ export default function PreorderList() {
                     <p className="preorder-card-farmer">Nhà vườn: {p.farmerName}</p>
 
                     {/* Progress indicator */}
-                    <div className="preorder-progress-wrapper">
-                      <div className="progress-labels">
-                        <span className="progress-left">Đã đặt {p.progressPercent}%</span>
-                        <span className="progress-right">
+                    <div className="preorder-progress-wrapper" style={{ marginBottom: "12px" }}>
+                      <div className="progress-labels" style={{ marginBottom: 0 }}>
+                        <span className="progress-right" style={{ color: isClosed ? "#64748B" : "#16A34A" }}>
                           {isClosed ? "Hết hàng" : `Còn ${p.remainingQty} ${p.unit}`}
                         </span>
-                      </div>
-                      <div className="progress-bar-container">
-                        <div
-                          className="progress-bar-bar"
-                          style={{ width: `${p.progressPercent}%` }}
-                        ></div>
                       </div>
                     </div>
 

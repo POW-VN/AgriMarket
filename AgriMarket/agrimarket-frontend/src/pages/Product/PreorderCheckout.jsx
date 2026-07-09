@@ -165,7 +165,7 @@ const PreorderCheckout = () => {
   // Checkout data states
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(5);
-  const [deliveryMode, setDeliveryMode] = useState("shipping"); // 'shipping' or 'pickup'
+  // Delivery is always via GHN shipping
   const [customDate, setCustomDate] = useState("2026-09-01");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -291,7 +291,7 @@ const PreorderCheckout = () => {
   // Cost calculations
   const pricePerUnit = product.price || 0;
   const subtotal = pricePerUnit * quantity;
-  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
+  const deliveryFee = 35000; // Luôn vận chuyển qua GHN
   const serviceFee = 15000; // Phí dịch vụ cố định
   const totalAmount = subtotal + deliveryFee + serviceFee;
   const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
@@ -466,32 +466,7 @@ const PreorderCheckout = () => {
 
               {/* Preferred Delivery Date */}
               <div className="config-group">
-                <label className="group-label">Phương thức nhận hàng</label>
-                <div className="delivery-options-grid-3">
-                  <div
-                    className={`delivery-opt-card-3 ${deliveryMode === "shipping" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("shipping")}
-                  >
-                    <div className="opt-header-line">
-                      <span className="opt-date">Vận chuyển giao hàng</span>
-                      {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
-                    </div>
-                    <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
-                  </div>
-
-                  <div
-                    className={`delivery-opt-card-3 ${deliveryMode === "pickup" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("pickup")}
-                  >
-                    <div className="opt-header-line">
-                      <span className="opt-date">Tự nhận tại nông trại</span>
-                      {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
-                    </div>
-                    <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
-                  </div>
-                </div>
-
-                <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
+                <div className="preorder-date-picker-wrapper">
                   <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
                     Chọn ngày nhận mong muốn trên lịch *
                   </label>
@@ -553,12 +528,8 @@ const PreorderCheckout = () => {
                   <span>{formatVND(subtotal)}</span>
                 </div>
                 <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
-                  <span>Phí vận chuyển</span>
-                  {deliveryMode === "pickup" ? (
-                    <span style={{ color: "#16a34a", fontWeight: "700" }}>Miễn phí</span>
-                  ) : (
-                    <span>{formatVND(deliveryFee)}</span>
-                  )}
+                  <span>Phí vận chuyển (GHN)</span>
+                  <span>{formatVND(deliveryFee)}</span>
                 </div>
                 <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
                   <span>Phí dịch vụ</span>

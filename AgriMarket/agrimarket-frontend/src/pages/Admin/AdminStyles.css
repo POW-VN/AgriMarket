@@ -157,7 +157,7 @@
 }
 
 /* Opacity hide text when collapsed, show on hover */
-.nav-label,
+.admin-sidebar .nav-label,
 .admin-footer-info {
   opacity: 0;
   transition: opacity 0.15s ease;

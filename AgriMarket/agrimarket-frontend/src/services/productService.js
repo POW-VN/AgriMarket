@@ -305,6 +305,16 @@ export const deleteFarmerProduct = async (productId) => {
     }
 };
 
+export const earlyHarvestProduct = async (productId) => {
+    try {
+        const response = await apiClient.post(`/api/farmer/products/${productId}/early-harvest`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi thu hoạch sớm:", error);
+        throw error;
+    }
+};
+
 export const createFarmerProduct = async (productData) => {
     try {
         const response = await apiClient.post("/api/farmer/products", productData);

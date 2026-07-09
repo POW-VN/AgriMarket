@@ -188,7 +188,7 @@ export const OrderHistory = () => {
         isPreorder: true,
         date: po.createdAt ? new Date(po.createdAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
         recipient: po.customerName || "Khách hàng",
-        phone: "Chờ cọc",
+        phone: "",
         amount: totalAmount,
         rating: null,
         status: po.status,

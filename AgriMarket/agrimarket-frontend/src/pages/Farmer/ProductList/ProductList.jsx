@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban, Package } from "lucide-react";
+import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban, Package, Leaf } from "lucide-react";
 import * as productService from "../../../services/productService";
 import "./ProductList.css";
 
@@ -140,6 +140,49 @@ export const ProductList = () => {
     });
   };
 
+  const handleEarlyHarvest = (productId) => {
+    const prod = products.find(p => p.id === productId);
+    const name = prod ? prod.name : "này";
+    setConfirmModal({
+      show: true,
+      title: "Xác nhận thu hoạch sớm",
+      message: `Bạn có chắc chắn muốn thực hiện thu hoạch sớm cho sản phẩm đặt trước "${name}" không? Hành động này sẽ kết thúc đặt trước và gửi thông báo đơn hàng sẵn sàng tới các khách hàng.`,
+      onConfirm: async () => {
+        try {
+          await productService.earlyHarvestProduct(productId);
+          showToast("Thu hoạch sớm sản phẩm thành công!", "success");
+          fetchProducts();
+        } catch (err) {
+          console.error(err);
+          showToast("Thu hoạch sớm thất bại: " + (err.response?.data || err.message), "error");
+        }
+      }
+    });
+  };
+
+  const isUnharvestedPreorder = (product) => {
+    if (!product.isPreorder) return false;
+    if (!product.harvestDate) return false;
+    
+    let harvestStr = "";
+    if (product.harvestDate.includes("/")) {
+      const parts = product.harvestDate.split("/");
+      if (parts.length === 3) {
+        harvestStr = `${parts[2]}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+      }
+    } else {
+      harvestStr = product.harvestDate.substring(0, 10);
+    }
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    return harvestStr > todayStr;
+  };
+
   const getEffectiveStatus = (p) => {
     if (p.status === "sold_out" || p.status === "out_of_stock") {
       return "out_of_stock";
@@ -275,6 +318,16 @@ export const ProductList = () => {
                     </td>
                     <td>
                       <div className="actions-cell" style={{ position: "relative" }}>
+                        {isUnharvestedPreorder(p) && (
+                          <button 
+                            className="btn-icon early-harvest-btn" 
+                            title="Thu hoạch sớm" 
+                            style={{ color: "#16a34a" }}
+                            onClick={() => handleEarlyHarvest(p.id)}
+                          >
+                            <Leaf size={15} />
+                          </button>
+                        )}
                         <button className="btn-icon edit" title="Sửa" onClick={() => navigate(`/farmer/products/edit/${p.id}`)}>
                           <Pencil size={15} />
                         </button>

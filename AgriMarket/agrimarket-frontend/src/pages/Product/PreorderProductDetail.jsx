@@ -143,8 +143,6 @@ export default function PreorderProductDetail({
   product,
   quantity,
   setQuantity,
-  deliveryMode,
-  setDeliveryMode,
   customDate,
   setCustomDate,
   specialInstructions,
@@ -160,8 +158,35 @@ export default function PreorderProductDetail({
   };
 
   const handleQuantityChange = (newVal) => {
+    const limit = product.stock || 0;
     if (newVal < 1) return;
+    if (limit > 0 && newVal > limit) {
+      setQuantity(limit);
+      return;
+    }
     setQuantity(newVal);
+  };
+
+  const handleInputChange = (val) => {
+    // Only allow digits
+    const cleaned = val.replace(/\D/g, "");
+    if (cleaned === "") {
+      setQuantity("");
+      return;
+    }
+    const num = parseInt(cleaned, 10);
+    const limit = product.stock || 0;
+    if (limit > 0 && num > limit) {
+      setQuantity(limit);
+    } else {
+      setQuantity(num);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (quantity === "" || quantity < 1) {
+      setQuantity(1);
+    }
   };
 
   const handleConfirmPreorder = async () => {
@@ -196,7 +221,7 @@ export default function PreorderProductDetail({
   // Cost calculations
   const pricePerUnit = product.price || 0;
   const subtotal = pricePerUnit * quantity;
-  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
+  const deliveryFee = 35000; // Luôn vận chuyển qua GHN
   const serviceFee = 15000; // Phí dịch vụ cố định
   const totalAmount = subtotal + deliveryFee + serviceFee;
   const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
@@ -311,8 +336,8 @@ export default function PreorderProductDetail({
                     <button 
                       type="button" 
                       className="qty-btn" 
-                      onClick={() => handleQuantityChange(quantity - 1)}
-                      disabled={quantity <= 1}
+                      onClick={() => handleQuantityChange(Number(quantity || 0) - 1)}
+                      disabled={Number(quantity || 0) <= 1}
                     >
                       －
                     </button>
@@ -320,12 +345,14 @@ export default function PreorderProductDetail({
                       type="text" 
                       className="qty-input-text" 
                       value={quantity}
-                      readOnly
+                      onChange={(e) => handleInputChange(e.target.value)}
+                      onBlur={handleInputBlur}
                     />
                     <button 
                       type="button" 
                       className="qty-btn" 
-                      onClick={() => handleQuantityChange(quantity + 1)}
+                      onClick={() => handleQuantityChange(Number(quantity || 0) + 1)}
+                      disabled={product.stock > 0 && Number(quantity || 0) >= product.stock}
                     >
                       ＋
                     </button>
@@ -336,32 +363,7 @@ export default function PreorderProductDetail({
 
               {/* Preferred Delivery Date */}
               <div className="config-group">
-                <label className="group-label">Phương thức nhận hàng</label>
-                <div className="delivery-options-grid-3">
-                  <div
-                    className={`delivery-opt-card-3 ${deliveryMode === "shipping" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("shipping")}
-                  >
-                    <div className="opt-header-line">
-                      <span className="opt-date">Vận chuyển giao hàng</span>
-                      {deliveryMode === "shipping" && <span className="checkmark-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={10} strokeWidth={3} /></span>}
-                    </div>
-                    <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
-                  </div>
-
-                  <div
-                    className={`delivery-opt-card-3 ${deliveryMode === "pickup" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("pickup")}
-                  >
-                    <div className="opt-header-line">
-                      <span className="opt-date">Tự nhận tại nông trại</span>
-                      {deliveryMode === "pickup" && <span className="checkmark-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Check size={10} strokeWidth={3} /></span>}
-                    </div>
-                    <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
-                  </div>
-                </div>
-
-                <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
+                <div className="preorder-date-picker-wrapper">
                   <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
                     Chọn ngày nhận mong muốn trên lịch *
                   </label>
@@ -423,12 +425,8 @@ export default function PreorderProductDetail({
                   <span>{formatVND(subtotal)}</span>
                 </div>
                 <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
-                  <span>Phí vận chuyển</span>
-                  {deliveryMode === "pickup" ? (
-                    <span style={{ color: "#16a34a", fontWeight: "700" }}>Miễn phí</span>
-                  ) : (
-                    <span>{formatVND(deliveryFee)}</span>
-                  )}
+                  <span>Phí vận chuyển (GHN)</span>
+                  <span>{formatVND(deliveryFee)}</span>
                 </div>
                 <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
                   <span>Phí dịch vụ</span>
