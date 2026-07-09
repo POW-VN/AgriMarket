@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { 
-  Wheat, 
-  Carrot, 
-  Apple, 
-  Trees, 
-  Sprout, 
-  Package, 
-  Egg, 
-  Truck, 
-  UserCheck, 
+import {
+  Wheat,
+  Carrot,
+  Apple,
+  Trees,
+  Sprout,
+  Package,
+  Egg,
+  Truck,
+  UserCheck,
   ShieldCheck,
   Zap,
   ArrowRight,
   MapPin,
-  Percent
+  Percent,
+  Tag,
+  Clock
 } from "lucide-react";
 import authService from "../../services/authService";
 import profileService from "../../services/profileService";
@@ -22,6 +24,7 @@ import { getAllApprovedProducts, getApprovedProductsPaged } from "../../services
 import cartService from "../../services/cartService";
 import apiClient from "../../services/apiClient";
 import wishlistService from "../../services/wishlistService";
+import { mockPromotions } from "../../components/Promotions/PromotionsMockData";
 import "./Home.css";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
@@ -41,7 +44,7 @@ const MAIN_CATEGORIES = [
 
 const MOCK_FARMS = [];
 
-const HERO_SLIDES = [
+const DEFAULT_SLIDES = [
   {
     title: "Nông sản tươi sạch mỗi ngày",
     subtitle: "Khám phá những sản phẩm được yêu thích nhất tại AgriMarket với chất lượng hàng đầu.",
@@ -65,14 +68,33 @@ const HERO_SLIDES = [
   }
 ];
 
+// Build hero slides: active/upcoming promotions (with images) first, then default slides
+const buildHeroSlides = () => {
+  const promoSlides = mockPromotions
+    .filter(p => (p.status === 'active' || p.status === 'upcoming') && p.image)
+    .map(p => ({
+      title: p.title,
+      subtitle: p.description,
+      tag: p.status === 'upcoming' ? 'SẮP BẮT ĐẦU' : 'ĐANG DIỄN RA',
+      discount: p.discountType === 'percent' ? `${p.discountVal}%` : `${(p.discountVal / 1000).toFixed(0)}K`,
+      imageUrl: p.image,
+      promoId: p.id
+    }));
+  // Merge: promos first, then fill up to 3 with defaults
+  const combined = [...promoSlides, ...DEFAULT_SLIDES];
+  return combined.slice(0, 3);
+};
+
+const HERO_SLIDES = buildHeroSlides();
+
 const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
   if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return null;
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
@@ -144,11 +166,11 @@ const Home = () => {
   };
 
   useEffect(() => {
+    // Merge persisted user-created promotions with mock data
     const saved = localStorage.getItem('mockPromotions');
-    if (saved) {
-      const allPromos = JSON.parse(saved);
-      setActivePromotions(allPromos.filter(p => p.status === 'active'));
-    }
+    const extraPromos = saved ? JSON.parse(saved) : [];
+    const allPromos = [...extraPromos, ...mockPromotions];
+    setActivePromotions(allPromos.filter(p => p.status === 'active'));
 
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
@@ -172,7 +194,7 @@ const Home = () => {
         // Dùng server-side pagination để giới hạn dữ liệu, tải tối đa 100 sản phẩm cho trang chủ
         const pagedResult = await getApprovedProductsPaged({ page: 0, size: 100, sort: "popular" });
         const data = pagedResult.content;
-        
+
         // Chỉ hiển thị sản phẩm preorder khi ngày hiện tại đã tới hoặc vượt quá ngày thu hoạch
         const todayStr = new Date().toISOString().split("T")[0];
         const visibleProducts = data.filter(p => {
@@ -477,7 +499,31 @@ const Home = () => {
     filteredProducts.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
+  // Find any active promotion that applies to a product
+  // Only matches if the product's id is explicitly in promo.selectedProducts
+  const getProductPromo = (product) => {
+    return activePromotions.find(promo => {
+      if (promo.status !== 'active') return false;
+      const selected = promo.selectedProducts;
+      if (!selected || selected.length === 0) return false;
+      return selected.some(sp => String(sp.id) === String(product.id) || String(sp) === String(product.id));
+    }) || null;
+  };
+
+  const calcDiscountedPrice = (price, promo) => {
+    if (!promo) return price;
+    if (promo.discountType === 'percent') return Math.round(price * (1 - promo.discountVal / 100));
+    if (promo.discountType === 'amount') return Math.max(0, price - promo.discountVal);
+    return price;
+  };
+
   const renderProductCard = (p) => {
+    const promo = getProductPromo(p);
+    const discountedPrice = promo ? calcDiscountedPrice(p.price, promo) : p.price;
+    const discountLabel = promo
+      ? (promo.discountType === 'percent' ? `-${promo.discountVal}%` : `-${(promo.discountVal / 1000).toFixed(0)}K`)
+      : (p.saleTag || null);
+
     return (
       <Link
         key={p.id}
@@ -491,7 +537,14 @@ const Home = () => {
           ) : (
             <div className="new-card-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={32} /></div>
           )}
-          {p.saleTag && <span className="new-card-sale-tag">{p.saleTag}</span>}
+          {discountLabel && (
+            <span className={`new-card-sale-tag ${promo ? 'promo-badge' : ''}`}>{discountLabel}</span>
+          )}
+          {promo && (
+            <span className="new-card-promo-name">
+              🏷️ Khuyến mãi
+            </span>
+          )}
 
           <button
             className={`new-card-favorite-btn ${favorites.map(String).includes(String(p.id)) ? "active" : ""}`}
@@ -534,14 +587,18 @@ const Home = () => {
 
           <div className="new-card-price-cart-row">
             <div className="new-card-price-col">
-              <span className="new-card-price">
-                {p.price.toLocaleString("vi-VN")}đ
+              <span className="new-card-price" style={promo ? { color: '#dc2626' } : {}}>
+                {discountedPrice.toLocaleString("vi-VN")}đ
               </span>
-              {p.oldPrice && (
+              {promo ? (
+                <span className="new-card-old-price">
+                  {p.price.toLocaleString("vi-VN")}đ
+                </span>
+              ) : p.oldPrice ? (
                 <span className="new-card-old-price">
                   {p.oldPrice.toLocaleString("vi-VN")}đ
                 </span>
-              )}
+              ) : null}
             </div>
 
             <button
@@ -601,35 +658,8 @@ const Home = () => {
           </section>
         )}
 
-        {/* Nhà vườn Promotions Section */}
-        {activePromotions.length > 0 && (
-          <section className="flash-sale-section" style={{ background: "linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)", marginTop: '24px' }}>
-            <div className="flash-sale-header">
-              <div className="flash-sale-title-box">
-                <span className="flash-sale-icon" style={{ display: "inline-flex", alignItems: "center", color: '#2e7d32' }}><Percent size={20} /></span>
-                <h2 className="flash-sale-title" style={{ color: '#2e7d32' }}>KHUYẾN MÃI TỪ NHÀ VƯỜN</h2>
-              </div>
-            </div>
-            
-            <div className="flash-sale-grid">
-              {activePromotions.map((promo) => (
-                <div key={promo.id} className="flash-sale-card" style={{ borderColor: '#81c784' }}>
-                  <div className="flash-card-link">
-                    <div className="flash-card-img-wrapper">
-                      <img src={promo.image} alt={promo.title} className="flash-card-img" />
-                      <span className="flash-card-discount-tag" style={{ background: '#2e7d32' }}>{promo.discountVal}</span>
-                    </div>
-                    <div className="flash-card-info">
-                      <h3 className="flash-card-title">{promo.title}</h3>
-                      <p style={{ fontSize: '13px', color: '#555', marginTop: '4px' }}>Mã: <strong style={{color: '#2e7d32'}}>{promo.code || 'SALE'+promo.id}</strong></p>
-                      <p style={{ fontSize: '12px', color: '#777', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{promo.desc || promo.products.join(', ')}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Nhà vườn Promotions Section - Tạm thời ẩn */}
+        {/* {activePromotions.length > 0 && ( ... )} */}
 
         {/* Hero Section Split Layout */}
         <section className="hero-section-split">
@@ -795,6 +825,7 @@ const Home = () => {
           </div>
         </section>
 
+
         {/* Flash Sale Section */}
         {displayFlashSale.length > 0 && (
           <section className="flash-sale-section">
@@ -955,7 +986,7 @@ const Home = () => {
               <p style={{ fontSize: "14.5px", color: "#4b5563", maxWidth: "540px", margin: "0 auto 8px auto", lineHeight: "1.6" }}>
                 {user ? "Bạn chưa thiết lập địa chỉ nhận hàng mặc định. Vui lòng cập nhật địa chỉ mặc định để chúng tôi định vị các nhà vườn gần bạn nhất." : "Vui lòng đăng nhập và thiết lập địa chỉ nhận hàng mặc định để tìm kiếm các nhà vườn gần vị trí của bạn nhất."}
               </p>
-              <button 
+              <button
                 onClick={() => navigate(user ? "/profile/edit" : "/login")}
                 style={{
                   backgroundColor: "#10b981",
@@ -984,6 +1015,71 @@ const Home = () => {
           )}
         </section>
 
+        {/* === ƯU ĐÃI ĐẶC BIỆT — above featured products === */}
+        {activePromotions.length > 0 && (
+          <section style={{ marginTop: '8px' }}>
+            {/* Section Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Tag size={20} color="#dc2626" /> Ưu đãi đặc biệt đang diễn ra
+              </h2>
+              <span style={{ fontSize: '13px', color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: '20px' }}>
+                {activePromotions.length} chương trình
+              </span>
+            </div>
+
+            {/* Cards Grid — 2 per row on desktop */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              {activePromotions.map(promo => (
+                <div
+                  key={promo.id}
+                  onClick={() => navigate(`/promotions/${promo.id}`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)',
+                    border: '1px solid #fed7aa',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    boxShadow: '0 2px 12px rgba(251,146,60,0.1)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 12px 28px rgba(251,146,60,0.25)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(251,146,60,0.1)'; }}
+                >
+                  {promo.image && (
+                    <img src={promo.image} alt={promo.title} style={{ width: '120px', height: '100%', minHeight: '100px', objectFit: 'cover', flexShrink: 0 }} />
+                  )}
+                  <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#dc2626', color: 'white', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', fontWeight: 700 }}>
+                        {promo.discountType === 'percent' ? `GIẢM ${promo.discountVal}%` : `GIẢM ${(promo.discountVal/1000).toFixed(0)}K`}
+                      </span>
+                      <span style={{ background: '#10b981', color: 'white', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', fontWeight: 600 }}>ĐANG DIỄN RA</span>
+                    </div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 700, color: '#92400e', lineHeight: '1.3' }}>{promo.title}</h4>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280', lineHeight: '1.5' }}>{promo.description}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#d97706' }}>
+                        <Clock size={12} />
+                        <span>Đến {promo.endDate}</span>
+                        {promo.maxUses > 0 && (
+                          <span style={{ marginLeft: '6px', background: '#fef3c7', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px' }}>
+                            Còn {promo.maxUses - (promo.usedCount||0)} lượt
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Xem ngay <ArrowRight size={12} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Sản phẩm nổi bật Section */}
         <section className="new-featured-section">
           <div className="new-featured-header">
@@ -1003,8 +1099,8 @@ const Home = () => {
                 </svg>
               </button>
               <div className="sort-dropdown-container">
-                <select 
-                  className="sort-select" 
+                <select
+                  className="sort-select"
                   value={selectedSort}
                   onChange={(e) => {
                     setSelectedSort(e.target.value);
@@ -1030,9 +1126,9 @@ const Home = () => {
 
           {filteredProducts.length > 10 && (
             <div className="product-pagination">
-              <button 
-                className="pagination-btn" 
-                disabled={currentPage === 1} 
+              <button
+                className="pagination-btn"
+                disabled={currentPage === 1}
                 onClick={() => {
                   setCurrentPage(prev => Math.max(1, prev - 1));
                   document.querySelector(".new-featured-section")?.scrollIntoView({ behavior: "smooth" });
@@ -1046,8 +1142,8 @@ const Home = () => {
                 const pages = [];
                 for (let i = 1; i <= totalPages; i++) {
                   pages.push(
-                    <button 
-                      key={i} 
+                    <button
+                      key={i}
                       className={`pagination-btn ${currentPage === i ? "active" : ""}`}
                       onClick={() => {
                         setCurrentPage(i);
@@ -1061,9 +1157,9 @@ const Home = () => {
                 return pages;
               })()}
 
-              <button 
-                className="pagination-btn" 
-                disabled={currentPage === Math.ceil(filteredProducts.length / 10)} 
+              <button
+                className="pagination-btn"
+                disabled={currentPage === Math.ceil(filteredProducts.length / 10)}
                 onClick={() => {
                   const totalPages = Math.ceil(filteredProducts.length / 10);
                   setCurrentPage(prev => Math.min(totalPages, prev + 1));
@@ -1099,14 +1195,14 @@ const Home = () => {
                 };
 
                 return (
-                  <div 
-                    className="livestream-card" 
+                  <div
+                    className="livestream-card"
                     key={live.id}
                     onClick={() => navigate(`/livestream/${live.id}`)}
                     style={{ cursor: "pointer" }}
                   >
-                    <div 
-                      className="live-thumbnail" 
+                    <div
+                      className="live-thumbnail"
                       style={{ backgroundImage: `url(${live.farmerAvatar || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600"})` }}
                     >
                       <span className={`live-badge ${isLive ? "" : "upcoming"}`}>
@@ -1118,10 +1214,10 @@ const Home = () => {
                     </div>
                     <div className="live-info">
                       <div className="live-farmer">
-                        <img 
-                          src={live.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80"} 
-                          alt={live.farmerBrand} 
-                          className="live-farmer-avatar" 
+                        <img
+                          src={live.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80"}
+                          alt={live.farmerBrand}
+                          className="live-farmer-avatar"
                         />
                         <div className="live-farmer-details">
                           <h4 className="live-farmer-name">{live.farmerBrand || "Nhà vườn AgriMarket"}</h4>

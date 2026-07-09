@@ -58,6 +58,8 @@ export const LoginFarmconnect = () => {
       const user = authService.getCurrentUser();
       if (user && user.role === "admin") {
         navigate("/admin/users");
+      } else if (user && user.role === "farmer") {
+        navigate("/farmer/dashboard");
       } else {
         navigate("/");
       }
@@ -84,6 +86,8 @@ export const LoginFarmconnect = () => {
         const user = authService.getCurrentUser();
         if (user && user.role === "admin") {
           navigate("/admin/users");
+        } else if (user && user.role === "farmer") {
+          navigate("/farmer/dashboard");
         } else {
           navigate("/");
         }
