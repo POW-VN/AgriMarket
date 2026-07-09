@@ -62,6 +62,7 @@ import LiveManagement from "../pages/Admin/LiveManagement";
 import CategoryManagement from "../pages/Admin/CategoryManagement";
 import FarmerPromotions from "../pages/Farmer/FarmerPromotions/FarmerPromotions";
 import AdminPromotions from "../pages/Admin/Promotions/AdminPromotions";
+import AdminTransactions from "../pages/Admin/Transactions/AdminTransactions";
 
 
 const FarmsRoute = () => {
@@ -173,6 +174,7 @@ const AppRoutes = () => {
         <Route path="/admin/chat" element={<AdminChat />} />
         <Route path="/admin/chat/:requestId" element={<AdminChat />} />
         <Route path="/admin/reports" element={<ViolationReports />} />
+        <Route path="/admin/transactions" element={<AdminTransactions />} />
 
         {/* Fallback to Home for any other unknown path */}
         <Route path="*" element={<Navigate to="/" replace />} />

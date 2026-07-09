@@ -1,16 +1,16 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Users, 
-  CheckSquare, 
-  FolderTree, 
-  ShoppingBag, 
-  CreditCard, 
-  HelpCircle, 
-  BarChart2, 
+import {
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  FolderTree,
+  ShoppingBag,
+  CreditCard,
+  HelpCircle,
+  BarChart2,
   Video,
-  Bell, 
+  Bell,
   LogOut,
   Tag
 } from "lucide-react";
@@ -93,7 +93,7 @@ const AdminSidebar = ({ activeItem, showToast, onProductsClick, onComplaintsClic
           <span className="nav-label">Đơn hàng</span>
         </button>
 
-        <button className={`admin-nav-item ${activeItem === "transactions" ? "active" : ""}`} onClick={() => handleShowToast("Chức năng giao dịch đang phát triển.")}>
+        <button className={`admin-nav-item ${activeItem === "transactions" ? "active" : ""}`} onClick={() => navigate("/admin/transactions")}>
           <span className="admin-nav-icon">
             <CreditCard className="admin-nav-icon-svg" size={18} />
           </span>
