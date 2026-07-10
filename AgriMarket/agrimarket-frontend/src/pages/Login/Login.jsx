@@ -57,7 +57,7 @@ export const LoginFarmconnect = () => {
       await syncGuestCart();
       const user = authService.getCurrentUser();
       if (user && user.role === "admin") {
-        navigate("/admin/dashboard");
+        navigate("/admin/users");
       } else {
         navigate("/");
       }
@@ -83,7 +83,7 @@ export const LoginFarmconnect = () => {
         await syncGuestCart();
         const user = authService.getCurrentUser();
         if (user && user.role === "admin") {
-          navigate("/admin/dashboard");
+          navigate("/admin/users");
         } else {
           navigate("/");
         }
