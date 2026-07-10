@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
+import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import reportService from "../../services/reportService";
 import apiClient from "../../services/apiClient";
 import {
@@ -134,7 +135,7 @@ export default function ViolationReports() {
             case "low":
                 return "Thấp";
             default:
-                return "Chưa xác định";
+                return "Chờ đánh giá";
         }
     };
 
@@ -251,140 +252,30 @@ export default function ViolationReports() {
         return new Date(value).toLocaleString("vi-VN");
     };
 
+    const formatDateTimeShort = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${hours}:${minutes} ${day}/${month}/${year}`;
+    };
+
+    const handleLogout = () => {
+        authService.logout();
+        navigate("/login");
+    };
+
     return (
         <div className="admin-layout">
-            <aside className="admin-sidebar">
-                <div className="admin-logo-section">
-                    <Link to="/" className="admin-logo-link">
-                        <h1>
-                            <Truck size={24} className="admin-nav-icon-svg" />
-                            AgriAdmin
-                        </h1>
-                    </Link>
-                </div>
-
-                <nav className="admin-nav-menu">
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng Bảng điều khiển đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <LayoutDashboard size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Bảng điều khiển
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
-                        <span className="admin-nav-icon">
-                            <Users size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Quản lý tài khoản
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <Sprout size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Nông dân
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
-                        <span className="admin-nav-icon">
-                            <CheckSquare size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Duyệt sản phẩm
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý danh mục đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <Folder size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Danh mục
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
-                        <span className="admin-nav-icon">
-                            <ShoppingCart size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Đơn hàng
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng giao dịch đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <CreditCard size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Giao dịch
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-                        <span className="admin-nav-icon">
-                            <MessageSquare size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Hỗ trợ
-                    </button>
-
-
-                    <button className="admin-nav-item active" onClick={() => navigate("/admin/reports")}>
-                        <span className="admin-nav-icon">
-                            <BarChart3 size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Báo cáo
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
-                        <span className="admin-nav-icon">
-                            <Video size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Quản lý Livestream
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng giám sát AI đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <Globe size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Giám sát AI
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
-                        <span className="admin-nav-icon">
-                            <Bell size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Thông báo
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng thống kê hệ thống đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <Activity size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Thống kê hệ thống
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => showToast("Chức năng cài đặt đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <Settings size={18} className="admin-nav-icon-svg" />
-                        </span>
-                        Cài đặt
-                    </button>
-                </nav>
-
-                <div className="admin-sidebar-footer">
-                    <img
-                        src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-                        alt="Avatar admin"
-                        className="admin-footer-avatar"
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-                        }}
-                    />
-                    <div className="admin-footer-info">
-                        <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-                        <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
-                    </div>
-                </div>
-            </aside>
+            <AdminSidebar activeItem="reports" showToast={showToast} />
 
             <div className="admin-main-container">
                 <header className="admin-header">
                     <div className="admin-search-wrapper">
-                        <span className="admin-search-icon">🔍</span>
+                        <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                         <input
                             type="text"
                             placeholder="Tìm kiếm báo cáo..."
@@ -399,8 +290,9 @@ export default function ViolationReports() {
                             className="admin-notification-btn"
                             onClick={() => showToast("Không có thông báo mới.")}
                             aria-label="Thông báo"
+                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                         >
-                            <span>🔔</span>
+                            <Bell size={18} />
                             <span className="admin-notification-dot"></span>
                         </button>
                     </div>
@@ -445,7 +337,7 @@ export default function ViolationReports() {
 
                     <section className="violation-filter-bar">
                         <div className="filter-search-wrapper violation-search-inline">
-                            <span className="filter-search-icon">🔍</span>
+                            <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                             <input
                                 type="text"
                                 placeholder="Tìm theo mã báo cáo, lý do, người gửi hoặc đối tượng..."
@@ -496,61 +388,57 @@ export default function ViolationReports() {
                                 </div>
                             </div>
 
-                            <div className="violation-table-wrapper">
-                                <table className="violation-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Mã báo cáo</th>
-                                            <th>Đối tượng bị báo cáo</th>
-                                            <th>Loại</th>
-                                            <th>Mức độ</th>
-                                            <th>Trạng thái</th>
-                                            <th>Ngày gửi</th>
-                                        </tr>
-                                    </thead>
+                            <div className="violation-card-list">
+                                {loading ? (
+                                    <div className="empty-list-cell">
+                                        Đang tải danh sách báo cáo...
+                                    </div>
+                                ) : filteredReports.length === 0 ? (
+                                    <div className="empty-list-cell">
+                                        Chưa có báo cáo vi phạm nào để hiển thị.
+                                    </div>
+                                ) : (
+                                    filteredReports.map((report) => (
+                                        <div
+                                            key={report.id}
+                                            className={`violation-card-item ${selectedReport?.id === report.id ? "selected" : ""} ${report.status}`}
+                                            onClick={() => setSelectedReport(report)}
+                                        >
+                                            <div className="card-item-header">
+                                                <span className="card-report-code">RP-{report.id}</span>
+                                                <span className="card-report-date">{formatDateTimeShort(report.createdAt)}</span>
+                                            </div>
 
-                                    <tbody>
-                                        {loading ? (
-                                            <tr>
-                                                <td colSpan="6" className="empty-table-cell">
-                                                    Đang tải danh sách báo cáo...
-                                                </td>
-                                            </tr>
-                                        ) : filteredReports.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="6" className="empty-table-cell">
-                                                    Chưa có báo cáo vi phạm nào để hiển thị.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filteredReports.map((report) => (
-                                                <tr
-                                                    key={report.id}
-                                                    className={selectedReport?.id === report.id ? "selected" : ""}
-                                                    onClick={() => setSelectedReport(report)}
-                                                >
-                                                    <td>RP-{report.id}</td>
-                                                    <td>
-                                                        <strong>{report.targetName || `ID: ${report.targetId}`}</strong>
-                                                        <span>{report.reason}</span>
-                                                    </td>
-                                                    <td>{getTargetTypeLabel(report.targetType)}</td>
-                                                    <td>
-                                                        <span className={`severity-badge ${report.severity || "unknown"}`}>
-                                                            {getSeverityLabel(report.severity)}
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <span className={`report-status-badge ${report.status}`}>
-                                                            {getStatusLabel(report.status)}
-                                                        </span>
-                                                    </td>
-                                                    <td>{formatDateTime(report.createdAt)}</td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
+                                            <div className="card-item-body">
+                                                <div className="card-target-row">
+                                                    <span className="card-target-type-badge">
+                                                        {getTargetTypeLabel(report.targetType)}
+                                                    </span>
+                                                    <strong className="card-target-name">
+                                                        {report.targetName || `ID: ${report.targetId}`}
+                                                    </strong>
+                                                </div>
+                                                <p className="card-report-reason">{report.reason}</p>
+                                            </div>
+
+                                            <div className="card-item-footer">
+                                                <div className="card-badges-row">
+                                                    <span className={`severity-badge ${report.severity || "unknown"}`}>
+                                                        {getSeverityLabel(report.severity)}
+                                                    </span>
+                                                    <span className={`report-status-badge ${report.status}`}>
+                                                        {getStatusLabel(report.status)}
+                                                    </span>
+                                                </div>
+                                                {report.reporterName && (
+                                                    <span className="card-reporter-name">
+                                                        Gửi bởi: {report.reporterName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 

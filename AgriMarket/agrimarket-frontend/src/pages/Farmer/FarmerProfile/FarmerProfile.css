@@ -153,6 +153,43 @@
   padding: 4px;
   background: #ffffff;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.farmer-avatar-wrapper.is-live-broadcasting {
+  border: 4px solid #ef4444;
+  padding: 2px;
+  animation: pulse-live-border 2.5s infinite;
+}
+
+@keyframes pulse-live-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.live-avatar-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  letter-spacing: 0.5px;
+  z-index: 10;
 }
 
 .farmer-avatar {
@@ -1030,7 +1067,6 @@
   white-space: pre-line;
 }
 
-.btn-call-farmer,
 .btn-zalo-farmer {
   width: 100%;
   padding: 11px 16px;
@@ -1046,17 +1082,75 @@
   font-family: inherit;
 }
 
-.btn-call-farmer {
-  background-color: transparent;
-  color: var(--primary-color, #1B5E20);
-  border: 1.5px solid var(--primary-color, #1B5E20);
-  box-shadow: none;
+/* Styling for static phone display */
+.farmer-phone-info {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
 }
 
-.btn-call-farmer:hover {
-  background-color: #f4f8f3;
-  color: #113f15;
-  border-color: #113f15;
-  transform: translateY(-1px);
+/* Toast styling for farmer profile page */
+.farmer-toast {
+  position: fixed;
+  top: 88px;
+  right: 28px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-weight: 800;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: 0 16px 35px rgba(22, 101, 52, 0.14);
+  z-index: 99999;
+  animation: chat-slide-up 0.25s ease-out;
+}
+/* Products grid container for new-product-card (homepage-style) */
+.farmer-products-section .products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 20px;
+  margin-top: 16px;
 }
 
+.farmer-products-section .products-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* Certification tag badges on product image */
+.farmer-profile-page .new-card-cert-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(22, 163, 74, 0.92);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.farmer-profile-page .new-card-cert-tag.vietgap-tag {
+  background: rgba(217, 119, 6, 0.92);
+}
+
+.farmer-profile-page .new-card-cert-tag.globalgap-tag {
+  background: rgba(37, 99, 235, 0.92);
+}

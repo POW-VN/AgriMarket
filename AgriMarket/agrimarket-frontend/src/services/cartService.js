@@ -33,6 +33,10 @@ const syncCart = async (guestItems) => {
   return response.data;
 };
 
+const bulkCheck = async (productIds, checked) => {
+  await apiClient.put("/api/cart/bulk-check", { productIds, checked });
+};
+
 const cartService = {
   getCart,
   addToCart,
@@ -40,6 +44,7 @@ const cartService = {
   removeFromCart,
   clearCart,
   syncCart,
+  bulkCheck,
 };
 
 export default cartService;

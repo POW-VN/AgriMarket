@@ -242,6 +242,10 @@
     font-weight: 800;
     cursor: pointer;
     transition: 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .prv-add-cart-btn:hover {
@@ -797,3 +801,55 @@
         height: 74px;
     }
 }
+
+/* Custom styles for specific ratings and tags */
+.prv-review-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 10px;
+}
+
+.prv-tag-badge {
+    background-color: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.prv-specific-ratings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0 14px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.prv-specific-rating-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #f3f4f6;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.prv-specific-label {
+    font-weight: 700;
+    color: #374151;
+}
+
+.prv-specific-stars {
+    display: flex;
+    gap: 1px;
+    color: #d1d5db;
+    line-height: 1;
+}
+
+.prv-specific-stars .filled {
+    color: #16a34a; /* matching the green theme of the product reviews page */
+}

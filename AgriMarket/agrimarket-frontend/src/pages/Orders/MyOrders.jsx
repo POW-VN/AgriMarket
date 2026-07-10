@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sprout, Truck, XCircle, Clock, Search, Package, RotateCw } from "lucide-react";
 import authService from "../../services/authService";
 import orderService from "../../services/orderService";
 import useProfile from "../../hooks/useProfile";
+import * as preorderService from "../../services/preorderService";
 import ProfileLayout from "../../components/profile/ProfileLayout";
 import "./MyOrders.css";
 import "../Profile/Profile.css";
@@ -169,6 +171,7 @@ export const MyOrders = () => {
   const { profile } = useProfile();
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [preorders, setPreorders] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -180,11 +183,61 @@ export const MyOrders = () => {
   const [toastMessage, setToastMessage] = useState("");
   const itemsPerPage = 3;
 
-  useEffect(() => {
-    const loadPreorders = () => {
+  const loadPreorders = async () => {
+    try {
+      const fetched = await preorderService.getMyPreorders();
+      const normalized = fetched.map(po => {
+        const totalAmount = po.items.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
+        const depositPaid = Math.round(totalAmount * 0.2);
+        const primaryItem = po.items[0] || {};
+        
+        const statusLabels = {
+          pending: "Chờ xác nhận",
+          paid: "Đã cọc 20%",
+          cancelled: "Đã hủy cọc",
+          completed: "Hoàn thành"
+        };
+
+        const d = new Date(po.createdAt);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        const dateFormatted = `${day} thg ${month}, ${year}`;
+
+        const hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'CH' : 'SA';
+        const displayHours = String(hours % 12 || 12).padStart(2, '0');
+        const timeFormatted = `${displayHours}:${minutes} ${ampm}`;
+ 
+        return {
+          id: String(po.id),
+          isPreorder: true,
+          status: po.status,
+          statusLabel: statusLabels[po.status] || po.status,
+          date: dateFormatted,
+          time: timeFormatted,
+          amount: totalAmount,
+          depositPaid: depositPaid,
+          expectedHarvestDate: primaryItem.expectedHarvestDate ? new Date(primaryItem.expectedHarvestDate).toLocaleDateString("vi-VN") : "Đang cập nhật",
+          provider: {
+            name: primaryItem.farmerName || "Nông trại địa phương",
+            avatarText: (primaryItem.farmerName || "N").substring(0, 2).toUpperCase(),
+            avatarBg: "#1b5e20"
+          },
+          thumbnails: po.items.map(item => item.productThumbnailUrl || "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=200"),
+          hasMoreItems: Math.max(0, po.items.length - 1)
+        };
+      });
+      setPreorders(normalized);
+    } catch (err) {
+      console.error("Lỗi khi load danh sách đặt trước từ backend:", err);
       const stored = localStorage.getItem("agrimarket_preorders");
       setPreorders(stored ? JSON.parse(stored) : []);
-    };
+    }
+  };
+
+  useEffect(() => {
     loadPreorders();
     window.addEventListener("preordersUpdated", loadPreorders);
     return () => {
@@ -192,20 +245,34 @@ export const MyOrders = () => {
     };
   }, []);
 
-  const handleCancelPreorder = (preorderId) => {
+  const handleCancelPreorder = async (preorderId) => {
     if (window.confirm("Bạn có chắc chắn muốn hủy yêu cầu đặt trước này? Khoản cọc sẽ được hoàn lại theo chính sách của AgriMarket.")) {
-      const stored = localStorage.getItem("agrimarket_preorders");
-      const list = stored ? JSON.parse(stored) : [];
-      const updated = list.map(po => {
-        if (po.id === preorderId) {
-          return { ...po, status: "cancelled", statusLabel: "Đã hủy cọc" };
-        }
-        return po;
-      });
-      localStorage.setItem("agrimarket_preorders", JSON.stringify(updated));
-      setPreorders(updated);
-      setToastMessage("Đã hủy yêu cầu đặt trước thành công!");
-      setTimeout(() => setToastMessage(""), 3000);
+      try {
+        await preorderService.updatePreorderStatus(preorderId, "cancelled");
+        setToastMessage("Đã hủy yêu cầu đặt trước thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+        loadPreorders();
+      } catch (err) {
+        console.error(err);
+        alert("Đã xảy ra lỗi khi hủy đơn đặt trước: " + (err.response?.data || err.message));
+      }
+    }
+  };
+
+  const handleConfirmReceipt = async (orderId) => {
+    const msg = "Bạn có chắc chắn muốn xác nhận đã lấy/nhận đơn hàng này?";
+    if (window.confirm(msg)) {
+      try {
+        const updated = await orderService.confirmOrderReceived(orderId);
+        setOrders(prevOrders =>
+          prevOrders.map(o => o.id === orderId ? updated : o)
+        );
+        setToastMessage("Xác nhận đã nhận/lấy đơn hàng thành công!");
+        setTimeout(() => setToastMessage(""), 3000);
+      } catch (err) {
+        console.error("Lỗi xác nhận lấy đơn:", err);
+        alert(err.response?.data || "Xác nhận thất bại. Vui lòng thử lại.");
+      }
     }
   };
 
@@ -215,6 +282,7 @@ export const MyOrders = () => {
     setUser(currentUser);
 
     const loadOrders = async () => {
+      setLoading(true);
       if (currentUser) {
         try {
           const fetched = await orderService.getCustomerOrders();
@@ -223,10 +291,13 @@ export const MyOrders = () => {
           console.error("Lỗi khi load đơn hàng từ API:", err);
           const stored = localStorage.getItem("agrimarket_orders");
           setOrders(stored ? JSON.parse(stored) : INITIAL_ORDERS);
+        } finally {
+          setLoading(false);
         }
       } else {
         const stored = localStorage.getItem("agrimarket_orders");
         setOrders(stored ? JSON.parse(stored) : INITIAL_ORDERS);
+        setLoading(false);
       }
     };
 
@@ -283,6 +354,53 @@ export const MyOrders = () => {
     }
   };
 
+  // Helper to parse "dd thg MM, yyyy" and "hh:mm SA/CH" into timestamp for sorting
+  const parseOrderDateTime = (dateStr, timeStr) => {
+    try {
+      if (!dateStr) return 0;
+      if (dateStr.includes("thg")) {
+        const parts = dateStr.split(" thg ");
+        const day = parseInt(parts[0], 10);
+        const yearParts = parts[1].split(", ");
+        const month = parseInt(yearParts[0], 10) - 1;
+        const year = parseInt(yearParts[1], 10);
+        
+        let hours = 0;
+        let minutes = 0;
+        if (timeStr) {
+          const timeParts = timeStr.split(":");
+          hours = parseInt(timeParts[0], 10);
+          const minParts = timeParts[1].split(" ");
+          minutes = parseInt(minParts[0], 10);
+          const ampm = minParts[1];
+          if (ampm === "CH" && hours < 12) hours += 12;
+          if (ampm === "SA" && hours === 12) hours = 0;
+        }
+        return new Date(year, month, day, hours, minutes).getTime();
+      } else {
+        const parts = dateStr.split("/");
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        
+        let hours = 0;
+        let minutes = 0;
+        if (timeStr) {
+          const timeParts = timeStr.split(":");
+          hours = parseInt(timeParts[0], 10);
+          const minParts = timeParts[1].split(" ");
+          minutes = parseInt(minParts[0], 10);
+          const ampm = minParts[1];
+          if (ampm === "CH" && hours < 12) hours += 12;
+          if (ampm === "SA" && hours === 12) hours = 0;
+        }
+        return new Date(year, month, day, hours, minutes).getTime();
+      }
+    } catch (e) {
+      return 0;
+    }
+  };
+
   // Filter logic
   const filteredOrders = activeTab === "preorder"
     ? preorders.filter(po => {
@@ -291,8 +409,21 @@ export const MyOrders = () => {
           po.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesSearch;
       })
+    : activeTab === "all"
+    ? [...orders, ...preorders]
+        .filter(item => {
+          const matchesSearch =
+            item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesSearch;
+        })
+        .sort((a, b) => {
+          const timeA = parseOrderDateTime(a.date, a.time);
+          const timeB = parseOrderDateTime(b.date, b.time);
+          return timeB - timeA; // Latest orders first
+        })
     : orders.filter(order => {
-        const matchesTab = activeTab === "all" || order.status === activeTab;
+        const matchesTab = order.status === activeTab;
         const matchesSearch =
           order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
           order.provider.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -317,46 +448,29 @@ export const MyOrders = () => {
   const renderStatusIcon = (status) => {
     if (status === "delivered") {
       return (
-        <div className="order-icon-box status-delivered-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-            <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
+        <div className="order-icon-box status-delivered-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Truck size={22} />
         </div>
       );
     }
     if (status === "shipping" || status === "preparing" || status === "confirmed") {
       return (
-        <div className="order-icon-box status-shipping-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-            <rect x="1" y="3" width="15" height="13" rx="2" ry="2" />
-            <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-            <circle cx="5.5" cy="18.5" r="2.5" />
-            <circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
+        <div className="order-icon-box status-shipping-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <Truck size={22} />
         </div>
       );
     }
     if (status === "cancelled") {
       return (
-        <div className="order-icon-box status-cancelled-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
+        <div className="order-icon-box status-cancelled-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <XCircle size={22} />
         </div>
       );
     }
     // Default / Pending
     return (
-      <div className="order-icon-box status-pending-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
+      <div className="order-icon-box status-pending-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <Clock size={22} />
       </div>
     );
   };
@@ -369,14 +483,11 @@ export const MyOrders = () => {
           <h1 className="page-title" style={{ fontSize: "32px", fontWeight: "800", color: "#00412f", letterSpacing: "-0.5px", margin: 0 }}>Đơn hàng của tôi</h1>
 
           {/* Search box */}
-          <div className="search-wrapper">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18" className="search-icon">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+          <div className="myorders-search-wrapper">
+            <Search className="myorders-search-icon-glass" size={16} />
             <input
               type="text"
-              className="search-input"
+              className="myorders-search-input"
               placeholder="Tìm kiếm theo mã đơn hoặc tên nhà vườn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -399,38 +510,48 @@ export const MyOrders = () => {
 
         {/* ── ORDERS LIST ── */}
         <div className="orders-list">
-          {paginatedOrders.length === 0 ? (
+          {loading ? (
             <div className="empty-orders-state">
-              <div className="empty-icon">📦</div>
+              <div className="empty-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
+                <RotateCw className="animate-spin-slow" size={48} style={{ color: "#00412f" }} />
+              </div>
+              <h3>Đang tải đơn hàng...</h3>
+              <p>Vui lòng chờ trong giây lát.</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="empty-orders-state">
+              <div className="empty-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
+                <Package size={48} style={{ color: "#84918c" }} />
+              </div>
               <h3>Không tìm thấy đơn hàng nào</h3>
               <p>Thử thay đổi từ khóa tìm kiếm hoặc lọc theo trạng thái khác.</p>
             </div>
           ) : (
             paginatedOrders.map(order => (
-              <div className="order-card" key={order.id} style={activeTab === "preorder" ? { borderLeft: "4px solid #1b5e20" } : {}}>
+              <div className="order-card" key={order.id} style={order.isPreorder ? { borderLeft: "4px solid #1b5e20" } : {}}>
                 {/* Card Top Info */}
                 <div className="order-card-header">
                   <div className="order-header-left">
-                    {activeTab === "preorder" ? (
-                      <div className="order-icon-box status-preorder-icon" style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "50%", marginRight: "12px", fontSize: "18px" }}>
-                        🌱
+                    {order.isPreorder ? (
+                      <div className="order-icon-box status-preorder-icon" style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px", borderRadius: "50%", marginRight: "12px" }}>
+                        <Sprout size={20} />
                       </div>
                     ) : (
                       renderStatusIcon(order.status)
                     )}
                     <div className="order-title-info">
                       <div className="order-id-row">
-                        <span className="order-id-label">{activeTab === "preorder" ? "MÃ ĐẶT TRƯỚC" : "MÃ ĐƠN HÀNG"} #{order.id}</span>
-                        <span className={`status-badge status-${order.status}`} style={activeTab === "preorder" && order.status === "paid" ? { backgroundColor: "#e8f5e9", color: "#1b5e20" } : {}}>
+                        <span className="order-id-label">{order.isPreorder ? "MÃ ĐẶT TRƯỚC" : "MÃ ĐƠN HÀNG"} #{order.id}</span>
+                        <span className={`status-badge status-${order.status}`} style={order.isPreorder && order.status === "paid" ? { backgroundColor: "#e8f5e9", color: "#1b5e20" } : {}}>
                           {order.statusLabel}
                         </span>
                       </div>
                       <div className="order-date-row">
                         <span>Đặt ngày {order.date} • {order.time}</span>
                       </div>
-                      {activeTab === "preorder" && (
-                        <div className="preorder-harvest-date-badge" style={{ marginTop: "4px", fontSize: "12px", color: "#1b5e20", fontWeight: "600" }}>
-                          🌾 Thu hoạch dự kiến: {order.expectedHarvestDate}
+                      {order.isPreorder && (
+                        <div className="preorder-harvest-date-badge" style={{ marginTop: "4px", fontSize: "12px", color: "#1b5e20", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <Sprout size={14} /> Thu hoạch dự kiến: {order.expectedHarvestDate}
                         </div>
                       )}
                     </div>
@@ -438,7 +559,7 @@ export const MyOrders = () => {
                   <div className="order-header-right">
                     <span className="order-amount">{formatVND(order.amount)}</span>
                     <span className="order-items-count">
-                      {activeTab === "preorder" ? `Đã đặt cọc 20%: ${formatVND(order.depositPaid)}` : `${order.itemCount} sản phẩm`}
+                      {order.isPreorder ? `Đã đặt cọc 20%: ${formatVND(order.depositPaid)}` : `${order.itemCount} sản phẩm`}
                     </span>
                   </div>
                 </div>
@@ -454,7 +575,7 @@ export const MyOrders = () => {
                       )}
                     </div>
                     <div className="provider-details">
-                      <span className="provider-label">{activeTab === "preorder" ? "HỘ GIA ĐÌNH SẢN XUẤT" : "NHÀ CUNG CẤP"}</span>
+                      <span className="provider-label">{order.isPreorder ? "HỘ GIA ĐÌNH SẢN XUẤT" : "NHÀ CUNG CẤP"}</span>
                       <span className="provider-name">{order.provider.name}</span>
                     </div>
                   </div>
@@ -476,7 +597,7 @@ export const MyOrders = () => {
 
                 {/* Card Footer Actions */}
                 <div className="order-card-footer">
-                  {activeTab === "preorder" ? (
+                  {order.isPreorder ? (
                     <>
                       <button className="btn-outline">Liên hệ nhà vườn</button>
                       {order.status === "paid" && (
@@ -495,10 +616,8 @@ export const MyOrders = () => {
                             onClick={() => navigate(`/profile/orders/${order.id}`, { state: { openReviewSection: true } })}>
                             Đánh giá sản phẩm
                           </button>
-                          <button className="btn-solid btn-buy-again">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="15" height="15" style={{ marginRight: "6px" }}>
-                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-.73" />
-                            </svg>
+                          <button className="btn-solid btn-buy-again" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <RotateCw size={15} style={{ marginRight: "6px" }} />
                             Mua lại
                           </button>
                         </>
@@ -506,6 +625,16 @@ export const MyOrders = () => {
                       {order.status === "shipping" && (
                         <>
                           <button className="btn-outline" onClick={() => navigate(`/profile/orders/${order.id}`)}>Xem chi tiết</button>
+                          <button 
+                            className="btn-solid btn-buy-again" 
+                            style={{ backgroundColor: "#16a34a", color: "#fff", borderColor: "#16a34a", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                            onClick={() => handleConfirmReceipt(order.id)}
+                          >
+                            <RotateCw size={15} style={{ marginRight: "6px" }} className="animate-spin-slow" />
+                            {order.address && (order.address.toLowerCase().includes("tự nhận") || order.address.toLowerCase().includes("nông trại"))
+                              ? "Xác nhận đã lấy đơn"
+                              : "Xác nhận đã nhận hàng"}
+                          </button>
                         </>
                       )}
                       {order.status === "cancelled" && (

@@ -36,4 +36,7 @@ public class ProductRequest {
 
     private String perishability;
     private Double limitDistance;
+    @com.fasterxml.jackson.annotation.JsonProperty("isPreorder")
+    private Boolean isPreorder;
+    // Trigger comment
 }

@@ -1,10 +1,162 @@
 /* PreorderCheckout.jsx */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Header from "../../components/common/Header/Header";
 import authService from "../../services/authService";
+import * as preorderService from "../../services/preorderService";
+import orderService from "../../services/orderService";
 import { Leaf, Shield } from "lucide-react";
 import "./PreorderCheckout.css";
+
+const parseDeliveryWindow = (windowStr) => {
+  if (!windowStr) return { min: null, max: null };
+  const regex = /(\d{2})\/(\d{2})(?:\/(\d{4}))?/g;
+  const matches = [...windowStr.matchAll(regex)];
+  if (matches.length >= 2) {
+    const first = matches[0];
+    const second = matches[1];
+    
+    const year2 = second[3] ? parseInt(second[3]) : 2026;
+    const year1 = first[3] ? parseInt(first[3]) : year2;
+    
+    const minDate = new Date(year1, parseInt(first[2]) - 1, parseInt(first[1]));
+    const maxDate = new Date(year2, parseInt(second[2]) - 1, parseInt(second[1]));
+    
+    return { min: minDate, max: maxDate };
+  }
+  return { min: null, max: null };
+};
+
+const InlineCalendar = ({ value, onChange, minDate, maxDate }) => {
+  const parsedValue = value ? new Date(value) : new Date();
+  
+  const [viewMonth, setViewMonth] = useState(parsedValue.getMonth());
+  const [viewYear, setViewYear] = useState(parsedValue.getFullYear());
+  
+  useEffect(() => {
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        setViewMonth(d.getMonth());
+        setViewYear(d.getFullYear());
+      }
+    }
+  }, [value]);
+  
+  const months = [
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+  ];
+  
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+  
+  const getFirstDayOfMonth = (month, year) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1;
+  };
+  
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+  
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+  
+  const daysInMonth = getDaysInMonth(viewMonth, viewYear);
+  const firstDay = getFirstDayOfMonth(viewMonth, viewYear);
+  
+  const calendarCells = [];
+  for (let i = 0; i < firstDay; i++) {
+    calendarCells.push({ dayNum: null, dateObj: null, selectable: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(viewYear, viewMonth, d);
+    
+    let selectable = true;
+    if (minDate) {
+      const minCopy = new Date(minDate);
+      minCopy.setHours(0,0,0,0);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy < minCopy) selectable = false;
+    }
+    if (maxDate) {
+      const maxCopy = new Date(maxDate);
+      maxCopy.setHours(23,59,59,999);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy > maxCopy) selectable = false;
+    }
+    
+    calendarCells.push({ dayNum: d, dateObj, selectable });
+  }
+  
+  const handleSelectDay = (cell) => {
+    if (!cell.selectable) return;
+    const y = cell.dateObj.getFullYear();
+    const m = String(cell.dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(cell.dateObj.getDate()).padStart(2, '0');
+    onChange(`${y}-${m}-${d}`);
+  };
+  
+  const isSelected = (cell) => {
+    if (!cell.dateObj || !value) return false;
+    const valDate = new Date(value);
+    return cell.dateObj.getFullYear() === valDate.getFullYear() &&
+           cell.dateObj.getMonth() === valDate.getMonth() &&
+           cell.dateObj.getDate() === valDate.getDate();
+  };
+  
+  return (
+    <div className="custom-inline-calendar">
+      <div className="calendar-header">
+        <button type="button" onClick={handlePrevMonth} className="calendar-nav-btn">&lt;</button>
+        <span className="calendar-title">{months[viewMonth]} {viewYear}</span>
+        <button type="button" onClick={handleNextMonth} className="calendar-nav-btn">&gt;</button>
+      </div>
+      <div className="calendar-weekdays">
+        <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+      </div>
+      <div className="calendar-grid">
+        {calendarCells.map((cell, idx) => {
+          if (cell.dayNum === null) {
+            return <div key={`empty-${idx}`} className="calendar-cell empty"></div>;
+          }
+          
+          let cellClass = "calendar-cell day";
+          if (!cell.selectable) {
+            cellClass += " disabled";
+          } else if (isSelected(cell)) {
+            cellClass += " selected";
+          }
+          
+          return (
+            <div 
+              key={`day-${cell.dayNum}`} 
+              className={cellClass}
+              onClick={() => handleSelectDay(cell)}
+            >
+              {cell.dayNum}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const PreorderCheckout = () => {
   const navigate = useNavigate();
@@ -13,11 +165,71 @@ const PreorderCheckout = () => {
   // Checkout data states
   const [product, setProduct] = useState(null);
   const [quantity, setQuantity] = useState(5);
-  const [deliveryMode, setDeliveryMode] = useState("shipping"); // 'shipping' or 'pickup'
+  // Delivery is always via GHN shipping
   const [customDate, setCustomDate] = useState("2026-09-01");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [placedPreorderId, setPlacedPreorderId] = useState(null);
+
+  const parsedLimits = useMemo(() => {
+    if (!product) return { min: null, max: null };
+    
+    let minDate = new Date();
+    if (product.harvestDate) {
+      const parts = product.harvestDate.split("-");
+      if (parts.length === 3) {
+        minDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        const partsSlash = product.harvestDate.split("/");
+        if (partsSlash.length === 3) {
+          minDate = new Date(partsSlash[2], partsSlash[1] - 1, partsSlash[0]);
+        } else {
+          const d = new Date(product.harvestDate);
+          if (!isNaN(d.getTime())) {
+            minDate = d;
+          }
+        }
+      }
+    }
+    minDate.setHours(0,0,0,0);
+
+    let maxDate = null;
+    if (product.expirationDate) {
+      const parts = product.expirationDate.split("-");
+      if (parts.length === 3) {
+        maxDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        const partsSlash = product.expirationDate.split("/");
+        if (partsSlash.length === 3) {
+          maxDate = new Date(partsSlash[2], partsSlash[1] - 1, partsSlash[0]);
+        } else {
+          const d = new Date(product.expirationDate);
+          if (!isNaN(d.getTime())) {
+            maxDate = d;
+          }
+        }
+      }
+      if (maxDate) {
+        maxDate.setHours(23,59,59,999);
+      }
+    }
+
+    if (!maxDate) {
+      const fallbackMax = new Date(minDate);
+      fallbackMax.setFullYear(fallbackMax.getFullYear() + 1);
+      maxDate = fallbackMax;
+    }
+
+    return { min: minDate, max: maxDate };
+  }, [product]);
+
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+  };
 
   // Helper format VND
   const formatVND = (number) => {
@@ -79,61 +291,44 @@ const PreorderCheckout = () => {
   // Cost calculations
   const pricePerUnit = product.price || 0;
   const subtotal = pricePerUnit * quantity;
-  const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
-  const estimatedTaxes = Math.round(subtotal * 0.05); // 5% VAT
-  const totalAmount = subtotal + deliveryFee + estimatedTaxes;
+  const deliveryFee = 35000; // Luôn vận chuyển qua GHN
+  const serviceFee = 15000; // Phí dịch vụ cố định
+  const totalAmount = subtotal + deliveryFee + serviceFee;
   const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
-
-  const formatDateString = (dateStr) => {
-    if (!dateStr) return "";
-    const parts = dateStr.split("-");
-    if (parts.length !== 3) return dateStr;
-    const [y, m, d] = parts;
-    return `${d}/${m}/${y}`;
-  };
 
   const handleQuantityChange = (newVal) => {
     if (newVal < 1) return;
     setQuantity(newVal);
   };
 
-  const handleConfirmPreorder = () => {
-    // Generate unique preorder ID
-    const preorderId = "PO-" + Math.floor(100000 + Math.random() * 900000);
-    setPlacedPreorderId(preorderId);
-
-    // Build preorder object to save
-    const newPreorder = {
-      id: preorderId,
-      productId: product.id,
-      productName: product.name,
-      imageUrl: product.imageUrl,
-      price: product.price,
-      unit: product.unit,
-      quantity: quantity,
-      farmerId: product.farmerId,
-      farmerName: product.farmerName,
-      status: "paid", // Deposit has been paid successfully simulated
-      expectedHarvest: product.expectedHarvest || "Cuối tháng 08, 2026",
-      deliveryWindow: product.deliveryWindow || "Từ 01/09 đến 07/09/2026",
-      totalAmount: totalAmount,
-      depositPaid: depositAmount,
-      remainingAmount: totalAmount - depositAmount,
-      createdAt: new Date().toLocaleDateString("vi-VN"),
-      deliveryOption: deliveryMode === "pickup" ? "Tự nhận tại nông trại" : deliveryMode === "option1" ? "Giao buổi sáng ngày 01/09/2026" : "Giao buổi chiều ngày 04/09/2026",
-      specialInstructions: specialInstructions,
-      isPreorder: true
-    };
-
-    // Save to localStorage preorders
-    const existingPreorders = JSON.parse(localStorage.getItem("agrimarket_preorders")) || [];
-    localStorage.setItem("agrimarket_preorders", JSON.stringify([newPreorder, ...existingPreorders]));
-
-    // Dispatch event to update tabs/badges elsewhere
-    window.dispatchEvent(new Event("preordersUpdated"));
-
-    // Show success modal
-    setShowSuccessModal(true);
+  const handleConfirmPreorder = async () => {
+    try {
+      const payload = {
+        items: [
+          {
+            productId: product.id,
+            quantity: quantity,
+            expectedHarvestDate: product.harvestDate || null
+          }
+        ]
+      };
+      const result = await preorderService.createPreorder(payload);
+      setPlacedPreorderId(result.id);
+      
+      // Dispatch event to update tabs/badges elsewhere
+      window.dispatchEvent(new Event("preordersUpdated"));
+      
+      // Request VNPay payment URL for preorder deposit
+      const paymentRes = await orderService.createVNPayPaymentUrl("PRE-" + result.id, deliveryMode);
+      if (paymentRes && paymentRes.paymentUrl) {
+        window.location.href = paymentRes.paymentUrl;
+      } else {
+        throw new Error("Không thể tạo liên kết thanh toán VNPay.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Đã xảy ra lỗi khi tạo đơn đặt trước: " + (err.response?.data || err.message));
+    }
   };
 
   return (
@@ -180,7 +375,56 @@ const PreorderCheckout = () => {
                 </div>
               </div>
 
-              <p className="preorder-product-desc">
+              {/* Certifications Row */}
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "12px 0" }}>
+                {product.farmerOrganicUrl && (
+                  <span style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700" }}>
+                    🌿 Hữu cơ (Organic)
+                  </span>
+                )}
+                {product.farmerVietgapUrl && (
+                  <span style={{ backgroundColor: "#fffbeb", color: "#b45309", border: "1px solid #fef3c7", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700" }}>
+                    🏅 VietGAP
+                  </span>
+                )}
+                {product.farmerGlobalgapUrl && (
+                  <span style={{ backgroundColor: "#eff6ff", color: "#1e40af", border: "1px solid #dbeafe", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700" }}>
+                    🌐 GlobalGAP
+                  </span>
+                )}
+              </div>
+
+              {/* Rating & Sold Row */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "8px 0", fontSize: "14px", color: "#475569" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ color: "#fbbf24", fontSize: "16px" }}>★</span>
+                  <strong style={{ color: "#1e293b" }}>{product.rating ? product.rating.toFixed(1) : "0.0"}</strong>
+                  <span>({product.reviewsCount || 0} đánh giá)</span>
+                </div>
+                <span>•</span>
+                <span>Đã bán {product.sold || 0} {product.unit || "kg"}</span>
+              </div>
+
+              {/* Specs Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", margin: "20px 0", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "14px", color: "#475569" }}>
+                  <strong>Đơn giá dự kiến:</strong> <span style={{ color: "#16a34a", fontWeight: "700", marginLeft: "4px" }}>{formatVND(product.price)} / {product.unit || "kg"}</span>
+                </div>
+                <div style={{ fontSize: "14px", color: "#475569" }}>
+                  <strong>Suất đặt còn lại:</strong> <span style={{ marginLeft: "4px" }}>{product.stock || 0} {product.unit || "kg"}</span>
+                </div>
+                <div style={{ fontSize: "14px", color: "#475569" }}>
+                  <strong>Hạn sử dụng dự kiến:</strong> <span style={{ marginLeft: "4px" }}>{formatDateString(product.expirationDate) || "Đang cập nhật"}</span>
+                </div>
+                <div style={{ fontSize: "14px", color: "#475569" }}>
+                  <strong>Độ hư hỏng:</strong> <span style={{ textTransform: "capitalize", marginLeft: "4px" }}>{product.perishability || "Khô"}</span>
+                </div>
+                <div style={{ fontSize: "14px", color: "#475569" }}>
+                  <strong>Giới hạn giao hàng:</strong> <span style={{ marginLeft: "4px" }}>{product.limitDistance ? `${product.limitDistance} km` : "Không giới hạn"}</span>
+                </div>
+              </div>
+
+              <p className="preorder-product-desc" style={{ whiteSpace: "pre-line" }}>
                 {product.description || "Đặt trước sản phẩm của mùa vụ thu hoạch mới giúp đảm bảo nguồn cung tươi ngon nhất trực tiếp từ nông trại. Hỗ trợ nông dân yên tâm sản xuất với cam kết bao tiêu đầu ra chất lượng cao."}
               </p>
             </div>
@@ -222,42 +466,15 @@ const PreorderCheckout = () => {
 
               {/* Preferred Delivery Date */}
               <div className="config-group">
-                <label className="group-label">Phương thức nhận hàng</label>
-                <div className="delivery-options-grid-3">
-                  <div
-                    className={`delivery-opt-card-3 ${deliveryMode === "shipping" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("shipping")}
-                  >
-                    <div className="opt-header-line">
-                      <span className="opt-date">Vận chuyển giao hàng</span>
-                      {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
-                    </div>
-                    <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
-                  </div>
-
-                  <div
-                    className={`delivery-opt-card-3 ${deliveryMode === "pickup" ? "selected" : ""}`}
-                    onClick={() => setDeliveryMode("pickup")}
-                  >
-                    <div className="opt-header-line">
-                      <span className="opt-date">Tự nhận tại nông trại</span>
-                      {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
-                    </div>
-                    <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
-                  </div>
-                </div>
-
-                <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
+                <div className="preorder-date-picker-wrapper">
                   <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
                     Chọn ngày nhận mong muốn trên lịch *
                   </label>
-                  <input
-                    type="date"
-                    className="preorder-date-picker-input"
+                  <InlineCalendar
                     value={customDate}
-                    onChange={(e) => setCustomDate(e.target.value)}
-                    min="2026-08-01"
-                    max="2026-12-31"
+                    onChange={(newDate) => setCustomDate(newDate)}
+                    minDate={parsedLimits.min}
+                    maxDate={parsedLimits.max}
                   />
                 </div>
               </div>
@@ -303,35 +520,37 @@ const PreorderCheckout = () => {
           {/* Right Column Sidebar Summary */}
           <div className="preorder-right-column">
             <div className="preorder-summary-card">
-              <h3 className="summary-title">Tóm tắt đơn đặt trước</h3>
+              <h3 className="summary-title" style={{ fontSize: "16px", fontWeight: "700", color: "#1e293b", marginBottom: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>Thông tin đơn hàng</h3>
               
               <div className="summary-rows">
-                <div className="summary-item-line">
-                  <span>{quantity}x {product.name}</span>
+                <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
+                  <span>Tạm tính</span>
                   <span>{formatVND(subtotal)}</span>
                 </div>
-                <div className="summary-item-line">
-                  <span>Phí giao hàng (Tạm tính)</span>
+                <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
+                  <span>Phí vận chuyển (GHN)</span>
                   <span>{formatVND(deliveryFee)}</span>
                 </div>
-                <div className="summary-item-line">
-                  <span>Thuế VAT (5%)</span>
-                  <span>{formatVND(estimatedTaxes)}</span>
+                <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
+                  <span>Phí dịch vụ</span>
+                  <span>{formatVND(serviceFee)}</span>
                 </div>
                 
-                <div className="summary-item-line total-line">
-                  <span>Tổng giá trị ước tính</span>
-                  <span>{formatVND(totalAmount)}</span>
+                <hr className="summary-divider" style={{ border: "none", borderTop: "1px dashed #e2e8f0", margin: "12px 0" }} />
+                
+                <div className="summary-item-line total-line" style={{ display: "flex", justifyContent: "space-between", fontWeight: "700", fontSize: "16px", color: "#1e293b", marginBottom: "16px" }}>
+                  <span>Tổng thanh toán dự kiến</span>
+                  <span style={{ color: "#1e293b", fontSize: "18px" }}>{formatVND(totalAmount)}</span>
                 </div>
               </div>
 
               {/* Deposit Highlights */}
-              <div className="deposit-required-box">
-                <div className="deposit-header-row">
-                  <span className="deposit-label-text">Yêu cầu đặt cọc (20%)</span>
-                  <span className="deposit-val-text">{formatVND(depositAmount)}</span>
+              <div className="checkout-deposit-highlight-box" style={{ backgroundColor: "#e8f5e9", border: "1px solid #c8e6c9", padding: "12px", borderRadius: "8px", marginTop: "12px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700", color: "#2e7d32", fontSize: "14px" }}>
+                  <span>Đặt cọc yêu cầu (20%)</span>
+                  <span>{formatVND(depositAmount)}</span>
                 </div>
-                <span className="deposit-note-text">Thanh toán cọc hôm nay để giữ suất mua thu hoạch của nông trại.</span>
+                <span style={{ fontSize: "11px", color: "#558b2f", display: "block", marginTop: "4px", textAlign: "left" }}>Thanh toán cọc hôm nay để xác nhận giữ chỗ nông sản.</span>
               </div>
 
               {/* Confirm Button */}
@@ -339,12 +558,13 @@ const PreorderCheckout = () => {
                 type="button" 
                 className="btn-confirm-preorder"
                 onClick={handleConfirmPreorder}
+                style={{ backgroundColor: "#15803d" }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: "8px"}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 Xác nhận đặt trước
               </button>
 
-              <p className="preorder-agreement-disclaimer">
+              <p className="preorder-agreement-disclaimer" style={{ fontSize: "12px", color: "#64748b", marginTop: "12px", textAlign: "center", lineHeight: "1.4" }}>
                 Bằng việc xác nhận, bạn đồng ý với Điều khoản và quy trình mua sắm đặt trước Seasonal Preorder của AgriMarket.
               </p>
             </div>

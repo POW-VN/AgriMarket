@@ -2,11 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import { getProductById } from "../../services/productService";
 import reviewService from "../../services/reviewService";
 import Header from "../../components/common/Header/Header";
+import Footer from "../../components/common/Footer/Footer";
 import "./ProductReviewsView.css";
 
 /*
@@ -47,6 +49,8 @@ const MOCK_REVIEWS = [
         ],
         helpful: 24,
         notHelpful: 1,
+        tags: ["Sản phẩm tươi", "Đóng gói tốt", "Đúng mô tả"],
+        specificRatings: { quality: 5, freshness: 5, packaging: 5, delivery: 5 },
     },
     {
         id: 2,
@@ -60,6 +64,8 @@ const MOCK_REVIEWS = [
         images: [],
         helpful: 8,
         notHelpful: 0,
+        tags: ["Sản phẩm tươi", "Giá hợp lý", "Nhà vườn nhiệt tình"],
+        specificRatings: { quality: 4, freshness: 4, packaging: 3, delivery: 5 },
     },
     {
         id: 3,
@@ -73,6 +79,8 @@ const MOCK_REVIEWS = [
         images: [],
         helpful: 15,
         notHelpful: 2,
+        tags: ["Sản phẩm tươi", "Đóng gói tốt", "Đúng mô tả"],
+        specificRatings: { quality: 5, freshness: 5, packaging: 5, delivery: 5 },
     },
     {
         id: 4,
@@ -88,6 +96,8 @@ const MOCK_REVIEWS = [
         ],
         helpful: 11,
         notHelpful: 0,
+        tags: ["Sản phẩm tươi", "Đóng gói tốt", "Đúng mô tả"],
+        specificRatings: { quality: 5, freshness: 5, packaging: 5, delivery: 5 },
     },
 ];
 
@@ -382,7 +392,14 @@ export default function ProductReviewsView() {
                             </div>
 
                             <button className="prv-add-cart-btn" onClick={handleAddToCart}>
-                                🛒 Thêm vào giỏ hàng
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="9" cy="21" r="1"></circle>
+                                    <circle cx="20" cy="21" r="1"></circle>
+                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                    <line x1="12" y1="10" x2="16" y2="10"></line>
+                                    <line x1="14" y1="8" x2="14" y2="12"></line>
+                                </svg>
+                                Thêm vào giỏ hàng
                             </button>
                         </div>
                     </aside>
@@ -460,6 +477,56 @@ export default function ProductReviewsView() {
                                             <StarDisplay rating={review.rating} />
                                         </div>
 
+                                        {/* Hiển thị tag đánh giá */}
+                                        {review.tags && review.tags.length > 0 && (
+                                            <div className="prv-review-tags">
+                                                {review.tags.map((tag, idx) => (
+                                                    <span key={idx} className="prv-tag-badge">✓ {tag}</span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Hiển thị đánh giá chi tiết */}
+                                        {review.specificRatings && Object.keys(review.specificRatings).length > 0 && (
+                                            <div className="prv-specific-ratings">
+                                                {Object.entries(review.specificRatings).map(([key, rating]) => {
+                                                    if (!rating || rating === 0) return null;
+                                                    let label = "";
+                                                    switch (key) {
+                                                        case "quality":
+                                                            label = "Chất lượng";
+                                                            break;
+                                                        case "freshness":
+                                                            label = "Độ tươi ngon";
+                                                            break;
+                                                        case "packaging":
+                                                            label = "Đóng gói";
+                                                            break;
+                                                        case "delivery":
+                                                            label = "Giao hàng";
+                                                            break;
+                                                        default:
+                                                            label = key;
+                                                    }
+                                                    return (
+                                                        <div key={key} className="prv-specific-rating-item">
+                                                            <span className="prv-specific-label">{label}:</span>
+                                                            <span className="prv-specific-stars prv-stars">
+                                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                                    <span
+                                                                        key={star}
+                                                                        className={star <= rating ? "filled" : ""}
+                                                                    >
+                                                                        ★
+                                                                    </span>
+                                                                ))}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
                                         <h4>{review.title}</h4>
                                         <p>{review.comment}</p>
 
@@ -478,11 +545,11 @@ export default function ProductReviewsView() {
                                             </div>
                                         )}
 
-                                        <div className="prv-helpful-row">
-                                            <span>Đánh giá này có hữu ích không?</span>
-                                            <button>👍 {review.helpful}</button>
-                                            <button>👎 {review.notHelpful}</button>
-                                        </div>
+                                         <div className="prv-helpful-row">
+                                             <span>Đánh giá này có hữu ích không?</span>
+                                             <button style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><ThumbsUp size={14} /> {review.helpful}</button>
+                                             <button style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><ThumbsDown size={14} /> {review.notHelpful}</button>
+                                         </div>
                                     </article>
                                 ))
                             )}
@@ -523,19 +590,7 @@ export default function ProductReviewsView() {
                 </div>
             </main>
 
-            <footer className="prv-footer">
-                <div>
-                    <strong>🚜 AgriMarket</strong>
-                    <p>© 2026 AgriMarket. Kết nối Nông nghiệp số.</p>
-                </div>
-
-                <div className="prv-footer-links">
-                    <Link to="/help">Trung tâm trợ giúp</Link>
-                    <Link to="/privacy">Chính sách bảo mật</Link>
-                    <Link to="/terms">Điều khoản dịch vụ</Link>
-                    <Link to="/contact">Liên hệ</Link>
-                </div>
-            </footer>
+            <Footer />
 
             {toastMessage && (
                 <div className="prv-toast">

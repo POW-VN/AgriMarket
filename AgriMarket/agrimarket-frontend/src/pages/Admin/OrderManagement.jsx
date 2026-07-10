@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
+import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
@@ -17,6 +18,7 @@ const OrderManagement = () => {
   };
   const [currentUser, setCurrentUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [preorders, setPreorders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,8 +68,12 @@ const OrderManagement = () => {
     setLoading(true);
     setError("");
     try {
-      const response = await apiClient.get("/api/admin/orders");
-      setOrders(response.data);
+      const [ordersRes, preordersRes] = await Promise.all([
+        apiClient.get("/api/admin/orders"),
+        apiClient.get("/api/preorders/admin")
+      ]);
+      setOrders(ordersRes.data || []);
+      setPreorders(preordersRes.data || []);
     } catch (err) {
       console.error("Lỗi khi tải đơn hàng:", err);
       // Try local fallback to mock data
@@ -441,12 +447,48 @@ const OrderManagement = () => {
     setCurrentPage(1);
   };
 
+  const normalizedPreorders = useMemo(() => {
+    return (preorders || []).map(po => {
+      const totalAmount = po.items ? po.items.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0) : 0;
+      const statusLabels = {
+        pending: "Chờ cọc",
+        paid: "Đã cọc / Đang trồng",
+        cancelled: "Đã hủy",
+        completed: "Đã hoàn thành"
+      };
+      
+      const firstItem = po.items && po.items[0] ? po.items[0] : {};
+      
+      return {
+        id: `PO-${po.id}`,
+        dbId: po.id,
+        isPreorder: true,
+        recipient: po.customerName || "Khách hàng",
+        customerAvatarUrl: null,
+        farmer: firstItem.farmerName || "Nhà vườn",
+        amount: totalAmount,
+        qty: po.items ? po.items.reduce((sum, i) => sum + i.quantity, 0) : 0,
+        paymentStatus: po.status === "pending" ? "unpaid" : po.status === "cancelled" ? "refunded" : "paid",
+        status: po.status,
+        statusLabel: statusLabels[po.status] || po.status,
+        date: po.createdAt ? new Date(po.createdAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
+        items: po.items ? po.items.map(i => ({
+          productName: i.productName,
+          price: i.productPrice,
+          qty: i.quantity,
+          farmer: i.farmerName
+        })) : []
+      };
+    });
+  }, [preorders]);
+
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
     setCurrentPage(1);
     
     // Map Tab text to filter status values
     if (tabName === "Tất cả đơn hàng") setFilterStatus("All");
+    else if (tabName === "Đơn đặt trước") setFilterStatus("Preorder");
     else if (tabName === "Chờ xử lý") setFilterStatus("pending");
     else if (tabName === "Đã xác nhận") setFilterStatus("confirmed");
     else if (tabName === "Đang giao") setFilterStatus("shipping");
@@ -475,22 +517,38 @@ const OrderManagement = () => {
   const stats = getStats();
 
   // Extract unique Farmers & Customers dynamically for dropdown filters
-  const uniqueFarmers = Array.from(new Set(orders.flatMap(o => o.items ? o.items.map(item => item.farmer) : []).filter(Boolean)));
-  const uniqueCustomers = Array.from(new Set(orders.map(o => o.recipient).filter(Boolean)));
+  const uniqueFarmers = Array.from(
+    new Set(
+      filterStatus === "Preorder"
+        ? normalizedPreorders.map(o => o.farmer).filter(Boolean)
+        : orders.flatMap(o => o.items ? o.items.map(item => item.farmer) : []).filter(Boolean)
+    )
+  );
+  const uniqueCustomers = Array.from(
+    new Set(
+      filterStatus === "Preorder"
+        ? normalizedPreorders.map(o => o.recipient).filter(Boolean)
+        : orders.map(o => o.recipient).filter(Boolean)
+    )
+  );
 
   // Master Filter Combiner Pipeline
   const getFilteredOrders = () => {
-    return orders.filter(o => {
+    const listToFilter = filterStatus === "Preorder" ? normalizedPreorders : orders;
+    return listToFilter.filter(o => {
       // 1. Search (Order ID, Customer Name, Farmer Name)
       const matchesSearch = searchQuery.trim() === "" ||
         o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (o.recipient && o.recipient.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (o.items && o.items.some(item => item.farmer && item.farmer.toLowerCase().includes(searchQuery.toLowerCase())));
+        (filterStatus === "Preorder" 
+          ? (o.farmer && o.farmer.toLowerCase().includes(searchQuery.toLowerCase()))
+          : (o.items && o.items.some(item => item.farmer && item.farmer.toLowerCase().includes(searchQuery.toLowerCase())))
+        );
 
       if (!matchesSearch) return false;
 
       // 2. Status Filter
-      if (filterStatus !== "All") {
+      if (filterStatus !== "All" && filterStatus !== "Preorder") {
         const current = o.status?.toLowerCase();
         if (filterStatus === "pending" && current !== "pending") return false;
         if (filterStatus === "confirmed" && current !== "confirmed" && current !== "preparing") return false;
@@ -508,7 +566,9 @@ const OrderManagement = () => {
 
       // 4. Farmer Filter
       if (filterFarmer !== "All") {
-        const hasFarmer = o.items && o.items.some(item => item.farmer === filterFarmer);
+        const hasFarmer = filterStatus === "Preorder" 
+          ? o.farmer === filterFarmer 
+          : (o.items && o.items.some(item => item.farmer === filterFarmer));
         if (!hasFarmer) return false;
       }
 
@@ -519,13 +579,15 @@ const OrderManagement = () => {
 
       // 6. Date Range Filter
       if (filterDateStart) {
-        const orderDate = new Date(o.date);
+        const dateStr = o.date.includes("/") ? o.date.split("/").reverse().join("-") : o.date;
+        const orderDate = new Date(dateStr);
         const startDate = new Date(filterDateStart);
         startDate.setHours(0, 0, 0, 0);
         if (orderDate < startDate) return false;
       }
       if (filterDateEnd) {
-        const orderDate = new Date(o.date);
+        const dateStr = o.date.includes("/") ? o.date.split("/").reverse().join("-") : o.date;
+        const orderDate = new Date(dateStr);
         const endDate = new Date(filterDateEnd);
         endDate.setHours(23, 59, 59, 999);
         if (orderDate > endDate) return false;
@@ -541,6 +603,7 @@ const OrderManagement = () => {
   };
 
   const filteredOrders = getFilteredOrders();
+
 
   // Pagination calculation
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -856,139 +919,15 @@ const OrderManagement = () => {
     ];
   };
 
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   return (
     <div className="admin-layout">
       {/* Sidebar */}
-      <aside className="admin-sidebar">
-        <div className="admin-logo-section">
-          <Link to="/" className="admin-logo-link">
-            <h1>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              AgriAdmin
-            </h1>
-          </Link>
-        </div>
-
-        <nav className="admin-nav-menu">
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng Bảng điều khiển đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-            </span>
-            Bảng điều khiển
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            </span>
-            Quản lý tài khoản
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
-            </span>
-            Nông dân
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-            </span>
-            Duyệt sản phẩm
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý danh mục đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            </span>
-            Danh mục
-          </button>
-          <button className="admin-nav-item active" onClick={() => navigate("/admin/orders")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-            </span>
-            Đơn hàng
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng giao dịch đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            </span>
-            Giao dịch
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </span>
-            Hỗ trợ
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            </span>
-            Báo cáo
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="m22 8-6 4 6 4V8Z"></path><rect width="14" height="12" x="2" y="6" rx="2" ry="2"></rect></svg>
-            </span>
-            Quản lý Livestream
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng giám sát AI đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-            </span>
-            Giám sát AI
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            </span>
-            Thông báo
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng thống kê đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            </span>
-            Thống kê hệ thống
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng cài đặt đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.5 1z"></path></svg>
-            </span>
-            Cài đặt
-          </button>
-        </nav>
-
-        <div className="admin-sidebar-footer">
-          <img
-            src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-            alt="Avatar admin"
-            className="admin-footer-avatar"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-            }}
-          />
-          <div className="admin-footer-info">
-            <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-            <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar activeItem="orders" showToast={showToast} />
 
       {/* Main Content */}
       <div className="admin-main-container">
@@ -1399,9 +1338,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.total}
                   </span>
-                  <div className="stat-card-footer green" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <span>Tổng đơn hệ thống</span>
-                  </div>
                 </div>
 
                 {/* Card 2: Pending */}
@@ -1415,9 +1351,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.pending}
                   </span>
-                  <div className="stat-card-footer grey">
-                    <span>Đang chờ duyệt</span>
-                  </div>
                 </div>
 
                 {/* Card 3: Confirmed */}
@@ -1431,9 +1364,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.confirmed}
                   </span>
-                  <div className="stat-card-footer grey">
-                    <span>Đang chuẩn bị hàng</span>
-                  </div>
                 </div>
 
                 {/* Card 4: Shipping */}
@@ -1447,9 +1377,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.shipping}
                   </span>
-                  <div className="stat-card-footer green">
-                    <span>Đang vận chuyển</span>
-                  </div>
                 </div>
 
                 {/* Card 5: Delivered */}
@@ -1463,9 +1390,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.delivered}
                   </span>
-                  <div className="stat-card-footer grey">
-                    <span>Đã giao thành công</span>
-                  </div>
                 </div>
 
                 {/* Card 6: Cancelled */}
@@ -1479,9 +1403,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.cancelled}
                   </span>
-                  <div className="stat-card-footer red" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <span>Đơn hàng đã hủy</span>
-                  </div>
                 </div>
 
                 {/* Card 7: Rejected */}
@@ -1495,9 +1416,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.rejected}
                   </span>
-                  <div className="stat-card-footer red" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                    <span>Đơn hàng từ chối</span>
-                  </div>
                 </div>
 
                 {/* Card 8: Refunded */}
@@ -1511,9 +1429,6 @@ const OrderManagement = () => {
                   <span className="stat-card-value">
                     {stats.refunded}
                   </span>
-                  <div className="stat-card-footer grey">
-                    <span>Yêu cầu hoàn trả</span>
-                  </div>
                 </div>
               </div>
 
@@ -1522,7 +1437,7 @@ const OrderManagement = () => {
                 {/* Tabs and More Filters Action Row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid var(--admin-border)", flexWrap: "wrap", gap: "16px" }}>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {["Tất cả đơn hàng", "Chờ xử lý", "Đã xác nhận", "Đang giao", "Đã giao", "Đã hủy", "Đã từ chối", "Hoàn tiền"].map((tab) => {
+                    {["Tất cả đơn hàng", "Đơn đặt trước", "Chờ xử lý", "Đã xác nhận", "Đang giao", "Đã giao", "Đã hủy", "Đã từ chối", "Hoàn tiền"].map((tab) => {
                       const isActive = activeTab === tab;
                       return (
                         <button
@@ -1671,14 +1586,16 @@ const OrderManagement = () => {
                     </thead>
                     <tbody>
                       {currentItems.map((order) => {
-                        const statusClass = getStatusBadgeClass(order.status);
+                        const statusClass = order.isPreorder 
+                          ? (order.status === 'completed' ? 'delivered' : order.status === 'paid' ? 'confirmed' : order.status === 'cancelled' ? 'cancelled' : 'pending')
+                          : getStatusBadgeClass(order.status);
                         return (
                           <tr key={order.id}>
                             <td>
                               <span 
                                 onClick={() => handleSelectOrder(order)} 
                                 style={{ color: "#064e3b", fontWeight: "700", cursor: "pointer", textDecoration: "none" }}
-                                title="Xem chi tiết đơn hàng"
+                                title={order.isPreorder ? "Xem chi tiết preorder" : "Xem chi tiết đơn hàng"}
                               >
                                 #{order.id}
                               </span>
@@ -1696,13 +1613,13 @@ const OrderManagement = () => {
                                   }}
                                 />
                                 <div>
-                                  <p className="user-cell-name" style={{ fontSize: "14.5px" }}>{order.recipient}</p>
+                                  <p className="user-cell-name" style={{ fontSize: "14px" }}>{order.recipient}</p>
                                 </div>
                               </div>
                             </td>
                             <td>
                               <span style={{ fontWeight: "600", color: "#4b5563" }}>
-                                {order.items && order.items.length > 0 ? order.items[0].farmer : "Nhà vườn"}
+                                {order.isPreorder ? order.farmer : (order.items && order.items.length > 0 ? order.items[0].farmer : "Nhà vườn")}
                               </span>
                             </td>
                             <td>
@@ -1710,64 +1627,75 @@ const OrderManagement = () => {
                                 {formatVND(order.amount)}
                               </span>
                               <span style={{ fontSize: "12px", color: "var(--admin-text-muted)" }}>
-                                {order.items ? order.items.reduce((sum, item) => sum + item.qty, 0) : 1} sản phẩm
+                                {order.isPreorder ? `${order.qty} sản phẩm` : `${order.items ? order.items.reduce((sum, item) => sum + item.qty, 0) : 1} sản phẩm`}
                               </span>
                             </td>
                             <td>
                               <span className={`payment-badge ${order.paymentStatus === 'paid' ? 'paid' : order.paymentStatus === 'refunded' ? 'refunded' : 'unpaid'}`}>
-                                {order.paymentStatus === 'paid' ? 'Đã thanh toán' : order.paymentStatus === 'refunded' ? 'Đã hoàn tiền' : 'Chưa thanh toán'}
+                                {order.isPreorder 
+                                  ? (order.paymentStatus === 'paid' ? 'Đã cọc 20%' : order.paymentStatus === 'refunded' ? 'Đã hoàn tiền' : 'Chưa đặt cọc')
+                                  : (order.paymentStatus === 'paid' ? 'Đã thanh toán' : order.paymentStatus === 'refunded' ? 'Đã hoàn tiền' : 'Chưa thanh toán')}
                               </span>
                             </td>
                             <td>
                               <span className={`status-badge ${statusClass}`}>
-                                {order.status === 'pending' && (
+                                {order.isPreorder ? (
                                   <>
-                                    <span className="status-dot grey"></span>
-                                    Chờ xử lý
+                                    <span className={`status-dot ${order.status === 'completed' ? 'green' : order.status === 'paid' ? 'yellow' : order.status === 'cancelled' ? 'red' : 'grey'}`}></span>
+                                    {order.statusLabel}
                                   </>
-                                )}
-                                {(order.status === 'confirmed' || order.status === 'preparing') && (
+                                ) : (
                                   <>
-                                    <span className="status-dot yellow" style={{ backgroundColor: "#0284c7" }}></span>
-                                    {getStatusLabel(order.status)}
-                                  </>
-                                )}
-                                {order.status === 'shipping' && (
-                                  <>
-                                    <svg className="status-icon" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#ea580c" }}>
-                                      <rect x="1" y="3" width="15" height="13"></rect>
-                                      <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                                      <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                                      <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                                    </svg>
-                                    Đang giao
-                                  </>
-                                )}
-                                {order.status === 'delivered' && (
-                                  <>
-                                    <svg className="status-icon" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#065f46" }}>
-                                      <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                    Đã giao
-                                  </>
-                                )}
-                                {(order.status === 'cancelled' || order.status === 'rejected') && (
-                                  <>
-                                    <svg className="status-icon" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#991b1b" }}>
-                                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                    {getStatusLabel(order.status)}
-                                  </>
-                                )}
-                                {(order.status === 'refunded' || order.status === 'refund_requested') && (
-                                  <>
-                                    <span className="status-dot purple" style={{ backgroundColor: "#6b21a8" }}></span>
-                                    {getStatusLabel(order.status)}
+                                    {order.status === 'pending' && (
+                                      <>
+                                        <span className="status-dot grey"></span>
+                                        Chờ xử lý
+                                      </>
+                                    )}
+                                    {(order.status === 'confirmed' || order.status === 'preparing') && (
+                                      <>
+                                        <span className="status-dot yellow" style={{ backgroundColor: "#0284c7" }}></span>
+                                        {getStatusLabel(order.status)}
+                                      </>
+                                    )}
+                                    {order.status === 'shipping' && (
+                                      <>
+                                        <svg className="status-icon" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#ea580c" }}>
+                                          <rect x="1" y="3" width="15" height="13"></rect>
+                                          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                          <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                        </svg>
+                                        Đang giao
+                                      </>
+                                    )}
+                                    {order.status === 'delivered' && (
+                                      <>
+                                        <svg className="status-icon" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#065f46" }}>
+                                          <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Đã giao
+                                      </>
+                                    )}
+                                    {(order.status === 'cancelled' || order.status === 'rejected') && (
+                                      <>
+                                        <svg className="status-icon" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#991b1b" }}>
+                                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                        {getStatusLabel(order.status)}
+                                      </>
+                                    )}
+                                    {(order.status === 'refunded' || order.status === 'refund_requested') && (
+                                      <>
+                                        <span className="status-dot purple" style={{ backgroundColor: "#6b21a8" }}></span>
+                                        {getStatusLabel(order.status)}
+                                      </>
+                                    )}
                                   </>
                                 )}
                               </span>
-                              {(order.status?.toLowerCase() === 'cancelled' || order.status?.toLowerCase() === 'rejected') && order.cancelReason && (
+                              {!order.isPreorder && (order.status?.toLowerCase() === 'cancelled' || order.status?.toLowerCase() === 'rejected') && order.cancelReason && (
                                 <div style={{ fontSize: "11px", color: "#b91c1c", marginTop: "4px", fontWeight: "600", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={order.cancelReason}>
                                   Lý do: {order.cancelReason}
                                 </div>
@@ -1779,7 +1707,7 @@ const OrderManagement = () => {
                             <td style={{ textAlign: "right" }}>
                               <div className="direct-actions-wrapper" style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                                 <button
-                                  title="Xem chi tiết đơn hàng"
+                                  title={order.isPreorder ? "Xem chi tiết preorder" : "Xem chi tiết đơn hàng"}
                                   className="btn-action-direct approve"
                                   onClick={() => handleSelectOrder(order)}
                                 >

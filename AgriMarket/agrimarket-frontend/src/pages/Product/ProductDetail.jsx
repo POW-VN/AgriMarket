@@ -4,15 +4,168 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
-import { getProductById, getAllApprovedProducts } from "../../services/productService";
+import { getProductById, getAllApprovedProducts, getApprovedProductsPaged } from "../../services/productService";
 import reviewService from "../../services/reviewService";
 import NotificationBell from "../../components/common/NotificationBell/NotificationBell";
 import wishlistService from "../../services/wishlistService";
+import * as preorderService from "../../services/preorderService";
+import orderService from "../../services/orderService";
 import "./ProductDetail.css";
 import "./PreorderCheckout.css";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
-import { Leaf, Shield } from "lucide-react";
+import { Leaf, Shield, Truck, Globe, Star, MapPin, Calendar, Hourglass, Award, Check, FileText, ChevronDown, MessageCircle, Plus, X, Tag, Package, User, Scale } from "lucide-react";
+import PreorderProductDetail from "./PreorderProductDetail";
+
+const parseDeliveryWindow = (windowStr) => {
+  if (!windowStr) return { min: null, max: null };
+  const regex = /(\d{2})\/(\d{2})(?:\/(\d{4}))?/g;
+  const matches = [...windowStr.matchAll(regex)];
+  if (matches.length >= 2) {
+    const first = matches[0];
+    const second = matches[1];
+    
+    const year2 = second[3] ? parseInt(second[3]) : 2026;
+    const year1 = first[3] ? parseInt(first[3]) : year2;
+    
+    const minDate = new Date(year1, parseInt(first[2]) - 1, parseInt(first[1]));
+    const maxDate = new Date(year2, parseInt(second[2]) - 1, parseInt(second[1]));
+    
+    return { min: minDate, max: maxDate };
+  }
+  return { min: null, max: null };
+};
+
+const InlineCalendar = ({ value, onChange, minDate, maxDate }) => {
+  const parsedValue = value ? new Date(value) : new Date();
+  
+  const [viewMonth, setViewMonth] = useState(parsedValue.getMonth());
+  const [viewYear, setViewYear] = useState(parsedValue.getFullYear());
+  
+  useEffect(() => {
+    if (value) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        setViewMonth(d.getMonth());
+        setViewYear(d.getFullYear());
+      }
+    }
+  }, [value]);
+  
+  const months = [
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+  ];
+  
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+  
+  const getFirstDayOfMonth = (month, year) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1;
+  };
+  
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+  
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+  
+  const daysInMonth = getDaysInMonth(viewMonth, viewYear);
+  const firstDay = getFirstDayOfMonth(viewMonth, viewYear);
+  
+  const calendarCells = [];
+  for (let i = 0; i < firstDay; i++) {
+    calendarCells.push({ dayNum: null, dateObj: null, selectable: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(viewYear, viewMonth, d);
+    
+    let selectable = true;
+    if (minDate) {
+      const minCopy = new Date(minDate);
+      minCopy.setHours(0,0,0,0);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy < minCopy) selectable = false;
+    }
+    if (maxDate) {
+      const maxCopy = new Date(maxDate);
+      maxCopy.setHours(23,59,59,999);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy > maxCopy) selectable = false;
+    }
+    
+    calendarCells.push({ dayNum: d, dateObj, selectable });
+  }
+  
+  const handleSelectDay = (cell) => {
+    if (!cell.selectable) return;
+    const y = cell.dateObj.getFullYear();
+    const m = String(cell.dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(cell.dateObj.getDate()).padStart(2, '0');
+    onChange(`${y}-${m}-${d}`);
+  };
+  
+  const isSelected = (cell) => {
+    if (!cell.dateObj || !value) return false;
+    const valDate = new Date(value);
+    return cell.dateObj.getFullYear() === valDate.getFullYear() &&
+           cell.dateObj.getMonth() === valDate.getMonth() &&
+           cell.dateObj.getDate() === valDate.getDate();
+  };
+  
+  return (
+    <div className="custom-inline-calendar">
+      <div className="calendar-header">
+        <button type="button" onClick={handlePrevMonth} className="calendar-nav-btn">&lt;</button>
+        <span className="calendar-title">{months[viewMonth]} {viewYear}</span>
+        <button type="button" onClick={handleNextMonth} className="calendar-nav-btn">&gt;</button>
+      </div>
+      <div className="calendar-weekdays">
+        <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+      </div>
+      <div className="calendar-grid">
+        {calendarCells.map((cell, idx) => {
+          if (cell.dayNum === null) {
+            return <div key={`empty-${idx}`} className="calendar-cell empty"></div>;
+          }
+          
+          let cellClass = "calendar-cell day";
+          if (!cell.selectable) {
+            cellClass += " disabled";
+          } else if (isSelected(cell)) {
+            cellClass += " selected";
+          }
+          
+          return (
+            <div 
+              key={`day-${cell.dayNum}`} 
+              className={cellClass}
+              onClick={() => handleSelectDay(cell)}
+            >
+              {cell.dayNum}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -75,6 +228,66 @@ export default function ProductDetail() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [placedPreorderId, setPlacedPreorderId] = useState(null);
 
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+  };
+
+  const parsedLimits = useMemo(() => {
+    if (!product) return { min: null, max: null };
+    
+    let minDate = new Date();
+    if (product.harvestDate) {
+      const parts = product.harvestDate.split("-");
+      if (parts.length === 3) {
+        minDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        const partsSlash = product.harvestDate.split("/");
+        if (partsSlash.length === 3) {
+          minDate = new Date(partsSlash[2], partsSlash[1] - 1, partsSlash[0]);
+        } else {
+          const d = new Date(product.harvestDate);
+          if (!isNaN(d.getTime())) {
+            minDate = d;
+          }
+        }
+      }
+    }
+    minDate.setHours(0,0,0,0);
+
+    let maxDate = null;
+    if (product.expirationDate) {
+      const parts = product.expirationDate.split("-");
+      if (parts.length === 3) {
+        maxDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      } else {
+        const partsSlash = product.expirationDate.split("/");
+        if (partsSlash.length === 3) {
+          maxDate = new Date(partsSlash[2], partsSlash[1] - 1, partsSlash[0]);
+        } else {
+          const d = new Date(product.expirationDate);
+          if (!isNaN(d.getTime())) {
+            maxDate = d;
+          }
+        }
+      }
+      if (maxDate) {
+        maxDate.setHours(23,59,59,999);
+      }
+    }
+
+    if (!maxDate) {
+      const fallbackMax = new Date(minDate);
+      fallbackMax.setFullYear(fallbackMax.getFullYear() + 1);
+      maxDate = fallbackMax;
+    }
+
+    return { min: minDate, max: maxDate };
+  }, [product]);
+
   useEffect(() => {
     if (product && product.isPreorder) {
       if (product.harvestDate) {
@@ -110,7 +323,8 @@ export default function ProductDetail() {
   const [relatedProducts, setRelatedProducts] = useState([]);
 
   // Toast notifications state
-  const [toasts, setToasts] = useState([]);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
 
   // Shipping location state
   const [selectedCity, setSelectedCity] = useState("TP. Hồ Chí Minh");
@@ -226,12 +440,9 @@ export default function ProductDetail() {
   }, [isLightboxOpen, allImages]);
 
   const triggerToast = (message, type = "success") => {
-    const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, message, type }]);
-
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => setToastMessage(""), 3000);
   };
 
   useEffect(() => {
@@ -268,18 +479,27 @@ export default function ProductDetail() {
     const fetchProductAndRelated = async () => {
       setLoading(true);
       try {
-        const data = await getProductById(id);
-        setProduct(data);
-        
-        const [savedStatus, followStatus, savedIds] = await Promise.all([
-          wishlistService.isWishlistItem(id),
-          wishlistService.isFarmerFollowed(data.farmerId),
-          wishlistService.getWishlistIds()
+        // Khởi chạy các API độc lập song song để triệt tiêu hiện tượng nghẽn cổ chai (waterfall)
+        const productPromise = getProductById(id);
+        const wishlistStatusPromise = wishlistService.isWishlistItem(id);
+        const wishlistIdsPromise = wishlistService.getWishlistIds();
+        const reviewsPromise = reviewService.getReviewsByProductId(id).catch((err) => {
+          console.error("Lỗi khi tải đánh giá từ backend:", err);
+          return [];
+        });
+
+        // Chờ tất cả các API độc lập hoàn thành
+        const [data, savedStatus, savedIds, dbReviews] = await Promise.all([
+          productPromise,
+          wishlistStatusPromise,
+          wishlistIdsPromise,
+          reviewsPromise,
         ]);
-        
+
+        setProduct(data);
         setIsSaved(savedStatus);
-        setIsFarmerFollowed(followStatus);
-        setSavedRelatedIds(new Set(savedIds.map(String)));
+        setSavedRelatedIds(new Set((savedIds || []).map(String)));
+        setReviewsList(dbReviews || []);
 
         if (data.images && data.images.length > 0) {
           setActiveImage(data.images[0]);
@@ -292,63 +512,81 @@ export default function ProductDetail() {
           setQuantity(1);
         }
 
-        // Fetch reviews from backend
-        try {
-          const dbReviews = await reviewService.getReviewsByProductId(id);
-          setReviewsList(dbReviews || []);
-        } catch (err) {
-          console.error("Lỗi khi tải đánh giá từ backend:", err);
-          setReviewsList([]);
-        }
+        // Gọi các API phụ thuộc song song: kiểm tra follow nhà vườn và lấy sản phẩm liên quan phân trang
+        const dependentPromises = [];
 
-        // Fetch related products
-        // Let's create related products matching the mockup if it's the carrot product
-        if (id === "mock-2" || data.name.toLowerCase().includes("cà rốt") || data.name.toLowerCase().includes("carrot")) {
+        // 1. Follow status
+        let followStatusPromise = Promise.resolve(false);
+        if (data.farmerId) {
+          followStatusPromise = wishlistService.isFarmerFollowed(data.farmerId).catch((err) => {
+            console.error("Lỗi khi tải trạng thái follow nhà vườn:", err);
+            return false;
+          });
+        }
+        dependentPromises.push(followStatusPromise);
+
+        // 2. Related products
+        let relatedPromise = Promise.resolve([]);
+        const isMockProduct = id === "mock-2" || (data.name && (data.name.toLowerCase().includes("cà rốt") || data.name.toLowerCase().includes("carrot")));
+        if (!isMockProduct) {
+          relatedPromise = (async () => {
+            try {
+              const relatedResponse = await getApprovedProductsPaged({ page: 0, size: 5, category: data.category });
+              let list = (relatedResponse?.content || []).filter((p) => String(p.id) !== String(id));
+              
+              if (list.length < 4) {
+                const fallbackResponse = await getApprovedProductsPaged({ page: 0, size: 10 });
+                const fallbackList = (fallbackResponse?.content || [])
+                  .filter((p) => String(p.id) !== String(id) && p.category !== data.category);
+                list = [...list, ...fallbackList].slice(0, 4);
+              } else {
+                list = list.slice(0, 4);
+              }
+              return list;
+            } catch (err) {
+              console.error("Lỗi khi lấy danh sách sản phẩm liên quan:", err);
+              return [];
+            }
+          })();
+        }
+        dependentPromises.push(relatedPromise);
+
+        const [followStatus, relatedResult] = await Promise.all(dependentPromises);
+        setIsFarmerFollowed(followStatus);
+
+        if (isMockProduct) {
           setRelatedProducts([
             {
               id: "related-1",
               name: "Củ dền đỏ hữu cơ",
               price: 75000,
               unit: "bó",
-              imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=600", // Beets
+              imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=600",
             },
             {
               id: "related-2",
               name: "Xà lách hỗn hợp Spring Mix",
               price: 137500,
               unit: "túi",
-              imageUrl: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600", // Greens
+              imageUrl: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600",
             },
             {
               id: "related-3",
               name: "Khoai tây Yukon Gold",
               price: 100000,
               unit: "túi",
-              imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=600", // Potatoes
+              imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=600",
             },
             {
               id: "related-4",
               name: "Củ cải đường French Breakfast",
               price: 62500,
               unit: "bó",
-              imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=600", // Radish
-            }
+              imageUrl: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=600",
+            },
           ]);
         } else {
-          // General fallback for related products: fetch approved products from the same category
-          const all = await getAllApprovedProducts();
-          const filtered = all
-            .filter((p) => String(p.id) !== String(id) && p.category === data.category)
-            .slice(0, 4);
-
-          if (filtered.length < 4) {
-            // Fill with other categories
-            const others = all.filter((p) => String(p.id) !== String(id) && p.category !== data.category);
-            const combined = [...filtered, ...others].slice(0, 4);
-            setRelatedProducts(combined);
-          } else {
-            setRelatedProducts(filtered);
-          }
+          setRelatedProducts(relatedResult);
         }
       } catch (err) {
         console.error("Lỗi khi tải chi tiết sản phẩm:", err);
@@ -966,15 +1204,89 @@ export default function ProductDetail() {
   };
 
   const handleToggleSaveRelated = async (relatedId, relatedName) => {
-    const res = await wishlistService.toggleWishlist(relatedId);
-    const updated = new Set(savedRelatedIds);
-    if (res.saved) {
-      updated.add(String(relatedId));
-    } else {
-      updated.delete(String(relatedId));
+    const idStr = String(relatedId);
+    const isCurrentlySaved = savedRelatedIds.has(idStr);
+
+    // Optimistic UI: flip immediately
+    setSavedRelatedIds((prev) => {
+      const next = new Set(prev);
+      if (isCurrentlySaved) {
+        next.delete(idStr);
+      } else {
+        next.add(idStr);
+      }
+      return next;
+    });
+
+    try {
+      const res = await wishlistService.toggleWishlist(relatedId);
+      // Reconcile with server's authoritative state
+      if (res?.saved !== undefined) {
+        setSavedRelatedIds((prev) => {
+          const next = new Set(prev);
+          if (res.saved) {
+            next.add(idStr);
+          } else {
+            next.delete(idStr);
+          }
+          return next;
+        });
+      }
+      triggerToast(res?.message || "Đã cập nhật danh sách yêu thích.", res?.saved ? "success" : "info");
+    } catch (err) {
+      // Rollback on error
+      console.error("Lỗi wishlist:", err);
+      setSavedRelatedIds((prev) => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) {
+          next.add(idStr);
+        } else {
+          next.delete(idStr);
+        }
+        return next;
+      });
+      triggerToast("Không thể cập nhật danh sách yêu thích. Vui lòng thử lại!", "error");
     }
-    setSavedRelatedIds(updated);
-    triggerToast(res.message, res.saved ? "success" : "info");
+  };
+
+  const handleAddRelatedToCart = async (p) => {
+    const user = authService.getCurrentUser();
+    if (user) {
+      try {
+        const data = await cartService.addToCart(p.id, 1);
+        if (data?.length !== undefined) {
+          setCartItemsCount(data.length);
+        }
+        window.dispatchEvent(new Event("cartUpdated"));
+        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
+      } catch (err) {
+        console.error("Lỗi thêm vào giỏ hàng:", err);
+        triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!", "error");
+      }
+    } else {
+      const cartKey = "agrimarket_cart";
+      const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
+      const idx = currentCart.findIndex((item) => String(item.id) === String(p.id));
+      if (idx > -1) {
+        currentCart[idx].quantity += 1;
+      } else {
+        currentCart.push({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          unit: p.unit,
+          imageUrl: p.imageUrl,
+          quantity: 1,
+          checked: true,
+          stockQuantity: p.stock ?? 100,
+          farmerId: p.farmerId || 1,
+          farmerName: p.farmerName || "",
+        });
+      }
+      localStorage.setItem(cartKey, JSON.stringify(currentCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
+    }
   };
 
   const formatPrice = (price) => {
@@ -1009,350 +1321,6 @@ export default function ProductDetail() {
     return val.charAt(0).toUpperCase() + val.slice(1);
   };
 
-  const renderPreorderDetail = () => {
-    if (!product) return null;
-
-    // Helper format VND
-    const formatVND = (number) => {
-      return new Intl.NumberFormat("vi-VN").format(number) + " đ";
-    };
-
-    const formatDateString = (dateStr) => {
-      if (!dateStr) return "";
-      const parts = dateStr.split("-");
-      if (parts.length !== 3) return dateStr;
-      const [y, m, d] = parts;
-      return `${d}/${m}/${y}`;
-    };
-
-    const handleQuantityChange = (newVal) => {
-      if (newVal < 1) return;
-      setQuantity(newVal);
-    };
-
-    const handleConfirmPreorder = () => {
-      const preorderId = "PO-" + Math.floor(100000 + Math.random() * 900000);
-      setPlacedPreorderId(preorderId);
-
-      const newPreorder = {
-        id: preorderId,
-        productId: product.id,
-        productName: product.name,
-        imageUrl: product.imageUrl,
-        price: product.price,
-        unit: product.unit,
-        quantity: quantity,
-        farmerId: product.farmerId,
-        farmerName: product.farmerName,
-        status: "paid",
-        expectedHarvest: product.expectedHarvest || product.harvestDate || "Cuối tháng 10, 2026",
-        deliveryWindow: product.deliveryWindow || "Từ 22/10 đến 30/10/2026",
-        totalAmount: totalAmount,
-        depositPaid: depositAmount,
-        remainingAmount: totalAmount - depositAmount,
-        createdAt: new Date().toLocaleDateString("vi-VN"),
-        deliveryOption: deliveryMode === "pickup" ? "Tự nhận tại nông trại" : `Giao tận nơi ngày ${formatDateString(customDate)}`,
-        specialInstructions: specialInstructions,
-        isPreorder: true
-      };
-
-      const existingPreorders = JSON.parse(localStorage.getItem("agrimarket_preorders")) || [];
-      localStorage.setItem("agrimarket_preorders", JSON.stringify([newPreorder, ...existingPreorders]));
-      window.dispatchEvent(new Event("preordersUpdated"));
-      setShowSuccessModal(true);
-    };
-
-    // Cost calculations
-    const pricePerUnit = product.price || 0;
-    const subtotal = pricePerUnit * quantity;
-    const deliveryFee = deliveryMode === "pickup" ? 0 : 35000;
-    const estimatedTaxes = Math.round(subtotal * 0.05); // 5% VAT
-    const totalAmount = subtotal + deliveryFee + estimatedTaxes;
-    const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
-
-    return (
-      <div className="preorder-checkout-page">
-        <Header activeTab="preorder" />
-
-        <main className="preorder-checkout-main">
-          {/* Breadcrumb */}
-          <nav className="preorder-breadcrumb">
-            <Link to="/">Trang chủ</Link>
-            <span className="separator">&gt;</span>
-            <Link to="/preorders">Đặt trước</Link>
-            <span className="separator">&gt;</span>
-            <span className="current">{product.name}</span>
-          </nav>
-
-          {/* Grid Layout */}
-          <div className="preorder-layout-grid">
-            
-            {/* Left Main Panels */}
-            <div className="preorder-left-column">
-              
-              {/* 1. Product Info Panel */}
-              <div className="preorder-card-panel preorder-product-card">
-                <div className="preorder-product-upper">
-                  <div className="preorder-image-wrapper">
-                    <img src={product.imageUrl} alt={product.name} />
-                    <span className="preorder-badge-pill">ĐẶT TRƯỚC</span>
-                  </div>
-
-                  <div className="preorder-details-info">
-                    <h2>{product.name}</h2>
-                    <div className="preorder-farm-row">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                      <span>Nông trại {product.farmerName || "Green Valley"}</span>
-                    </div>
-
-                    <div className="preorder-timeline-cards">
-                      <div className="timeline-box">
-                        <div className="box-label">DỰ KIẾN THU HOẠCH</div>
-                        <div className="box-value">{product.expectedHarvest || product.harvestDate || "Cuối tháng 10, 2026"}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="preorder-product-desc">
-                  {product.description || "Đặt trước sản phẩm của mùa vụ thu hoạch mới giúp đảm bảo nguồn cung tươi ngon nhất trực tiếp từ nông trại. Hỗ trợ nông dân yên tâm sản xuất với cam kết bao tiêu đầu ra chất lượng cao."}
-                </p>
-              </div>
-
-              {/* 2. Configure Preorder Form */}
-              <div className="preorder-card-panel">
-                <h3 className="config-title">Thông tin đặt trước</h3>
-
-                {/* Quantity */}
-                <div className="config-group">
-                  <label className="group-label">Chọn số lượng đặt trước ({product.unit || "kg"})</label>
-                  <div className="qty-selector-row">
-                    <div className="qty-control-buttons">
-                      <button 
-                        type="button" 
-                        className="qty-btn" 
-                        onClick={() => handleQuantityChange(quantity - 1)}
-                        disabled={quantity <= 1}
-                      >
-                        －
-                      </button>
-                      <input 
-                        type="text" 
-                        className="qty-input-text" 
-                        value={quantity}
-                        readOnly
-                      />
-                      <button 
-                        type="button" 
-                        className="qty-btn" 
-                        onClick={() => handleQuantityChange(quantity + 1)}
-                      >
-                        ＋
-                      </button>
-                    </div>
-                    <span className="price-indicator-text">{formatVND(pricePerUnit)} / {product.unit || "kg"}</span>
-                  </div>
-                </div>
-
-                {/* Preferred Delivery Date */}
-                <div className="config-group">
-                  <label className="group-label">Phương thức nhận hàng</label>
-                  <div className="delivery-options-grid-3">
-                    <div
-                      className={`delivery-opt-card-3 ${deliveryMode === "shipping" ? "selected" : ""}`}
-                      onClick={() => setDeliveryMode("shipping")}
-                    >
-                      <div className="opt-header-line">
-                        <span className="opt-date">Vận chuyển giao hàng</span>
-                        {deliveryMode === "shipping" && <span className="checkmark-circle">✓</span>}
-                      </div>
-                      <div className="opt-desc">Hệ thống sẽ giao đến địa chỉ của bạn vào ngày đã chọn</div>
-                    </div>
-
-                    <div
-                      className={`delivery-opt-card-3 ${deliveryMode === "pickup" ? "selected" : ""}`}
-                      onClick={() => setDeliveryMode("pickup")}
-                    >
-                      <div className="opt-header-line">
-                        <span className="opt-date">Tự nhận tại nông trại</span>
-                        {deliveryMode === "pickup" && <span className="checkmark-circle">✓</span>}
-                      </div>
-                      <div className="opt-desc">Nhận hàng trực tiếp tại nông trại vào ngày đã chọn</div>
-                    </div>
-                  </div>
-
-                  <div className="preorder-date-picker-wrapper" style={{ marginTop: "16px" }}>
-                    <label className="group-label" style={{ fontSize: "13.5px", color: "#475569", marginBottom: "8px", display: "block" }}>
-                      Chọn ngày nhận mong muốn trên lịch *
-                    </label>
-                    <input
-                      type="date"
-                      className="preorder-date-picker-input"
-                      value={customDate}
-                      onChange={(e) => setCustomDate(e.target.value)}
-                      min="2026-08-01"
-                      max="2026-12-31"
-                    />
-                  </div>
-                </div>
-
-                {/* Special Instructions */}
-                <div className="config-group" style={{ marginBottom: 0 }}>
-                  <label className="group-label">Ghi chú vận chuyển (Không bắt buộc)</label>
-                  <textarea
-                    className="special-instructions-area"
-                    placeholder="Nhập bất kỳ yêu cầu cụ thể nào về việc giao hàng của bạn..."
-                    value={specialInstructions}
-                    onChange={(e) => setSpecialInstructions(e.target.value)}
-                  />
-                </div>
-
-              </div>
-
-              {/* 3. Bottom Trust Badges */}
-              <div className="preorder-trust-badges">
-                <div className="trust-badge-item">
-                  <div className="trust-badge-icon leaf-icon">
-                    <Leaf size={20} />
-                  </div>
-                  <div className="trust-badge-text">
-                    <h4>Cam kết nông sản hữu cơ</h4>
-                    <p>Sản phẩm được trồng hoàn toàn tự nhiên, không sử dụng hóa chất bảo vệ thực vật độc hại.</p>
-                  </div>
-                </div>
-
-                <div className="trust-badge-item">
-                  <div className="trust-badge-icon shield-icon">
-                    <Shield size={20} />
-                  </div>
-                  <div className="trust-badge-text">
-                    <h4>Hủy đặt trước an toàn</h4>
-                    <p>Tiền đặt cọc của bạn được đảm bảo. Bạn có thể tự do hủy đặt hàng tối đa 14 ngày trước thời điểm thu hoạch.</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Right Column Sidebar Summary */}
-            <div className="preorder-right-column">
-              <div className="preorder-summary-card">
-                <h3 className="summary-title">Tóm tắt đơn đặt trước</h3>
-                
-                <div className="summary-rows">
-                  <div className="summary-item-line">
-                    <span>{quantity}x {product.name}</span>
-                    <span>{formatVND(subtotal)}</span>
-                  </div>
-                  <div className="summary-item-line">
-                    <span>Phí giao hàng (Tạm tính)</span>
-                    <span>{formatVND(deliveryFee)}</span>
-                  </div>
-                  <div className="summary-item-line">
-                    <span>Thuế VAT (5%)</span>
-                    <span>{formatVND(estimatedTaxes)}</span>
-                  </div>
-                  
-                  <div className="summary-item-line total-line">
-                    <span>Tổng giá trị ước tính</span>
-                    <span>{formatVND(totalAmount)}</span>
-                  </div>
-                </div>
-
-                {/* Deposit Highlights */}
-                <div className="deposit-required-box">
-                  <div className="deposit-header-row">
-                    <span className="deposit-label-text">Yêu cầu đặt cọc (20%)</span>
-                    <span className="deposit-val-text">{formatVND(depositAmount)}</span>
-                  </div>
-                  <span className="deposit-note-text">Thanh toán cọc hôm nay để giữ suất mua thu hoạch của nông trại.</span>
-                </div>
-
-                {/* Confirm Button */}
-                <button 
-                  type="button" 
-                  className="btn-confirm-preorder"
-                  onClick={handleConfirmPreorder}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: "8px"}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                  Xác nhận đặt trước
-                </button>
-
-                <p className="preorder-agreement-disclaimer">
-                  Bằng việc xác nhận, bạn đồng ý với Điều khoản và quy trình mua sắm đặt trước Seasonal Preorder của AgriMarket.
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Success Modal */}
-          {showSuccessModal && (
-            <div className="preorder-success-overlay">
-              <div className="preorder-success-modal">
-                <div className="success-check-badge">✓</div>
-                <h3>Đặt trước thành công!</h3>
-                <p className="success-msg">
-                  Đơn đặt trước của bạn đã được ghi nhận. Khoản đặt cọc 20% đã được mô phỏng thanh toán thành công.
-                </p>
-                
-                <div className="success-receipt-info">
-                  <div className="receipt-row">
-                    <span className="label">Mã đơn đặt trước:</span>
-                    <span className="value">{placedPreorderId}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Sản phẩm:</span>
-                    <span className="value">{product.name}</span>
-                  </div>
-                  <span className="receipt-row">
-                    <span className="label">Tổng số lượng:</span>
-                    <span className="value">{quantity} {product.unit || "kg"}</span>
-                  </span>
-                  <div className="receipt-row">
-                    <span className="label">Số tiền đặt cọc (20%):</span>
-                    <span className="value">{formatVND(depositAmount)}</span>
-                  </div>
-                  <div className="receipt-row">
-                    <span className="label">Ngày giao hàng mong muốn:</span>
-                    <span className="value">
-                      {deliveryMode === "pickup" ? "Tự nhận tại nông trại" : formatDateString(customDate)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="success-actions-col">
-                  <button 
-                    type="button" 
-                    className="btn-success-primary"
-                    onClick={() => {
-                      setShowSuccessModal(false);
-                      navigate("/preorders");
-                    }}
-                  >
-                    Quay lại Danh sách Đặt trước
-                  </button>
-                  <button 
-                    type="button" 
-                    className="btn-success-outline"
-                    onClick={() => {
-                      setShowSuccessModal(false);
-                      navigate("/");
-                    }}
-                  >
-                    Về Trang chủ
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </main>
-
-        <Footer />
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="product-detail-page">
@@ -1379,7 +1347,19 @@ export default function ProductDetail() {
   }
 
   if (product.isPreorder) {
-    return renderPreorderDetail();
+    return (
+      <PreorderProductDetail
+        product={product}
+        quantity={quantity}
+        setQuantity={setQuantity}
+        customDate={customDate}
+        setCustomDate={setCustomDate}
+        specialInstructions={specialInstructions}
+        setSpecialInstructions={setSpecialInstructions}
+        parsedLimits={parsedLimits}
+        formatDateString={formatDateString}
+      />
+    );
   }
 
   // Generate breadcrumb items dynamically
@@ -1703,10 +1683,12 @@ export default function ProductDetail() {
                     disabled={product.stock === 0}
                     style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="9" cy="21" r="1"></circle>
                       <circle cx="20" cy="21" r="1"></circle>
                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                      <line x1="12" y1="10" x2="16" y2="10"></line>
+                      <line x1="14" y1="8" x2="14" y2="12"></line>
                     </svg>
                     Thêm vào giỏ hàng
                   </button>
@@ -1782,7 +1764,15 @@ export default function ProductDetail() {
                 className={`btn-follow-farmer ${isFarmerFollowed ? "followed" : ""}`}
                 onClick={handleToggleFollowFarmer}
               >
-                {isFarmerFollowed ? "✓ Đang theo dõi" : "＋ Theo dõi"}
+                {isFarmerFollowed ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Check size={14} /> Đang theo dõi
+                  </span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Plus size={14} /> Theo dõi
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -1791,7 +1781,9 @@ export default function ProductDetail() {
 
       {/* Premium Product Details Section */}
       <section className="premium-details-section">
-        <h2 className="premium-main-title">📋 Thông tin chi tiết nông sản</h2>
+        <h2 className="premium-main-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <FileText size={22} /> Thông tin chi tiết nông sản
+        </h2>
 
         <div className="premium-grid-container">
           {/* CARD 1 - THÔNG TIN CƠ BẢN */}
@@ -1811,28 +1803,28 @@ export default function ProductDetail() {
             <div className="premium-header-green-line"></div>
             <div className="premium-card-content">
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">🏷️</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Tag size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Tên sản phẩm</span>
                   <span className="premium-info-value">{product.name}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">📦</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Package size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Danh mục</span>
                   <span className="premium-info-value">{product.category || "Rau củ quả tươi"}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">👨‍🌾</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><User size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Nhà vườn sản xuất</span>
                   <span className="premium-info-value">{product.farmerName || "Nông trại AgriMarket"}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">⚖️</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Scale size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Quy cách đóng gói</span>
                   <span className="premium-info-value">{product.unit || "Sản phẩm"}</span>
@@ -1859,7 +1851,7 @@ export default function ProductDetail() {
             <div className="premium-header-green-line"></div>
             <div className="premium-card-content">
               <div className={`premium-info-block premium-address-block`}>
-                <div className="premium-info-icon-wrapper">📍</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><MapPin size={18} /></div>
                 <div className="premium-info-text-box premium-address-text-box">
                   <span className="premium-info-label">Nơi thu hoạch</span>
                   <span className="premium-info-value premium-address-value">
@@ -1879,28 +1871,28 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">📅</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Calendar size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Ngày thu hoạch</span>
                   <span className="premium-info-value">{formatDate(product.harvestDate)}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">⏳</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Hourglass size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Hạn sử dụng</span>
                   <span className="premium-info-value">{formatDate(product.expirationDate)}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">🚚</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Truck size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Độ hư hỏng / Vận chuyển</span>
                   <span className="premium-info-value">{formatPerishability(product.perishability)}</span>
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">🌍</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Globe size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Khoảng cách giao</span>
                   <span className="premium-info-value">
@@ -1909,7 +1901,7 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-info-block">
-                <div className="premium-info-icon-wrapper">⭐</div>
+                <div className="premium-info-icon-wrapper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Star size={18} /></div>
                 <div className="premium-info-text-box">
                   <span className="premium-info-label">Tiêu chuẩn chất lượng</span>
                   <span className="premium-info-value">
@@ -1923,12 +1915,8 @@ export default function ProductDetail() {
           {/* CARD 3 - CAM KẾT AGRIMARKET */}
           <div className="premium-commitment-card">
             <div className="premium-commitment-header">
-              <div className="premium-header-icon-circle">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
-                  <circle cx="12" cy="8" r="6"></circle>
-                  <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
-                  <path d="m9 8 2 2 4-4"></path>
-                </svg>
+              <div className="premium-header-icon-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <Award size={22} className="premium-header-svg" />
               </div>
               <div className="premium-header-title-box">
                 <h3 className="premium-commitment-title">Cam kết từ AgriMarket</h3>
@@ -1938,10 +1926,8 @@ export default function ProductDetail() {
 
             <div className="premium-commitment-content">
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">100% Tươi sạch tự nhiên</h4>
@@ -1949,10 +1935,8 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">Đền bù nếu nông sản dập nát</h4>
@@ -1960,10 +1944,8 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">Nhà vườn được xác minh</h4>
@@ -1971,10 +1953,8 @@ export default function ProductDetail() {
                 </div>
               </div>
               <div className="premium-sub-commitment-card">
-                <div className="premium-check-circle">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+                <div className="premium-check-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <Check size={10} strokeWidth={3} />
                 </div>
                 <div className="premium-commitment-text-box">
                   <h4 className="premium-sub-title">Quy trình vận chuyển an toàn</h4>
@@ -1994,13 +1974,8 @@ export default function ProductDetail() {
         {/* CARD 4 - MÔ TẢ SẢN PHẨM (Full-width) */}
         <div className="premium-card description-card-full">
           <div className="premium-card-header">
-            <div className="premium-header-icon-circle">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="premium-header-svg">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-              </svg>
+            <div className="premium-header-icon-circle" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <FileText size={22} className="premium-header-svg" />
             </div>
             <div className="premium-header-title-box">
               <h3 className="premium-card-title">Mô tả sản phẩm</h3>
@@ -2023,7 +1998,9 @@ export default function ProductDetail() {
 
         {/* FAQ Accordion */}
         <div className="details-faq-accordion-section">
-          <h2 className="faq-section-title-main">💬 Câu hỏi thường gặp (FAQ)</h2>
+          <h2 className="faq-section-title-main" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <MessageCircle size={22} /> Câu hỏi thường gặp (FAQ)
+          </h2>
           <div className="faq-accordion-container">
             {agriDetails.faq.map((faqItem, idx) => {
               const isOpen = activeFaq === idx;
@@ -2031,10 +2008,8 @@ export default function ProductDetail() {
                 <div key={idx} className={`faq-accordion-item ${isOpen ? "open" : ""}`}>
                   <button className="faq-accordion-question" onClick={() => toggleFaq(idx)} aria-expanded={isOpen}>
                     <span>{faqItem.q}</span>
-                    <span className="faq-arrow-icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                    <span className="faq-arrow-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                      <ChevronDown size={18} style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
                     </span>
                   </button>
                   <div className="faq-accordion-answer">
@@ -2102,6 +2077,60 @@ export default function ProductDetail() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Hiển thị tag đánh giá */}
+                    {rev.tags && rev.tags.length > 0 && (
+                      <div className="detail-review-tags">
+                        {rev.tags.map((tag, idx) => (
+                          <span key={idx} className="detail-tag-badge" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <Check size={12} />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hiển thị đánh giá chi tiết */}
+                    {rev.specificRatings && Object.keys(rev.specificRatings).length > 0 && (
+                      <div className="detail-specific-ratings">
+                        {Object.entries(rev.specificRatings).map(([key, rating]) => {
+                          if (!rating || rating === 0) return null;
+                          let label = "";
+                          switch (key) {
+                            case "quality":
+                              label = "Chất lượng";
+                              break;
+                            case "freshness":
+                              label = "Độ tươi ngon";
+                              break;
+                            case "packaging":
+                              label = "Đóng gói";
+                              break;
+                            case "delivery":
+                              label = "Giao hàng";
+                              break;
+                            default:
+                              label = key;
+                          }
+                          return (
+                            <div key={key} className="detail-specific-rating-item">
+                              <span className="detail-specific-label">{label}:</span>
+                              <span className="detail-specific-stars">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <span
+                                    key={star}
+                                    className={`rating-star-icon ${star <= rating ? "filled" : ""}`}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <p className="review-item-comment">{rev.comment}</p>
 
                     {/* Hiển thị hình ảnh đính kèm */}
@@ -2146,7 +2175,7 @@ export default function ProductDetail() {
 
         <div className="related-grid">
           {relatedProducts.map((p) => {
-            const isRelatedSaved = savedRelatedIds.has(p.id);
+            const isRelatedSaved = savedRelatedIds.has(String(p.id));
             return (
               <div key={p.id} className="related-card">
                 <div className="related-card-img-wrapper" onClick={() => navigate(`/products/${p.id}`)} style={{ cursor: "pointer" }}>
@@ -2176,25 +2205,7 @@ export default function ProductDetail() {
 
                     <button
                       className="related-add-cart-btn"
-                      onClick={() => {
-                        const cartKey = "agrimarket_cart";
-                        const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
-                        const idx = currentCart.findIndex(item => item.id === p.id);
-                        if (idx > -1) {
-                          currentCart[idx].quantity += 1;
-                        } else {
-                          currentCart.push({
-                            id: p.id,
-                            name: p.name,
-                            price: p.price,
-                            unit: p.unit,
-                            imageUrl: p.imageUrl,
-                            quantity: 1
-                          });
-                        }
-                        localStorage.setItem(cartKey, JSON.stringify(currentCart));
-                        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`);
-                      }}
+                      onClick={() => handleAddRelatedToCart(p)}
                       aria-label="Add to cart"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -2211,38 +2222,7 @@ export default function ProductDetail() {
       </section>
 
       {/* Footer Sync from Home */}
-      <footer className="home-footer">
-        <div className="footer-container">
-          <div className="footer-left">
-            <div className="footer-logo">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="logo-tractor"
-              >
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              <span className="logo-text">AgriMarket</span>
-            </div>
-            <p className="footer-copy">© 2026 AgriMarket. Kết nối Nông nghiệp số.</p>
-          </div>
-          <div className="footer-right">
-            <Link to="/help" className="footer-link">Trung tâm trợ giúp</Link>
-            <Link to="/privacy" className="footer-link">Chính sách bảo mật</Link>
-            <Link to="/terms" className="footer-link">Điều khoản dịch vụ</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Lightbox Modal overlay */}
       {isLightboxOpen && allImages.length > 0 && (
@@ -2356,15 +2336,30 @@ export default function ProductDetail() {
         </div>
       )}
 
-      {/* Global Action Toast Notification Container */}
-      <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className="product-detail-toast">
-            <span>{t.type === "error" ? "❌" : "✅"}</span>
-            <span>{t.message}</span>
-          </div>
-        ))}
-      </div>
+      {/* Global Action Toast Notification */}
+      {toastMessage && (
+        <div className={`pl-toast pl-toast-${toastType}`}>
+          {toastType === "success" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          ) : toastType === "error" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          )}
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

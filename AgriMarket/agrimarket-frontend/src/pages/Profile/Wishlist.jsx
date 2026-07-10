@@ -1,7 +1,7 @@
 // src/pages/Profile/Wishlist.jsx
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Search, Tractor, Apple, X, MapPin, CheckCircle2, XCircle, AlertTriangle, Sprout, Leaf, Star } from "lucide-react";
 import useProfile from "../../hooks/useProfile";
 import ProfileLayout from "../../components/profile/ProfileLayout";
 import ProfileHeader from "../../components/profile/ProfileHeader";
@@ -210,7 +210,7 @@ export default function Wishlist() {
             }
           />
           <div className="wishlist-search-wrapper">
-            <span className="search-icon-glass">🔍</span>
+            <Search className="search-icon-glass" size={16} />
             <input
               type="text"
               placeholder={
@@ -230,14 +230,18 @@ export default function Wishlist() {
           <button
             className={`wishlist-sec-btn ${activeSection === "PRODUCTS" ? "active" : ""}`}
             onClick={() => setActiveSection("PRODUCTS")}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}
           >
-            🍎 Sản phẩm yêu thích ({productCounts.all})
+            <Apple size={16} />
+            Sản phẩm yêu thích ({productCounts.all})
           </button>
           <button
             className={`wishlist-sec-btn ${activeSection === "FARMERS" ? "active" : ""}`}
             onClick={() => setActiveSection("FARMERS")}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}
           >
-            🚜 Nhà vườn yêu thích ({followedFarmers.length})
+            <Tractor size={16} />
+            Nhà vườn yêu thích ({followedFarmers.length})
           </button>
         </div>
 
@@ -306,7 +310,7 @@ export default function Wishlist() {
                         {p.imageUrl ? (
                           <img src={p.imageUrl} alt={p.name} className="wishlist-prod-img" />
                         ) : (
-                          <div className="wishlist-img-fallback">🌾</div>
+                          <div className="wishlist-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={28} /></div>
                         )}
 
                         {status === "IN_STOCK" && (
@@ -365,19 +369,20 @@ export default function Wishlist() {
                               title="Thêm vào giỏ"
                             >
                               <svg
-                                xmlns="http://www.w3.org/2000/svg"
                                 width="16"
                                 height="16"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
-                                strokeWidth="2.5"
+                                strokeWidth="2.2"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               >
                                 <circle cx="9" cy="21" r="1"></circle>
                                 <circle cx="20" cy="21" r="1"></circle>
                                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                <line x1="12" y1="10" x2="16" y2="10"></line>
+                                <line x1="14" y1="8" x2="14" y2="12"></line>
                               </svg>
                             </button>
                           )}
@@ -401,7 +406,7 @@ export default function Wishlist() {
             /* ================= FARMERS VIEW ================= */
             filteredFarmers.length === 0 ? (
               <div className="wishlist-empty-box glassmorphic-card">
-                <span className="wishlist-empty-emoji">🚜</span>
+                <Tractor className="wishlist-empty-emoji" size={48} style={{ color: "#84918c", marginBottom: "16px" }} />
                 <h3>Chưa có nhà vườn nào</h3>
                 <p>
                   {searchKeyword
@@ -427,8 +432,9 @@ export default function Wishlist() {
                         className="wishlist-unfollow-btn"
                         onClick={() => handleUnfollowFarmer(f.id, f.name)}
                         title="Hủy theo dõi"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                       >
-                        ×
+                        <X size={14} />
                       </button>
 
                       {/* Header section (Avatar & Info) */}
@@ -444,8 +450,8 @@ export default function Wishlist() {
                         </div>
                         <div className="wishlist-farmer-title">
                           <h3>{f.name}</h3>
-                          <p className="wishlist-farmer-loc">
-                            <span className="loc-icon">📍</span>
+                          <p className="wishlist-farmer-loc" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <MapPin className="loc-icon" size={14} />
                             {f.location}
                           </p>
                         </div>
@@ -453,9 +459,9 @@ export default function Wishlist() {
 
                       {/* Certifications Row */}
                       <div className="wishlist-farmer-certs">
-                        {f.organicUrl && <span className="farmer-cert-badge organic">🌱 Hữu cơ</span>}
-                        {f.vietgapUrl && <span className="farmer-cert-badge vietgap">✓ VietGAP</span>}
-                        {f.globalgapUrl && <span className="farmer-cert-badge globalgap">★ GlobalGAP</span>}
+                        {f.organicUrl && <span className="farmer-cert-badge organic" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Leaf size={11} /> Hữu cơ</span>}
+                        {f.vietgapUrl && <span className="farmer-cert-badge vietgap" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><CheckCircle2 size={11} /> VietGAP</span>}
+                        {f.globalgapUrl && <span className="farmer-cert-badge globalgap" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Star size={11} /> GlobalGAP</span>}
                         {!f.organicUrl && !f.vietgapUrl && !f.globalgapUrl && (
                           <span className="farmer-cert-badge standard">Nông sản sạch</span>
                         )}
@@ -489,12 +495,18 @@ export default function Wishlist() {
       {/* Custom Toast Notification */}
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
-          <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+          <span className="custom-toast-icon" style={{ display: "inline-flex", alignItems: "center" }}>
+            {toast.type === "success" ? (
+              <CheckCircle2 size={18} color="#10b981" />
+            ) : toast.type === "error" ? (
+              <XCircle size={18} color="#ef4444" />
+            ) : (
+              <AlertTriangle size={18} color="#f59e0b" />
+            )}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
-          <button className="custom-toast-close" onClick={() => setToast({ show: false })}>
-            ×
+          <button className="custom-toast-close" onClick={() => setToast({ show: false })} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} />
           </button>
         </div>
       )}

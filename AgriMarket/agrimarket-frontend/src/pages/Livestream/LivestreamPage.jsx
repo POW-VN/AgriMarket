@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../components/common/Header/Header";
+import AgoraRTC from "agora-rtc-sdk-ng";
+import apiClient from "../../services/apiClient";
+import wishlistService from "../../services/wishlistService";
 import "./LivestreamPage.css";
 
-// Import images from the assets folder
-import farmerVideoImg from "../../assets/images/farmer_livestream_video.png";
-import farmerAvatarImg from "../../assets/images/thomas_miller_avatar.png";
-import honeyImg from "../../assets/images/wildflower_honey.png";
-import carrotsImg from "../../assets/images/rainbow_carrots.png";
+
 
 const LivestreamPage = () => {
   const { id } = useParams();
@@ -30,320 +29,257 @@ const LivestreamPage = () => {
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
-  // Shop Direct Chat state
-  const [isShopChatOpen, setIsShopChatOpen] = useState(false);
-  const [shopChatInput, setShopChatInput] = useState("");
-  const [shopChatMessages, setShopChatMessages] = useState([]);
+
 
   // Chat state
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
 
   // Upcoming subscription state
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem("subscribed_lives")) || [];
+      return list.map(x => x.toString()).includes(id?.toString());
+    } catch (e) {
+      return false;
+    }
+  });
 
-  const chatEndRef = useRef(null);
+  // Agora & Backend Stream integration states
+  const [agoraToken, setAgoraToken] = useState(null);
+  const [agoraAppId, setAgoraAppId] = useState("");
+  const [agoraChannelName, setAgoraChannelName] = useState("");
+  const [backendStream, setBackendStream] = useState(null);
+  const rtcRef = useRef({ client: null, remoteVideoTrack: null, remoteAudioTrack: null });
+  const videoRef = useRef(null);
+
+  const chatContainerRef = useRef(null);
+  const [tabId] = useState(() => Math.random().toString(36).substring(2) + Date.now().toString(36));
   const videoTimerRef = useRef(null);
   const voucherTimerRef = useRef(null);
   const chatSimRef = useRef(null);
 
-  // Farmers and Livestreams Dynamic Database
-  const streamsMap = {
-    "thomas-miller": {
-      id: "thomas-miller",
-      farmerName: "Thomas Miller",
-      farmerBrand: "Sun Valley Organics",
-      farmerAvatar: farmerAvatarImg,
-      title: "Thu hoạch mật ong rừng nguyên chất & Cà rốt hữu cơ",
-      status: "live",
-      viewersCount: "1.2k đang xem",
-      videoSrc: farmerVideoImg,
-      voucherTitle: "Giảm 20% Mật ong rừng",
-      voucherTimeInit: 296,
-      products: [
-        {
-          id: "mock-honey-1",
-          name: "Mật ong hoa rừng nguyên chất",
-          price: 12.99,
-          unit: "Hũ 500g",
-          imageUrl: honeyImg,
-          farmerId: 1,
-          farmerName: "Thomas Miller (Sun Valley Organics)",
-          stockQuantity: 50
-        },
-        {
-          id: "mock-carrots-1",
-          name: "Cà rốt bảy sắc hữu cơ",
-          price: 4.50,
-          unit: "Bó 500g",
-          imageUrl: carrotsImg,
-          farmerId: 1,
-          farmerName: "Thomas Miller (Sun Valley Organics)",
-          stockQuantity: 100
-        }
-      ],
-      initialChats: [
-        {
-          id: 1,
-          user: "Sarah J.",
-          text: "Cà rốt vụ này ngọt không nhà vườn?",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"
-        },
-        {
-          id: 2,
-          user: "Mike L.",
-          text: "Vừa đặt mua 2 hũ mật ong! 🍯",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100"
-        },
-        {
-          id: 3,
-          user: "Hệ thống AgriMarket",
-          text: "Đừng quên nhận voucher giảm giá 20% trước khi phiên livestream kết thúc nhé!",
-          isBot: true,
-          avatar: ""
-        },
-        {
-          id: 4,
-          user: "Elena U.",
-          text: "Khi nào thì có đợt thu hoạch tiếp theo vậy?",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100"
-        }
-      ]
-    },
-    "sarah-jenkins": {
-      id: "sarah-jenkins",
-      farmerName: "Sarah Jenkins",
-      farmerBrand: "Green Valley Farms",
-      farmerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
-      title: "Trải nghiệm hái dâu tây chín mọng tại vườn organic Đà Lạt",
-      status: "live",
-      viewersCount: "856 đang xem",
-      videoSrc: "https://images.unsplash.com/photo-1518635017498-87f514b751ba?w=800",
-      voucherTitle: "Giảm 15% Dâu tây tươi",
-      voucherTimeInit: 450,
-      products: [
-        {
-          id: "mock-strawberry-1",
-          name: "Dâu tây hữu cơ loại A",
-          price: 8.99,
-          unit: "Hộp 500g",
-          imageUrl: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300",
-          farmerId: 2,
-          farmerName: "Sarah Jenkins (Green Valley Farms)",
-          stockQuantity: 40
-        },
-        {
-          id: "mock-strawberry-juice-1",
-          name: "Sinh tố dâu tây nguyên chất",
-          price: 3.50,
-          unit: "Chai 350ml",
-          imageUrl: "https://images.unsplash.com/photo-1502741224143-90386d7c8c82?w=300",
-          farmerId: 2,
-          farmerName: "Sarah Jenkins (Green Valley Farms)",
-          stockQuantity: 80
-        }
-      ],
-      initialChats: [
-        {
-          id: 1,
-          user: "Hoàng M.",
-          text: "Dâu tây này vận chuyển đi Hà Nội có sợ bị dập không ạ?",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100"
-        },
-        {
-          id: 2,
-          user: "Kim Cương",
-          text: "Em vừa mua 2 hộp, dâu to chín ngọt lắm mng nên mua nha!",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100"
-        },
-        {
-          id: 3,
-          user: "Hệ thống AgriMarket",
-          text: "Nhấn 'Nhận Voucher' để nhận mã giảm giá 15% độc quyền tại phiên live này!",
-          isBot: true,
-          avatar: ""
-        }
-      ]
-    },
-    "tran-nam": {
-      id: "tran-nam",
-      farmerName: "Trần Văn Nam",
-      farmerBrand: "Nông trại sữa bò Ba Vì",
-      farmerAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-      title: "Quy trình vắt sữa bò tươi hữu cơ chuẩn VietGAP mỗi sáng",
-      status: "upcoming",
-      viewersCount: "420 đã đăng ký",
-      videoSrc: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800",
-      voucherTitle: "Giảm 10% Sữa tươi nguyên chất",
-      voucherTimeInit: 0,
-      products: [
-        {
-          id: "mock-milk-1",
-          name: "Sữa bò tươi nguyên chất tiệt trùng",
-          price: 2.49,
-          unit: "Chai 1 Lít",
-          imageUrl: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300",
-          farmerId: 3,
-          farmerName: "Trần Văn Nam (Nông trại sữa bò Ba Vì)",
-          stockQuantity: 200
-        },
-        {
-          id: "mock-yogurt-1",
-          name: "Sữa chua nếp cẩm Ba Vì",
-          price: 1.20,
-          unit: "Hũ 100g",
-          imageUrl: "https://images.unsplash.com/photo-1571244856341-4f30dd55a0ab?w=300",
-          farmerId: 3,
-          farmerName: "Trần Văn Nam (Nông trại sữa bò Ba Vì)",
-          stockQuantity: 150
-        }
-      ],
-      initialChats: [
-        {
-          id: 1,
-          user: "Thu Hương",
-          text: "Trang trại mở cửa cho khách vào tham quan vắt sữa không ạ?",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"
-        },
-        {
-          id: 2,
-          user: "Trần Văn Nam",
-          text: "Dạ nông trại sữa bò Ba Vì xin chào cả nhà, hẹn gặp mọi người vào 8h sáng mai nhé!",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"
-        }
-      ],
-      scheduledTime: "08:00 AM, Ngày mai"
-    },
-    "nguyen-mai": {
-      id: "nguyen-mai",
-      farmerName: "Nguyễn Thị Mai",
-      farmerBrand: "Vườn trái cây chín miền Tây",
-      farmerAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-      title: "Thu hoạch sầu riêng Ri6 chín rụng từ cây & Hướng dẫn lựa sầu cực chuẩn",
-      status: "replay",
-      viewersCount: "2.4k lượt xem",
-      videoSrc: "https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=800",
-      voucherTitle: "Voucher đã hết hạn",
-      voucherTimeInit: 0,
-      products: [
-        {
-          id: "mock-durian-1",
-          name: "Sầu riêng Ri6 chín cây cơm vàng hạt lép",
-          price: 14.99,
-          unit: "Kg",
-          imageUrl: "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=300",
-          farmerId: 4,
-          farmerName: "Nguyễn Thị Mai (Vườn trái cây chín miền Tây)",
-          stockQuantity: 30
-        },
-        {
-          id: "mock-pia-1",
-          name: "Bánh pía sầu riêng tươi đặc sản",
-          price: 5.99,
-          unit: "Túi 4 cái",
-          imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300",
-          farmerId: 4,
-          farmerName: "Nguyễn Thị Mai (Vườn trái cây chín miền Tây)",
-          stockQuantity: 120
-        }
-      ],
-      initialChats: [
-        {
-          id: 1,
-          user: "Tuấn Anh",
-          text: "Sầu riêng này bao ăn không chị ơi?",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100"
-        },
-        {
-          id: 2,
-          user: "Nguyễn Thị Mai",
-          text: "Bao một đổi một nếu bị sượng hay nhạt luôn nha em!",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"
-        },
-        {
-          id: 3,
-          user: "Thảo Vy",
-          text: "Thèm quá, vừa đặt 1 quả 3kg nha vườn.",
-          isBot: false,
-          avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100"
-        },
-        {
-          id: 4,
-          user: "Hệ thống AgriMarket",
-          text: "Phiên livestream này đã kết thúc. Quý khách có thể mua các sản phẩm với giá niêm yết của nhà vườn.",
-          isBot: true,
-          avatar: ""
-        }
-      ]
-    }
-  };
-
-  // Get active stream data based on id, default to thomas-miller if not found
+  // Fallback default placeholder stream data
   const getStreamData = () => {
-    let data = streamsMap[id];
-    if (!data) {
-      try {
-        const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-        const found = storedLives.find((item) => item.id === id);
-        if (found) {
-          data = {
-            ...found,
-            viewersCount: found.viewers || "120 đang xem",
-            videoSrc: found.videoSrc || found.thumbnail,
-            voucherTimeInit: found.voucherPercent > 0 ? 300 : 0,
-            initialChats: [
-              {
-                id: 1,
-                user: "Hệ thống AgriMarket",
-                text: "Chào mừng quý khách đến với livestream trực tiếp của nhà vườn!",
-                isBot: true,
-                avatar: ""
-              }
-            ]
-          };
-        }
-      } catch (e) {
-        console.error("Lỗi khi tìm custom livestream:", e);
-      }
-    }
-    return data || streamsMap["thomas-miller"];
+    return {
+      id: "thomas-miller",
+      farmerName: "Nhà vườn",
+      farmerBrand: "Nông trại sạch địa phương",
+      farmerAvatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+      title: "Đang tải livestream...",
+      description: "",
+      status: "live",
+      viewersCount: "0 đang xem",
+      videoSrc: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=800",
+      voucherTitle: "Voucher nhà vườn",
+      voucherTimeInit: 300,
+      products: []
+    };
   };
 
   const [activeStream, setActiveStream] = useState(null);
-  const streamData = activeStream || getStreamData();
+  const rawStreamData = backendStream || activeStream || getStreamData();
+  
+  const startTimeStr = rawStreamData.startTime ? new Date(rawStreamData.startTime).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }) + " - " + new Date(rawStreamData.startTime).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }) : rawStreamData.scheduledTime || "Chưa lên lịch";
 
-  // Initialize page variables when streamData changes, and poll for changes in LocalStorage
+  const streamData = {
+    ...rawStreamData,
+    status: rawStreamData.status === "active" ? "live" : rawStreamData.status,
+    scheduledTime: startTimeStr
+  };
+
+  // Initialize page variables when streamData changes, and poll for changes in LocalStorage or Backend
   useEffect(() => {
-    const data = getStreamData();
-    setActiveStream(data);
-    setVoucherTime(data.voucherTimeInit);
-    setVoucherClaimed(false);
-    setChatMessages(data.initialChats);
-    setIsFollowing(false);
-    setIsShopChatOpen(false);
-    setShopChatMessages([]);
+    // Reset states
+    setBackendStream(null);
+    setAgoraToken(null);
+    setAgoraAppId("");
+    setAgoraChannelName("");
 
-    const interval = setInterval(() => {
-      const latestData = getStreamData();
-      setActiveStream((prev) => {
-        if (!prev || prev.status !== latestData.status || prev.isBanned !== latestData.isBanned) {
-          return latestData;
+    const isNumericId = /^\d+$/.test(id);
+
+    const loadStream = async () => {
+      let currentFarmerId = null;
+      if (isNumericId) {
+        try {
+          const response = await apiClient.get(`/api/livestreams/${id}`);
+          const data = response.data;
+          setBackendStream(data);
+          setAgoraToken(data.token);
+          setAgoraAppId(data.appId);
+          setAgoraChannelName(data.channelName);
+          setVoucherTime(300); // 5 mins dummy voucher timer
+          setVoucherClaimed(false);
+          setChatMessages([
+            { id: "sys-1", type: "system", text: "Hệ thống: Chào mừng bạn đến với livestream trực tiếp của nhà vườn!" }
+          ]);
+          currentFarmerId = data.farmerId;
+        } catch (err) {
+          console.error("Lỗi tải livestream từ backend:", err);
+          setBackendStream({
+            status: "ended",
+            title: "Phiên livestream đã kết thúc",
+            description: "Nhà vườn đã ngắt kết nối phiên livestream này.",
+            farmerName: "Nhà vườn",
+            farmerBrand: "Đang ngoại tuyến",
+            farmerAvatar: "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=150",
+            viewersCount: 0,
+            heartsCount: 0,
+            products: []
+          });
         }
-        return prev;
-      });
+      } else {
+        const data = getStreamData();
+        setActiveStream(data);
+        setVoucherTime(data.voucherTimeInit);
+        setVoucherClaimed(false);
+        setChatMessages(data.initialChats);
+        currentFarmerId = data.farmerId;
+      }
+      
+      if (currentFarmerId) {
+        try {
+          const followed = await wishlistService.isFarmerFollowed(currentFarmerId);
+          setIsFollowing(followed);
+        } catch (err) {
+          console.error("Lỗi đồng bộ trạng thái follow:", err);
+          setIsFollowing(false);
+        }
+      } else {
+        setIsFollowing(false);
+      }
+      setIsShopChatOpen(false);
+      setShopChatMessages([]);
+    };
+
+    loadStream();
+
+    if (isNumericId) {
+      apiClient.post(`/api/livestreams/${id}/join?tabId=${tabId}`).catch(err => console.error(err));
+    }
+
+    const handleBeforeUnload = () => {
+      if (isNumericId) {
+        const url = `${apiClient.defaults.baseURL || ""}/api/livestreams/${id}/leave?tabId=${tabId}`;
+        navigator.sendBeacon(url);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (isNumericId) {
+        apiClient.post(`/api/livestreams/${id}/leave?tabId=${tabId}`).catch(err => console.error(err));
+      }
+    };
+  }, [id, tabId]);
+
+  // Sync livestream details and comments from backend (numeric IDs only)
+  useEffect(() => {
+    const isNumericId = /^\d+$/.test(id);
+    if (!isNumericId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const detailRes = await apiClient.get(`/api/livestreams/${id}`);
+        const data = detailRes.data;
+        setBackendStream(data);
+
+        // Check if stream ended
+        if (data.status !== "active") {
+          setIsPlaying(false);
+          if (rtcRef.current.client) {
+            await rtcRef.current.client.leave();
+            rtcRef.current.client = null;
+          }
+          clearInterval(interval);
+          return;
+        }
+
+        // Fetch comments
+        const commentsRes = await apiClient.get(`/api/livestreams/${id}/comments`);
+        setChatMessages((prev) => {
+          const systemMsgs = prev.filter(m => m.type === "system");
+          const dbMsgs = commentsRes.data.map(c => ({
+            id: `comment-${c.id}`,
+            user: c.user,
+            text: c.text,
+            avatar: c.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
+            isHost: c.isHost
+          }));
+          return [...systemMsgs, ...dbMsgs];
+        });
+      } catch (err) {
+        console.error("Lỗi đồng bộ dữ liệu live từ backend:", err);
+        // Nếu lỗi 404 tức là livestream đã kết thúc và bị xóa khỏi cơ sở dữ liệu
+        if (err.response && err.response.status === 404) {
+          setBackendStream(prev => prev ? { ...prev, status: "ended" } : { status: "ended" });
+          setIsPlaying(false);
+          if (rtcRef.current.client) {
+            rtcRef.current.client.leave().catch(e => console.error("Lỗi ngắt kết nối Agora:", e));
+            rtcRef.current.client = null;
+          }
+          clearInterval(interval);
+        }
+      }
     }, 2000);
 
     return () => clearInterval(interval);
   }, [id]);
+
+  // Join Agora Channel for spectator
+  useEffect(() => {
+    if (!agoraAppId || !agoraChannelName || !agoraToken) return;
+
+    let client;
+    const joinAgoraChannel = async () => {
+      try {
+        client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+        await client.setClientRole("audience");
+
+        // Handle remote stream publishing event
+        client.on("user-published", async (user, mediaType) => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === "video") {
+            const remoteVideoTrack = user.videoTrack;
+            rtcRef.current.remoteVideoTrack = remoteVideoTrack;
+            if (videoRef.current) {
+              remoteVideoTrack.play(videoRef.current);
+            }
+          }
+          if (mediaType === "audio") {
+            const remoteAudioTrack = user.audioTrack;
+            rtcRef.current.remoteAudioTrack = remoteAudioTrack;
+            remoteAudioTrack.play();
+          }
+        });
+
+        await client.join(agoraAppId, agoraChannelName, agoraToken, null);
+        rtcRef.current.client = client;
+      } catch (err) {
+        console.error("Lỗi kết nối Agora RTC:", err);
+      }
+    };
+
+    joinAgoraChannel();
+
+    return () => {
+      if (rtcRef.current.remoteVideoTrack) rtcRef.current.remoteVideoTrack.stop();
+      if (rtcRef.current.remoteAudioTrack) rtcRef.current.remoteAudioTrack.stop();
+      if (client) {
+        client.leave().catch(e => console.error(e));
+      }
+      rtcRef.current.client = null;
+    };
+  }, [agoraToken, agoraAppId, agoraChannelName]);
 
   // Random names and messages for simulating other users' chat comments (Live only)
   const mockUsers = [
@@ -406,7 +342,8 @@ const LivestreamPage = () => {
 
   // 2. Automated chat comments simulator (Live only)
   useEffect(() => {
-    if (streamData.status !== "live") return;
+    const isNumericId = /^\d+$/.test(id);
+    if (streamData.status !== "live" || isNumericId) return;
 
     chatSimRef.current = setInterval(() => {
       const randomUser = mockUsers[Math.floor(Math.random() * mockUsers.length)];
@@ -428,7 +365,7 @@ const LivestreamPage = () => {
     }, 7000);
 
     return () => clearInterval(chatSimRef.current);
-  }, [id]);
+  }, [id, streamData.status, streamData.farmerName]);
 
   // 3. Scroll to bottom when messages list updates
   useEffect(() => {
@@ -436,7 +373,12 @@ const LivestreamPage = () => {
   }, [chatMessages]);
 
   const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   // Format time (seconds to hh:mm:ss)
@@ -472,6 +414,29 @@ const LivestreamPage = () => {
     setIsMuted(!isMuted);
   };
 
+  const handleFullscreen = () => {
+    const container = document.querySelector(".video-player-container");
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().catch((err) => {
+        console.error("Lỗi khi mở toàn màn hình:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    if (rtcRef.current && rtcRef.current.remoteAudioTrack) {
+      if (isMuted) {
+        rtcRef.current.remoteAudioTrack.setVolume(0);
+      } else {
+        rtcRef.current.remoteAudioTrack.setVolume(volume);
+      }
+    }
+  }, [volume, isMuted]);
+
   // Claim voucher click handler
   const handleClaimVoucher = () => {
     if (streamData.status !== "live") return;
@@ -481,78 +446,111 @@ const LivestreamPage = () => {
   };
 
   // Follow farmer click handler
-  const handleFollowToggle = () => {
-    setIsFollowing(!isFollowing);
-    if (!isFollowing) {
-      showToast(`Đã theo dõi nhà vườn ${streamData.farmerName}. Bạn sẽ nhận được thông báo khi nông trại ${streamData.farmerBrand} lên sóng livestream lần tới!`, "success");
-    } else {
-      showToast(`Đã hủy theo dõi nhà vườn ${streamData.farmerName}.`, "info");
+  const handleFollowToggle = async () => {
+    if (!streamData || !streamData.farmerId) return;
+    try {
+      const farmerObj = {
+        id: streamData.farmerId,
+        name: streamData.farmerName,
+        avatarUrl: streamData.farmerAvatar,
+        farmName: streamData.farmerBrand
+      };
+      const res = await wishlistService.toggleFollowFarmer(farmerObj);
+      setIsFollowing(res.followed);
+      showToast(res.message, res.followed ? "success" : "info");
+    } catch (err) {
+      console.error("Lỗi toggle follow farmer:", err);
     }
   };
 
   // Subscribe to upcoming livestream
   const handleToggleSubscribe = () => {
-    setIsSubscribed(!isSubscribed);
-    if (!isSubscribed) {
-      showToast(`Đăng ký thành công! Bạn sẽ nhận được thông báo trước khi phiên live của ${streamData.farmerName} lên sóng.`, "success");
-    } else {
-      showToast(`Đã hủy đăng ký nhận thông báo.`, "info");
+    try {
+      const list = JSON.parse(localStorage.getItem("subscribed_lives")) || [];
+      const idStr = id?.toString();
+      let nextList;
+      if (list.map(x => x.toString()).includes(idStr)) {
+        nextList = list.filter(x => x.toString() !== idStr);
+        setIsSubscribed(false);
+        showToast(`Đã hủy đăng ký nhận thông báo.`, "info");
+      } else {
+        nextList = [...list, idStr];
+        setIsSubscribed(true);
+        showToast(`Đăng ký thành công! Bạn sẽ nhận được thông báo trước khi phiên live của ${streamData.farmerName} lên sóng.`, "success");
+      }
+      localStorage.setItem("subscribed_lives", JSON.stringify(nextList));
+    } catch (e) {
+      console.error(e);
+      setIsSubscribed(!isSubscribed);
     }
   };
 
   // Shop direct message handlers
   const handleOpenShopChat = () => {
-    setIsShopChatOpen(true);
-    if (shopChatMessages.length === 0) {
-      setShopChatMessages([
-        {
-          sender: "shop",
-          text: `Xin chào! Tôi là ${streamData.farmerName} từ trang trại ${streamData.farmerBrand}. Rất vui được hỗ trợ bạn. Bạn cần tư vấn thêm về sản phẩm nông sản đang live ạ?`
-        }
-      ]);
+    if (streamData && streamData.farmerId) {
+      window.dispatchEvent(
+        new CustomEvent("open_agrimarket_chat", {
+          detail: { farmId: streamData.farmerId }
+        })
+      );
     }
   };
 
-  const handleSendShopChatMessage = (e) => {
-    e.preventDefault();
-    if (!shopChatInput.trim()) return;
-
-    const userText = shopChatInput.trim();
-    setShopChatMessages((prev) => [...prev, { sender: "user", text: userText }]);
-    setShopChatInput("");
-
-    setTimeout(() => {
-      setShopChatMessages((prev) => [
-        ...prev,
-        {
-          sender: "shop",
-          text: `Cảm ơn bạn đã quan tâm! Các sản phẩm của nông trại ${streamData.farmerBrand} đều được chăm sóc hoàn toàn hữu cơ. Bạn có thể bấm nút 'Mua' ở phần sản phẩm trong Live để chốt đơn ngay nhé, tôi sẽ chuẩn bị đóng gói gửi sớm nhất cho bạn!`
-        }
-      ]);
-    }, 1200);
-  };
-
   // Submit comment in live chat
-  const handleSendChat = (e) => {
+  const handleSendChat = async (e) => {
     e.preventDefault();
     if (streamData.status === "upcoming") {
       showToast("Phòng chat hiện tại đang khóa. Vui lòng quay lại khi phiên live bắt đầu!", "info");
       return;
     }
+    if (streamData.isBlocked) {
+      showToast("Bạn đã bị chặn bình luận trong phiên livestream này!", "error");
+      return;
+    }
     if (!chatInput.trim()) return;
 
-    const currentUser = JSON.parse(localStorage.getItem("agrimarket_user")) || { fullName: "Bạn", avatarUrl: "" };
+    const isNumericId = /^\d+$/.test(id);
+    if (isNumericId) {
+      try {
+        await apiClient.post(`/api/livestreams/${id}/comments`, {
+          comment: chatInput.trim()
+        });
+        setChatInput("");
+      } catch (err) {
+        console.error("Lỗi gửi bình luận lên backend:", err);
+      }
+    } else {
+      const currentUser = JSON.parse(localStorage.getItem("agrimarket_user")) || { fullName: "Bạn", avatarUrl: "" };
 
-    const newUserMsg = {
-      id: Date.now(),
-      user: currentUser.fullName || "Bạn",
-      text: chatInput.trim(),
-      isBot: false,
-      avatar: currentUser.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
-    };
+      const newUserMsg = {
+        id: Date.now(),
+        user: currentUser.fullName || "Bạn",
+        text: chatInput.trim(),
+        isBot: false,
+        avatar: currentUser.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+      };
 
-    setChatMessages((prev) => [...prev, newUserMsg]);
-    setChatInput("");
+      setChatMessages((prev) => [...prev, newUserMsg]);
+      setChatInput("");
+    }
+  };
+
+  // Like livestream (Thả tim)
+  const handleLikeClick = async () => {
+    const isNumericId = /^\d+$/.test(id);
+    if (isNumericId) {
+      try {
+        const res = await apiClient.post(`/api/livestreams/${id}/like`);
+        setBackendStream(prev => ({
+          ...prev,
+          heartsCount: res.data
+        }));
+      } catch (err) {
+        console.error("Lỗi thả tim:", err);
+      }
+    } else {
+      showToast("Cảm ơn bạn đã thả tim! ❤️", "success");
+    }
   };
 
   // Functional add to cart logic (simulated purchase on live stream)
@@ -589,6 +587,10 @@ const LivestreamPage = () => {
 
     showToast(`Đã thêm "${product.name}" vào giỏ hàng thành công! 🛒`, "success");
   };
+
+  const pinnedProduct = streamData.pinnedProductId && streamData.products
+    ? streamData.products.find(p => Number(p.id) === Number(streamData.pinnedProductId))
+    : null;
 
   return (
     <div className="livestream-page-root">
@@ -641,12 +643,74 @@ const LivestreamPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="video-viewport" onClick={togglePlay}>
-                  <img 
-                    src={streamData.videoSrc} 
-                    alt="Livestream nông trại" 
-                    className={`video-background-img ${isPlaying && streamData.status !== "upcoming" ? "playing" : "paused"}`}
-                  />
+                <div className="video-viewport" onClick={streamData.status === "live" || streamData.status === "ended" ? null : togglePlay}>
+                  {streamData.status === "ended" ? (
+                    <div className="upcoming-media-overlay" style={{ background: "rgba(15, 23, 42, 0.9)" }} onClick={(e) => e.stopPropagation()}>
+                      <div className="upcoming-glass-card" style={{ padding: "30px", textAlign: "center" }}>
+                        <span style={{ fontSize: "3rem", marginBottom: "16px", display: "block" }}>🏁</span>
+                        <h3 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#f8fafc", margin: "0 0 10px 0" }}>
+                          PHIÊN LIVESTREAM ĐÃ KẾT THÚC
+                        </h3>
+                        <p style={{ fontSize: "0.95rem", color: "#94a3b8", margin: "0 0 20px 0" }}>
+                          Cảm ơn bạn đã theo dõi! Nhà vườn hẹn gặp lại bạn ở các phiên livestream tiếp theo.
+                        </p>
+                        <button 
+                          onClick={() => navigate("/livestream")}
+                          style={{
+                            backgroundColor: "#10b981",
+                            color: "white",
+                            border: "none",
+                            padding: "10px 20px",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#059669"}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#10b981"}
+                        >
+                          Xem các phiên live khác
+                        </button>
+                      </div>
+                    </div>
+                  ) : agoraToken && isPlaying ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="video-background-img playing"
+                      style={{ objectFit: "cover", width: "100%", height: "100%", background: "#000", transform: "scaleX(-1)" }}
+                    ></video>
+                  ) : (
+                    <img 
+                      src={streamData.videoSrc} 
+                      alt="Livestream nông trại" 
+                      className={`video-background-img ${isPlaying && streamData.status !== "upcoming" ? "playing" : "paused"}`}
+                    />
+                  )}
+
+                  {pinnedProduct && (
+                    <div 
+                      className="pinned-product-overlay" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleBuyProduct(pinnedProduct); 
+                      }} 
+                      style={{ cursor: "pointer" }}
+                    >
+                      <img src={pinnedProduct.imageUrl} alt={pinnedProduct.name} className="pinned-prod-img" />
+                      <div className="pinned-prod-info">
+                        <span className="pinned-prod-badge">🔥 ĐANG GHIM</span>
+                        <h4 className="pinned-prod-name">{pinnedProduct.name}</h4>
+                        <div className="pinned-prod-prices">
+                          {pinnedProduct.discountPercent > 0 && (
+                            <span className="pinned-price-orig">{pinnedProduct.originalPrice.toLocaleString()}đ</span>
+                          )}
+                          <span className="pinned-price-live">{pinnedProduct.price.toLocaleString()}đ</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Play/Pause center overlay icon on hover or action */}
                   {showPlayOverlay && streamData.status !== "upcoming" && (
@@ -739,17 +803,19 @@ const LivestreamPage = () => {
                       <div className="controls-flex">
                         <div className="controls-left">
                           {/* Play/Pause Button */}
-                          <button className="control-btn" onClick={togglePlay} title={isPlaying ? "Tạm dừng" : "Phát"}>
-                            {isPlaying ? (
-                              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                              </svg>
-                            ) : (
-                              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            )}
-                          </button>
+                          {streamData.status !== "live" && (
+                            <button className="control-btn" onClick={togglePlay} title={isPlaying ? "Tạm dừng" : "Phát"}>
+                              {isPlaying ? (
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                </svg>
+                              ) : (
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              )}
+                            </button>
+                          )}
 
                           {/* Volume controls */}
                           <div className="volume-control-group">
@@ -779,9 +845,15 @@ const LivestreamPage = () => {
                         </div>
 
                         <div className="controls-right">
-                          <span className="live-timer-duration">
-                            {streamData.status === "replay" ? "00:45:12 / 01:15:30" : formatTime(currentTime)}
-                          </span>
+                          {streamData.status === "replay" && (
+                            <span className="live-timer-duration">
+                              00:45:12 / 01:15:30
+                            </span>
+                          )}
+
+                          <button className="control-btn heart-btn" onClick={handleLikeClick} title="Thả tim" style={{ color: "#ef4444", fontSize: "1.1rem" }}>
+                            ❤️ {backendStream ? backendStream.heartsCount : 0}
+                          </button>
                           
                           <button className="control-btn" title="Cài đặt">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -789,7 +861,7 @@ const LivestreamPage = () => {
                             </svg>
                           </button>
 
-                          <button className="control-btn" title="Toàn màn hình">
+                          <button className="control-btn" onClick={handleFullscreen} title="Toàn màn hình">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                               <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
                             </svg>
@@ -799,6 +871,34 @@ const LivestreamPage = () => {
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+
+            {/* Livestream Title & Description */}
+            <div className="livestream-info-card" style={{
+              backgroundColor: "white",
+              borderRadius: "14px",
+              padding: "16px 20px",
+              marginBottom: "16px",
+              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.05)"
+            }}>
+              <h1 className="livestream-info-title" style={{
+                fontSize: "1.3rem",
+                fontWeight: "700",
+                color: "#0f172a",
+                margin: "0 0 8px 0"
+              }}>
+                {streamData.title}
+              </h1>
+              {streamData.description && (
+                <p className="livestream-info-desc" style={{
+                  fontSize: "0.95rem",
+                  color: "#475569",
+                  margin: 0,
+                  whiteSpace: "pre-line"
+                }}>
+                  {streamData.description}
+                </p>
               )}
             </div>
 
@@ -821,6 +921,13 @@ const LivestreamPage = () => {
                   </div>
                 </div>
                 <div className="farmer-actions-group">
+                  <button 
+                    className="btn-visit-farm" 
+                    onClick={() => navigate(`/farmer-profile/${streamData.farmerId}`)} 
+                    title="Ghé thăm Trang trại"
+                  >
+                    🏡 Trang trại
+                  </button>
                   <button 
                     className={`follow-toggle-btn ${isFollowing ? "following-state" : "unfollowed-state"}`}
                     onClick={handleFollowToggle}
@@ -910,51 +1017,140 @@ const LivestreamPage = () => {
                   <p className="banned-chat-desc">Khung chat đã bị vô hiệu hóa cùng với phiên phát sóng này.</p>
                 </div>
               ) : (
-                <div className="chat-messages-container">
-                  {chatMessages.map((msg) => (
-                    <div 
-                      key={msg.id} 
-                      className={`chat-message-bubble-wrapper ${msg.isBot ? "bot-highlight-bubble" : ""}`}
-                    >
-                      {!msg.isBot && (
-                        <img 
-                          src={msg.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"} 
-                          alt={msg.user} 
-                          className="chat-user-avatar-circle" 
-                        />
-                      )}
-                      <div className="message-content-inner">
-                        <div className="chat-user-name-title">
-                          {msg.isBot ? (
-                            <span className="bot-badge-name-row">
-                              <svg className="bot-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                                <path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zm-2 10H6V7h12v12zm-9-6c-.83 0-1.5-.67-1.5-1.5S8.17 10 9 10s1.5.67 1.5 1.5S9.83 13 9 13zm6 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                              </svg>
-                              {msg.user}
-                            </span>
-                          ) : (
-                            msg.user
-                          )}
-                        </div>
-                        <p className="chat-message-body-text">{msg.text}</p>
-                      </div>
+                <>
+                  {streamData.pinnedComment && (
+                    <div className="spectator-pinned-chat-row" style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      backgroundColor: "#fef3c7",
+                      borderBottom: "1px solid #fcd34d",
+                      padding: "8px 12px",
+                      fontSize: "0.85rem",
+                      color: "#78350f"
+                    }}>
+                      <span style={{ fontWeight: "700", whiteSpace: "nowrap" }}>📌 Đã ghim:</span>
+                      <span style={{ fontWeight: "600", whiteSpace: "nowrap" }}>{streamData.pinnedComment.user}:</span>
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {streamData.pinnedComment.text}
+                      </span>
                     </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
+                  )}
+                  <div className="chat-messages-container" ref={chatContainerRef} style={{ padding: "12px" }}>
+                    {chatMessages.map((msg) => {
+                      const currentUser = JSON.parse(localStorage.getItem("farmconnect_user")) || {};
+                      const currentUserName = currentUser.fullName || "Bạn";
+                      const isSelf = msg.user === currentUserName;
+
+                      return (
+                        <div 
+                          key={msg.id} 
+                          className={`chat-message-bubble-wrapper ${isSelf ? "self-bubble-wrapper" : ""} ${msg.isBot ? "bot-highlight-bubble" : ""}`}
+                          style={{
+                            display: "flex",
+                            flexDirection: isSelf ? "row-reverse" : "row",
+                            alignItems: "flex-start",
+                            gap: "8px",
+                            marginBottom: "12px",
+                            alignSelf: isSelf ? "flex-end" : "flex-start",
+                            width: "100%"
+                          }}
+                        >
+                          {!msg.isBot && (
+                            <img 
+                              src={msg.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"} 
+                              alt={msg.user} 
+                              className="chat-user-avatar-circle" 
+                              style={{
+                                width: "32px",
+                                height: "32px",
+                                borderRadius: "50%",
+                                objectFit: "cover"
+                              }}
+                            />
+                          )}
+                          <div 
+                            className="message-content-inner"
+                            style={{
+                              backgroundColor: isSelf ? "#eff6ff" : (msg.isHost ? "#ecfdf5" : "#f1f5f9"),
+                              border: isSelf ? "1px solid #bfdbfe" : (msg.isHost ? "1px solid #a7f3d0" : "1px solid #e2e8f0"),
+                              padding: "8px 12px",
+                              borderRadius: "12px",
+                              borderTopRightRadius: isSelf ? "0" : "12px",
+                              borderTopLeftRadius: isSelf ? "12px" : "0",
+                              maxWidth: "75%",
+                              textAlign: "left"
+                            }}
+                          >
+                            <div className="chat-user-name-title" style={{
+                              fontWeight: "700",
+                              fontSize: "0.75rem",
+                              color: isSelf ? "#1e40af" : (msg.isHost ? "#065f46" : "#475569"),
+                              marginBottom: "2px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}>
+                              {msg.isBot ? (
+                                <span className="bot-badge-name-row" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                  <svg className="bot-status-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                                    <path d="M20 9V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9 3.34 9 5H6c-1.1 0-2 .9-2 2v2c-1.66 0-3 1.34-3 3s1.34 3 3 3v4c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4c1.66 0 3-1.34 3-3s-1.34-3-3-3zm-2 10H6V7h12v12zm-9-6c-.83 0-1.5-.67-1.5-1.5S8.17 10 9 10s1.5.67 1.5 1.5S9.83 13 9 13zm6 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                  </svg>
+                                  {msg.user}
+                                </span>
+                              ) : (
+                                <>
+                                  <span>{msg.user}</span>
+                                  {msg.isHost && (
+                                    <span className="host-badge-tag" style={{
+                                      backgroundColor: "#059669",
+                                      color: "white",
+                                      padding: "1px 4px",
+                                      borderRadius: "3px",
+                                      fontSize: "0.6rem",
+                                      fontWeight: "700",
+                                      lineHeight: "1"
+                                    }}>
+                                      Chủ phòng
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                            <p className="chat-message-body-text" style={{ margin: 0, fontSize: "0.85rem", color: "#1e293b", wordBreak: "break-word" }}>
+                              {msg.text}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
 
               {/* Chat Input form */}
               <form onSubmit={handleSendChat} className="chat-input-row-form">
                 <input
                   type="text"
-                  placeholder={streamData.status === "upcoming" ? "Phòng chat chưa mở..." : "Nhập tin nhắn..."}
+                  placeholder={
+                    streamData.status === "upcoming"
+                      ? "Phòng chat chưa mở..."
+                      : streamData.isBlocked
+                      ? "Bạn đã bị chặn bình luận trong phiên live này"
+                      : "Nhập tin nhắn..."
+                  }
                   value={chatInput}
-                  disabled={streamData.status === "upcoming"}
+                  disabled={streamData.status === "upcoming" || streamData.isBlocked}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="chat-text-input-field"
+                  style={streamData.isBlocked ? { backgroundColor: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" } : {}}
                 />
-                <button type="submit" className="chat-submit-action-btn" disabled={streamData.status === "upcoming"} title="Gửi tin nhắn">
+                <button
+                  type="submit"
+                  className="chat-submit-action-btn"
+                  disabled={streamData.status === "upcoming" || streamData.isBlocked}
+                  title="Gửi tin nhắn"
+                >
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                   </svg>
@@ -974,22 +1170,38 @@ const LivestreamPage = () => {
               </div>
 
               <div className="products-list-scrollable">
-                {streamData.products.map((prod) => (
-                  <div key={prod.id} className="product-row-item-card">
-                    <img src={prod.imageUrl} alt={prod.name} className="product-thumbnail-img" />
-                    <div className="product-details-mid">
-                      <h4 className="product-title-text">{prod.name}</h4>
-                      <p className="product-specifications-text">{prod.unit}</p>
-                      <span className="product-price-label">${prod.price.toFixed(2)}</span>
+                {streamData.products.map((prod) => {
+                  const hasDiscount = prod.discountPercent > 0 || (prod.originalPrice && prod.price < prod.originalPrice);
+                  return (
+                    <div key={prod.id} className="product-row-item-card">
+                      <img src={prod.imageUrl} alt={prod.name} className="product-thumbnail-img" />
+                      <div className="product-details-mid">
+                        <h4 className="product-title-text">{prod.name}</h4>
+                        <p className="product-specifications-text">{prod.unit}</p>
+                        {hasDiscount ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                            <span className="product-price-label" style={{ color: "#ef4444", fontWeight: "700" }}>
+                              {prod.price.toLocaleString()}đ
+                            </span>
+                            <span style={{ textDecoration: "line-through", color: "#94a3b8", fontSize: "0.85rem" }}>
+                              {prod.originalPrice.toLocaleString()}đ
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="product-price-label">
+                            {prod.price.toLocaleString()}đ
+                          </span>
+                        )}
+                      </div>
+                      <button 
+                        className={`product-purchase-action-btn status-${streamData.status}`}
+                        onClick={() => handleBuyProduct(prod)}
+                      >
+                        {streamData.status === "upcoming" ? "Xem trước" : "Mua"}
+                      </button>
                     </div>
-                    <button 
-                      className={`product-purchase-action-btn status-${streamData.status}`}
-                      onClick={() => handleBuyProduct(prod)}
-                    >
-                      {streamData.status === "upcoming" ? "Xem trước" : "Mua"}
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -998,53 +1210,7 @@ const LivestreamPage = () => {
         </div>
       </main>
 
-      {/* Floating Shop Chat Widget */}
-      {isShopChatOpen && (
-        <div className="shop-chat-widget">
-          <div className="shop-chat-header">
-            <div className="shop-chat-header-user">
-              <img src={streamData.farmerAvatar} alt={streamData.farmerName} className="shop-chat-avatar" />
-              <div className="shop-chat-header-info">
-                <span className="shop-chat-name">
-                  {streamData.farmerName}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" className="verified-tick-icon chat-verified-tick" title="Nhà vườn uy tín">
-                    <circle cx="12" cy="12" r="10" fill="#0095F6" />
-                    <polyline points="9 12 11 14 15 10" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span className="shop-chat-status">
-                  <span className="shop-status-dot"></span> Đang trực tuyến
-                </span>
-              </div>
-            </div>
-            <button className="shop-chat-close-btn" onClick={() => setIsShopChatOpen(false)}>&times;</button>
-          </div>
-          
-          <div className="shop-chat-body">
-            {shopChatMessages.map((msg, idx) => (
-              <div key={idx} className={`shop-chat-msg-row ${msg.sender}`}>
-                <div className="shop-chat-msg-bubble">
-                  {msg.text}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <form className="shop-chat-footer" onSubmit={handleSendShopChatMessage}>
-            <input 
-              type="text" 
-              placeholder="Nhập tin nhắn..." 
-              value={shopChatInput}
-              onChange={(e) => setShopChatInput(e.target.value)}
-            />
-            <button type="submit" aria-label="Gửi">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-              </svg>
-            </button>
-          </form>
-        </div>
-      )}
+
 
       {/* Stacked Toasts Container */}
       {toast.show && (

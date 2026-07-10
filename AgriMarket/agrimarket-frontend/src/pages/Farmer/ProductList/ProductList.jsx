@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban, Package, Leaf } from "lucide-react";
 import * as productService from "../../../services/productService";
 import "./ProductList.css";
 
@@ -24,6 +25,71 @@ export const ProductList = () => {
 
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [confirmModal, setConfirmModal] = useState({ show: false, title: "", message: "", onConfirm: null });
+
+  const [activeStockProductId, setActiveStockProductId] = useState(null);
+  const [stockAddValue, setStockAddValue] = useState("");
+  const [stockSubValue, setStockSubValue] = useState("");
+  const [stockValError, setStockValError] = useState("");
+  const [submittingStock, setSubmittingStock] = useState(false);
+
+  const toggleStockForm = (p) => {
+    if (activeStockProductId === p.id) {
+      setActiveStockProductId(null);
+    } else {
+      setActiveStockProductId(p.id);
+      setStockAddValue("");
+      setStockSubValue("");
+      setStockValError("");
+    }
+  };
+
+  const handleStockAddChange = (val, currentStock) => {
+    setStockAddValue(val);
+    if (val && stockSubValue) {
+      setStockSubValue("");
+    }
+    setStockValError("");
+  };
+
+  const handleStockSubChange = (val, currentStock, unit) => {
+    setStockSubValue(val);
+    if (val && stockAddValue) {
+      setStockAddValue("");
+    }
+
+    const subNum = Number(val);
+    if (subNum > currentStock) {
+      setStockValError(`Số lượng bớt không được lớn hơn số lượng tồn kho hiện tại (${currentStock} ${unit}).`);
+    } else {
+      setStockValError("");
+    }
+  };
+
+  const calculateNewStock = (currentStock) => {
+    const addNum = Number(stockAddValue) || 0;
+    const subNum = Number(stockSubValue) || 0;
+    return Math.max(0, currentStock + addNum - subNum);
+  };
+
+  const handleSaveStock = async (p) => {
+    const newStock = calculateNewStock(p.stock);
+    if (newStock < 0) return;
+    setSubmittingStock(true);
+    try {
+      const updatedProduct = await productService.updateProductStock(p.id, newStock);
+
+      // Update local products state
+      setProducts(prev => prev.map(item => item.id === p.id ? { ...item, stock: updatedProduct.stock, status: updatedProduct.status } : item));
+
+      showToast("Cập nhật số lượng tồn kho thành công!", "success");
+      setActiveStockProductId(null);
+    } catch (err) {
+      console.error(err);
+      showToast("Cập nhật tồn kho thất bại: " + (err.response?.data || err.message), "error");
+    } finally {
+      setSubmittingStock(false);
+    }
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -72,6 +138,49 @@ export const ProductList = () => {
         }
       }
     });
+  };
+
+  const handleEarlyHarvest = (productId) => {
+    const prod = products.find(p => p.id === productId);
+    const name = prod ? prod.name : "này";
+    setConfirmModal({
+      show: true,
+      title: "Xác nhận thu hoạch sớm",
+      message: `Bạn có chắc chắn muốn thực hiện thu hoạch sớm cho sản phẩm đặt trước "${name}" không? Hành động này sẽ kết thúc đặt trước và gửi thông báo đơn hàng sẵn sàng tới các khách hàng.`,
+      onConfirm: async () => {
+        try {
+          await productService.earlyHarvestProduct(productId);
+          showToast("Thu hoạch sớm sản phẩm thành công!", "success");
+          fetchProducts();
+        } catch (err) {
+          console.error(err);
+          showToast("Thu hoạch sớm thất bại: " + (err.response?.data || err.message), "error");
+        }
+      }
+    });
+  };
+
+  const isUnharvestedPreorder = (product) => {
+    if (!product.isPreorder) return false;
+    if (!product.harvestDate) return false;
+    
+    let harvestStr = "";
+    if (product.harvestDate.includes("/")) {
+      const parts = product.harvestDate.split("/");
+      if (parts.length === 3) {
+        harvestStr = `${parts[2]}-${String(parts[1]).padStart(2, '0')}-${String(parts[0]).padStart(2, '0')}`;
+      }
+    } else {
+      harvestStr = product.harvestDate.substring(0, 10);
+    }
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    return harvestStr > todayStr;
   };
 
   const getEffectiveStatus = (p) => {
@@ -156,13 +265,14 @@ export const ProductList = () => {
             ) : paginatedProducts.length === 0 ? (
               <tr><td colSpan="7" className="empty-state">Không có sản phẩm nào.</td></tr>
             ) : (
-              paginatedProducts.map(p => {
+              paginatedProducts.map((p, idx) => {
                 const conf = PRODUCT_STATUS_CONFIG[getEffectiveStatus(p)] || { label: p.status, cls: "" };
+                const showAbove = paginatedProducts.length > 2 && idx >= paginatedProducts.length - 2;
                 return (
                   <tr key={p.id} className="row-hover">
                     <td>
                       <div className="table-thumb">
-                        {p.imageUrl ? <img src={p.imageUrl} alt={p.name} /> : <span>🌾</span>}
+                        {p.imageUrl ? <img src={p.imageUrl} alt={p.name} /> : <span style={{ display: "inline-flex", alignItems: "center", color: "#81c784" }}><Sprout size={24} /></span>}
                       </div>
                     </td>
                     <td>
@@ -170,7 +280,7 @@ export const ProductList = () => {
                       <span className="p-id">ID: {p.id}</span>
                       {p.status === "request_changes" && p.adminNotes && (
                         <div className="admin-feedback-note" style={{ color: "#c2410c", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fff7ed", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ffedd5" }}>
-                          <span style={{ fontSize: "14px", lineHeight: "1" }}>⚠️</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", lineHeight: "1" }}><AlertTriangle size={14} color="#c2410c" /></span>
                           <div>
                             <strong style={{ display: "block", fontSize: "11px", color: "#9a3412", marginBottom: "2px" }}>Yêu cầu sửa đổi:</strong>
                             <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.adminNotes}</span>
@@ -179,7 +289,7 @@ export const ProductList = () => {
                       )}
                       {p.status === "rejected" && p.rejectionReason && (
                         <div className="admin-feedback-note" style={{ color: "#991b1b", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fef2f2", padding: "6px 10px", borderRadius: "6px", border: "1px solid #fee2e2" }}>
-                          <span style={{ fontSize: "14px", lineHeight: "1" }}>❌</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", lineHeight: "1" }}><XCircle size={14} color="#991b1b" /></span>
                           <div>
                             <strong style={{ display: "block", fontSize: "11px", color: "#991b1b", marginBottom: "2px" }}>Lý do từ chối:</strong>
                             <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.rejectionReason}</span>
@@ -188,7 +298,7 @@ export const ProductList = () => {
                       )}
                       {p.status === "hidden" && p.rejectionReason && (
                         <div className="admin-feedback-note" style={{ color: "#c2410c", fontSize: "12px", marginTop: "6px", display: "flex", alignItems: "flex-start", gap: "6px", backgroundColor: "#fff7ed", padding: "6px 10px", borderRadius: "6px", border: "1px solid #ffedd5" }}>
-                          <span style={{ fontSize: "14px", lineHeight: "1" }}>🚫</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", lineHeight: "1" }}><Ban size={14} color="#9a3412" /></span>
                           <div>
                             <strong style={{ display: "block", fontSize: "11px", color: "#9a3412", marginBottom: "2px" }}>Lý do ẩn:</strong>
                             <span style={{ fontWeight: "400", lineHeight: "1.4" }}>{p.rejectionReason}</span>
@@ -207,13 +317,83 @@ export const ProductList = () => {
                       <span className={`badge-status ${conf.cls}`}>{conf.label}</span>
                     </td>
                     <td>
-                      <div className="actions-cell">
+                      <div className="actions-cell" style={{ position: "relative" }}>
+                        {isUnharvestedPreorder(p) && (
+                          <button 
+                            className="btn-icon early-harvest-btn" 
+                            title="Thu hoạch sớm" 
+                            style={{ color: "#16a34a" }}
+                            onClick={() => handleEarlyHarvest(p.id)}
+                          >
+                            <Leaf size={15} />
+                          </button>
+                        )}
                         <button className="btn-icon edit" title="Sửa" onClick={() => navigate(`/farmer/products/edit/${p.id}`)}>
-                          ✏️
+                          <Pencil size={15} />
+                        </button>
+                        <button 
+                          className={`btn-icon stock-update-btn ${activeStockProductId === p.id ? "active" : ""}`} 
+                          title="Cập nhật tồn kho" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStockForm(p);
+                          }}
+                        >
+                          <Package size={15} />
                         </button>
                         <button className="btn-icon delete" title="Xóa" onClick={() => handleProductDelete(p.id)}>
-                          🗑️
+                          <Trash2 size={15} />
                         </button>
+
+                        {activeStockProductId === p.id && (
+                          <div className={`stock-drop-panel ${showAbove ? "show-above" : ""}`} onClick={(e) => e.stopPropagation()}>
+                            <div className="stock-drop-header">
+                              <strong>Cập nhật tồn kho</strong>
+                              <span className="stock-current">Hiện tại: {p.stock} {p.unit}</span>
+                            </div>
+                            <div className="stock-drop-body">
+                              <div className="stock-input-group">
+                                <label>Số lượng thêm ({p.unit}):</label>
+                                <input 
+                                  type="number" 
+                                  min="0"
+                                  placeholder="Nhập số lượng thêm..."
+                                  value={stockAddValue}
+                                  onChange={(e) => handleStockAddChange(e.target.value, p.stock)}
+                                />
+                              </div>
+                              <div className={`stock-input-group ${Number(p.stock) === 0 ? "disabled-group" : ""}`}>
+                                <label>Số lượng bớt ({p.unit}):</label>
+                                <input 
+                                  type="number" 
+                                  min="0"
+                                  disabled={Number(p.stock) === 0}
+                                  placeholder={Number(p.stock) === 0 ? "Đã hết hàng" : "Nhập số lượng bớt..."}
+                                  value={stockSubValue}
+                                  onChange={(e) => handleStockSubChange(e.target.value, p.stock, p.unit)}
+                                />
+                              </div>
+                              
+                              {stockValError && (
+                                <p className="stock-error-msg">{stockValError}</p>
+                              )}
+                              
+                              <div className="stock-calc-preview">
+                                Tồn kho mới: <strong>{calculateNewStock(p.stock)} {p.unit}</strong>
+                              </div>
+                            </div>
+                            <div className="stock-drop-footer">
+                              <button className="btn-stock-cancel" onClick={() => setActiveStockProductId(null)}>Hủy</button>
+                              <button 
+                                className="btn-stock-save" 
+                                disabled={submittingStock || !!stockValError || (!stockAddValue && !stockSubValue)}
+                                onClick={() => handleSaveStock(p)}
+                              >
+                                {submittingStock ? "Đang lưu..." : "Lưu"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -253,7 +433,7 @@ export const ProductList = () => {
         <div className="custom-modal-overlay">
           <div className="custom-modal">
             <div className="custom-modal-header">
-              <span className="custom-modal-icon">⚠️</span>
+              <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><AlertTriangle size={24} /></span>
               <h3>{confirmModal.title}</h3>
             </div>
             <p className="custom-modal-message">{confirmModal.message}</p>
@@ -273,7 +453,7 @@ export const ProductList = () => {
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+            {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <AlertTriangle size={18} />}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
           <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>

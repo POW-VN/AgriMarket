@@ -19,9 +19,10 @@ import {
   FileText,
   MapPin,
   UserSquare2,
-  Download
+  Download,
+  MessageCircle
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import chatService from "../../../services/chatService";
 import authService from "../../../services/authService";
 import "./ChatPopup.css";
@@ -53,6 +54,7 @@ const QUICK_REPLIES = [
 
 export const ChatPopup = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isFarmerDashboard = location.pathname === "/farmer" || location.pathname.startsWith("/farmer/");
   const shouldHideChat = isFarmerDashboard || 
@@ -60,11 +62,6 @@ export const ChatPopup = () => {
                          location.pathname.startsWith("/shipper") ||
                          location.pathname.startsWith("/login") ||
                          location.pathname.startsWith("/register");
-
-  if (shouldHideChat) {
-    return null;
-  }
-
   const [isOpen, setIsOpen] = useState(false);
   const [activeView, setActiveView] = useState("list"); // 'list' | 'chat' | 'new-chat'
   const [selectedFarm, setSelectedFarm] = useState(null);
@@ -498,6 +495,10 @@ export const ChatPopup = () => {
 
   const currentChatDetail = selectedFarm ? chats.find(c => String(c.id) === String(selectedFarm.id)) : null;
 
+  if (shouldHideChat) {
+    return null;
+  }
+
   return (
     <div className={`zalo-chat-container ${isOpen ? "zalo-popup-open" : ""}`}>
       {/* Inputs File Ẩn cho Chọn Ảnh / Tài liệu */}
@@ -523,9 +524,7 @@ export const ChatPopup = () => {
         aria-label="Mở cửa sổ chat"
       >
         <div className="zalo-trigger-icon-wrapper">
-          <svg className="zalo-chat-icon" width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C5.925 2 1 6.03 1 11c0 2.82 1.62 5.3 4.22 6.9l-1.07 3.2c-.1.31.2.6.49.46l3.78-1.89c1.13.22 2.33.33 3.58.33 6.075 0 11-4.03 11-9s-4.925-9-11-9zm-4.5 10c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" fill="currentColor"/>
-          </svg>
+          <MessageCircle className="zalo-chat-icon" size={22} />
           <span className="zalo-trigger-text">Chat</span>
         </div>
         {totalUnread > 0 && (
@@ -1142,7 +1141,18 @@ export const ChatPopup = () => {
                 </div>
                 
                 <div className="zalo-info-modal-footer-two-buttons">
-                  <button className="zalo-info-btn-secondary" onClick={() => handleFeatureUnderDevelopment("Xem cửa hàng nông nghiệp")}>
+                  <button 
+                    className="zalo-info-btn-secondary" 
+                    onClick={() => {
+                      if (currentChatDetail && currentChatDetail.partnerId) {
+                        navigate(`/farmer-profile/${currentChatDetail.partnerId}`);
+                        setShowInfoModal(false);
+                        setIsOpen(false);
+                      } else {
+                        handleFeatureUnderDevelopment("Xem cửa hàng nông nghiệp");
+                      }
+                    }}
+                  >
                     Xem cửa hàng
                   </button>
                   <button className="zalo-info-btn-primary" onClick={() => setShowInfoModal(false)}>

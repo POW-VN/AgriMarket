@@ -1,44 +1,50 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Wheat,
+  Carrot,
+  Apple,
+  Trees,
+  Sprout,
+  Package,
+  Egg,
+  Truck,
+  UserCheck,
+  ShieldCheck,
+  Zap,
+  ArrowRight,
+  MapPin,
+  Percent,
+  Tag,
+  Clock
+} from "lucide-react";
 import authService from "../../services/authService";
-import { getAllApprovedProducts } from "../../services/productService";
+import profileService from "../../services/profileService";
+import { getAllApprovedProducts, getApprovedProductsPaged } from "../../services/productService";
 import cartService from "../../services/cartService";
+import apiClient from "../../services/apiClient";
+import wishlistService from "../../services/wishlistService";
+import { mockPromotions } from "../../components/Promotions/PromotionsMockData";
 import "./Home.css";
 import Header from "../../components/common/Header/Header";
+import Footer from "../../components/common/Footer/Footer";
 
 // Import local images
 import heroBanner from "./assets/hero_banner.png";
 
 const MAIN_CATEGORIES = [
-  { name: "Cây lương thực", icon: "🌾" },
-  { name: "Rau củ quả", icon: "🥕" },
-  { name: "Trái cây", icon: "🍎" },
-  { name: "Cây công nghiệp", icon: "🪵" },
-  { name: "Giống cây trồng", icon: "🌱" },
-  { name: "Nông sản chế biến", icon: "🥫" },
-  { name: "Chăn nuôi", icon: "🐄" }
+  { name: "Cây lương thực", icon: <Wheat size={20} /> },
+  { name: "Rau củ quả", icon: <Carrot size={20} /> },
+  { name: "Trái cây", icon: <Apple size={20} /> },
+  { name: "Cây công nghiệp", icon: <Trees size={20} /> },
+  { name: "Giống cây trồng", icon: <Sprout size={20} /> },
+  { name: "Nông sản chế biến", icon: <Package size={20} /> },
+  { name: "Chăn nuôi", icon: <Egg size={20} /> }
 ];
 
-const MOCK_FARMS = [
-  {
-    id: "farm-1",
-    name: "GreenFarm Củ Chi",
-    distance: "3.2km",
-    description: "Chuyên cung cấp các loại rau lá hữu cơ và nấm sạch theo tiêu chuẩn công nghệ cao. Giao hà...",
-    badge: "VƯỜN AN TOÀN",
-    tags: ["Huu_co", "Giao_nhanh"],
-    imageUrl: "https://images.unsplash.com/photo-1595855759920-86582396756a?w=600"
-  },
-  {
-    id: "farm-2",
-    name: "Vườn Thanh Long 10",
-    distance: "8.5km",
-    description: "Thanh long ruột đỏ xuất khẩu, độ ngọt cao, không thuốc trừ sâu.",
-    imageUrl: "https://images.unsplash.com/photo-1527334919514-3c86290298c1?w=600"
-  }
-];
+const MOCK_FARMS = [];
 
-const HERO_SLIDES = [
+const DEFAULT_SLIDES = [
   {
     title: "Nông sản tươi sạch mỗi ngày",
     subtitle: "Khám phá những sản phẩm được yêu thích nhất tại AgriMarket với chất lượng hàng đầu.",
@@ -62,6 +68,38 @@ const HERO_SLIDES = [
   }
 ];
 
+// Build hero slides: active/upcoming promotions (with images) first, then default slides
+const buildHeroSlides = () => {
+  const promoSlides = mockPromotions
+    .filter(p => (p.status === 'active' || p.status === 'upcoming') && p.image)
+    .map(p => ({
+      title: p.title,
+      subtitle: p.description,
+      tag: p.status === 'upcoming' ? 'SẮP BẮT ĐẦU' : 'ĐANG DIỄN RA',
+      discount: p.discountType === 'percent' ? `${p.discountVal}%` : `${(p.discountVal / 1000).toFixed(0)}K`,
+      imageUrl: p.image,
+      promoId: p.id
+    }));
+  // Merge: promos first, then fill up to 3 with defaults
+  const combined = [...promoSlides, ...DEFAULT_SLIDES];
+  return combined.slice(0, 3);
+};
+
+const HERO_SLIDES = buildHeroSlides();
+
+const getHaversineDistance = (lat1, lon1, lat2, lon2) => {
+  if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return null;
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -71,11 +109,16 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [cartItemsCount, setCartItemsCount] = useState(0);
-  const [toasts, setToasts] = useState([]);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState([]);
   const [activeFarms, setActiveFarms] = useState([]);
+  const [activeLives, setActiveLives] = useState([]);
+  const [selectedSort, setSelectedSort] = useState("popular");
+  const [hasDefaultAddress, setHasDefaultAddress] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [activePromotions, setActivePromotions] = useState([]);
 
   // Remaining time calculations for Flash Sale (countdown to end of day)
   const getRemainingTime = () => {
@@ -117,45 +160,106 @@ const Home = () => {
   }, [selectedCategory, searchQuery]);
 
   const triggerToast = (message, type = "success") => {
-    const id = Date.now() + Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
+    setToastMessage(message);
+    setToastType(type);
+    setTimeout(() => setToastMessage(""), 3000);
   };
 
   useEffect(() => {
+    // Merge persisted user-created promotions with mock data
+    const saved = localStorage.getItem('mockPromotions');
+    const extraPromos = saved ? JSON.parse(saved) : [];
+    const allPromos = [...extraPromos, ...mockPromotions];
+    setActivePromotions(allPromos.filter(p => p.status === 'active'));
+
     const currentUser = authService.getCurrentUser();
-    if (currentUser && (currentUser.role === "partner" || currentUser.role === "shipper")) {
-      navigate("/shipper/requests");
-      return;
-    }
     setUser(currentUser);
 
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const data = await getAllApprovedProducts();
-        setProducts(data);
+        let freshUser = authService.getCurrentUser();
+        if (freshUser) {
+          try {
+            const freshProfile = await profileService.getCurrentProfile();
+            if (freshProfile) {
+              freshUser = freshProfile;
+              setUser(freshProfile);
+            }
+          } catch (profileErr) {
+            console.warn("Failed to fetch fresh profile in Home:", profileErr);
+          }
+        }
+
+        // Dùng server-side pagination để giới hạn dữ liệu, tải tối đa 100 sản phẩm cho trang chủ
+        const pagedResult = await getApprovedProductsPaged({ page: 0, size: 100, sort: "popular" });
+        const data = pagedResult.content;
+
+        // Chỉ hiển thị sản phẩm preorder khi ngày hiện tại đã tới hoặc vượt quá ngày thu hoạch
+        const todayStr = new Date().toISOString().split("T")[0];
+        const visibleProducts = data.filter(p => {
+          if (p.isPreorder) {
+            if (!p.harvestDate) return false;
+            return p.harvestDate <= todayStr;
+          }
+          return true;
+        });
+
+        setProducts(visibleProducts);
 
         // Extract active farms from products database data
         const uniqueFarmers = [];
         const seenFarmerIds = new Set();
 
+        // Get user coordinates
+        const defaultAddress = freshUser?.addresses?.find(addr => addr.isDefault) || null;
+        const hasAddr = defaultAddress !== null && defaultAddress?.latitude !== undefined && defaultAddress?.latitude !== null && defaultAddress?.longitude !== undefined && defaultAddress?.longitude !== null;
+        setHasDefaultAddress(hasAddr);
+
+        const userLat = hasAddr ? Number(defaultAddress.latitude) : 10.762622;
+        const userLon = hasAddr ? Number(defaultAddress.longitude) : 106.660172;
+
         for (const p of data) {
           if (p.farmerId && !seenFarmerIds.has(p.farmerId)) {
             seenFarmerIds.add(p.farmerId);
+
+            // Calculate actual distance
+            let distVal = null;
+            let distanceStr = "";
+            if (p.farmerLatitude !== null && p.farmerLongitude !== null) {
+              distVal = getHaversineDistance(userLat, userLon, p.farmerLatitude, p.farmerLongitude);
+            }
+
+            if (distVal !== null) {
+              distanceStr = `${distVal.toFixed(1)}km`;
+            } else {
+              // fallback random
+              distVal = 2 + Math.random() * 8;
+              distanceStr = `${distVal.toFixed(1)}km`;
+            }
+
+            // Build badges array from all certifications
+            const farmBadges = [];
+            if (p.farmerOrganicUrl) farmBadges.push({ label: "ORGANIC", color: "#16a34a" });
+            if (p.farmerGlobalgapUrl) farmBadges.push({ label: "GLOBALGAP", color: "#2563eb" });
+            if (p.farmerVietgapUrl) farmBadges.push({ label: "VIETGAP", color: "#d97706" });
+            if (farmBadges.length === 0) farmBadges.push({ label: "VƯỜN AN TOÀN", color: "#6b7280" });
+
             uniqueFarmers.push({
               id: p.farmerId,
               name: p.farmerName || "Nhà vườn AgriMarket",
-              distance: `${(2 + Math.random() * 8).toFixed(1)}km`,
+              distanceVal: distVal,
+              distance: distanceStr,
               description: p.farmDescription || "Chuyên cung cấp các loại rau quả nông sản tươi ngon sạch đạt chuẩn.",
-              badge: p.farmerOrganicUrl ? "ORGANIC" : p.farmerGlobalgapUrl ? "GLOBALGAP" : p.farmerVietgapUrl ? "VIETGAP" : "VƯỜN AN TOÀN",
-              tags: p.category ? [p.category, "Sạch"] : ["Nông sản", "Hữu cơ"],
-              imageUrl: p.imageUrl || "https://images.unsplash.com/photo-1595855759920-86582396756a?w=600"
+              badges: farmBadges,
+              farmAddress: p.farmLocation || "",
+              imageUrl: p.farmerAvatarUrl || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600"
             });
           }
         }
+
+        // Sort uniqueFarmers by distanceVal ascending (closest first)
+        uniqueFarmers.sort((a, b) => a.distanceVal - b.distanceVal);
 
         const combinedFarms = [...uniqueFarmers];
         if (combinedFarms.length < 2) {
@@ -163,6 +267,16 @@ const Home = () => {
           combinedFarms.push(...mockToAdd);
         }
         setActiveFarms(combinedFarms);
+
+        // Fetch active livestreams from backend
+        try {
+          const liveRes = await apiClient.get("/api/livestreams/active");
+          const livesData = Array.isArray(liveRes.data) ? liveRes.data : liveRes.data?.data || [];
+          setActiveLives(livesData);
+        } catch (liveErr) {
+          console.error("Lỗi khi tải phiên livestream hoạt động:", liveErr);
+          setActiveLives([]);
+        }
       } catch (err) {
         console.error("Lỗi khi load sản phẩm trang chủ:", err);
         setProducts([]);
@@ -172,6 +286,11 @@ const Home = () => {
       }
     };
     fetchProducts();
+
+    const loadLocalCartCount = () => {
+      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      setCartItemsCount(savedCart.length);
+    };
 
     const fetchCartCount = async () => {
       if (currentUser) {
@@ -187,15 +306,38 @@ const Home = () => {
       }
     };
 
-    const loadLocalCartCount = () => {
-      const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-      setCartItemsCount(savedCart.length);
-    };
-
     fetchCartCount();
 
-    const savedFavorites = JSON.parse(localStorage.getItem("agrimarket_favorites")) || [];
-    setFavorites(savedFavorites);
+    const loadWishlist = async () => {
+      try {
+        const ids = await wishlistService.getWishlistIds();
+        setFavorites(ids.map(id => String(id)));
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách yêu thích:", err);
+      }
+    };
+    loadWishlist();
+
+    const handleWishlistUpdate = (e) => {
+      const { productId, saved } = e.detail;
+      const idStr = String(productId);
+      setFavorites((prev) => {
+        const prevStr = prev.map(String);
+        if (saved) {
+          if (!prevStr.includes(idStr)) {
+            return [...prev, idStr];
+          }
+        } else {
+          return prev.filter(id => String(id) !== idStr);
+        }
+        return prev;
+      });
+    };
+
+    window.addEventListener("wishlistUpdated", handleWishlistUpdate);
+    return () => {
+      window.removeEventListener("wishlistUpdated", handleWishlistUpdate);
+    };
   }, []);
 
   const handleAddToCart = async (p, e) => {
@@ -250,20 +392,46 @@ const Home = () => {
     }
   };
 
-  const toggleFavorite = (productId, e) => {
+  const toggleFavorite = async (productId, e) => {
     e.preventDefault();
     e.stopPropagation();
 
-    let updatedFavorites = [];
-    if (favorites.includes(productId)) {
-      updatedFavorites = favorites.filter(id => id !== productId);
-      triggerToast("Đã xóa sản phẩm khỏi danh sách yêu thích!", "success");
-    } else {
-      updatedFavorites = [...favorites, productId];
-      triggerToast("Đã thêm sản phẩm vào danh sách yêu thích!", "success");
+    // Optimistic UI: update immediately, then sync with backend
+    const prodIdStr = String(productId);
+    const isCurrentlyFavorite = favorites.map(String).includes(prodIdStr);
+    // Optimistically flip the heart
+    setFavorites((prev) =>
+      isCurrentlyFavorite
+        ? prev.filter(id => String(id) !== prodIdStr)
+        : [...prev, prodIdStr]
+    );
+
+    try {
+      const res = await wishlistService.toggleWishlist(productId);
+      // Confirm the real server state (res.saved is the authoritative answer)
+      const savedOnServer = res?.saved;
+      if (savedOnServer !== undefined) {
+        setFavorites((prev) => {
+          const prevStr = prev.map(String);
+          if (savedOnServer && !prevStr.includes(prodIdStr)) {
+            return [...prev, prodIdStr];
+          } else if (!savedOnServer && prevStr.includes(prodIdStr)) {
+            return prev.filter(id => String(id) !== prodIdStr);
+          }
+          return prev;
+        });
+      }
+      triggerToast(res?.message || "Đã cập nhật danh sách yêu thích.", "success");
+    } catch (err) {
+      // Rollback optimistic update on error
+      console.error("Lỗi khi cập nhật danh sách yêu thích:", err);
+      setFavorites((prev) =>
+        isCurrentlyFavorite
+          ? [...prev, prodIdStr]
+          : prev.filter(id => String(id) !== prodIdStr)
+      );
+      triggerToast("Không thể cập nhật danh sách yêu thích. Vui lòng thử lại sau!", "error");
     }
-    setFavorites(updatedFavorites);
-    localStorage.setItem("agrimarket_favorites", JSON.stringify(updatedFavorites));
   };
 
   const filteredProducts = products.filter((product) => {
@@ -325,7 +493,37 @@ const Home = () => {
     return productCat === selectedCat;
   });
 
+  if (selectedSort === "popular") {
+    filteredProducts.sort((a, b) => (b.sold || 0) - (a.sold || 0));
+  } else if (selectedSort === "rating") {
+    filteredProducts.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }
+
+  // Find any active promotion that applies to a product
+  // Only matches if the product's id is explicitly in promo.selectedProducts
+  const getProductPromo = (product) => {
+    return activePromotions.find(promo => {
+      if (promo.status !== 'active') return false;
+      const selected = promo.selectedProducts;
+      if (!selected || selected.length === 0) return false;
+      return selected.some(sp => String(sp.id) === String(product.id) || String(sp) === String(product.id));
+    }) || null;
+  };
+
+  const calcDiscountedPrice = (price, promo) => {
+    if (!promo) return price;
+    if (promo.discountType === 'percent') return Math.round(price * (1 - promo.discountVal / 100));
+    if (promo.discountType === 'amount') return Math.max(0, price - promo.discountVal);
+    return price;
+  };
+
   const renderProductCard = (p) => {
+    const promo = getProductPromo(p);
+    const discountedPrice = promo ? calcDiscountedPrice(p.price, promo) : p.price;
+    const discountLabel = promo
+      ? (promo.discountType === 'percent' ? `-${promo.discountVal}%` : `-${(promo.discountVal / 1000).toFixed(0)}K`)
+      : (p.saleTag || null);
+
     return (
       <Link
         key={p.id}
@@ -337,12 +535,19 @@ const Home = () => {
           {p.imageUrl ? (
             <img src={p.imageUrl} alt={p.name} className="new-card-img" />
           ) : (
-            <div className="new-card-img-fallback">🌾</div>
+            <div className="new-card-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={32} /></div>
           )}
-          {p.saleTag && <span className="new-card-sale-tag">{p.saleTag}</span>}
+          {discountLabel && (
+            <span className={`new-card-sale-tag ${promo ? 'promo-badge' : ''}`}>{discountLabel}</span>
+          )}
+          {promo && (
+            <span className="new-card-promo-name">
+              🏷️ Khuyến mãi
+            </span>
+          )}
 
           <button
-            className={`new-card-favorite-btn ${favorites.includes(p.id) ? "active" : ""}`}
+            className={`new-card-favorite-btn ${favorites.map(String).includes(String(p.id)) ? "active" : ""}`}
             aria-label="Yêu thích"
             onClick={(e) => toggleFavorite(p.id, e)}
           >
@@ -350,8 +555,8 @@ const Home = () => {
               width="15"
               height="15"
               viewBox="0 0 24 24"
-              fill={favorites.includes(p.id) ? "#DC2626" : "none"}
-              stroke={favorites.includes(p.id) ? "#DC2626" : "currentColor"}
+              fill={favorites.map(String).includes(String(p.id)) ? "#DC2626" : "none"}
+              stroke={favorites.map(String).includes(String(p.id)) ? "#DC2626" : "currentColor"}
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -367,14 +572,14 @@ const Home = () => {
             <h3 className="new-card-title" title={p.name}>{p.name}</h3>
 
             <div className="new-card-farm-row">
-              <span>🧑‍🌾 {p.farmerName || "Nhà vườn Agri"}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><UserCheck size={14} /> {p.farmerName || "Nhà vườn Agri"}</span>
             </div>
 
             <div className="new-card-rating-sold-row">
               <div className="new-card-rating">
                 <span className="star-gold">★</span>
-                <span className="rating-value">{p.rating || "4.8"}</span>
-                <span className="reviews-count">({p.reviewsCount || "12"})</span>
+                <span className="rating-value">{p.rating ? p.rating.toFixed(1) : "0.0"}</span>
+                <span className="reviews-count">({p.reviewsCount || 0})</span>
               </div>
               <span className="new-card-sold">Đã bán {p.sold || "0"}</span>
             </div>
@@ -382,14 +587,18 @@ const Home = () => {
 
           <div className="new-card-price-cart-row">
             <div className="new-card-price-col">
-              <span className="new-card-price">
-                {p.price.toLocaleString("vi-VN")}đ
+              <span className="new-card-price" style={promo ? { color: '#dc2626' } : {}}>
+                {discountedPrice.toLocaleString("vi-VN")}đ
               </span>
-              {p.oldPrice && (
+              {promo ? (
+                <span className="new-card-old-price">
+                  {p.price.toLocaleString("vi-VN")}đ
+                </span>
+              ) : p.oldPrice ? (
                 <span className="new-card-old-price">
                   {p.oldPrice.toLocaleString("vi-VN")}đ
                 </span>
-              )}
+              ) : null}
             </div>
 
             <button
@@ -448,6 +657,10 @@ const Home = () => {
             </button>
           </section>
         )}
+
+        {/* Nhà vườn Promotions Section - Tạm thời ẩn */}
+        {/* {activePromotions.length > 0 && ( ... )} */}
+
         {/* Hero Section Split Layout */}
         <section className="hero-section-split">
           {/* Left Large Banner */}
@@ -533,7 +746,7 @@ const Home = () => {
                 <h2 className="hero-sub-title">Sản phẩm giảm giá ưu đãi</h2>
                 <div className="hero-sub-link-row" onClick={() => navigate("/products")} style={{ cursor: "pointer" }}>
                   <span>Xem danh sách</span>
-                  <span className="sub-link-arrow">→</span>
+                  <span className="sub-link-arrow" style={{ display: "inline-flex", alignItems: "center" }}><ArrowRight size={14} /></span>
                 </div>
               </div>
             </div>
@@ -544,28 +757,36 @@ const Home = () => {
         <section className="value-proposition-section">
           <div className="value-prop-grid">
             <div className="value-prop-card">
-              <div className="value-prop-icon">🌾</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <Sprout size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">100% Nông sản sạch</h4>
                 <p className="value-prop-desc">VietGAP, GlobalGAP & Hữu cơ tiêu chuẩn</p>
               </div>
             </div>
             <div className="value-prop-card">
-              <div className="value-prop-icon">🚚</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <Truck size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">Giao nhanh siêu tốc 2h</h4>
                 <p className="value-prop-desc">Bảo đảm tươi ngon nguyên bản đến nhà bạn</p>
               </div>
             </div>
             <div className="value-prop-card">
-              <div className="value-prop-icon">🧑‍🌾</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <UserCheck size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">Giá tận gốc từ vườn</h4>
                 <p className="value-prop-desc">Không qua trung gian thương lái, mua trực tiếp</p>
               </div>
             </div>
             <div className="value-prop-card">
-              <div className="value-prop-icon">🛡️</div>
+              <div className="value-prop-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#16a34a" }}>
+                <ShieldCheck size={24} />
+              </div>
               <div className="value-prop-info">
                 <h4 className="value-prop-title">Bảo đảm chất lượng</h4>
                 <p className="value-prop-desc">Đổi trả 100% nếu có lỗi từ nhà vườn</p>
@@ -579,10 +800,10 @@ const Home = () => {
           <h2
             className="section-title"
             onClick={() => navigate("/products/listing")}
-            style={{ cursor: "pointer", display: "inline-block" }}
+            style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
             title="Xem tất cả danh mục"
           >
-            Danh mục →
+            Danh mục <ArrowRight size={18} />
           </h2>
           <div className="categories-grid">
             {MAIN_CATEGORIES.map((cat) => (
@@ -595,19 +816,22 @@ const Home = () => {
                 }}
                 style={{ cursor: "pointer" }}
               >
-                <span className="category-icon">{cat.icon}</span>
+                <span className="category-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  {cat.icon}
+                </span>
                 <span className="category-name">{cat.name}</span>
               </div>
             ))}
           </div>
         </section>
 
+
         {/* Flash Sale Section */}
         {displayFlashSale.length > 0 && (
           <section className="flash-sale-section">
             <div className="flash-sale-header">
               <div className="flash-sale-title-box">
-                <span className="flash-sale-icon">⚡</span>
+                <span className="flash-sale-icon" style={{ display: "inline-flex", alignItems: "center" }}><Zap size={20} /></span>
                 <h2 className="flash-sale-title">GIỜ VÀNG GIÁ SỐC</h2>
                 <div className="countdown-box">
                   <span className="countdown-number">{timeLeft.hours}</span>
@@ -657,54 +881,201 @@ const Home = () => {
         )}
 
         {/* Nông trại gần bạn Section (Synchronized with Database Farmers) */}
-        {activeFarms.length >= 2 && (
-          <section className="new-farms-section">
-            <div className="new-farms-header">
-              <div>
-                <h2 className="new-section-title">Nông trại gần bạn</h2>
-                <p className="new-section-subtitle">Hỗ trợ các nhà vườn địa phương tại TP. Hồ Chí Minh</p>
-              </div>
+        <section className="new-farms-section">
+          <div className="new-farms-header">
+            <div>
+              <h2 className="new-section-title">Nhà vườn gần bạn</h2>
+            </div>
+            {hasDefaultAddress && activeFarms.length >= 1 && (
               <button className="new-farms-map-btn" onClick={() => navigate("/farms")}>
                 Bản đồ nông trại
               </button>
+            )}
+          </div>
+
+          {hasDefaultAddress ? (
+            activeFarms.length >= 1 ? (
+              <div className="new-farms-grid" style={activeFarms.length === 1 ? { gridTemplateColumns: "1fr" } : {}}>
+                {/* Wide Farm Card (activeFarms[0]) */}
+                <div className="new-farm-card wide-farm-card">
+                  <div className="farm-card-left-img" style={{ backgroundImage: `url(${activeFarms[0].imageUrl})` }}></div>
+                  <div className="farm-card-right-info">
+                    <div className="farm-card-meta">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
+                        {(activeFarms[0].badges || [{ label: activeFarms[0].badge || "VƯỜN AN TOÀN", color: "#6b7280" }]).map(b => (
+                          <span key={b.label} className="farm-badge-secure" style={{ backgroundColor: b.color + "18", color: b.color, borderColor: b.color + "40" }}>{b.label}</span>
+                        ))}
+                      </div>
+                      <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[0].distance}</span>
+                    </div>
+                    <h3 className="farm-card-title">{activeFarms[0].name}</h3>
+                    <p className="farm-card-desc">{activeFarms[0].description}</p>
+                    {activeFarms[0].farmAddress && (
+                      <div className="farm-card-tags">
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#6b7280" }}>
+                          <MapPin size={11} />{activeFarms[0].farmAddress}
+                        </span>
+                      </div>
+                    )}
+                    <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[0].id}`)}>
+                      Ghé thăm gian hàng
+                    </button>
+                  </div>
+                </div>
+
+                {/* Standard/Narrow Farm Card (activeFarms[1]) */}
+                {activeFarms.length >= 2 && (
+                  <div className="new-farm-card narrow-farm-card">
+                    <div className="farm-card-top-img" style={{ backgroundImage: `url(${activeFarms[1].imageUrl})` }}></div>
+                    <div className="farm-card-bottom-info">
+                      <div className="farm-card-meta">
+                        <h3 className="farm-card-title">{activeFarms[1].name}</h3>
+                        <span className="farm-distance-tag" style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><MapPin size={13} /> {activeFarms[1].distance}</span>
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
+                        {(activeFarms[1].badges || [{ label: activeFarms[1].badge || "VƯỜN AN TOÀN", color: "#6b7280" }]).map(b => (
+                          <span key={b.label} className="farm-badge-secure" style={{ backgroundColor: b.color + "18", color: b.color, borderColor: b.color + "40", fontSize: "10px" }}>{b.label}</span>
+                        ))}
+                      </div>
+                      <p className="farm-card-desc">{activeFarms[1].description}</p>
+                      {activeFarms[1].farmAddress && (
+                        <p style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "#6b7280", margin: "0 0 8px 0" }}>
+                          <MapPin size={11} />{activeFarms[1].farmAddress}
+                        </p>
+                      )}
+                      <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[1].id}`)}>
+                        Xem sản phẩm
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="empty-farms-state" style={{ textAlign: "center", padding: "40px 20px", color: "#6b7280", border: "1px dashed #e5e7eb", borderRadius: "16px" }}>
+                Không tìm thấy nhà vườn nào có sản phẩm được phê duyệt xung quanh bạn.
+              </div>
+            )
+          ) : (
+            <div className="farms-address-required-card" style={{
+              background: "linear-gradient(135deg, rgba(240, 253, 244, 0.5) 0%, rgba(254, 243, 199, 0.3) 100%)",
+              border: "1px dashed #10b981",
+              borderRadius: "24px",
+              padding: "48px 24px",
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "16px",
+              boxShadow: "0 10px 30px -10px rgba(16, 185, 129, 0.08)",
+              backdropFilter: "blur(8px)"
+            }}>
+              <div style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                color: "#10b981",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "8px"
+              }}>
+                <MapPin size={28} />
+              </div>
+              <h3 style={{ fontSize: "20px", color: "#065f46", fontWeight: "700", margin: 0 }}>Định vị nhà vườn gần bạn</h3>
+              <p style={{ fontSize: "14.5px", color: "#4b5563", maxWidth: "540px", margin: "0 auto 8px auto", lineHeight: "1.6" }}>
+                {user ? "Bạn chưa thiết lập địa chỉ nhận hàng mặc định. Vui lòng cập nhật địa chỉ mặc định để chúng tôi định vị các nhà vườn gần bạn nhất." : "Vui lòng đăng nhập và thiết lập địa chỉ nhận hàng mặc định để tìm kiếm các nhà vườn gần vị trí của bạn nhất."}
+              </p>
+              <button
+                onClick={() => navigate(user ? "/profile/edit" : "/login")}
+                style={{
+                  backgroundColor: "#10b981",
+                  color: "#ffffff",
+                  padding: "12px 28px",
+                  borderRadius: "14px",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 4px 14px rgba(16, 185, 129, 0.25)"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = "#059669";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "#10b981";
+                  e.currentTarget.style.transform = "none";
+                }}
+              >
+                {user ? "Cập nhật địa chỉ mặc định" : "Đăng nhập để cập nhật"}
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* === ƯU ĐÃI ĐẶC BIỆT — above featured products === */}
+        {activePromotions.length > 0 && (
+          <section style={{ marginTop: '8px' }}>
+            {/* Section Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Tag size={20} color="#dc2626" /> Ưu đãi đặc biệt đang diễn ra
+              </h2>
+              <span style={{ fontSize: '13px', color: '#6b7280', background: '#f3f4f6', padding: '3px 10px', borderRadius: '20px' }}>
+                {activePromotions.length} chương trình
+              </span>
             </div>
 
-            <div className="new-farms-grid">
-              {/* Wide Farm Card (activeFarms[0]) */}
-              <div className="new-farm-card wide-farm-card">
-                <div className="farm-card-left-img" style={{ backgroundImage: `url(${activeFarms[0].imageUrl})` }}></div>
-                <div className="farm-card-right-info">
-                  <div className="farm-card-meta">
-                    <span className="farm-badge-secure">{activeFarms[0].badge}</span>
-                    <span className="farm-distance-tag">📍 {activeFarms[0].distance}</span>
+            {/* Cards Grid — 2 per row on desktop */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+              {activePromotions.map(promo => (
+                <div
+                  key={promo.id}
+                  onClick={() => navigate(`/promotions/${promo.id}`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)',
+                    border: '1px solid #fed7aa',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    boxShadow: '0 2px 12px rgba(251,146,60,0.1)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 12px 28px rgba(251,146,60,0.25)'; }}
+                  onMouseOut={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(251,146,60,0.1)'; }}
+                >
+                  {promo.image && (
+                    <img src={promo.image} alt={promo.title} style={{ width: '120px', height: '100%', minHeight: '100px', objectFit: 'cover', flexShrink: 0 }} />
+                  )}
+                  <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ background: '#dc2626', color: 'white', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', fontWeight: 700 }}>
+                        {promo.discountType === 'percent' ? `GIẢM ${promo.discountVal}%` : `GIẢM ${(promo.discountVal/1000).toFixed(0)}K`}
+                      </span>
+                      <span style={{ background: '#10b981', color: 'white', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', fontWeight: 600 }}>ĐANG DIỄN RA</span>
+                    </div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 700, color: '#92400e', lineHeight: '1.3' }}>{promo.title}</h4>
+                    <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#6b7280', lineHeight: '1.5' }}>{promo.description}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#d97706' }}>
+                        <Clock size={12} />
+                        <span>Đến {promo.endDate}</span>
+                        {promo.maxUses > 0 && (
+                          <span style={{ marginLeft: '6px', background: '#fef3c7', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px' }}>
+                            Còn {promo.maxUses - (promo.usedCount||0)} lượt
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Xem ngay <ArrowRight size={12} />
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="farm-card-title">{activeFarms[0].name}</h3>
-                  <p className="farm-card-desc">{activeFarms[0].description}</p>
-                  <div className="farm-card-tags">
-                    {activeFarms[0].tags.map(t => (
-                      <span key={t} className="farm-hashtag">#{t}</span>
-                    ))}
-                  </div>
-                  <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[0].id}`)}>
-                    Ghé thăm gian hàng
-                  </button>
                 </div>
-              </div>
-
-              {/* Standard/Narrow Farm Card (activeFarms[1]) */}
-              <div className="new-farm-card narrow-farm-card">
-                <div className="farm-card-top-img" style={{ backgroundImage: `url(${activeFarms[1].imageUrl})` }}></div>
-                <div className="farm-card-bottom-info">
-                  <div className="farm-card-meta">
-                    <h3 className="farm-card-title">{activeFarms[1].name}</h3>
-                    <span className="farm-distance-tag">📍 {activeFarms[1].distance}</span>
-                  </div>
-                  <p className="farm-card-desc">{activeFarms[1].description}</p>
-                  <button className="farm-visit-btn" onClick={() => navigate(`/farmer-profile/${activeFarms[1].id}`)}>
-                    Xem sản phẩm
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
           </section>
         )}
@@ -728,11 +1099,16 @@ const Home = () => {
                 </svg>
               </button>
               <div className="sort-dropdown-container">
-                <select className="sort-select" defaultValue="newest">
-                  <option value="newest">Mới nhất</option>
-                  <option value="popular">Bán chạy nhất</option>
-                  <option value="price-asc">Giá tăng dần</option>
-                  <option value="price-desc">Giá giảm dần</option>
+                <select
+                  className="sort-select"
+                  value={selectedSort}
+                  onChange={(e) => {
+                    setSelectedSort(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="popular">Mua nhiều nhất</option>
+                  <option value="rating">Đánh giá cao nhất</option>
                 </select>
               </div>
             </div>
@@ -750,9 +1126,9 @@ const Home = () => {
 
           {filteredProducts.length > 10 && (
             <div className="product-pagination">
-              <button 
-                className="pagination-btn" 
-                disabled={currentPage === 1} 
+              <button
+                className="pagination-btn"
+                disabled={currentPage === 1}
                 onClick={() => {
                   setCurrentPage(prev => Math.max(1, prev - 1));
                   document.querySelector(".new-featured-section")?.scrollIntoView({ behavior: "smooth" });
@@ -766,8 +1142,8 @@ const Home = () => {
                 const pages = [];
                 for (let i = 1; i <= totalPages; i++) {
                   pages.push(
-                    <button 
-                      key={i} 
+                    <button
+                      key={i}
                       className={`pagination-btn ${currentPage === i ? "active" : ""}`}
                       onClick={() => {
                         setCurrentPage(i);
@@ -781,9 +1157,9 @@ const Home = () => {
                 return pages;
               })()}
 
-              <button 
-                className="pagination-btn" 
-                disabled={currentPage === Math.ceil(filteredProducts.length / 10)} 
+              <button
+                className="pagination-btn"
+                disabled={currentPage === Math.ceil(filteredProducts.length / 10)}
                 onClick={() => {
                   const totalPages = Math.ceil(filteredProducts.length / 10);
                   setCurrentPage(prev => Math.min(totalPages, prev + 1));
@@ -803,187 +1179,91 @@ const Home = () => {
               <h2 className="livestream-title">Phiên Live Nhà Vườn</h2>
               <p className="livestream-subtitle">Theo dõi quy trình thu hoạch sạch trực tiếp tại nông trại</p>
             </div>
-            <button className="livestream-view-all" onClick={() => { setSelectedCategory("Rau củ quả"); document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" }); }}>
+            <button className="livestream-view-all" onClick={() => navigate("/livestream")}>
               Xem tất cả phiên live
             </button>
           </div>
 
           <div className="livestream-grid">
-            <div className="livestream-card">
-              <div className="live-thumbnail" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?w=600)` }}>
-                <span className="live-badge">● LIVE</span>
-                <span className="live-viewers">1.2k người xem</span>
-              </div>
-              <div className="live-info">
-                <div className="live-farmer">
-                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80" alt="Farmer" className="live-farmer-avatar" />
-                  <div className="live-farmer-details">
-                    <h4 className="live-farmer-name">Chú Bảy Nông Dân</h4>
-                    <p className="live-farm-title">Vườn Chôm Chôm Nhãn Đồng Nai</p>
-                  </div>
-                </div>
-                <h3 className="live-stream-headline">Thu hoạch chôm chôm quả to, giòn ngọt tại vườn!</h3>
-              </div>
-            </div>
+            {activeLives.length > 0 ? (
+              activeLives.slice(0, 3).map((live) => {
+                const isLive = live.status === "active" || live.status === "live";
+                const formatViewers = (count) => {
+                  const c = Number(count || 0);
+                  if (c >= 1000) return (c / 1000).toFixed(1) + "k người xem";
+                  return `${c} người xem`;
+                };
 
-            <div className="livestream-card">
-              <div className="live-thumbnail" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1595855759920-86582396756a?w=600)` }}>
-                <span className="live-badge">● LIVE</span>
-                <span className="live-viewers">856 người xem</span>
-              </div>
-              <div className="live-info">
-                <div className="live-farmer">
-                  <img src="https://images.unsplash.com/photo-1628157582853-a796fa650a6a?w=80" alt="Farmer" className="live-farmer-avatar" />
-                  <div className="live-farmer-details">
-                    <h4 className="live-farmer-name">Cô Hoa Đà Lạt</h4>
-                    <p className="live-farm-title">Trang trại Rau củ Hữu cơ organic</p>
+                return (
+                  <div
+                    className="livestream-card"
+                    key={live.id}
+                    onClick={() => navigate(`/livestream/${live.id}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div
+                      className="live-thumbnail"
+                      style={{ backgroundImage: `url(${live.farmerAvatar || "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=600"})` }}
+                    >
+                      <span className={`live-badge ${isLive ? "" : "upcoming"}`}>
+                        {isLive ? "● LIVE" : "UPCOMING"}
+                      </span>
+                      {isLive && (
+                        <span className="live-viewers">{formatViewers(live.viewersCount)}</span>
+                      )}
+                    </div>
+                    <div className="live-info">
+                      <div className="live-farmer">
+                        <img
+                          src={live.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80"}
+                          alt={live.farmerBrand}
+                          className="live-farmer-avatar"
+                        />
+                        <div className="live-farmer-details">
+                          <h4 className="live-farmer-name">{live.farmerBrand || "Nhà vườn AgriMarket"}</h4>
+                          <p className="live-farm-title">{live.farmerName || "Nhà vườn"}</p>
+                        </div>
+                      </div>
+                      <h3 className="live-stream-headline">{live.title}</h3>
+                    </div>
                   </div>
-                </div>
-                <h3 className="live-stream-headline">Cắt cải kale, xà lách giòn ngọt chuẩn sạch tại chỗ</h3>
+                );
+              })
+            ) : (
+              <div className="empty-state" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#666", fontSize: "15px", background: "#f8f9fa", borderRadius: "12px", border: "1px dashed #ddd" }}>
+                Hiện chưa có phiên livestream nào đang diễn ra hoặc sắp bắt đầu.
               </div>
-            </div>
-
-            <div className="livestream-card">
-              <div className="live-thumbnail" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=600)` }}>
-                <span className="live-badge">● LIVE</span>
-                <span className="live-viewers">2.1k người xem</span>
-              </div>
-              <div className="live-info">
-                <div className="live-farmer">
-                  <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80" alt="Farmer" className="live-farmer-avatar" />
-                  <div className="live-farmer-details">
-                    <h4 className="live-farmer-name">Anh Hải Măng Cụt</h4>
-                    <p className="live-farm-title">Vườn cây ăn trái Lái Thiêu</p>
-                  </div>
-                </div>
-                <h3 className="live-stream-headline">Măng cụt đầu mùa siêu ngọt thanh, bao bù hư hao</h3>
-              </div>
-            </div>
+            )}
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="new-footer">
-        <div className="footer-columns">
-          <div className="footer-column footer-brand">
-            <h3 className="footer-brand-title">AgriMarket Việt Nam</h3>
-            <p className="footer-brand-desc">
-              Kênh thương mại điện tử chuyên biệt cho nông nghiệp Việt, kết nối trực tiếp nhà vườn và người tiêu dùng.
-            </p>
-            <div className="footer-social-icons">
-              <a href="#" className="social-icon" aria-label="Website">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              </a>
-              <a href="#" className="social-icon" aria-label="Globe">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7" />
-                  <path d="M16 19h6M19 16l3 3-3 3" />
-                </svg>
-              </a>
-              <a href="#" className="social-icon" aria-label="Mail">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-              </a>
-            </div>
-          </div>
+      <Footer />
 
-          <div className="footer-column">
-            <h4 className="footer-col-title">DANH MỤC NỔI BẬT</h4>
-            <ul className="footer-links">
-              <li>
-                <span
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setSelectedCategory("Rau củ quả");
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                >
-                  Rau củ quả sạch
-                </span>
-              </li>
-              <li>
-                <span
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setSelectedCategory("Trái cây");
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                >
-                  Trái cây tươi ngon
-                </span>
-              </li>
-              <li>
-                <span
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setSelectedCategory("Cây lương thực");
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                >
-                  Gạo & Ngũ cốc sạch
-                </span>
-              </li>
-              <li>
-                <span
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setSelectedCategory("Nông sản chế biến");
-                    document.querySelector(".categories-section")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                >
-                  Nông sản chế biến
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="footer-column">
-            <h4 className="footer-col-title">THÔNG TIN LIÊN HỆ</h4>
-            <ul className="footer-contact-info">
-              <li className="footer-contact-item">
-                <span className="icon">📍</span>
-                <span>268 Lý Thường Kiệt, Phường 14, Quận 10, TP. Hồ Chí Minh</span>
-              </li>
-              <li className="footer-contact-item">
-                <span className="icon">📞</span>
-                <span>Hotline: 1900 6789 (8:00 - 21:00)</span>
-              </li>
-              <li className="footer-contact-item">
-                <span className="icon">✉️</span>
-                <span>Email: hotro@agrimarket.vn</span>
-              </li>
-              <li className="footer-contact-item">
-                <span className="icon">🧑‍🌾</span>
-                <span>Hợp tác nhà vườn: <strong className="footer-contact-highlight">0909 123 456</strong></span>
-              </li>
-            </ul>
-          </div>
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`pl-toast pl-toast-${toastType}`}>
+          {toastType === "success" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          ) : toastType === "error" ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          )}
+          <span>{toastMessage}</span>
         </div>
-
-        <div className="footer-bottom">
-          <p>© 2024 AgriMarket Việt Nam. Kết nối bền vững.</p>
-        </div>
-      </footer>
-
-      {/* Toast Notification Container */}
-      <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`custom-toast ${t.type}`}>
-            <span className="custom-toast-icon">
-              {t.type === "success" ? "✅" : t.type === "error" ? "❌" : "⚠️"}
-            </span>
-            <span className="custom-toast-message">{t.message}</span>
-            <button className="custom-toast-close" onClick={() => setToasts(prev => prev.filter(item => item.id !== t.id))}>×</button>
-          </div>
-        ))}
-      </div>
+      )}
     </div>
   );
 };

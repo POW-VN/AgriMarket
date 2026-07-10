@@ -11,6 +11,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 @Service
 public class DistanceService {
 
@@ -18,6 +21,9 @@ public class DistanceService {
             .connectTimeout(Duration.ofSeconds(5))
             .build();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Map<String, Coordinate> geocodeCache = new ConcurrentHashMap<>();
+    private static final Coordinate SENTINEL_COORDINATE = new Coordinate(-999.0, -999.0);
+
 
     public double calculateDistance(String fromAddress, String toAddress) {
         return calculateDistance(fromAddress, null, null, toAddress, null, null);
@@ -61,6 +67,15 @@ public class DistanceService {
     }
 
     private Coordinate geocodeAddress(String address) {
+        if (address == null || address.isBlank()) {
+            return null;
+        }
+        String key = address.trim().toLowerCase();
+        if (geocodeCache.containsKey(key)) {
+            Coordinate cached = geocodeCache.get(key);
+            return cached == SENTINEL_COORDINATE ? null : cached;
+        }
+
         try {
             String query = URLEncoder.encode(address, StandardCharsets.UTF_8);
             String url = "https://nominatim.openstreetmap.org/search?q=" + query + "&format=json&limit=1";
@@ -80,12 +95,15 @@ public class DistanceService {
                     JsonNode first = root.get(0);
                     double lat = first.get("lat").asDouble();
                     double lon = first.get("lon").asDouble();
-                    return new Coordinate(lat, lon);
+                    Coordinate coord = new Coordinate(lat, lon);
+                    geocodeCache.put(key, coord);
+                    return coord;
                 }
             }
         } catch (Exception e) {
             System.err.println("Geocoding failed for address: " + address + ". Error: " + e.getMessage());
         }
+        geocodeCache.put(key, SENTINEL_COORDINATE);
         return null;
     }
 

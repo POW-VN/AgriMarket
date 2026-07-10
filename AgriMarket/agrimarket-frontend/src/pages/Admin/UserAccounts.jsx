@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Search, Bell, Lightbulb } from "lucide-react";
 import authService from "../../services/authService";
+import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
@@ -126,7 +128,6 @@ const UserAccounts = () => {
         case "admin": return "Quản trị viên";
         case "farmer": return "Nông dân";
         case "customer": return "Khách hàng";
-        case "partner": return "Đơn vị vận chuyển";
         default: return r;
       }
     };
@@ -146,8 +147,6 @@ const UserAccounts = () => {
           return `${u.fullName} là đối tác nhà vườn có hoạt động tích cực trên AgriMarket. Trang trại "${u.farmName || 'Nông trại sạch'}" thường xuyên cung cấp các sản phẩm hữu cơ đạt chất lượng cao. Đề xuất giữ kết nối tốt và ưu tiên hiển thị các sản phẩm VietGAP của nông hộ này trên trang chủ.`;
         case "customer":
           return `Khách hàng này thường xuyên mua sắm nông sản và có lịch sử giao dịch tốt. Tỷ lệ hủy/hoàn trả đơn hàng dưới 1%. Đây là tài khoản có tiềm năng trở thành Khách hàng thân thiết VIP của hệ thống.`;
-        case "partner":
-          return `Đơn vị vận chuyển này hoạt động ổn định, có tỷ lệ giao hàng đúng hẹn đạt 98% trong tháng qua. Thích hợp để phân bổ các tuyến đường dài hoặc đơn hàng cồng kềnh yêu cầu xe tải bảo ôn.`;
         case "admin":
           return `Tài khoản Quản trị viên hệ thống cấp cao. Có toàn quyền quản trị, phê duyệt nông sản, xử lý khiếu nại và giám sát bảo mật. Luôn khuyến nghị bật xác thực 2 lớp.`;
         default:
@@ -167,11 +166,6 @@ const UserAccounts = () => {
           return [
             { id: "ORD-77110", date: "02/06/2026", details: "Táo hữu cơ Mỹ (3kg) + Cam sành hữu cơ", amount: "320.000 đ", status: "delivered", statusLabel: "Đã giao" },
             { id: "ORD-76890", date: "25/05/2026", details: "Rau muống sạch VietGAP + Xà lách thủy canh", amount: "95.000 đ", status: "delivered", statusLabel: "Đã giao" }
-          ];
-        case "partner":
-          return [
-            { id: "SHIP-5521", date: "04/06/2026", details: "Đà Lạt -> TP. HCM (Vận chuyển rau củ quả bảo ôn)", amount: "1.200.000 đ", status: "delivered", statusLabel: "Đã giao" },
-            { id: "SHIP-5412", date: "30/05/2026", details: "Mộc Châu -> Hà Nội (Vận chuyển dâu tây tươi)", amount: "2.500.000 đ", status: "delivered", statusLabel: "Đã giao" }
           ];
         case "admin":
           return [
@@ -317,7 +311,7 @@ const UserAccounts = () => {
 
             <div className="details-insight-card">
               <div className="insight-header">
-                <span className="insight-icon">💡</span>
+                <span className="insight-icon" style={{ display: "inline-flex", alignItems: "center" }}><Lightbulb size={16} /></span>
                 <span>Gợi ý từ Hệ thống</span>
               </div>
               <p className="insight-text">{insightText}</p>
@@ -351,10 +345,10 @@ const UserAccounts = () => {
                     onClick={() => setDetailActiveTab(user.role === "customer" ? "purchase_history" : "history")}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                    {user.role === "customer" ? "Lịch sử mua hàng" : user.role === "partner" ? "Chuyến hàng vận chuyển" : "Nhật ký tác vụ"}
+                    {user.role === "customer" ? "Lịch sử mua hàng" : "Nhật ký tác vụ"}
                   </button>
                 )}
-                {(user.role === "farmer" || user.role === "partner" || user.role === "admin") && (
+                {(user.role === "farmer" || user.role === "admin") && (
                   <button
                     className={`details-tab-btn ${detailActiveTab === "profile" ? "active" : ""}`}
                     onClick={() => setDetailActiveTab("profile")}
@@ -381,9 +375,7 @@ const UserAccounts = () => {
                           ? "Đơn hàng đã bán gần đây"
                           : detailActiveTab === "purchase_history"
                             ? "Đơn hàng đã mua gần đây"
-                            : user.role === "partner"
-                              ? "Các chuyến hàng gần đây"
-                              : "Các hoạt động hệ thống gần đây"}
+                            : "Các hoạt động hệ thống gần đây"}
                       </h3>
                       <div className="recent-orders-actions">
                         <button className="btn-orders-action" onClick={() => showToast("Bộ lọc lịch sử giao dịch đang tải...")}>Bộ lọc</button>
@@ -574,30 +566,7 @@ const UserAccounts = () => {
                       </>
                     )}
 
-                    {user.role === "partner" && (
-                      <>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Đơn vị chủ quản</span>
-                          <span className="details-field-value">Tổng công ty Vận tải AgriExpress Logistics</span>
-                        </div>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Số hiệu đăng ký xe (Biển số)</span>
-                          <span className="details-field-value">29C-123.45 (Xe tải bảo ôn)</span>
-                        </div>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Tải trọng tối đa</span>
-                          <span className="details-field-value">8.5 Tấn</span>
-                        </div>
-                        <div className="details-field-item">
-                          <span className="details-field-label">Loại thùng xe</span>
-                          <span className="details-field-value">Thùng đông lạnh bảo ôn chuyên dụng cho nông sản tươi</span>
-                        </div>
-                        <div className="details-field-item" style={{ gridColumn: "span 2" }}>
-                          <span className="details-field-label">Các tuyến vận chuyển thường chạy</span>
-                          <span className="details-field-value">Lâm Đồng - TP. Hồ Chí Minh | Đắk Lắk - Bình Dương</span>
-                        </div>
-                      </>
-                    )}
+
 
                     {user.role === "admin" && (
                       <>
@@ -761,16 +730,7 @@ const UserAccounts = () => {
         avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
         createdAt: "2026-04-01T08:00:00"
       },
-      {
-        id: 5,
-        fullName: "Elena Rostova",
-        email: "elena@partner.com",
-        phone: "0777666555",
-        role: "partner",
-        status: "pending",
-        avatarUrl: "",
-        createdAt: "2026-06-05T16:15:00"
-      }
+
     ];
 
     const stored = localStorage.getItem("agri_users");
@@ -1102,152 +1062,22 @@ const UserAccounts = () => {
     showToast("Đã xuất danh sách tài khoản thành công!");
   };
 
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   return (
     <div className="admin-layout">
       {/* Sidebar - Matching Image 1 */}
-      <aside className="admin-sidebar">
-        <div className="admin-logo-section">
-          <Link to="/" className="admin-logo-link">
-            <h1>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              AgriAdmin
-            </h1>
-          </Link>
-        </div>
-
-        <nav className="admin-nav-menu">
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng Bảng điều khiển đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-            </span>
-            Bảng điều khiển
-          </button>
-          <button className="admin-nav-item active" onClick={() => navigate("/admin/users")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            </span>
-            Quản lý tài khoản
-          </button>
-
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
-            </span>
-            Nông dân
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-            </span>
-            Duyệt sản phẩm
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý danh mục đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            </span>
-            Danh mục
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-            </span>
-            Đơn hàng
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng giao dịch đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            </span>
-            Giao dịch
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </span>
-            Hỗ trợ
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            Báo cáo
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="m22 8-6 4 6 4V8Z"></path><rect width="14" height="12" x="2" y="6" rx="2" ry="2"></rect></svg>
-            </span>
-            Quản lý Livestream
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng AI Monitoring đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-            </span>
-            Giám sát AI
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            </span>
-            Thông báo
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng thống kê hệ thống đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            </span>
-            Thống kê hệ thống
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng cài đặt đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </span>
-            Cài đặt
-          </button>
-        </nav>
-
-        {/* Sidebar Footer */}
-        <div className="admin-sidebar-footer">
-          <img
-            src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-            alt="Avatar admin"
-            className="admin-footer-avatar"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-            }}
-          />
-          <div className="admin-footer-info">
-            <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-            <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar activeItem="users" showToast={showToast} />
 
       {/* Main Content Container */}
       <div className="admin-main-container">
         {/* Header - Matching Image 1 */}
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input
               type="text"
               placeholder="Tìm kiếm tài khoản..."
@@ -1261,8 +1091,8 @@ const UserAccounts = () => {
           </div>
 
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")}>
-              <span>🔔</span>
+            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
               <span className="admin-notification-dot"></span>
             </button>
             <button className="btn-quick-action" onClick={() => navigate("/admin/users/create")}>
@@ -1333,7 +1163,7 @@ const UserAccounts = () => {
               {/* Advanced Filters & Search Bar */}
               <div className="admin-filters-bar">
                 <div className="filter-search-wrapper">
-                  <span className="filter-search-icon">🔍</span>
+                  <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                   <input
                     type="text"
                     placeholder="Tìm theo tên, email hoặc SĐT..."
@@ -1359,7 +1189,6 @@ const UserAccounts = () => {
                       <option value="admin">Quản trị (Admin)</option>
                       <option value="customer">Khách hàng (Customer)</option>
                       <option value="farmer">Nông dân (Farmer)</option>
-                      <option value="partner">Đơn vị vận chuyển (Partner)</option>
                     </select>
                   </div>
 
@@ -1466,7 +1295,7 @@ const UserAccounts = () => {
                             </td>
                             <td>
                               <span className={`badge-role ${user.role}`}>
-                                {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role === "partner" ? "Đơn vị vận chuyển" : user.role}
+                                {user.role === "admin" ? "Quản trị viên" : user.role === "farmer" ? "Nông dân" : user.role === "customer" ? "Khách hàng" : user.role}
                               </span>
                             </td>
                             <td style={{ verticalAlign: "middle" }}>

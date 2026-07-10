@@ -20,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +57,9 @@ public class CartService {
     @Transactional(readOnly = true)
     public List<CartItemResponse> getCart(String email) {
         Cart cart = getOrCreateCart(email);
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            return Collections.emptyList();
+        }
 
         Customer customer = customerRepository.findByEmail(email).orElse(null);
         final CustomerAddress defaultAddress = (customer != null && customer.getAddresses() != null)
@@ -63,8 +69,26 @@ public class CartService {
                         .orElse(customer.getAddresses().isEmpty() ? null : customer.getAddresses().get(0))
                 : null;
 
+        List<Long> productIds = cart.getItems().stream().map(CartItem::getProductId).collect(Collectors.toList());
+
+        // Bulk load all Products
+        List<Product> products = productRepository.findAllById(productIds);
+        Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, p -> p));
+
+        // Bulk load all ProductImages
+        List<ProductImage> allImages = productImageRepository.findByProductIdIn(productIds);
+        Map<Long, List<ProductImage>> imagesMap = allImages.stream()
+                .collect(Collectors.groupingBy(pi -> pi.getProduct().getId()));
+
         return cart.getItems().stream()
-                .map(item -> mapToResponse(item, defaultAddress))
+                .map(item -> {
+                    Product product = productMap.get(item.getProductId());
+                    if (product == null) {
+                        return Optional.<CartItemResponse>empty();
+                    }
+                    List<ProductImage> productImages = imagesMap.getOrDefault(product.getId(), Collections.emptyList());
+                    return mapToResponseOptimized(item, product, productImages, defaultAddress);
+                })
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toList());
@@ -76,10 +100,13 @@ public class CartService {
             return Optional.empty();
         }
         Product product = productOpt.get();
+        List<ProductImage> images = productImageRepository.findByProductId(product.getId());
+        return mapToResponseOptimized(item, product, images, defaultAddress);
+    }
 
+    private Optional<CartItemResponse> mapToResponseOptimized(CartItem item, Product product, List<ProductImage> images, CustomerAddress defaultAddress) {
         // Get thumbnail image
         String imageUrl = "";
-        List<ProductImage> images = productImageRepository.findByProductId(product.getId());
         if (images != null && !images.isEmpty()) {
             imageUrl = images.stream()
                     .filter(img -> img.getIsThumbnail() != null && img.getIsThumbnail())
@@ -261,4 +288,24 @@ public class CartService {
         cartRepository.save(cart);
         return getCart(email);
     }
+
+    /**
+     * Cập nhật trạng thái checked của nhiều sản phẩm trong một lần gọi DB duy nhất.
+     * Dùng cho "Chọn tất cả" và "Chọn nhà vườn" để tránh N lần gọi API tuần tự.
+     */
+    @Transactional
+    public void bulkUpdateChecked(String email, List<Long> productIds, boolean checked) {
+        Cart cart = getOrCreateCart(email);
+        boolean changed = false;
+        for (CartItem item : cart.getItems()) {
+            if (productIds.contains(item.getProductId()) && !Boolean.valueOf(checked).equals(item.getChecked())) {
+                item.setChecked(checked);
+                changed = true;
+            }
+        }
+        if (changed) {
+            cartItemRepository.saveAll(cart.getItems());
+        }
+    }
 }
+

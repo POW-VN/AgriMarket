@@ -140,6 +140,7 @@ CREATE TABLE product (
     admin_notes TEXT,
     perishability VARCHAR(50) NULL,
     limit_distance DECIMAL(10,2) NULL,
+    is_preorder BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES category(id)
 );

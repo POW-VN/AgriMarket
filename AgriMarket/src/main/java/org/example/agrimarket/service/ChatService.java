@@ -35,6 +35,9 @@ public class ChatService {
     @Autowired
     private FarmerRepository farmerRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     public List<ConversationResponseDTO> getConversations(String email) {
         // Resolve user role
         Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
@@ -180,6 +183,10 @@ public class ChatService {
         String farmAddress = "";
         String description = "";
 
+        String memberLevel = "Thành viên Đồng hành";
+        String joinedDate = "Chưa rõ";
+        long completedOrdersCount = 0;
+
         if ("farmer".equals(currentUserRole)) {
             // Partner is customer
             Customer customer = conv.getCustomer();
@@ -191,6 +198,21 @@ public class ChatService {
                 farmAddress = customer.getAddresses().get(0).getAddress();
             } else {
                 farmAddress = "Chưa cập nhật địa chỉ";
+            }
+
+            if (customer.getCreatedAt() != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                joinedDate = customer.getCreatedAt().format(formatter);
+            }
+
+            completedOrdersCount = orderRepository.countByCustomerIdAndStatus(customer.getId(), "delivered");
+
+            if (completedOrdersCount >= 10) {
+                memberLevel = "Thành viên Vàng";
+            } else if (completedOrdersCount >= 5) {
+                memberLevel = "Thành viên Bạc";
+            } else {
+                memberLevel = "Thành viên Đồng hành";
             }
         } else {
             // Partner is farmer
@@ -230,6 +252,10 @@ public class ChatService {
                 .type("normal")
                 .description(description)
                 .blockedBy(conv.getBlockedBy())
+                .partnerId(partnerId)
+                .memberLevel(memberLevel)
+                .joinedDate(joinedDate)
+                .completedOrdersCount(completedOrdersCount)
                 .messages(messageDTOs)
                 .mediaImages(mediaImages)
                 .build();

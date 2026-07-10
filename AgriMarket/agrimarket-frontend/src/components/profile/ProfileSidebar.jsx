@@ -1,6 +1,17 @@
 // src/components/profile/ProfileSidebar.jsx
 
 import { useLocation, useNavigate } from "react-router-dom";
+import { 
+  Home, 
+  User, 
+  Tractor, 
+  Bell, 
+  Lock, 
+  ShoppingBag, 
+  Heart, 
+  LifeBuoy, 
+  LogOut 
+} from "lucide-react";
 import profileService from "../../services/profileService";
 import ProfileAvatar from "./ProfileAvatar";
 import useNotifications from "../../hooks/useNotifications";
@@ -18,46 +29,38 @@ const ProfileSidebar = ({ profile }) => {
 
   const userRole = profile?.role?.toLowerCase();
   const isFarmer = userRole === "farmer";
-  const isShipper = userRole === "partner" || userRole === "shipper";
 
 
   return (
     <aside className="profile-sidebar">
       <div className="profile-brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="logo-tractor"
-        >
-          <circle cx="7" cy="18" r="2"></circle>
-          <circle cx="18" cy="18" r="2"></circle>
-          <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-          <path d="M16 9h3l2 3v4"></path>
-        </svg>
+        <span className="sidebar-icon-col">
+            <svg className="logo-tractor" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="7" cy="18" r="2"></circle>
+              <circle cx="18" cy="18" r="2"></circle>
+              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
+              <path d="M16 9h3l2 3v4"></path>
+            </svg>
+        </span>
         <span className="logo-text">AgriMarket</span>
       </div>
 
       <div className="profile-sidebar-user">
-        <ProfileAvatar
-          src={profile?.avatarUrl}
-          name={profile?.fullName}
-          email={profile?.email}
-          size="small"
-        />
+        <span className="sidebar-icon-col">
+          <ProfileAvatar
+            src={profile?.avatarUrl}
+            name={profile?.fullName}
+            email={profile?.email}
+            size="small"
+          />
+        </span>
 
-        <div>
+        <span className="nav-label" style={{ display: "flex", flexDirection: "column" }}>
           <p className="sidebar-welcome">Xin chào,</p>
           <p className="sidebar-name">
             {profile?.fullName || "Người dùng"}
           </p>
-        </div>
+        </span>
       </div>
 
       <nav className="profile-sidebar-menu">
@@ -65,8 +68,8 @@ const ProfileSidebar = ({ profile }) => {
           className="sidebar-menu-item"
           onClick={() => navigate("/home")}
         >
-          <span>🏠</span>
-          Trang chủ
+          <span className="sidebar-icon-col"><Home size={22} /></span>
+          <span className="nav-label">Trang chủ</span>
         </button>
 
         <button
@@ -74,8 +77,8 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/profile")}
         >
-          <span>👤</span>
-          Hồ sơ
+          <span className="sidebar-icon-col"><User size={22} /></span>
+          <span className="nav-label">Hồ sơ</span>
         </button>
 
         {isFarmer && (
@@ -84,8 +87,8 @@ const ProfileSidebar = ({ profile }) => {
               }`}
             onClick={() => navigate("/farmer/dashboard")}
           >
-            <span>🚜</span>
-            Kênh nhà vườn
+            <span className="sidebar-icon-col"><Tractor size={22} /></span>
+            <span className="nav-label">Kênh nhà vườn</span>
           </button>
         )}
 
@@ -94,8 +97,8 @@ const ProfileSidebar = ({ profile }) => {
             }`}
           onClick={() => navigate("/profile/notifications")}
         >
-          <span>🔔</span>
-          <span className="sidebar-menu-label">Thông báo</span>
+          <span className="sidebar-icon-col"><Bell size={22} /></span>
+          <span className="nav-label sidebar-menu-label">Thông báo</span>
 
           {unreadCount > 0 && (
             <span className="sidebar-notification-badge">
@@ -105,44 +108,43 @@ const ProfileSidebar = ({ profile }) => {
         </button>
 
 
-
         <button
           className={`sidebar-menu-item ${location.pathname === "/security" ? "active" : ""
             }`}
           onClick={() => navigate("/security")}
         >
-          <span>🔒</span>
-          Bảo mật
+          <span className="sidebar-icon-col"><Lock size={22} /></span>
+          <span className="nav-label">Bảo mật</span>
         </button>
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/profile/orders" ? "active" : ""}`}
           onClick={() => navigate("/profile/orders")}
         >
-          <span>🕘</span>
-          Đơn hàng của tôi
+          <span className="sidebar-icon-col"><ShoppingBag size={22} /></span>
+          <span className="nav-label">Đơn hàng của tôi</span>
         </button>
 
         <button
           className={`sidebar-menu-item ${location.pathname === "/profile/wishlist" ? "active" : ""}`}
           onClick={() => navigate("/profile/wishlist")}
         >
-          <span>❤️</span>
-          Mục yêu thích
+          <span className="sidebar-icon-col"><Heart size={22} /></span>
+          <span className="nav-label">Mục yêu thích</span>
         </button>
 
         <button
           className={`sidebar-menu-item ${location.pathname.startsWith("/support") ? "active" : ""}`}
           onClick={() => navigate("/support")}
         >
-          <span>🛠️</span>
-          Hỗ trợ & Yêu cầu
+          <span className="sidebar-icon-col"><LifeBuoy size={22} /></span>
+          <span className="nav-label">Hỗ trợ & Yêu cầu</span>
         </button>
       </nav>
 
       <button className="profile-logout-button" onClick={handleLogout}>
-        <span>↪</span>
-        Đăng xuất
+        <span className="sidebar-icon-col"><LogOut size={22} /></span>
+        <span className="nav-label">Đăng xuất</span>
       </button>
     </aside>
   );

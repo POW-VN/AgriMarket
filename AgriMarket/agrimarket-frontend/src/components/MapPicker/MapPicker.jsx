@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
+import { MapPin } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import "./MapPicker.css";
 
@@ -165,7 +166,7 @@ export const MapPicker = ({ latitude, longitude, onChange, defaultAddress }) => 
   return (
     <div className="map-picker-container">
       <div className="map-picker-header">
-        <span className="map-picker-title">📍 Định vị vị trí chính xác trên bản đồ</span>
+        <span className="map-picker-title" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><MapPin size={18} /> Định vị vị trí chính xác trên bản đồ</span>
         {defaultAddress && !latitude && (
           <button
             type="button"

@@ -1,6 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
+import apiClient from "../../services/apiClient";
+import AgoraRTC from "agora-rtc-sdk-ng";
+import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import {
   LayoutDashboard,
   Users,
@@ -8,6 +11,7 @@ import {
   CheckSquare,
   Folder,
   ShoppingCart,
+  Package,
   CreditCard,
   MessageSquare,
   BarChart3,
@@ -32,7 +36,10 @@ import "./LiveManagement.css";
 export default function LiveManagement() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
-  const [toastMessage, setToastMessage] = useState("");
+  const [toast, setToast] = useState(null); // { message, type: 'success'|'error'|'info', title }
+  const [toastCountdown, setToastCountdown] = useState(0);
+  const toastTimerRef = useRef(null);
+  const toastCountdownRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   
   // Products modal view state
@@ -40,6 +47,7 @@ export default function LiveManagement() {
   
   // Custom terminate confirm modal state
   const [terminatingSession, setTerminatingSession] = useState(null); // { id, brand } or null
+  const [monitoringSession, setMonitoringSession] = useState(null); // session object or null
 
   // Interactive filters state
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -154,6 +162,12 @@ export default function LiveManagement() {
   ];
 
   const [sessions, setSessions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sortBy]);
 
   // Check auth and load sessions
   useEffect(() => {
@@ -168,106 +182,109 @@ export default function LiveManagement() {
     loadSessions();
   }, [navigate]);
 
-  const loadSessions = () => {
-    // Read from localStorage to check for active farmer livestreams
+  const loadSessions = async () => {
     try {
-      const storedCustom = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-      const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
-      
-      // Make a copy of custom list and merge
-      let mergedList = [...storedCustom];
+      const res = await apiClient.get("/api/livestreams/admin/all");
+      const dbStreams = res.data;
 
-      // Convert stored sessions format into our admin display format
-      const formattedCustom = mergedList.map((session) => {
-        // Map products
-        const parsedProducts = (session.products || []).map((p, idx) => ({
-          id: p.id || idx,
+      const formatted = dbStreams.map((s) => {
+        const parsedProducts = (s.products || []).map((p) => ({
+          id: p.id,
           name: p.name,
-          originalPrice: p.originalPrice || p.price,
+          originalPrice: p.price,
           price: p.price,
-          discountPercent: p.discountPercent || 0,
+          discountPercent: 0,
           unit: p.unit || "kg",
           imageUrl: p.imageUrl || "https://images.unsplash.com/photo-1550937386664-56d1dfef3854?w=150"
         }));
 
-        // Extract viewers count number
-        let viewersNum = 0;
-        if (typeof session.viewers === "number") {
-          viewersNum = session.viewers;
-        } else if (typeof session.viewers === "string") {
-          viewersNum = parseInt(session.viewers) || 0;
+        let statusMapped = "ended";
+        if (s.status === "active") statusMapped = "live";
+        else if (s.status === "upcoming") statusMapped = "upcoming";
+
+        let durationLabel = "Đã phát xong";
+        if (statusMapped === "live") {
+          const start = s.startTime ? new Date(s.startTime) : null;
+          const diffMins = start && !isNaN(start.getTime()) ? Math.max(0, Math.floor((new Date() - start) / 60000)) : 0;
+          durationLabel = `Đang diễn ra: ${diffMins} phút`;
+        } else if (statusMapped === "upcoming") {
+          const start = s.startTime ? new Date(s.startTime) : null;
+          durationLabel = start && !isNaN(start.getTime()) ? `Sắp diễn ra: ${start.toLocaleString("vi-VN")}` : "Sắp diễn ra";
+        } else {
+          const end = s.endTime ? new Date(s.endTime) : null;
+          durationLabel = end && !isNaN(end.getTime()) ? `Kết thúc: ${end.toLocaleTimeString("vi-VN")}` : "Đã kết thúc";
         }
 
-        // Mock a like count based on viewers count or custom value
-        const likesNum = session.likes || Math.max(Math.floor(viewersNum * (Math.random() * 2 + 1.2)), 50);
-
         return {
-          id: session.id || `LIVE-${Math.floor(Math.random() * 9000) + 1000}`,
-          farmerName: session.farmerName || "Nhà vườn AgriMarket",
-          farmerBrand: session.farmerBrand || "Nông trại sạch địa phương",
-          farmerAvatar: session.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
-          title: session.title || "Phiên Livestream Nông sản",
-          description: session.description || "",
-          status: session.status || "live", // 'live' or 'replay'
-          viewers: viewersNum,
-          likes: likesNum,
-          durationLabel: session.status === "live" ? "Đang trực tiếp" : "Đã phát xong",
-          products: parsedProducts,
-          isUserCreated: true // flag to distinguish
+          id: s.id,
+          farmerName: s.farmerName || "Nhà vườn AgriMarket",
+          farmerBrand: s.farmerBrand || s.farmerName || "Nông trại sạch địa phương",
+          farmerAvatar: s.farmerAvatar || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150",
+          title: s.title,
+          description: s.description || "",
+          status: statusMapped,
+          viewers: s.viewersCount || 0,
+          likes: s.heartsCount || 0,
+          durationLabel: durationLabel,
+          products: parsedProducts
         };
       });
 
-      // Filter out duplicate IDs from baseline mock sessions
-      const customIds = formattedCustom.map(s => s.id);
-      const uniqueMockBaselines = defaultMockSessions.filter(s => !customIds.includes(s.id));
-
-      setSessions([...formattedCustom, ...uniqueMockBaselines]);
+      setSessions(formatted);
     } catch (err) {
-      console.error("Lỗi đọc dữ liệu livestream:", err);
-      setSessions(defaultMockSessions);
+      console.error("Lỗi đọc dữ liệu livestream từ backend:", err);
+      setSessions([]);
     }
   };
 
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => setToastMessage(""), 3500);
+  const showToast = (message, type = "success", title = null) => {
+    // Clear existing timers
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (toastCountdownRef.current) clearInterval(toastCountdownRef.current);
+
+    const autoCloseSecs = type === "success" ? 5 : 0; // success auto-closes, error stays until user closes
+    setToast({ message, type, title });
+    setToastCountdown(autoCloseSecs);
+
+    if (autoCloseSecs > 0) {
+      let remaining = autoCloseSecs;
+      toastCountdownRef.current = setInterval(() => {
+        remaining -= 1;
+        setToastCountdown(remaining);
+        if (remaining <= 0) {
+          clearInterval(toastCountdownRef.current);
+        }
+      }, 1000);
+      toastTimerRef.current = setTimeout(() => {
+        setToast(null);
+        setToastCountdown(0);
+      }, autoCloseSecs * 1000);
+    }
   };
 
-  const handleTerminateStream = (sessionId, brandName, reason) => {
+  const closeToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (toastCountdownRef.current) clearInterval(toastCountdownRef.current);
+    setToast(null);
+    setToastCountdown(0);
+  };
+
+  const handleTerminateStream = async (sessionId, brandName, reason) => {
     try {
-      // Find the stream session in localStorage list
-      const storedLives = JSON.parse(localStorage.getItem("farmer_custom_livestreams")) || [];
-      const updatedLives = storedLives.map((session) => {
-        if (session.id === sessionId || session.title.includes(brandName) || session.farmerBrand === brandName) {
-          return {
-            ...session,
-            status: "replay",
-            isBanned: true,
-            banReason: reason || "Vi phạm tiêu chuẩn cộng đồng về nội dung quảng cáo hoặc chất lượng sản phẩm.",
-            scheduledTime: "Kết thúc bởi quản trị viên"
-          };
-        }
-        return session;
-      });
-
-      localStorage.setItem("farmer_custom_livestreams", JSON.stringify(updatedLives));
-
-      // Also remove active session if it matches
-      const activeSession = JSON.parse(localStorage.getItem("active_farmer_livestream_session"));
-      if (activeSession && (activeSession.id === sessionId || activeSession.farmerBrand === brandName)) {
-        localStorage.removeItem("active_farmer_livestream_session");
-      }
-
-      showToast(`Đã chấm dứt livestream của nhà vườn ${brandName}.`);
-      loadSessions(); // Reload state
-    } catch (err) {
-      console.error(err);
-      
-      // Fallback: update state locally
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, status: "ended", durationLabel: "Đã chấm dứt" } : s))
+      await apiClient.post(`/api/livestreams/admin/${sessionId}/terminate`, { reason });
+      showToast(
+        `Phiên livestream của nhà vườn ${brandName} đã bị dừng và gỡ khỏi danh sách trực tiếp.`,
+        "success",
+        "Chấm dứt thành công"
       );
-      showToast(`Đã chấm dứt livestream của nhà vườn ${brandName} (Local).`);
+      loadSessions();
+    } catch (err) {
+      console.error("Lỗi chấm dứt livestream:", err);
+      showToast(
+        err.response?.data || err.message || "Đã xảy ra lỗi không xác định, vui lòng thử lại.",
+        "error",
+        "Thao tác thất bại"
+      );
     }
   };
 
@@ -276,10 +293,13 @@ export default function LiveManagement() {
     // Search query match
     let result = sessions.filter((s) => {
       const keyword = searchQuery.toLowerCase();
+      const brand = s.farmerBrand || "";
+      const title = s.title || "";
+      const name = s.farmerName || "";
       return (
-        s.farmerBrand.toLowerCase().includes(keyword) ||
-        s.title.toLowerCase().includes(keyword) ||
-        s.farmerName.toLowerCase().includes(keyword)
+        brand.toLowerCase().includes(keyword) ||
+        title.toLowerCase().includes(keyword) ||
+        name.toLowerCase().includes(keyword)
       );
     });
 
@@ -311,6 +331,11 @@ export default function LiveManagement() {
     return result;
   }, [sessions, searchQuery, statusFilter, sortBy]);
 
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentSessions = filteredSessions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
+
   // Derived stats counters
   const liveCount = useMemo(() => {
     return sessions.filter((s) => s.status === "live").length;
@@ -330,146 +355,81 @@ export default function LiveManagement() {
     return `${API_BASE_URL}/${cleanUrl}`;
   };
 
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   return (
     <div className="admin-layout">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="admin-toast">
-          <div className="admin-toast-content">
-            <CheckCircle2 size={18} style={{ color: "#10b981", marginRight: "8px" }} />
-            <span>{toastMessage}</span>
+      {/* Centered Status Modal Overlay */}
+      {toast && (
+        <div className="lm-modal-overlay" onClick={closeToast}>
+          <div
+            className={`lm-modal-card lm-modal-${toast.type}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top accent bar */}
+            <div className="lm-modal-top-bar" />
+
+            {/* Icon circle */}
+            <div className="lm-modal-icon-circle">
+              {toast.type === "success" && (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              )}
+              {toast.type === "error" && (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              )}
+              {toast.type === "info" && (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              )}
+            </div>
+
+            {/* Text content */}
+            <h2 className="lm-modal-title">
+              {toast.title || (toast.type === "success" ? "Thành công" : toast.type === "error" ? "Thất bại" : "Thông báo")}
+            </h2>
+            <p className="lm-modal-message">{toast.message}</p>
+
+            {/* Countdown row (only for success) */}
+            {toast.type === "success" && toastCountdown > 0 && (
+              <div className="lm-modal-countdown">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>Tự đóng sau <strong>{toastCountdown}</strong> giây</span>
+              </div>
+            )}
+
+            {/* Close / action button */}
+            <button className="lm-modal-btn" onClick={closeToast}>
+              {toast.type === "success" ? "Đóng" : "Thử lại"}
+            </button>
           </div>
         </div>
       )}
 
       {/* Sidebar Navigation */}
-      <aside className="admin-sidebar">
-        <div className="admin-logo-section">
-          <Link to="/" className="admin-logo-link">
-            <h1>
-              <Truck size={24} className="admin-nav-icon-svg" />
-              AgriAdmin
-            </h1>
-          </Link>
-        </div>
-
-        <nav className="admin-nav-menu">
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng Bảng điều khiển đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-            </span>
-            Bảng điều khiển
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            </span>
-            Quản lý tài khoản
-          </button>
-
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
-            </span>
-            Nông dân
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-            </span>
-            Duyệt sản phẩm
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý danh mục đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            </span>
-            Danh mục
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-            </span>
-            Đơn hàng
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng giao dịch đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            </span>
-            Giao dịch
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </span>
-            Hỗ trợ
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-            </span>
-            Báo cáo
-          </button>
-          <button className="admin-nav-item active" onClick={() => navigate("/admin/livestreams")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="m22 8-6 4 6 4V8Z"></path><rect width="14" height="12" x="2" y="6" rx="2" ry="2"></rect></svg>
-            </span>
-            Quản lý Livestream
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng AI Monitoring đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-            </span>
-            Giám sát AI
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            </span>
-            Thông báo
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng thống kê hệ thống đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            </span>
-            Thống kê hệ thống
-          </button>
-          <button className="admin-nav-item" onClick={() => showToast("Chức năng cài đặt đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </span>
-            Cài đặt
-          </button>
-        </nav>
-
-        <div className="admin-sidebar-footer">
-          <img
-            src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-            alt="Avatar admin"
-            className="admin-footer-avatar"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-            }}
-          />
-          <div className="admin-footer-info">
-            <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-            <p className="admin-footer-role">Quản trị viên cấp cao</p>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar activeItem="livestreams" showToast={showToast} />
 
       {/* Main Content Container */}
       <div className="admin-main-container">
         {/* Header - Matching Image 1 */}
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input
               type="text"
               placeholder="Tìm kiếm phiên live, nhà vườn..."
@@ -480,8 +440,8 @@ export default function LiveManagement() {
           </div>
 
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => navigate("/admin/notifications")}>
-              <span>🔔</span>
+            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => navigate("/admin/notifications")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
               <span className="admin-notification-dot"></span>
             </button>
             <div className="admin-profile-dropdown-trigger">
@@ -622,19 +582,18 @@ export default function LiveManagement() {
                     <th>Số người xem</th>
                     <th>Lượt thích</th>
                     <th>Sản phẩm</th>
-                    <th>Trạng thái</th>
                     <th>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSessions.length > 0 ? (
-                    filteredSessions.map((session) => (
+                  {currentSessions.length > 0 ? (
+                    currentSessions.map((session) => (
                       <tr key={session.id}>
                         {/* Farmer column */}
                         <td>
                           <div className="live-farmer-cell">
                             <img
-                              src={session.farmerAvatar}
+                              src={getFullImageUrl(session.farmerAvatar)}
                               alt={session.farmerBrand}
                               className="live-farmer-avatar"
                             />
@@ -688,7 +647,7 @@ export default function LiveManagement() {
                             {session.products && session.products.slice(0, 3).map((prod) => (
                               <img
                                 key={prod.id}
-                                src={prod.imageUrl}
+                                src={getFullImageUrl(prod.imageUrl)}
                                 alt={prod.name}
                                 className="overlapping-product-img"
                                 title={prod.name}
@@ -705,29 +664,25 @@ export default function LiveManagement() {
                           </div>
                         </td>
 
-                        {/* Status column */}
-                        <td>
-                          <span className={`status-badge-pill ${session.status}`}>
-                            {session.status === "live" ? (
-                              <>
-                                <span className="status-dot-blink"></span>
-                                LIVE
-                              </>
-                            ) : (
-                              "ENDED"
-                            )}
-                          </span>
-                        </td>
+
 
                         {/* Actions column */}
                         <td>
                           {session.status === "live" ? (
-                            <button
-                              className="btn-terminate-stream"
-                              onClick={() => setTerminatingSession({ id: session.id, brand: session.farmerBrand })}
-                            >
-                              Chấm dứt
-                            </button>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                className="btn-monitor-stream"
+                                onClick={() => setMonitoringSession(session)}
+                              >
+                                <Video size={14} /> Giám sát
+                              </button>
+                              <button
+                                className="btn-terminate-stream"
+                                onClick={() => setTerminatingSession({ id: session.id, brand: session.farmerBrand })}
+                              >
+                                Chấm dứt
+                              </button>
+                            </div>
                           ) : (
                             <span style={{ color: "#94a3b8", fontSize: "0.8rem", fontWeight: "600" }}>---</span>
                           )}
@@ -736,7 +691,7 @@ export default function LiveManagement() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
+                      <td colSpan="6" style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>
                         Không tìm thấy phiên livestream nào phù hợp.
                       </td>
                     </tr>
@@ -746,13 +701,36 @@ export default function LiveManagement() {
 
               {/* Table pagination footer */}
               <div className="live-pagination-bar">
-                <span>Hiển thị 1-{filteredSessions.length} trên tổng số {sessions.length} phiên live</span>
+                <span>
+                  Hiển thị {filteredSessions.length === 0 ? 0 : indexOfFirstItem + 1}-
+                  {Math.min(indexOfLastItem, filteredSessions.length)} trên tổng số {sessions.length} phiên live
+                </span>
                 <div className="live-page-buttons">
-                  <button className="page-btn" disabled>&lt;</button>
-                  <button className="page-btn active">1</button>
-                  <button className="page-btn">2</button>
-                  <button className="page-btn">3</button>
-                  <button className="page-btn">&gt;</button>
+                  <button 
+                    className="page-btn" 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    &lt;
+                  </button>
+                  
+                  {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      className={`page-btn ${currentPage === pageNumber ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  
+                  <button 
+                    className="page-btn" 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    &gt;
+                  </button>
                 </div>
               </div>
             </div>
@@ -765,7 +743,7 @@ export default function LiveManagement() {
         <div className="products-modal-overlay" onClick={() => setViewingProductsList(null)}>
           <div className="products-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="products-modal-header">
-              <h3>📦 Danh sách sản phẩm live</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: "6px" }}><Package size={18} /> Danh sách sản phẩm live</h3>
               <button className="btn-close-modal" onClick={() => setViewingProductsList(null)}>
                 &times;
               </button>
@@ -775,7 +753,7 @@ export default function LiveManagement() {
                 {viewingProductsList.map((prod) => (
                   <div key={prod.id} className="modal-product-row">
                     <div className="modal-product-info">
-                      <img src={prod.imageUrl} alt={prod.name} className="modal-product-img" />
+                      <img src={getFullImageUrl(prod.imageUrl)} alt={prod.name} className="modal-product-img" />
                       <div>
                         <p className="modal-product-name">
                           {prod.name}
@@ -903,6 +881,203 @@ export default function LiveManagement() {
           </div>
         </div>
       )}
+
+      {monitoringSession && (
+        <AdminMonitorModal session={monitoringSession} onClose={() => setMonitoringSession(null)} />
+      )}
+    </div>
+  );
+}
+
+// SUB-COMPONENT: REAL-TIME ADMIN MONITOR MODAL (OPTION 1)
+function AdminMonitorModal({ session, onClose }) {
+  const [comments, setComments] = useState([]);
+  const [heartsCount, setHeartsCount] = useState(session.likes || 0);
+  const [viewersCount, setViewersCount] = useState(session.viewers || 0);
+  const [pinnedComment, setPinnedComment] = useState(null);
+  const videoRef = React.useRef(null);
+  const rtcRef = React.useRef({ client: null, videoTrack: null, audioTrack: null });
+  const [loading, setLoading] = useState(true);
+
+  // Poll comments and stats every 3 seconds
+  useEffect(() => {
+    let active = true;
+    const fetchStatsAndComments = async () => {
+      try {
+        // Fetch comments
+        const commRes = await apiClient.get(`/api/livestreams/${session.id}/comments`);
+        if (active) setComments(commRes.data);
+
+        // Fetch live details for current stats
+        const detRes = await apiClient.get(`/api/livestreams/${session.id}`);
+        if (active) {
+          setHeartsCount(detRes.data.heartsCount || 0);
+          setViewersCount(detRes.data.viewersCount || 0);
+          setPinnedComment(detRes.data.pinnedComment || null);
+        }
+      } catch (err) {
+        console.error("Lỗi đồng bộ dữ liệu giám sát:", err);
+      }
+    };
+
+    fetchStatsAndComments();
+    const interval = setInterval(fetchStatsAndComments, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [session.id]);
+
+  // Connect to Agora channel
+  useEffect(() => {
+    let client;
+    const initAgora = async () => {
+      try {
+        setLoading(true);
+        const detRes = await apiClient.get(`/api/livestreams/${session.id}`);
+        const { appId, token, channelName } = detRes.data;
+
+        if (!appId || !token || !channelName) {
+          setLoading(false);
+          return;
+        }
+
+        client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+        await client.setClientRole("audience");
+
+        client.on("user-published", async (user, mediaType) => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === "video") {
+            const remoteVideoTrack = user.videoTrack;
+            rtcRef.current.videoTrack = remoteVideoTrack;
+            if (videoRef.current) {
+              remoteVideoTrack.play(videoRef.current);
+            }
+          }
+          if (mediaType === "audio") {
+            const remoteAudioTrack = user.audioTrack;
+            rtcRef.current.audioTrack = remoteAudioTrack;
+            remoteAudioTrack.play();
+          }
+        });
+
+        await client.join(appId, channelName, token, null);
+        rtcRef.current.client = client;
+        setLoading(false);
+      } catch (err) {
+        console.error("Lỗi Agora Monitor:", err);
+        setLoading(false);
+      }
+    };
+
+    initAgora();
+
+    return () => {
+      if (rtcRef.current.videoTrack) rtcRef.current.videoTrack.stop();
+      if (rtcRef.current.audioTrack) rtcRef.current.audioTrack.stop();
+      if (client) {
+        client.leave().catch((e) => console.error(e));
+      }
+      rtcRef.current.client = null;
+    };
+  }, [session.id]);
+
+  const getFullImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
+    return `${API_BASE_URL}/${cleanUrl}`;
+  };
+
+  return (
+    <div className="live-monitor-overlay">
+      <div className="live-monitor-modal">
+        <div className="monitor-header">
+          <div className="monitor-farmer-info">
+            <img src={getFullImageUrl(session.farmerAvatar)} alt="Avatar" className="monitor-avatar" />
+            <div>
+              <h3>Giám sát: {session.farmerBrand}</h3>
+              <p className="monitor-title">Tiêu đề: {session.title}</p>
+            </div>
+          </div>
+          <button className="btn-close-monitor" onClick={onClose}>
+            &times;
+          </button>
+        </div>
+
+        <div className="monitor-content-grid">
+          <div className="monitor-video-area">
+            {loading && <div className="monitor-loading">Đang kết nối luồng phát...</div>}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="monitor-video-player"
+              style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000", transform: "scaleX(-1)" }}
+            ></video>
+            <div className="monitor-badges">
+              <span className="badge-live"><span className="dot"></span> LIVE MONITOR</span>
+              <span className="badge-stats">👁️ {viewersCount}</span>
+              <span className="badge-stats">❤️ {heartsCount}</span>
+            </div>
+          </div>
+
+          <div className="monitor-comments-area">
+            <h4 className="comments-header">💬 Bình luận trực tiếp</h4>
+            {pinnedComment && (
+              <div className="monitor-pinned-chat-row" style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#fef3c7",
+                borderBottom: "1px solid #fcd34d",
+                padding: "8px 16px",
+                fontSize: "0.85rem",
+                color: "#78350f"
+              }}>
+                <span style={{ fontWeight: "700", whiteSpace: "nowrap" }}>📌 Đã ghim:</span>
+                <span style={{ fontWeight: "600", whiteSpace: "nowrap" }}>{pinnedComment.user}:</span>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {pinnedComment.text}
+                </span>
+              </div>
+            )}
+            <div className="monitor-comments-list">
+              {comments.length > 0 ? (
+                comments.map((c) => (
+                  <div key={c.id} className="monitor-comment-row">
+                    <img src={getFullImageUrl(c.avatar) || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100"} alt="User" className="comment-avatar" />
+                    <div className="comment-text-box">
+                      <span className="comment-user">
+                        {c.user}
+                        {c.isHost && (
+                          <span className="host-badge" style={{
+                            backgroundColor: "#10b981",
+                            color: "white",
+                            fontSize: "0.68rem",
+                            fontWeight: "700",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            marginLeft: "6px",
+                            display: "inline-block"
+                          }}>Chủ phòng</span>
+                        )}
+                      </span>
+                      <p className="comment-text">{c.text}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="no-comments">Chưa có bình luận nào.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

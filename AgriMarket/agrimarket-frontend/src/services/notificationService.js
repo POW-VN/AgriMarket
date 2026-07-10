@@ -58,6 +58,8 @@ const normalizeNotification = (item) => {
       item.sentAt ||
       item.sent_at ||
       "",
+
+    link: item.link || item.actionUrl || item.action_url || null,
   };
 };
 

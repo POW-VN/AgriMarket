@@ -13,193 +13,7 @@
 /* ==========================================================================
    Original Header & Navbar Styles (Kept as requested)
    ========================================================================== */
-.home-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background-color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.header-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  max-width: 1340px;
-  margin: 0 auto;
-  padding: 16px 24px;
-}
-
-.header-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.logo-tractor {
-  stroke: var(--primary-color);
-  fill: none;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: #103314;
-  /* Dark Forest Green */
-  letter-spacing: -0.5px;
-}
-
-.header-nav {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.nav-link {
-  text-decoration: none;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-  padding-bottom: 4px;
-  white-space: nowrap;
-}
-
-.nav-link:hover {
-  color: var(--primary-color);
-}
-
-.nav-link.active {
-  color: #103314;
-  font-weight: 600;
-  border-bottom: 2.5px solid #1B5E20;
-  /* Matching green underline */
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: #103314;
-  transition: all 0.2s ease;
-  position: relative;
-  cursor: pointer;
-}
-
-.icon-btn:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-  transform: scale(1.05);
-}
-
-.icon-btn-profile {
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  color: #103314;
-  transition: all 0.2s ease;
-}
-
-.icon-btn-profile:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-/* Authentication indicators and buttons */
-.auth-profile-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.profile-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 6px 12px 6px 6px;
-  border-radius: 20px;
-  transition: background-color 0.2s ease;
-}
-
-.profile-indicator:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.avatar-img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.avatar-fallback {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background-color: #00897b;
-  /* Teal color fallback */
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.profile-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #103314;
-}
-
-.btn-auth {
-  padding: 8px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 20px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.btn-login {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.btn-login:hover {
-  background-color: #154518;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
-}
-
-.btn-logout {
-  background-color: transparent;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
-  cursor: pointer;
-}
-
-.btn-logout:hover {
-  background-color: #ffebee;
-  transform: translateY(-1px);
-}
+/* Header styles are now managed in src/components/common/Header/Header.css */
 
 /* ==========================================================================
    Redesigned Main Layout & Sections
@@ -828,6 +642,40 @@
   z-index: 2;
 }
 
+/* Promo badge override - bright red for promotion */
+.new-card-sale-tag.promo-badge {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.35);
+  animation: promoPulse 2s infinite;
+}
+
+@keyframes promoPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(220,38,38,0.35); }
+  50% { box-shadow: 0 2px 16px rgba(220,38,38,0.6); }
+}
+
+/* Promo program name label at bottom of image */
+.new-card-promo-name {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
 .new-card-body {
   padding: 16px;
   display: flex;
@@ -1257,156 +1105,7 @@
   }
 }
 
-/* ==========================================================================
-   Header Search & Suggestion Dropdown
-   ========================================================================== */
-.header-search-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.header-search-bar {
-  display: flex;
-  align-items: center;
-  background-color: #f3f4f6;
-  border-radius: 30px;
-  overflow: hidden;
-  width: 40px;
-  height: 40px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
-  border: 1px solid transparent;
-}
-
-.header-search-bar.active {
-  width: 320px;
-  background-color: #ffffff;
-  border-color: #2e7d32;
-  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.08);
-}
-
-.header-search-input {
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent;
-  padding: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
-  width: 0;
-  min-width: 0 !important;
-  /* Force complete collapse */
-  opacity: 0;
-  transition: width 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
-  height: 100%;
-}
-
-.header-search-bar.active .header-search-input {
-  width: 260px;
-  padding: 0 16px 0 0;
-  /* Apply only right padding since button is on the left */
-  opacity: 1;
-}
-
-.header-search-bar .search-btn {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  width: 38px !important;
-  height: 38px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  margin: 0 auto !important;
-  flex-shrink: 0 !important;
-  color: #374151 !important;
-}
-
-.header-search-bar.active .search-btn {
-  background: transparent !important;
-  color: #2e7d32 !important;
-}
-
-.search-suggestions-dropdown {
-  position: absolute;
-  top: 48px;
-  right: 0;
-  width: 320px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  z-index: 1000;
-  animation: fadeIn 0.15s ease-out;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.suggestion-item:hover {
-  background-color: #f9fafb;
-}
-
-.suggestion-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-
-.suggestion-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-}
-
-.suggestion-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #1f2937;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.suggestion-farm {
-  font-size: 11.5px;
-  color: #6b7280;
-  margin-top: 2px;
-}
-
-.suggestion-price {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #2e7d32;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* Header Search & Dropdown styles are now managed in src/components/common/Header/Header.css */
 
 /* ==========================================================================
    Hero Banner Autoplay Carousel

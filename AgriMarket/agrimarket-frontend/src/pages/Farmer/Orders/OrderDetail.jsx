@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useOutletContext } from "react-router-dom";
+import { Package, Sprout, Check, X, User, Phone, MapPin, CreditCard, AlertTriangle, Clock, CheckCircle2, XCircle } from "lucide-react";
 import orderService from "../../../services/orderService";
 import "./OrderDetail.css";
 
@@ -268,7 +269,7 @@ export const OrderDetail = () => {
           {/* Order Items */}
           <section className="od-card">
             <div className="od-card-header">
-              <span className="icon">📦</span>
+              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><Package size={18} /></span>
               <h2 className="od-card-title">Danh sách sản phẩm</h2>
             </div>
             <div className="od-items-list">
@@ -278,7 +279,7 @@ export const OrderDetail = () => {
                     {item.img ? (
                       <img src={item.img} alt={item.name} />
                     ) : (
-                      <span>🌾</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", color: "#81c784" }}><Sprout size={20} /></span>
                     )}
                   </div>
                   <div className="od-item-info">
@@ -297,7 +298,7 @@ export const OrderDetail = () => {
           {/* Timeline */}
           <section className="od-card">
             <div className="od-card-header">
-              <span className="icon">🕒</span>
+              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><Clock size={18} /></span>
               <h2 className="od-card-title">Lịch sử trạng thái</h2>
             </div>
             <div className="od-timeline">
@@ -305,7 +306,7 @@ export const OrderDetail = () => {
                 <div key={step.id} className="od-timeline-item">
                   <div className={`od-timeline-dot ${step.done ? (step.error ? "od-dot-error" : "od-dot-done") : "od-dot-pending"}`}>
                     {step.done ? (
-                      step.error ? "✕" : "✓"
+                      step.error ? <X size={12} /> : <Check size={12} />
                     ) : (
                       <div className="od-dot-inner" />
                     )}
@@ -328,7 +329,7 @@ export const OrderDetail = () => {
           {/* Customer info */}
           <section className="od-card">
             <div className="od-card-header">
-              <span className="icon">👤</span>
+              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><User size={18} /></span>
               <h2 className="od-card-title">Khách hàng</h2>
             </div>
             <div className="od-customer">
@@ -347,7 +348,7 @@ export const OrderDetail = () => {
               </div>
               <div className="od-customer-contacts">
                 <div className="od-contact-row">
-                  <span className="icon">📞</span>
+                  <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><Phone size={16} /></span>
                   <span className="od-contact-text">{order.phone}</span>
                 </div>
               </div>
@@ -363,7 +364,7 @@ export const OrderDetail = () => {
           {/* Shipping Address */}
           <section className="od-card">
             <div className="od-card-header">
-              <span className="icon">📍</span>
+              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><MapPin size={18} /></span>
               <h2 className="od-card-title">Địa chỉ nhận hàng</h2>
             </div>
             <div className="od-delivery">
@@ -380,7 +381,7 @@ export const OrderDetail = () => {
           {/* Billing / Payment Info */}
           <section className="od-card">
             <div className="od-card-header">
-              <span className="icon">💳</span>
+              <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><CreditCard size={18} /></span>
               <h2 className="od-card-title">Tóm tắt doanh thu</h2>
             </div>
             <div className="od-payment">
@@ -406,7 +407,7 @@ export const OrderDetail = () => {
         <div className="custom-modal-overlay">
           <div className="custom-modal">
             <div className="custom-modal-header" style={{ borderBottom: "1px solid rgba(239, 68, 68, 0.1)", paddingBottom: "12px", marginBottom: "16px" }}>
-              <span className="custom-modal-icon">⚠️</span>
+              <span className="custom-modal-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><AlertTriangle size={24} /></span>
               <h3>Từ chối đơn hàng</h3>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
@@ -452,7 +453,7 @@ export const OrderDetail = () => {
       {toast.show && (
         <div className={`custom-toast ${toast.type}`}>
           <span className="custom-toast-icon">
-            {toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "⚠️"}
+            {toast.type === "success" ? <CheckCircle2 size={18} /> : toast.type === "error" ? <XCircle size={18} /> : <AlertTriangle size={18} />}
           </span>
           <span className="custom-toast-message">{toast.message}</span>
           <button className="custom-toast-close" onClick={() => setToast({ show: false })}>×</button>

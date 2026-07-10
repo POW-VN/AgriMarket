@@ -43,13 +43,22 @@ public class OrderService {
     private CartItemRepository cartItemRepository;
 
     @Autowired
-    private PartnerRepository partnerRepository;
+    private GhnService ghnService;
 
     @Autowired
     private ProductReviewRepository productReviewRepository;
 
     @Autowired
     private DistanceService distanceService;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
+    private PreorderRepository preorderRepository;
+
+    @Autowired
+    private PreorderItemRepository preorderItemRepository;
 
     @Transactional
     public OrderResponse createOrder(String email, OrderCreateRequest request) {
@@ -137,6 +146,23 @@ public class OrderService {
             // Decrement stock
             product.setStockQuantity(product.getStockQuantity() - itemReq.getQuantity());
             productRepository.save(product);
+
+            if (product.getStockQuantity() == 0) {
+                try {
+                    Notification notif = Notification.builder()
+                            .receiverType("farmer")
+                            .receiverId(product.getFarmer().getId())
+                            .title("Sản phẩm hết hàng!")
+                            .content("Sản phẩm \"" + product.getName() + "\" của bạn đã hết hàng trong kho. Vui lòng cập nhật thêm số lượng tồn kho.")
+                            .link("/farmer/products")
+                            .createdAt(LocalDateTime.now())
+                            .isRead(false)
+                            .build();
+                    notificationRepository.save(notif);
+                } catch (Exception e) {
+                    System.err.println("Lỗi gửi thông báo hết hàng: " + e.getMessage());
+                }
+            }
 
             // Get product image
             String imageUrl = "";
@@ -244,6 +270,22 @@ public class OrderService {
             order.setItems(orderItems);
             Order savedOrder = orderRepository.save(order);
             savedSubOrders.add(savedOrder);
+
+            // Send notification to farmer
+            try {
+                Notification notif = Notification.builder()
+                        .receiverType("farmer")
+                        .receiverId(farmer.getId())
+                        .title("Đơn hàng mới!")
+                        .content("Bạn có một đơn hàng mới từ khách hàng " + customer.getFullName() + ". Mã đơn hàng: " + savedOrder.getOrderCode())
+                        .link("/farmer/orders/orderdetail/" + savedOrder.getOrderCode())
+                        .createdAt(LocalDateTime.now())
+                        .isRead(false)
+                        .build();
+                notificationRepository.save(notif);
+            } catch (Exception e) {
+                System.err.println("Lỗi tạo thông báo đơn hàng mới cho farmer: " + e.getMessage());
+            }
         }
 
         orderGroup.getSubOrders().clear();
@@ -270,7 +312,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getCustomerOrders(String email) {
         List<Order> orders = orderRepository.findByCustomerEmailOrderByCreatedAtDesc(email);
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return mapToResponseList(orders);
     }
 
     @Transactional(readOnly = true)
@@ -287,10 +329,9 @@ public class OrderService {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
 
-        // Verify customer owns the order OR partner is assigned
+        // Verify customer owns the order
         boolean isCustomer = order.getCustomer().getEmail().equalsIgnoreCase(email);
-        boolean isPartner = order.getPartner() != null && order.getPartner().getEmail().equalsIgnoreCase(email);
-        if (!isCustomer && !isPartner) {
+        if (!isCustomer) {
             throw new RuntimeException("Bạn không có quyền xem đơn hàng này.");
         }
 
@@ -412,7 +453,19 @@ public class OrderService {
             }
         }
 
-        order.setStatus(statusLower);
+        if ("confirmed".equals(statusLower)) {
+            String address = order.getOrderGroup() != null ? order.getOrderGroup().getDeliveryAddress() : "";
+            boolean isPickup = address != null && (address.toLowerCase().contains("tự nhận") || address.toLowerCase().contains("nông trại"));
+            if (!isPickup) {
+                ghnService.createShipment(order);
+            } else {
+                order.setStatus("shipping");
+                order.setDetailedStatus("ready_for_pickup");
+                order.setShipperNotes("Đơn hàng đã sẵn sàng tại nông trại. Vui lòng đến lấy nhận hàng.");
+            }
+        } else {
+            order.setStatus(statusLower);
+        }
 
         // If status is rejected or cancelled, and it wasn't already, restore stock for
         // the farmer's items (or all items in the order, depending on the system design
@@ -479,7 +532,33 @@ public class OrderService {
         return base;
     }
 
+    private List<OrderResponse> mapToResponseList(List<Order> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Long> orderIds = orders.stream().map(Order::getId).collect(Collectors.toList());
+
+        // Bulk load all reviewed products for these orders
+        List<Object[]> reviewedData = productReviewRepository.findReviewedProductsForOrders(orderIds);
+        
+        java.util.Set<String> reviewedKeys = new java.util.HashSet<>();
+        for (Object[] row : reviewedData) {
+            Long orderId = (Long) row[0];
+            Long productId = (Long) row[1];
+            reviewedKeys.add(orderId + "-" + productId);
+        }
+
+        return orders.stream()
+                .map(o -> mapToResponseOptimized(o, reviewedKeys))
+                .collect(Collectors.toList());
+    }
+
     private OrderResponse mapToResponse(Order order) {
+        return mapToResponseOptimized(order, java.util.Collections.emptySet());
+    }
+
+    private OrderResponse mapToResponseOptimized(Order order, java.util.Set<String> reviewedKeys) {
         // Date time formatting
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd 'thg' MM, yyyy", new Locale("vi", "VN"));
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", new Locale("vi", "VN"));
@@ -548,8 +627,7 @@ public class OrderService {
         List<OrderItemResponseDTO> itemsMapped = new ArrayList<>();
         if (order.getItems() != null) {
             itemsMapped = order.getItems().stream().map(item -> {
-                boolean isReviewed = productReviewRepository.findByOrderIdAndProductIdAndCustomerId(
-                        order.getId(), item.getProductId(), order.getCustomer().getId()).isPresent();
+                boolean isReviewed = reviewedKeys.contains(order.getId() + "-" + item.getProductId());
                 return OrderItemResponseDTO.builder()
                         .productId(item.getProductId())
                         .farmerId(item.getFarmer() != null ? item.getFarmer().getId() : null)
@@ -606,13 +684,7 @@ public class OrderService {
                 .customerAvatarUrl(order.getCustomer() != null ? order.getCustomer().getAvatarUrl() : null)
                 .shippingNote(order.getShippingNote())
                 .provider(providerInfo)
-                .partner(order.getPartner() != null ? OrderResponse.PartnerInfo.builder()
-                        .id(order.getPartner().getId())
-                        .fullName(order.getPartner().getFullName())
-                        .email(order.getPartner().getEmail())
-                        .phone(order.getPartner().getPhone())
-                        .avatarUrl(order.getPartner().getAvatarUrl())
-                        .build() : null)
+                .partner(null)
                 .shipperNotes(order.getShipperNotes())
                 .podPhoto(order.getPodPhoto())
                 .detailedStatus(order.getDetailedStatus())
@@ -638,93 +710,13 @@ public class OrderService {
                 return -1;
             return o2.getCreatedAt().compareTo(o1.getCreatedAt());
         });
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return mapToResponseList(orders);
     }
 
     @Transactional
     public OrderResponse updateOrderStatusByAdmin(String orderCode, String newStatus, String paymentStatus,
             String reason) {
         throw new RuntimeException("Quản trị viên không có quyền can thiệp vào các đơn hàng.");
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getShipperRequests(String email) {
-        List<Order> orders = orderRepository.findAvailableShipperRequests();
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getShipperAccepted(String email) {
-        List<Order> orders = orderRepository.findByPartnerEmailOrderByCreatedAtDesc(email);
-        return orders.stream().map(this::mapToResponse).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public OrderResponse acceptShipperRequest(String email, String orderCode, Map<String, String> driverInfo) {
-        Partner partner = partnerRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đối tác vận chuyển."));
-
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
-
-        if (order.getPartner() != null) {
-            throw new RuntimeException("Đơn hàng này đã được một tài xế khác chấp nhận.");
-        }
-
-        order.setPartner(partner);
-        order.setStatus("shipping");
-        order.setDetailedStatus("assigned");
-
-        // Save driver assignment info
-        if (driverInfo != null) {
-            if (driverInfo.get("driverName") != null) order.setDriverName(driverInfo.get("driverName"));
-            if (driverInfo.get("driverCode") != null) order.setDriverCode(driverInfo.get("driverCode"));
-            if (driverInfo.get("driverPhone") != null) order.setDriverPhone(driverInfo.get("driverPhone"));
-            if (driverInfo.get("vehicleType") != null) order.setVehicleType(driverInfo.get("vehicleType"));
-            if (driverInfo.get("licensePlate") != null) order.setLicensePlate(driverInfo.get("licensePlate"));
-        }
-
-        Order updatedOrder = orderRepository.save(order);
-        return mapToResponse(updatedOrder);
-    }
-
-    @Transactional
-    public OrderResponse rejectShipperRequest(String email, String orderCode, String reason) {
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
-        order.setStatus("rejected");
-        order.setCancelReason(reason != null && !reason.isBlank() ? reason : "Đối tác vận chuyển từ chối");
-        order.setCancelBy("partner");
-        order.setCancelledAt(LocalDateTime.now());
-        Order updatedOrder = orderRepository.save(order);
-        return mapToResponse(updatedOrder);
-    }
-
-    @Transactional
-    public OrderResponse updateShipperOrderStatus(String email, String orderCode, String newDetailedStatus,
-            String notes, String podPhoto) {
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
-
-        if (order.getPartner() == null || !order.getPartner().getEmail().equalsIgnoreCase(email)) {
-            throw new RuntimeException("Bạn không có quyền cập nhật trạng thái đơn hàng này.");
-        }
-
-        order.setDetailedStatus(newDetailedStatus);
-        order.setShipperNotes(notes);
-        if (podPhoto != null && !podPhoto.isBlank()) {
-            order.setPodPhoto(podPhoto);
-        }
-
-        if ("delivered".equalsIgnoreCase(newDetailedStatus)) {
-            order.setStatus("delivered");
-            order.setPaymentStatus("paid");
-        } else {
-            order.setStatus("shipping");
-        }
-
-        Order updatedOrder = orderRepository.save(order);
-        return mapToResponse(updatedOrder);
     }
 
     private OrderResponse mapGroupToResponse(OrderGroup group) {
@@ -826,6 +818,234 @@ public class OrderService {
                 .itemCount(itemCount)
                 .hasMoreItems(hasMoreItems)
                 .build();
+    }
+
+    public double calculateTotalShippingFee(List<Integer> productIds, String toAddress) {
+        Map<Farmer, Integer> farmerWeights = new HashMap<>();
+        for (Integer pid : productIds) {
+            Optional<Product> prodOpt = productRepository.findById(pid.longValue());
+            if (prodOpt.isPresent()) {
+                Product prod = prodOpt.get();
+                Farmer farmer = prod.getFarmer();
+                farmerWeights.put(farmer, farmerWeights.getOrDefault(farmer, 0) + 1000);
+            }
+        }
+
+        double totalFee = 0.0;
+        for (Map.Entry<Farmer, Integer> entry : farmerWeights.entrySet()) {
+            Farmer farmer = entry.getKey();
+            int weight = entry.getValue();
+            String fromAddr = farmer.getFarmAddress();
+            if (fromAddr == null || fromAddr.isBlank()) {
+                fromAddr = "Tiền Giang, Việt Nam";
+            }
+            totalFee += ghnService.calculateShippingFee(fromAddr, toAddress, weight);
+        }
+
+        return totalFee;
+    }
+
+    @Transactional
+    public OrderResponse confirmOrderReceived(String email, String orderCode) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng."));
+
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng."));
+
+        if (!order.getCustomer().getId().equals(customer.getId())) {
+            throw new RuntimeException("Bạn không có quyền xác nhận đơn hàng này.");
+        }
+
+        if (!"shipping".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Đơn hàng chưa ở trạng thái vận chuyển hoặc chờ lấy hàng.");
+        }
+
+        order.setStatus("delivered");
+        order.setDetailedStatus("delivered");
+        order.setPaymentStatus("paid");
+        order.setShipperNotes("Người mua đã đến nhận hàng tại nông trại và xác nhận lấy đơn hàng thành công.");
+        Order saved = orderRepository.save(order);
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public void convertPreorderToNormalOrder(Preorder preorder) {
+        Customer customer = preorder.getCustomer();
+        List<PreorderItem> preorderItems = preorderItemRepository.findByPreorderId(preorder.getId());
+        if (preorderItems.isEmpty()) return;
+
+        // Xử lý thông tin người nhận mặc định từ danh sách địa chỉ của khách hàng
+        String recipientName = customer.getFullName();
+        String recipientPhone = customer.getPhone() != null ? customer.getPhone() : "0000000000";
+        String deliveryAddress = "Chưa cập nhật địa chỉ";
+        Double latitude = null;
+        Double longitude = null;
+
+        if (customer.getAddresses() != null && !customer.getAddresses().isEmpty()) {
+            CustomerAddress address = customer.getAddresses().stream()
+                    .filter(addr -> Boolean.TRUE.equals(addr.getIsDefault()))
+                    .findFirst()
+                    .orElse(customer.getAddresses().get(0));
+            recipientName = address.getReceiverName() != null ? address.getReceiverName() : customer.getFullName();
+            recipientPhone = address.getPhone() != null ? address.getPhone() : customer.getPhone();
+            deliveryAddress = address.getAddress();
+            latitude = address.getLatitude();
+            longitude = address.getLongitude();
+        }
+
+        // Tính tổng tiền sản phẩm
+        double subtotal = 0;
+        for (PreorderItem item : preorderItems) {
+            subtotal += item.getProduct().getPrice() * item.getQuantity();
+        }
+
+        double shippingFee = 35000.0; // Mặc định GHN giao hàng
+        double serviceFee = 15000.0;
+        double discount = 0.0;
+        double totalAmount = subtotal + shippingFee + serviceFee;
+
+        // Tạo OrderGroup
+        Random random = new Random();
+        String groupCode;
+        do {
+            groupCode = "OG-2026-" + (1000 + random.nextInt(9000));
+        } while (orderGroupRepository.findByGroupCode(groupCode).isPresent());
+
+        OrderGroup orderGroup = new OrderGroup();
+        orderGroup.setGroupCode(groupCode);
+        orderGroup.setCustomer(customer);
+        orderGroup.setTotalSubtotal(subtotal);
+        orderGroup.setTotalShippingFee(shippingFee);
+        orderGroup.setTotalServiceFee(serviceFee);
+        orderGroup.setTotalDiscount(discount);
+        orderGroup.setGrandTotal(totalAmount);
+        orderGroup.setRecipientName(recipientName);
+        orderGroup.setRecipientPhone(recipientPhone);
+        orderGroup.setDeliveryAddress(deliveryAddress);
+        orderGroup.setPaymentMethod("VNPAY");
+        orderGroup.setPaymentStatus("paid");
+
+        orderGroup = orderGroupRepository.save(orderGroup);
+
+        // Gom các preorder items theo từng nhà vườn
+        Map<Farmer, List<PreorderItem>> farmerItemsMap = new HashMap<>();
+        for (PreorderItem item : preorderItems) {
+            Farmer farmer = item.getProduct().getFarmer();
+            if (farmer != null) {
+                farmerItemsMap.computeIfAbsent(farmer, k -> new ArrayList<>()).add(item);
+            }
+        }
+
+        List<Order> savedSubOrders = new ArrayList<>();
+        int farmerIndex = 0;
+        int numFarmers = farmerItemsMap.size();
+        double allocatedShippingSum = 0;
+        double allocatedServiceSum = 0;
+
+        for (Map.Entry<Farmer, List<PreorderItem>> entry : farmerItemsMap.entrySet()) {
+            Farmer farmer = entry.getKey();
+            List<PreorderItem> items = entry.getValue();
+
+            double farmerSubtotal = 0;
+            for (PreorderItem item : items) {
+                farmerSubtotal += item.getProduct().getPrice() * item.getQuantity();
+            }
+
+            double ratio = subtotal > 0 ? (farmerSubtotal / subtotal) : (1.0 / numFarmers);
+            double farmerShippingFee;
+            double farmerServiceFee;
+
+            farmerIndex++;
+            if (farmerIndex == numFarmers) {
+                farmerShippingFee = shippingFee - allocatedShippingSum;
+                farmerServiceFee = serviceFee - allocatedServiceSum;
+            } else {
+                farmerShippingFee = Math.round((ratio * shippingFee) * 100.0) / 100.0;
+                farmerServiceFee = Math.round((ratio * serviceFee) * 100.0) / 100.0;
+                allocatedShippingSum += farmerShippingFee;
+                allocatedServiceSum += farmerServiceFee;
+            }
+
+            double farmerAmount = farmerSubtotal + farmerShippingFee + farmerServiceFee;
+
+            String orderCode;
+            do {
+                orderCode = "FH-2026-" + (1000 + random.nextInt(9000));
+            } while (orderRepository.findByOrderCode(orderCode).isPresent());
+
+            Order order = new Order();
+            order.setOrderCode(orderCode);
+            order.setOrderGroup(orderGroup);
+            order.setFarmer(farmer);
+            order.setCustomer(customer);
+            order.setPaymentStatus("paid");
+            order.setStatus("confirmed"); // Chờ lấy hàng - đã chuẩn bị xong
+            order.setDetailedStatus("ready_for_ghn");
+            order.setSubtotal(farmerSubtotal);
+            order.setShippingFee(farmerShippingFee);
+            order.setServiceFee(farmerServiceFee);
+            order.setDiscount(0.0);
+            order.setAmount(farmerAmount);
+            order.setTrackingNumber("FH-TRACK-" + (100000 + random.nextInt(900000)));
+
+            List<OrderItem> orderItems = new ArrayList<>();
+            for (PreorderItem preorderItem : items) {
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrder(order);
+                orderItem.setProductId(preorderItem.getProduct().getId());
+                orderItem.setProductName(preorderItem.getProduct().getName());
+                orderItem.setProductPrice(preorderItem.getProduct().getPrice());
+                orderItem.setProductUnit(preorderItem.getProduct().getUnit());
+                orderItem.setQuantity(preorderItem.getQuantity());
+                orderItem.setFarmer(farmer);
+
+                String imageUrl = "";
+                List<ProductImage> prodImages = productImageRepository.findByProductId(preorderItem.getProduct().getId());
+                if (prodImages != null && !prodImages.isEmpty()) {
+                    imageUrl = prodImages.stream()
+                            .filter(img -> img.getIsThumbnail() != null && img.getIsThumbnail())
+                            .map(ProductImage::getImgUrl)
+                            .findFirst()
+                            .orElse(prodImages.get(0).getImgUrl());
+                } else {
+                    imageUrl = preorderItem.getProduct().getTraceabilityImageUrl();
+                }
+                orderItem.setImageUrl(imageUrl);
+
+                orderItems.add(orderItem);
+            }
+
+            order.setItems(orderItems);
+            Order savedOrder = orderRepository.save(order);
+            savedSubOrders.add(savedOrder);
+
+            // Tự động gọi API tạo vận chuyển giao hàng nhanh (GHN)
+            try {
+                ghnService.createShipment(savedOrder);
+            } catch (Exception e) {
+                System.err.println("Lỗi tạo vận chuyển GHN cho đơn preorder: " + e.getMessage());
+            }
+
+            // Gửi thông báo đến cho Farmer
+            try {
+                Notification notif = Notification.builder()
+                        .receiverType("farmer")
+                        .receiverId(farmer.getId())
+                        .title("Đơn đặt trước đã thu hoạch!")
+                        .content("Đơn hàng đặt trước " + preorder.getId() + " đã thu hoạch xong và tự động tạo đơn vận chuyển mới. Mã đơn hàng: " + savedOrder.getOrderCode())
+                        .link("/farmer/orders/orderdetail/" + savedOrder.getOrderCode())
+                        .createdAt(LocalDateTime.now())
+                        .isRead(false)
+                        .build();
+                notificationRepository.save(notif);
+            } catch (Exception e) {
+                System.err.println("Lỗi gửi thông báo đơn preorder cho farmer: " + e.getMessage());
+            }
+        }
+
+        orderGroup.setSubOrders(savedSubOrders);
+        orderGroupRepository.save(orderGroup);
     }
 
     private static class OrderItemDraft {

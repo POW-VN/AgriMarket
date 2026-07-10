@@ -4,15 +4,15 @@ import org.example.agrimarket.model.Admin;
 import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.model.CustomerAddress;
-import org.example.agrimarket.model.Partner;
 import org.example.agrimarket.model.Product;
 import org.example.agrimarket.model.ProductImage;
+import org.example.agrimarket.model.Notification;
 import org.example.agrimarket.repository.AdminRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
-import org.example.agrimarket.repository.PartnerRepository;
 import org.example.agrimarket.repository.ProductRepository;
 import org.example.agrimarket.repository.ProductImageRepository;
+import org.example.agrimarket.repository.NotificationRepository;
 import org.example.agrimarket.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +44,9 @@ public class AdminUserController {
     private FarmerRepository farmerRepository;
 
     @Autowired
-    private PartnerRepository partnerRepository;
+    private NotificationRepository notificationRepository;
+
+
 
     @Autowired
     private ProductRepository productRepository;
@@ -152,20 +154,7 @@ public class AdminUserController {
             userList.add(map);
         }
 
-        // Fetch partners
-        for (Partner p : partnerRepository.findAll()) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", p.getId());
-            map.put("fullName", p.getFullName());
-            map.put("email", p.getEmail());
-            map.put("phone", p.getPhone());
-            map.put("role", "partner");
-            map.put("status", p.getStatus() != null ? p.getStatus() : "active");
-            map.put("avatarUrl", p.getAvatarUrl());
-            map.put("createdAt", p.getCreatedAt());
-            map.put("address", "");
-            userList.add(map);
-        }
+
 
         return ResponseEntity.ok(userList);
     }
@@ -192,8 +181,7 @@ public class AdminUserController {
         if (email != null) {
             if (adminRepository.findByEmail(email).isPresent() ||
                 customerRepository.findByEmail(email).isPresent() ||
-                farmerRepository.findByEmail(email).isPresent() ||
-                partnerRepository.findByEmail(email).isPresent()) {
+                farmerRepository.findByEmail(email).isPresent()) {
                 return ResponseEntity.badRequest().body("Email đã tồn tại trong hệ thống");
             }
         }
@@ -201,8 +189,7 @@ public class AdminUserController {
         if (phone != null && !phone.trim().isEmpty()) {
             String trimmedPhone = phone.trim();
             if (customerRepository.existsByPhone(trimmedPhone) ||
-                farmerRepository.existsByPhone(trimmedPhone) ||
-                partnerRepository.findByPhone(trimmedPhone).isPresent()) {
+                farmerRepository.existsByPhone(trimmedPhone)) {
                 return ResponseEntity.badRequest().body("Số điện thoại đã tồn tại trong hệ thống");
             }
         }
@@ -280,16 +267,7 @@ public class AdminUserController {
             farmer.setLongitude(longitude);
 
             return ResponseEntity.ok(farmerRepository.save(farmer));
-        } else if ("partner".equals(role)) {
-            Partner partner = new Partner();
-            partner.setFullName(fullName);
-            partner.setEmail(email);
-            partner.setPhone(phone);
-            partner.setPassword(encodedPassword);
-            partner.setAvatarUrl(avatarUrl);
-            partner.setStatus(status);
-            partner.setCreatedAt(LocalDateTime.now());
-            return ResponseEntity.ok(partnerRepository.save(partner));
+
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
         }
@@ -320,9 +298,28 @@ public class AdminUserController {
         } else if ("farmer".equals(lowerRole)) {
             Farmer f = farmerRepository.findById(id).orElse(null);
             if (f == null) return ResponseEntity.notFound().build();
+            
+            boolean wasNotVerified = !"verified".equals(f.getVerificationStatus());
+            
             f.setStatus(newStatus);
             if ("active".equalsIgnoreCase(newStatus)) {
                 f.setVerificationStatus("verified");
+                if (wasNotVerified) {
+                    try {
+                        Notification notif = Notification.builder()
+                                .receiverType("farmer")
+                                .receiverId(f.getId())
+                                .title("Yêu cầu làm đối tác đã được duyệt!")
+                                .content("Chúc mừng! Yêu cầu đăng ký tài khoản nhà vườn (đối tác) của bạn đã được quản trị viên duyệt thành công. Bạn đã có thể bắt đầu sử dụng các tính năng dành cho nhà vườn.")
+                                .link("/farmer/dashboard")
+                                .createdAt(LocalDateTime.now())
+                                .isRead(false)
+                                .build();
+                        notificationRepository.save(notif);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             } else if ("suspended".equalsIgnoreCase(newStatus) || "rejected".equalsIgnoreCase(newStatus)) {
                 f.setVerificationStatus("rejected");
             }
@@ -334,12 +331,7 @@ public class AdminUserController {
                 customerRepository.save(c);
             });
             return ResponseEntity.ok().build();
-        } else if ("partner".equals(lowerRole)) {
-            Partner p = partnerRepository.findById(id).orElse(null);
-            if (p == null) return ResponseEntity.notFound().build();
-            p.setStatus(newStatus);
-            partnerRepository.save(p);
-            return ResponseEntity.ok().build();
+
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
         }
@@ -389,13 +381,7 @@ public class AdminUserController {
                 farmerRepository.delete(farmer);
             }
             return ResponseEntity.ok().build();
-        } else if ("partner".equals(lowerRole)) {
-            Partner partner = partnerRepository.findById(id).orElse(null);
-            if (partner != null) {
-                deletePhysicalAvatarFile(partner.getAvatarUrl());
-                partnerRepository.delete(partner);
-            }
-            return ResponseEntity.ok().build();
+
         } else {
             return ResponseEntity.badRequest().body("Invalid role: " + role);
         }

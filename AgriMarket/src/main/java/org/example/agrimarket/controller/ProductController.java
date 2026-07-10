@@ -1,5 +1,6 @@
 package org.example.agrimarket.controller;
 
+import org.example.agrimarket.dto.PagedProductResponse;
 import org.example.agrimarket.dto.ProductRequest;
 import org.example.agrimarket.dto.ProductResponse;
 import org.example.agrimarket.service.ProductService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
@@ -91,6 +93,26 @@ public class ProductController {
         }
     }
 
+    @PutMapping("/farmer/products/{id}/stock")
+    public ResponseEntity<?> updateProductStock(Principal principal, @PathVariable Long id, @RequestBody java.util.Map<String, Integer> payload) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Vui lòng đăng nhập.");
+        }
+        Integer newStock = payload.get("newStock");
+        if (newStock == null || newStock < 0) {
+            return ResponseEntity.badRequest().body("Số lượng tồn kho mới không hợp lệ.");
+        }
+        try {
+            ProductResponse response = productService.updateProductStock(id, newStock, principal.getName());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi cập nhật tồn kho: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/products")
     public ResponseEntity<?> getAllApprovedProducts() {
         try {
@@ -111,7 +133,59 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Đã xảy ra lỗi khi lấy thông tin sản phẩm: " + e.getMessage());
+                    .body("Lỗi khi lấy thông tin sản phẩm: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Endpoint phân trang server-side cho danh sách sản phẩm công khai.
+     * GET /api/products/paged?page=0&size=6&sort=newest&category=Trái+cây&search=cam&minPrice=10000&maxPrice=100000&location=Hà+Nội&shopKeyword=nông+trại&minRating=4
+     */
+    @GetMapping("/products/paged")
+    public ResponseEntity<?> getApprovedProductsPaged(
+            @RequestParam(defaultValue = "0")    int page,
+            @RequestParam(defaultValue = "6")    int size,
+            @RequestParam(defaultValue = "popular") String sort,
+            @RequestParam(required = false)      String category,
+            @RequestParam(required = false)      String search,
+            @RequestParam(required = false)      Double minPrice,
+            @RequestParam(required = false)      Double maxPrice,
+            @RequestParam(required = false)      String location,
+            @RequestParam(required = false)      String shopKeyword,
+            @RequestParam(required = false)      Double minRating,
+            @RequestParam(required = false)      Long farmerId
+    ) {
+        try {
+            // Giới hạn size tối đa 50 để tránh abuse
+            int clampedSize = Math.min(size, 50);
+            PagedProductResponse result = productService.getApprovedProductsPaged(
+                    page, clampedSize, sort,
+                    category, search,
+                    minPrice, maxPrice,
+                    location, shopKeyword,
+                    minRating, farmerId
+            );
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi lấy danh sách sản phẩm: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/farmer/products/{id}/early-harvest")
+    public ResponseEntity<?> earlyHarvest(Principal principal, @PathVariable Long id) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Vui lòng đăng nhập.");
+        }
+
+        try {
+            productService.earlyHarvest(id, principal.getName());
+            return ResponseEntity.ok("Sản phẩm đã được thu hoạch sớm thành công.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi thực hiện thu hoạch sớm: " + e.getMessage());
         }
     }
 }

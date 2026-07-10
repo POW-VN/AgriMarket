@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Truck, CreditCard, User, Wrench, ShieldAlert, MessageCircle, FileText, Clock, Phone, Plus, FileClock } from 'lucide-react';
 import Header from '../../../components/common/Header/Header';
 import supportRequestService from '../../../services/supportRequestService';
 import authService from '../../../services/authService';
@@ -167,13 +168,13 @@ const LiveChat = () => {
 
   // Helper to resolve icon for ticket categories
   const getCategoryIcon = (category) => {
-    if (!category) return '📝';
-    if (category.includes('Giao hàng')) return '🚚';
-    if (category.includes('Thanh toán')) return '💳';
-    if (category.includes('Tài khoản')) return '👤';
-    if (category.includes('Kỹ thuật')) return '🛠️';
-    if (category.includes('Vi phạm')) return '🛡️';
-    return '💬';
+    if (!category) return <FileText size={18} />;
+    if (category.includes('Giao hàng')) return <Truck size={18} />;
+    if (category.includes('Thanh toán')) return <CreditCard size={18} />;
+    if (category.includes('Tài khoản')) return <User size={18} />;
+    if (category.includes('Kỹ thuật')) return <Wrench size={18} />;
+    if (category.includes('Vi phạm')) return <ShieldAlert size={18} />;
+    return <MessageCircle size={18} />;
   };
 
   return (
@@ -235,7 +236,7 @@ const LiveChat = () => {
                     }}
                   >
                     <div className="avatar-container">
-                      <div className="chat-item-avatar">
+                      <div className="chat-item-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {getCategoryIcon(req.category)}
                       </div>
                       <span className="status-dot-indicator active"></span>
@@ -400,7 +401,7 @@ const LiveChat = () => {
               </>
             ) : (
               <div className="chat-empty-state">
-                <div className="chat-empty-icon">💬</div>
+                <div className="chat-empty-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MessageCircle size={48} /></div>
                 <h3>Chưa chọn hội thoại</h3>
                 <p>Hãy chọn một cuộc hội thoại từ danh sách bên trái hoặc tạo mới để trao đổi.</p>
                 <Link to="/support/create" className="chat-send-btn" style={{ marginTop: '16px', textDecoration: 'none' }}>
@@ -447,21 +448,21 @@ const LiveChat = () => {
               <div className="details-card">
                 <h3>Thao tác nhanh</h3>
                 <div className="actions-list">
-                  <Link to="/support/create" className="action-item-link">
-                    <span>➕</span> Tạo Yêu cầu Hỗ trợ
+                  <Link to="/support/create" className="action-item-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Plus size={14} /> Tạo Yêu cầu Hỗ trợ
                   </Link>
-                  <Link to="/support/my-requests" className="action-item-link">
-                    <span>📄</span> Xem yêu cầu của tôi
+                  <Link to="/support/my-requests" className="action-item-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <FileClock size={14} /> Xem yêu cầu của tôi
                   </Link>
-                  <Link to="/support" className="action-item-link terminate">
-                    <span>📞</span> Kết thúc hội thoại
+                  <Link to="/support" className="action-item-link terminate" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Phone size={14} /> Kết thúc hội thoại
                   </Link>
                 </div>
               </div>
 
               {/* Card 4: Working hours info */}
               <div className="details-card working-hours-card">
-                <div className="working-hours-avatar">🕒</div>
+                <div className="working-hours-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={24} /></div>
                 <h5>Giờ làm việc hỗ trợ</h5>
                 <p>Thứ 2 - Thứ 6: 08:00 - 18:00</p>
                 <p>Thứ 7: 08:00 - 12:00</p>

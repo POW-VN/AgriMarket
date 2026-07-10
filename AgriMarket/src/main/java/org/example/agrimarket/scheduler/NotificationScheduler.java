@@ -6,7 +6,6 @@ import org.example.agrimarket.repository.AdminNotificationRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.NotificationRepository;
-import org.example.agrimarket.repository.PartnerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -30,8 +29,7 @@ public class NotificationScheduler {
     @Autowired
     private FarmerRepository farmerRepository;
 
-    @Autowired
-    private PartnerRepository partnerRepository;
+
 
     @Autowired
     private org.example.agrimarket.service.EmailService emailService;
@@ -109,18 +107,7 @@ public class NotificationScheduler {
                         .build());
             });
         }
-        if ("partner".equals(target) || "all".equals(target)) {
-            partnerRepository.findAll().forEach(partner -> {
-                notificationRepository.save(Notification.builder()
-                        .receiverType("partner")
-                        .receiverId(partner.getId())
-                        .title(broadcast.getTitle())
-                        .content(broadcast.getContent())
-                        .isRead(false)
-                        .broadcastId(broadcast.getId())
-                        .build());
-            });
-        }
+
     }
 
     private void sendEmailNotification(AdminNotification broadcast) {
@@ -140,8 +127,6 @@ public class NotificationScheduler {
                             email = customerRepository.findById(id).map(c -> c.getEmail()).orElse(null);
                         } else if ("farmer".equals(type)) {
                             email = farmerRepository.findById(id).map(f -> f.getEmail()).orElse(null);
-                        } else if ("partner".equals(type)) {
-                            email = partnerRepository.findById(id).map(p -> p.getEmail()).orElse(null);
                         }
                         if (email != null && !email.trim().isEmpty()) {
                             emails.add(email);
@@ -164,13 +149,7 @@ public class NotificationScheduler {
                     }
                 });
             }
-            if ("partner".equals(target) || "all".equals(target)) {
-                partnerRepository.findAll().forEach(partner -> {
-                    if (partner.getEmail() != null && !partner.getEmail().isEmpty()) {
-                        emails.add(partner.getEmail());
-                    }
-                });
-            }
+
         }
 
         java.util.List<String> uniqueEmails = emails.stream()

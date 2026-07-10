@@ -1,0 +1,288 @@
+package org.example.agrimarket.controller;
+
+import org.example.agrimarket.dto.PreorderRequest;
+import org.example.agrimarket.dto.PreorderResponse;
+import org.example.agrimarket.model.*;
+import org.example.agrimarket.repository.*;
+import org.example.agrimarket.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/preorders")
+public class PreorderController {
+
+    @Autowired
+    private PreorderRepository preorderRepository;
+
+    @Autowired
+    private PreorderItemRepository preorderItemRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private FarmerRepository farmerRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private AdminRepository adminRepository;
+
+    @Autowired
+    private OrderService orderService;
+
+    // 1. Create Preorder
+    @PostMapping
+    @Transactional
+    public ResponseEntity<?> createPreorder(Principal principal, @RequestBody PreorderRequest request) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        Optional<Customer> customerOpt = customerRepository.findByEmail(principal.getName());
+        if (customerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer profile not found.");
+        }
+
+        Preorder preorder = Preorder.builder()
+                .customer(customerOpt.get())
+                .status("pending_payment")
+                .build();
+
+        preorder = preorderRepository.save(preorder);
+
+        List<PreorderItem> savedItems = new ArrayList<>();
+        for (PreorderRequest.PreorderItemRequest itemReq : request.getItems()) {
+            Optional<Product> productOpt = productRepository.findById(itemReq.getProductId());
+            if (productOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found with ID: " + itemReq.getProductId());
+            }
+
+            LocalDate harvestDate = null;
+            if (itemReq.getExpectedHarvestDate() != null && !itemReq.getExpectedHarvestDate().isEmpty()) {
+                harvestDate = LocalDate.parse(itemReq.getExpectedHarvestDate());
+            } else {
+                harvestDate = productOpt.get().getHarvestDate();
+            }
+
+            PreorderItem preorderItem = PreorderItem.builder()
+                    .preorder(preorder)
+                    .product(productOpt.get())
+                    .quantity(itemReq.getQuantity())
+                    .expectedHarvestDate(harvestDate)
+                    .build();
+
+            savedItems.add(preorderItemRepository.save(preorderItem));
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertToResponse(preorder, savedItems));
+    }
+
+    // 1.5. Get preorder by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getPreorderById(Principal principal, @PathVariable Long id) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        Optional<Preorder> preorderOpt = preorderRepository.findById(id);
+        if (preorderOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Preorder not found.");
+        }
+
+        Preorder po = preorderOpt.get();
+        boolean isAuthorized = false;
+        if (po.getCustomer().getEmail().equalsIgnoreCase(principal.getName())) {
+            isAuthorized = true;
+        } else {
+            Optional<Farmer> farmerOpt = farmerRepository.findByEmail(principal.getName());
+            if (farmerOpt.isPresent()) {
+                isAuthorized = preorderItemRepository.findByPreorderId(po.getId()).stream()
+                        .anyMatch(item -> item.getProduct().getFarmer().getId().equals(farmerOpt.get().getId()));
+            }
+            if (!isAuthorized) {
+                Optional<Admin> adminOpt = adminRepository.findByEmail(principal.getName());
+                if (adminOpt.isPresent()) {
+                    isAuthorized = true;
+                }
+            }
+        }
+
+        if (!isAuthorized) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied.");
+        }
+
+        List<PreorderItem> items = preorderItemRepository.findByPreorderId(po.getId());
+        return ResponseEntity.ok(convertToResponse(po, items));
+    }
+
+    // 2. Get customer preorders
+    @GetMapping("/my")
+    public ResponseEntity<?> getMyPreorders(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        Optional<Customer> customerOpt = customerRepository.findByEmail(principal.getName());
+        if (customerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer profile not found.");
+        }
+
+        List<Preorder> preorders = preorderRepository.findByCustomerIdOrderByCreatedAtDesc(customerOpt.get().getId()).stream()
+                .filter(po -> !"pending_payment".equalsIgnoreCase(po.getStatus()))
+                .collect(Collectors.toList());
+        List<PreorderResponse> responses = preorders.stream().map(po -> {
+            List<PreorderItem> items = preorderItemRepository.findByPreorderId(po.getId());
+            return convertToResponse(po, items);
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    // 3. Get farmer preorders
+    @GetMapping("/farmer")
+    public ResponseEntity<?> getFarmerPreorders(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(principal.getName());
+        if (farmerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Farmer profile not found.");
+        }
+
+        List<Preorder> preorders = preorderRepository.findPreordersByFarmerId(farmerOpt.get().getId()).stream()
+                .filter(po -> !"pending_payment".equalsIgnoreCase(po.getStatus()))
+                .collect(Collectors.toList());
+        List<PreorderResponse> responses = preorders.stream().map(po -> {
+            List<PreorderItem> items = preorderItemRepository.findByPreorderId(po.getId()).stream()
+                    .filter(item -> item.getProduct().getFarmer().getId().equals(farmerOpt.get().getId()))
+                    .collect(Collectors.toList());
+            return convertToResponse(po, items);
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    // 3.5. Get all preorders (Admin)
+    @GetMapping("/admin")
+    public ResponseEntity<?> getAllPreorders(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        Optional<Admin> adminOpt = adminRepository.findByEmail(principal.getName());
+        if (adminOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden - Admin only");
+        }
+
+        List<Preorder> preorders = preorderRepository.findAll().stream()
+                .filter(po -> !"pending_payment".equalsIgnoreCase(po.getStatus()))
+                .collect(Collectors.toList());
+        List<PreorderResponse> responses = preorders.stream().map(po -> {
+            List<PreorderItem> items = preorderItemRepository.findByPreorderId(po.getId());
+            return convertToResponse(po, items);
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
+    }
+
+    // 4. Update preorder status
+    @PutMapping("/{id}/status")
+    @Transactional
+    public ResponseEntity<?> updatePreorderStatus(Principal principal, @PathVariable Long id, @RequestParam String status) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+
+        Optional<Preorder> preorderOpt = preorderRepository.findById(id);
+        if (preorderOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Preorder not found.");
+        }
+
+        Preorder preorder = preorderOpt.get();
+
+        // Security check: Must be the customer or a farmer who has a product in this preorder
+        boolean isAuthorized = false;
+        if (preorder.getCustomer().getEmail().equalsIgnoreCase(principal.getName())) {
+            isAuthorized = true;
+        } else {
+            Optional<Farmer> farmerOpt = farmerRepository.findByEmail(principal.getName());
+            if (farmerOpt.isPresent()) {
+                List<PreorderItem> items = preorderItemRepository.findByPreorderId(preorder.getId());
+                boolean hasFarmerProduct = items.stream().anyMatch(item -> item.getProduct().getFarmer().getId().equals(farmerOpt.get().getId()));
+                if (hasFarmerProduct) {
+                    isAuthorized = true;
+                }
+            }
+        }
+
+        if (!isAuthorized) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You do not have permission to modify this preorder.");
+        }
+
+        preorder.setStatus(status);
+        preorder = preorderRepository.save(preorder);
+
+        if ("completed".equalsIgnoreCase(status)) {
+            orderService.convertPreorderToNormalOrder(preorder);
+        }
+
+        List<PreorderItem> items = preorderItemRepository.findByPreorderId(preorder.getId());
+        return ResponseEntity.ok(convertToResponse(preorder, items));
+    }
+
+    private PreorderResponse convertToResponse(Preorder preorder, List<PreorderItem> items) {
+        List<PreorderResponse.PreorderItemResponse> itemResponses = items.stream().map(item -> {
+            Product p = item.getProduct();
+            String farmerName = "";
+            String farmLocation = "";
+            if (p.getFarmer() != null) {
+                farmerName = p.getFarmer().getFarmName() != null && !p.getFarmer().getFarmName().isEmpty()
+                        ? p.getFarmer().getFarmName()
+                        : p.getFarmer().getFullName();
+                farmLocation = p.getFarmer().getFarmAddress() != null && !p.getFarmer().getFarmAddress().isEmpty()
+                        ? p.getFarmer().getFarmAddress()
+                        : "Chưa có địa chỉ";
+            }
+
+            // Get thumbnail from product_image
+            String thumbnail = p.getTraceabilityImageUrl(); // fallback
+
+            return PreorderResponse.PreorderItemResponse.builder()
+                    .id(item.getId())
+                    .productId(p.getId())
+                    .productName(p.getName())
+                    .productPrice(p.getPrice())
+                    .productUnit(p.getUnit())
+                    .productThumbnailUrl(thumbnail)
+                    .quantity(item.getQuantity())
+                    .expectedHarvestDate(item.getExpectedHarvestDate())
+                    .farmerName(farmerName)
+                    .farmLocation(farmLocation)
+                    .build();
+        }).collect(Collectors.toList());
+
+        String customerName = preorder.getCustomer() != null ? preorder.getCustomer().getFullName() : "Khách hàng";
+
+        return PreorderResponse.builder()
+                .id(preorder.getId())
+                .customerId(preorder.getCustomer() != null ? preorder.getCustomer().getId() : null)
+                .customerName(customerName)
+                .status(preorder.getStatus())
+                .createdAt(preorder.getCreatedAt())
+                .items(itemResponses)
+                .build();
+    }
+}

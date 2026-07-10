@@ -102,10 +102,10 @@
   margin-bottom: 20px;
 }
 
-.purple-icon { background-color: #f3e5f5; }
-.red-icon { background-color: #ffebee; }
-.blue-icon { background-color: #e3f2fd; }
-.orange-icon { background-color: #fff3e0; }
+.purple-icon { background-color: #f3e5f5; color: #8e24aa; }
+.red-icon { background-color: #ffebee; color: #e53935; }
+.blue-icon { background-color: #e3f2fd; color: #1e88e5; }
+.orange-icon { background-color: #fff3e0; color: #fb8c00; }
 
 .support-card h2 {
   font-size: 20px;

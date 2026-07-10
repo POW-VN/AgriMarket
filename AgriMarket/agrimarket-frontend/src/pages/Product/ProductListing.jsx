@@ -1,6 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { Check, Star } from "lucide-react";
 import Header from "../../components/common/Header/Header";
+import Footer from "../../components/common/Footer/Footer";
+import { getApprovedProductsPaged } from "../../services/productService";
+import authService from "../../services/authService";
+import cartService from "../../services/cartService";
+import wishlistService from "../../services/wishlistService";
 import "../Home/Home.css";
 import "./ProductListing.css";
 
@@ -69,6 +75,14 @@ const formatPrice = (price) => {
     return new Intl.NumberFormat("vi-VN").format(price);
 };
 
+const formatSold = (soldCount) => {
+    const count = Number(soldCount || 0);
+    if (count >= 1000) {
+        return (count / 1000).toFixed(1) + "k";
+    }
+    return count.toString();
+};
+
 const normalizeLocation = (value) => value.trim().toLowerCase();
 
 const formatCurrencyInput = (value) => {
@@ -88,6 +102,15 @@ const parseCurrencyInput = (value) => {
 export default function ProductListing() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
+    const [wishlistIds, setWishlistIds] = useState(new Set());
+    const [toastMessage, setToastMessage] = useState("");
+    const [toastType, setToastType] = useState("success");
+    const [priceError, setPriceError] = useState("");
+
     const [selectedCategory, setSelectedCategory] = useState(() => {
         return searchParams.get("category") || "";
     });
@@ -101,16 +124,161 @@ export default function ProductListing() {
     const [debouncedPriceMin, setDebouncedPriceMin] = useState(null);
     const [debouncedPriceMax, setDebouncedPriceMax] = useState(null);
     const [selectedRating, setSelectedRating] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1); // UI: 1-indexed
     const locationFilterRef = useRef(null);
 
-    // Đồng bộ category từ URL nếu user điều hướng lại với category khác
-    useEffect(() => {
-        const cat = searchParams.get("category");
-        if (cat) {
-            setSelectedCategory(cat);
-            setCurrentPage(1);
+    const itemsPerPage = 6;
+
+    const triggerToast = (msg, type = "success") => {
+        setToastMessage(msg);
+        setToastType(type);
+        setTimeout(() => {
+            setToastMessage("");
+        }, 2500);
+    };
+
+    const handleAddToCart = async (product) => {
+        try {
+            const currentUser = authService.getCurrentUser();
+            if (currentUser) {
+                await cartService.addToCart(product.id, 1);
+            } else {
+                const cartKey = "agrimarket_cart";
+                const currentCart = JSON.parse(localStorage.getItem(cartKey)) || [];
+                const existingIndex = currentCart.findIndex(
+                    (item) => String(item.id) === String(product.id)
+                );
+
+                if (existingIndex >= 0) {
+                    const newQty = currentCart[existingIndex].quantity + 1;
+                    if (product.stock !== undefined && newQty > product.stock) {
+                        triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+                        return;
+                    }
+                    currentCart[existingIndex].quantity = newQty;
+                } else {
+                    if (product.stock !== undefined && 1 > product.stock) {
+                        triggerToast(`Không thể thêm số lượng vượt quá tồn kho hiện có (${product.stock}).`);
+                        return;
+                    }
+                    currentCart.push({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        unit: product.unit,
+                        imageUrl: product.imageUrl,
+                        quantity: 1,
+                        checked: true,
+                        stockQuantity: product.stock,
+                        farmerId: product.farmerId,
+                        farmerName: product.farmerName
+                    });
+                }
+
+                localStorage.setItem(cartKey, JSON.stringify(currentCart));
+            }
+
+            window.dispatchEvent(new CustomEvent("cartUpdated"));
+            triggerToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
+        } catch (err) {
+            console.error("Lỗi khi thêm vào giỏ hàng:", err);
+            triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");
         }
+    };
+
+    const handleToggleWishlist = async (productId) => {
+        try {
+            const res = await wishlistService.toggleWishlist(productId);
+            setWishlistIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(String(productId))) {
+                    next.delete(String(productId));
+                } else {
+                    next.add(String(productId));
+                }
+                return next;
+            });
+            triggerToast(res?.message || "Đã cập nhật danh sách yêu thích.");
+        } catch (e) {
+            console.error("Lỗi khi cập nhật yêu thích:", e);
+            triggerToast("Vui lòng thử lại sau.");
+        }
+    };
+
+    // Chuyển đổi selectedSort (UI label) sang sort key cho API
+    const sortKeyMap = {
+        "Phổ biến": "popular",
+        "Mới nhất": "newest",
+        "Bán chạy": "best_selling",
+        "Giá tăng dần": "price_asc",
+        "Giá giảm dần": "price_desc",
+    };
+
+    // Tải dữ liệu từ server mỗi khi filter/sort/page thay đổi
+    const fetchProducts = useCallback(async () => {
+        setLoading(true);
+        try {
+            const searchQuery = searchParams.get("search") || undefined;
+            const sortKey = sortKeyMap[selectedSort] || "popular";
+            // Location: gộp các location đã chọn thành chuỗi (lấy cái đầu tiên, hoặc bỏ nếu multi)
+            const location = selectedLocations.length === 1 ? selectedLocations[0] : undefined;
+
+            const result = await getApprovedProductsPaged({
+                page: currentPage - 1, // API 0-indexed
+                size: itemsPerPage,
+                sort: sortKey,
+                category: selectedCategory || undefined,
+                search: searchQuery,
+                minPrice: debouncedPriceMin || undefined,
+                maxPrice: debouncedPriceMax || undefined,
+                location,
+                shopKeyword: shopKeyword.trim() || undefined,
+                minRating: selectedRating > 0 ? selectedRating : undefined,
+            });
+
+            setProducts(result.content);
+            setTotalPages(result.totalPages || 1);
+            setTotalElements(result.totalElements || 0);
+
+            // Load wishlist ids
+            const ids = await wishlistService.getWishlistIds();
+            setWishlistIds(new Set(ids.map((id) => String(id))));
+        } catch (err) {
+            console.error("Lỗi khi tải sản phẩm:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [
+        currentPage, selectedCategory, selectedSort, selectedLocations,
+        shopKeyword, debouncedPriceMin, debouncedPriceMax, selectedRating, searchParams
+    ]);
+
+    useEffect(() => {
+        fetchProducts();
+    }, [fetchProducts]);
+
+
+
+    // Đồng bộ các bộ lọc từ URL params (locations, priceMin, priceMax, rating, category)
+    useEffect(() => {
+        const cat = searchParams.get("category") || "";
+        setSelectedCategory(cat);
+
+        const locs = searchParams.get("locations");
+        setSelectedLocations(locs ? locs.split(",") : []);
+
+        const minP = searchParams.get("priceMin");
+        setPriceMinInput(minP || "");
+        setDebouncedPriceMin(minP ? Number(minP) : null);
+
+        const maxP = searchParams.get("priceMax");
+        setPriceMaxInput(maxP || "");
+        setDebouncedPriceMax(maxP ? Number(maxP) : null);
+
+        const rating = searchParams.get("rating");
+        setSelectedRating(Number(rating) || 0);
+
+        setCurrentPage(1);
     }, [searchParams]);
 
     // Cuộn lên đầu trang khi thay đổi danh mục (với độ trễ nhỏ để tránh cơ chế tự động cuộn của trình duyệt)
@@ -137,23 +305,34 @@ export default function ProductListing() {
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            setDebouncedPriceMin(parseCurrencyInput(priceMinInput));
-            setDebouncedPriceMax(parseCurrencyInput(priceMaxInput));
+            const minVal = parseCurrencyInput(priceMinInput);
+            const maxVal = parseCurrencyInput(priceMaxInput);
+
+            if (minVal !== null && maxVal !== null && minVal > maxVal) {
+                setPriceError("Giá kết thúc phải lớn hơn hoặc bằng giá bắt đầu");
+                setDebouncedPriceMin(null);
+                setDebouncedPriceMax(null);
+            } else {
+                setPriceError("");
+                setDebouncedPriceMin(minVal);
+                setDebouncedPriceMax(maxVal);
+            }
             setCurrentPage(1);
         }, 400);
 
         return () => clearTimeout(timeoutId);
     }, [priceMinInput, priceMaxInput]);
 
-    const itemsPerPage = 6;
+    // Sản phẩm hiển thị = đã nhận từ server (không cần slice thêm)
+    const paginatedProducts = products;
 
-    const filteredLocationOptions = useMemo(() => {
-        const query = normalizeLocation(locationQuery);
-        return mockLocations.filter((location) => {
-            if (!query) return true;
-            return normalizeLocation(location).includes(query);
-        });
-    }, [locationQuery]);
+    // locationsList dùng cho dropdown (dùng mockLocations vì đây là UI helper)
+    const locationsList = mockLocations;
+
+    const filteredLocationOptions = locationsList.filter((loc) => {
+        if (!locationQuery) return true;
+        return normalizeLocation(loc).includes(normalizeLocation(locationQuery));
+    });
 
     const toggleLocation = (location) => {
         setSelectedLocations((current) => {
@@ -180,68 +359,17 @@ export default function ProductListing() {
         setCurrentPage(1);
     };
 
-    const filteredProducts = useMemo(() => {
-        let result = [...mockProducts];
-
-        // Lọc theo danh mục
-        if (selectedCategory) {
-            result = result.filter((item) => item.category === selectedCategory);
-        }
-
-        // Lọc theo nơi bán
-        if (selectedLocations.length > 0) {
-            result = result.filter((item) => {
-                const itemLocation = normalizeLocation(item.location);
-                return selectedLocations.some((location) =>
-                    itemLocation.includes(normalizeLocation(location))
-                );
-            });
-        }
-
-        // Lọc theo tên cửa hàng
-        if (shopKeyword.trim()) {
-            result = result.filter((item) =>
-                item.shopName.toLowerCase().includes(shopKeyword.toLowerCase())
-            );
-        }
-
-        // Lọc theo giá tiền
-        if (debouncedPriceMin !== null) {
-            result = result.filter((item) => item.price >= debouncedPriceMin);
-        }
-        if (debouncedPriceMax !== null) {
-            result = result.filter((item) => item.price <= debouncedPriceMax);
-        }
-
-        // Lọc theo đánh giá
-        if (selectedRating > 0) {
-            result = result.filter((item) => item.rating >= selectedRating);
-        }
-
-        // Sắp xếp
-        if (selectedSort === "Mới nhất") {
-            // TODO BACKEND:
-            // Khi có backend, nên sắp xếp theo createdAt từ API
-            result = [...result].reverse();
-        } else if (selectedSort === "Bán chạy") {
-            // TODO BACKEND:
-            // Khi có backend, thay bằng totalSold thật từ API
-            result = [...result].sort((a, b) => parseFloat(b.sold) - parseFloat(a.sold));
-        } else if (selectedSort === "Giá tăng dần") {
-            result = [...result].sort((a, b) => a.price - b.price);
-        } else if (selectedSort === "Giá giảm dần") {
-            result = [...result].sort((a, b) => b.price - a.price);
-        }
-
-        return result;
-    }, [selectedCategory, selectedLocations, shopKeyword, debouncedPriceMin, debouncedPriceMax, selectedRating, selectedSort]);
-
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-    const paginatedProducts = filteredProducts.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
+    if (loading) {
+        return (
+            <div className="product-page">
+                <Header />
+                <div className="pl-loading-container">
+                    <div className="pl-spinner" />
+                    <p>Đang tải danh sách sản phẩm...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="product-page">
@@ -375,10 +503,11 @@ export default function ProductListing() {
                                             type="button"
                                             className={`multi-select-option ${selectedLocations.length === 0 ? "selected" : ""}`}
                                             onClick={clearAllLocations}
+                                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                         >
                                             <span className="multi-select-option-label">Tất cả nơi bán</span>
-                                            <span className="multi-select-option-check">
-                                                {selectedLocations.length === 0 ? "✓" : ""}
+                                            <span className="multi-select-option-check" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                                {selectedLocations.length === 0 ? <Check size={14} /> : ""}
                                             </span>
                                         </button>
 
@@ -390,10 +519,11 @@ export default function ProductListing() {
                                                     type="button"
                                                     className={`multi-select-option ${isSelected ? "selected" : ""}`}
                                                     onClick={() => toggleLocation(location)}
+                                                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
                                                 >
                                                     <span className="multi-select-option-label">{location}</span>
-                                                    <span className="multi-select-option-check">
-                                                        {isSelected ? "✓" : ""}
+                                                    <span className="multi-select-option-check" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                                        {isSelected ? <Check size={14} /> : ""}
                                                     </span>
                                                 </button>
                                             );
@@ -433,6 +563,7 @@ export default function ProductListing() {
                                         onClick={() => {
                                             setPriceMinInput("");
                                             setPriceMaxInput("");
+                                            setPriceError("");
                                             setDebouncedPriceMin(null);
                                             setDebouncedPriceMax(null);
                                             setCurrentPage(1);
@@ -448,7 +579,7 @@ export default function ProductListing() {
                                     <input
                                         type="text"
                                         inputMode="numeric"
-                                        className="price-range-input price-range-input-with-suffix"
+                                        className={`price-range-input price-range-input-with-suffix ${priceError ? "price-range-input-error" : ""}`}
                                         placeholder="Từ"
                                         value={priceMinInput}
                                         onChange={(e) => {
@@ -464,7 +595,7 @@ export default function ProductListing() {
                                     <input
                                         type="text"
                                         inputMode="numeric"
-                                        className="price-range-input price-range-input-with-suffix"
+                                        className={`price-range-input price-range-input-with-suffix ${priceError ? "price-range-input-error" : ""}`}
                                         placeholder="Đến"
                                         value={priceMaxInput}
                                         onChange={(e) => {
@@ -476,6 +607,11 @@ export default function ProductListing() {
                                     <span className="price-range-currency">đ</span>
                                 </div>
                             </div>
+                            {priceError && (
+                                <p className="price-error-message" style={{ color: "#ef4444", fontSize: "12px", marginTop: "6px", fontWeight: "500", display: "flex", alignItems: "center", gap: "4px" }}>
+                                    ⚠️ {priceError}
+                                </p>
+                            )}
                         </div>
 
                         <div className="filter-group">
@@ -536,56 +672,95 @@ export default function ProductListing() {
 
                         <div className="toolbar-right">
                             <span className="result-count">
-                                {filteredProducts.length > 0 ? "1" : "0"}-
-                                {Math.min(currentPage * itemsPerPage, filteredProducts.length)} của{" "}
-                                {filteredProducts.length} sản phẩm
+                                {totalElements > 0
+                                    ? `${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalElements)}`
+                                    : "0"} của {totalElements} sản phẩm
                             </span>
                         </div>
                     </div>
 
                     <div className="product-grid">
                         {paginatedProducts.length > 0 ? (
-                            paginatedProducts.map((product) => (
-                                <div className="product-card" key={product.id}>
-                                    <div className="product-image-wrap">
-                                        <img src={product.image} alt={product.name} className="product-image" />
-                                        <button className="wishlist-btn">♡</button>
+                            paginatedProducts.map((product) => {
+                                const resolvedBadges = [];
+                                if (product.farmerOrganicUrl || product.organicUrl) resolvedBadges.push("HỮU CƠ");
+                                if (product.farmerVietgapUrl || product.vietgapUrl) resolvedBadges.push("VIETGAP");
+                                if (product.farmerGlobalgapUrl || product.globalgapUrl) resolvedBadges.push("GLOBALGAP");
+                                if (resolvedBadges.length === 0) resolvedBadges.push("NÔNG SẢN");
 
-                                        <div className="badge-row">
-                                            {product.badges.map((badge, index) => (
-                                                <span className="badge" key={index}>
-                                                    {badge}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
+                                return (
+                                    <div
+                                        className="product-card"
+                                        key={product.id}
+                                        onClick={() => navigate(`/products/${product.id}`)}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <div className="product-image-wrap">
+                                            <img src={product.imageUrl || product.image} alt={product.name} className="product-image" />
+                                            <button
+                                                className={`wishlist-btn ${wishlistIds.has(String(product.id)) ? "active" : ""}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleToggleWishlist(product.id);
+                                                }}
+                                            >
+                                                {wishlistIds.has(String(product.id)) ? "♥" : "♡"}
+                                            </button>
 
-                                    <div className="product-body">
-                                        <div className="product-top-row">
-                                            <span className="product-category">{product.category}</span>
-                                            <span className="product-rating">⭐ {product.rating}</span>
-                                        </div>
-
-                                        <h4 className="product-name">{product.name}</h4>
-                                        <p className="product-shop">
-                                            {product.shopName} • {product.location}
-                                        </p>
-
-                                        <div className="price-row">
-                                            <div>
-                                                <span className="product-price">{formatPrice(product.price)}đ</span>
-                                                <span className="product-unit"> / {product.unit}</span>
+                                            <div className="badge-row">
+                                                {resolvedBadges.map((badge, index) => (
+                                                    <span className="badge" key={index}>
+                                                        {badge}
+                                                    </span>
+                                                ))}
                                             </div>
-                                            <button className="add-cart-btn">🛒</button>
                                         </div>
 
-                                        <div className="product-footer">
-                                            <span>Đã bán {product.sold}</span>
-                                            <span className="stock">{product.stockStatus}</span>
+                                        <div className="product-body">
+                                            <div className="product-top-row">
+                                                <span className="product-category">{product.category}</span>
+                                                <span className="product-rating" style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                                                    <Star size={14} style={{ fill: "#f59e0b", stroke: "#f59e0b" }} />
+                                                    {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
+                                                </span>
+                                            </div>
+
+                                            <h4 className="product-name">{product.name}</h4>
+                                            <p className="product-shop">
+                                                {product.farmerName || product.shopName} • {product.farmLocation || product.location}
+                                            </p>
+
+                                            <div className="price-row">
+                                                <div>
+                                                    <span className="product-price">{formatPrice(product.price)}đ</span>
+                                                    <span className="product-unit"> / {product.unit}</span>
+                                                </div>
+                                                <button
+                                                    className="add-cart-btn"
+                                                    aria-label="Thêm vào giỏ hàng"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddToCart(product);
+                                                    }}
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <circle cx="9" cy="21" r="1"></circle>
+                                                        <circle cx="20" cy="21" r="1"></circle>
+                                                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                                        <line x1="12" y1="10" x2="16" y2="10"></line>
+                                                        <line x1="14" y1="8" x2="14" y2="12"></line>
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <div className="product-footer">
+                                                <span>Đã bán {formatSold(product.sold)}</span>
+                                                <span className="stock">{product.stock > 0 ? "Còn hàng" : "Hết hàng"}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <div className="empty-state">
                                 Không tìm thấy sản phẩm phù hợp.
@@ -637,25 +812,31 @@ export default function ProductListing() {
                 </section>
             </main>
 
-            {/* ================= FOOTER ================= */}
-            <footer className="product-footer-main">
-                <div className="footer-brand">
-                    <h4>FarmConnect</h4>
-                    <p>
-                        Kết nối trực tiếp người tiêu dùng với các nông trại uy tín, mang đến nguồn thực
-                        phẩm tươi sạch và minh bạch mỗi ngày.
-                    </p>
-                </div>
+            <Footer />
 
-                <div className="footer-bottom">
-                    <span>© 2024 FarmConnect. Cultivating Digital Growth.</span>
-                    <div className="footer-icons">
-                        <span>⌁</span>
-                        <span>◎</span>
-                        <span>✆</span>
-                    </div>
+            {toastMessage && (
+                <div className={`pl-toast pl-toast-${toastType}`}>
+                    {toastType === "success" ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    ) : toastType === "error" ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                    ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    )}
+                    <span>{toastMessage}</span>
                 </div>
-            </footer>
+            )}
         </div>
     );
 }

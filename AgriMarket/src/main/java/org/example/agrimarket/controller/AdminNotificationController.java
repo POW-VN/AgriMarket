@@ -10,7 +10,6 @@ import org.example.agrimarket.repository.AdminNotificationRepository;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
 import org.example.agrimarket.repository.NotificationRepository;
-import org.example.agrimarket.repository.PartnerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,8 +36,7 @@ public class AdminNotificationController {
     @Autowired
     private FarmerRepository farmerRepository;
 
-    @Autowired
-    private PartnerRepository partnerRepository;
+
 
     @Autowired
     private org.example.agrimarket.service.EmailService emailService;
@@ -102,10 +100,7 @@ public class AdminNotificationController {
             }
         });
         
-        // 3. Load Partners
-        partnerRepository.findAll().forEach(p -> {
-            list.add(new SimplifiedUserDto(p.getId(), p.getFullName(), p.getEmail(), "partner", null));
-        });
+
         
         return ResponseEntity.ok(list);
     }
@@ -215,18 +210,7 @@ public class AdminNotificationController {
                         .build());
             });
         }
-        if ("partner".equals(target) || "all".equals(target)) {
-            partnerRepository.findAll().forEach(partner -> {
-                notificationRepository.save(Notification.builder()
-                        .receiverType("partner")
-                        .receiverId(partner.getId())
-                        .title(broadcast.getTitle())
-                        .content(broadcast.getContent())
-                        .isRead(false)
-                        .broadcastId(broadcast.getId())
-                        .build());
-            });
-        }
+
     }
 
     private void sendEmailNotification(AdminNotification broadcast) {
@@ -246,8 +230,6 @@ public class AdminNotificationController {
                             email = customerRepository.findById(id).map(c -> c.getEmail()).orElse(null);
                         } else if ("farmer".equals(type)) {
                             email = farmerRepository.findById(id).map(f -> f.getEmail()).orElse(null);
-                        } else if ("partner".equals(type)) {
-                            email = partnerRepository.findById(id).map(p -> p.getEmail()).orElse(null);
                         }
                         if (email != null && !email.trim().isEmpty()) {
                             emails.add(email);
@@ -270,13 +252,7 @@ public class AdminNotificationController {
                     }
                 });
             }
-            if ("partner".equals(target) || "all".equals(target)) {
-                partnerRepository.findAll().forEach(partner -> {
-                    if (partner.getEmail() != null && !partner.getEmail().isEmpty()) {
-                        emails.add(partner.getEmail());
-                    }
-                });
-            }
+
         }
 
         java.util.List<String> uniqueEmails = emails.stream()

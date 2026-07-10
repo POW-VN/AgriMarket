@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { User } from "lucide-react";
 import authService from "../../services/authService";
+import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
 import * as addressService from "../../services/addressService";
 import SearchableSelect from "../../components/common/SearchableSelect/SearchableSelect";
@@ -629,13 +631,6 @@ const CreateAccount = () => {
         vipLevel: customerVipLevel,
         preferences: customerPreferences
       }),
-      ...(role === "partner" && {
-        companyName,
-        licensePlate,
-        maxPayload,
-        vehicleType,
-        routes: partnerRoutes
-      }),
       ...(role === "admin" && {
         adminLevel,
         adminDepartment,
@@ -681,136 +676,15 @@ const CreateAccount = () => {
     }
   };
 
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
+
   return (
     <div className="admin-layout">
       {/* Sidebar - Matching Image 2 */}
-      <aside className="admin-sidebar">
-        <div className="admin-logo-section">
-          <Link to="/" className="admin-logo-link">
-            <h1>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="7" cy="18" r="2"></circle>
-                <circle cx="18" cy="18" r="2"></circle>
-                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                <path d="M16 9h3l2 3v4"></path>
-              </svg>
-              AgriAdmin
-            </h1>
-          </Link>
-        </div>
-
-        <nav className="admin-nav-menu">
-          <button className="admin-nav-item" onClick={() => alert("Chức năng Bảng điều khiển đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-            </span>
-            Bảng điều khiển
-          </button>
-          <button className="admin-nav-item active" onClick={() => navigate("/admin/users")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-            </span>
-            Quản lý tài khoản
-          </button>
-          <button className="admin-nav-item" onClick={() => alert("Chức năng quản lý nông dân đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
-            </span>
-            Nông dân
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-            </span>
-            Duyệt sản phẩm
-          </button>
-          <button className="admin-nav-item" onClick={() => alert("Chức năng quản lý danh mục đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-            </span>
-            Danh mục
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-            </span>
-            Đơn hàng
-          </button>
-          <button className="admin-nav-item" onClick={() => alert("Chức năng giao dịch đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            </span>
-            Giao dịch
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </span>
-            Hỗ trợ
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            </span>
-            Báo cáo
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="m22 8-6 4 6 4V8Z"></path><rect width="14" height="12" x="2" y="6" rx="2" ry="2"></rect></svg>
-            </span>
-            Quản lý Livestream
-          </button>
-          <button className="admin-nav-item" onClick={() => alert("Chức năng AI Monitoring đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-            </span>
-            Giám sát AI
-          </button>
-          <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            </span>
-            Thông báo
-          </button>
-          <button className="admin-nav-item" onClick={() => alert("Chức năng thống kê hệ thống đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-            </span>
-            Thống kê hệ thống
-          </button>
-          <button className="admin-nav-item" onClick={() => alert("Chức năng cài đặt đang phát triển.")}>
-            <span className="admin-nav-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </span>
-            Cài đặt
-          </button>
-        </nav>
-
-        {/* Sidebar Footer */}
-        <div className="admin-sidebar-footer">
-          <img
-            src={currentUser?.avatarUrl || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-            alt="Avatar admin"
-            className="admin-footer-avatar"
-          />
-          <div className="admin-footer-info">
-            <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-            <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar activeItem="users" />
 
       {/* Main Content */}
       <div className="admin-main-container">
@@ -984,25 +858,6 @@ const CreateAccount = () => {
                     <span className="role-card-name">Nông dân</span>
                   </div>
                   
-                  <div 
-                    className={`role-assignment-card ${role === "partner" ? "active" : ""}`}
-                    onClick={() => setRole("partner")}
-                  >
-                    <span className="role-card-icon" style={{ display: "flex", color: role === "partner" ? "var(--admin-primary)" : "var(--admin-text-muted)" }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    </span>
-                    <span className="role-card-name">Đơn vị vận chuyển</span>
-                  </div>
-                  
-                  <div 
-                    className={`role-assignment-card ${role === "admin" ? "active" : ""}`}
-                    onClick={() => setRole("admin")}
-                  >
-                    <span className="role-card-icon" style={{ display: "flex", color: role === "admin" ? "var(--admin-primary)" : "var(--admin-text-muted)" }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    </span>
-                    <span className="role-card-name">Quản trị viên</span>
-                  </div>
                 </div>
               </div>
               {role === "farmer" && (
@@ -1374,114 +1229,7 @@ const CreateAccount = () => {
 
 
 
-              {/* 3b. Partner/Courier Information (Conditional) */}
-              {role === "partner" && (
-                <div className="form-block">
-                  <div className="form-block-header">
-                    <div className="form-block-icon">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: "var(--admin-primary)" }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                    </div>
-                    <h3>Thông tin đơn vị vận chuyển</h3>
-                  </div>
 
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label>Đơn vị chủ quản / Công ty</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Ví dụ: AgriExpress Logistics"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Biển số xe đăng ký</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Ví dụ: 29C-123.45"
-                        value={licensePlate}
-                        onChange={(e) => setLicensePlate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-2">
-                    <div className="form-group">
-                      <label>Tải trọng tối đa</label>
-                      <select
-                        className="form-control"
-                        value={maxPayload}
-                        onChange={(e) => setMaxPayload(e.target.value)}
-                      >
-                        <option value="1.5 Tấn">1.5 Tấn</option>
-                        <option value="2.5 Tấn">2.5 Tấn</option>
-                        <option value="5.0 Tấn">5.0 Tấn</option>
-                        <option value="8.5 Tấn">8.5 Tấn</option>
-                        <option value="15 Tấn">15 Tấn</option>
-                        <option value="Xe máy">Xe máy / Phương tiện cá nhân</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Loại thùng xe / Phương tiện</label>
-                      <select
-                        className="form-control"
-                        value={vehicleType}
-                        onChange={(e) => setVehicleType(e.target.value)}
-                      >
-                        <option value="Xe tải bảo ôn (Đông lạnh)">Xe tải bảo ôn (Đông lạnh)</option>
-                        <option value="Xe tải thùng bạt">Xe tải thùng bạt</option>
-                        <option value="Xe tải thùng kín">Xe tải thùng kín</option>
-                        <option value="Xe bán tải">Xe bán tải</option>
-                        <option value="Xe máy gắn thùng hàng">Xe máy gắn thùng hàng</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Các tuyến đường chạy đăng ký (Chọn nhiều)</label>
-                    <div className="category-tags-row">
-                      {partnerRoutes.map((route) => (
-                        <div key={route} className="category-tag">
-                          {route}
-                          <button type="button" className="btn-tag-remove" onClick={() => setPartnerRoutes(partnerRoutes.filter(r => r !== route))}>
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                      {isAddingRoute ? (
-                        <div style={{ display: "inline-flex", gap: "4px" }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Ví dụ: Đà Lạt - TP. HCM..."
-                            style={{ padding: "4px 8px", fontSize: "12px", height: "28px", width: "150px" }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  const val = e.target.value.trim();
-                                  if (val && !partnerRoutes.includes(val)) {
-                                    setPartnerRoutes([...partnerRoutes, val]);
-                                  }
-                                  setIsAddingRoute(false);
-                                }
-                              }}
-                              onBlur={() => setIsAddingRoute(false)}
-                              autoFocus
-                            />
-                          </div>
-                        ) : (
-                          <button type="button" className="btn-tag-add" onClick={() => setIsAddingRoute(true)}>
-                            + Thêm tuyến
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
               {/* 3c. Admin Information (Conditional) */}
               {role === "admin" && (
@@ -1661,12 +1409,12 @@ const CreateAccount = () => {
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Avatar" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
                     ) : (
-                      "👤"
+                      <User size={24} style={{ color: "#94a3b8" }} />
                     )}
                   </div>
                   <div>
                     <h5 className="summary-user-name">
-                      {fullName || (role === "admin" ? "Quản trị viên mới" : role === "farmer" ? "Nông dân mới" : role === "customer" ? "Khách hàng mới" : role === "partner" ? "Đơn vị vận chuyển mới" : "Người dùng mới")}
+                      {fullName || (role === "admin" ? "Quản trị viên mới" : role === "farmer" ? "Nông dân mới" : "Khách hàng mới")}
                     </h5>
                     <div className="summary-user-status">
                       <span style={{ display: "inline-block", width: "8px", height: "8px", backgroundColor: "#10b981", borderRadius: "50%" }} />
@@ -1679,7 +1427,7 @@ const CreateAccount = () => {
                   <div className="summary-detail-item">
                     <span className="summary-detail-label">Vai trò</span>
                     <span className="summary-detail-value">
-                      {role === "admin" ? "Quản trị viên" : role === "farmer" ? "Nông dân" : role === "customer" ? "Khách hàng" : role === "partner" ? "Đơn vị vận chuyển" : role}
+                      {role === "admin" ? "Quản trị viên" : role === "farmer" ? "Nông dân" : "Khách hàng"}
                     </span>
                   </div>
                   
@@ -1687,7 +1435,7 @@ const CreateAccount = () => {
                     <div className="summary-detail-item">
                       <span className="summary-detail-label">Quyền hạn</span>
                       <span className="summary-detail-value">
-                        {role === "admin" ? "Toàn quyền quản trị" : role === "partner" ? "Cổng đơn vị vận chuyển" : "Khách hàng"}
+                        {role === "admin" ? "Toàn quyền quản trị" : "Khách hàng"}
                       </span>
                     </div>
                   )}
@@ -1699,18 +1447,7 @@ const CreateAccount = () => {
                     </div>
                   )}
 
-                  {role === "partner" && (
-                    <>
-                      <div className="summary-detail-item">
-                        <span className="summary-detail-label">Đơn vị/Công ty</span>
-                        <span className="summary-detail-value" title={companyName}>{companyName || "Chưa đặt tên"}</span>
-                      </div>
-                      <div className="summary-detail-item">
-                        <span className="summary-detail-label">Xe đăng ký</span>
-                        <span className="summary-detail-value">{licensePlate || "Chưa có BS"} ({maxPayload})</span>
-                      </div>
-                    </>
-                  )}
+
 
                   {role === "admin" && (
                     <>

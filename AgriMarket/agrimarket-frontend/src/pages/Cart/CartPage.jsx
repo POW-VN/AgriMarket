@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { ShoppingCart, Trash2, Store, ArrowLeft } from "lucide-react";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import { getProductById } from "../../services/productService";
@@ -15,6 +16,7 @@ export default function CartPage() {
     const [toastMessage, setToastMessage] = useState("");
     const [user, setUser] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const enrichCartItems = async (items) => {
         if (!items || items.length === 0) return [];
@@ -71,6 +73,8 @@ export default function CartPage() {
                 } catch (err) {
                     console.error("Lỗi khi load giỏ hàng từ DB:", err);
                     await loadLocalCart();
+                } finally {
+                    setIsLoading(false);
                 }
             } else {
                 await loadLocalCart();
@@ -80,46 +84,8 @@ export default function CartPage() {
         const loadLocalCart = async () => {
             let savedCart = JSON.parse(localStorage.getItem("agrimarket_cart"));
 
-            if (!savedCart || savedCart.length === 0) {
-                savedCart = [
-                    {
-                        id: "mock-1",
-                        name: "Cà chua Heirloom hữu cơ",
-                        price: 49900,
-                        unit: "kg",
-                        imageUrl: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300",
-                        quantity: 2,
-                        checked: true,
-                        stockQuantity: 10,
-                        farmerId: 1,
-                        farmerName: "Trang trại Đà Lạt Xanh"
-                    },
-                    {
-                        id: "mock-2",
-                        name: "Cà rốt gia truyền hữu cơ",
-                        price: 112500,
-                        unit: "bó",
-                        imageUrl: "https://images.unsplash.com/photo-1445280471656-618bf9abcfe0?w=300",
-                        quantity: 1,
-                        checked: true,
-                        stockQuantity: 5,
-                        farmerId: 1,
-                        farmerName: "Trang trại Đà Lạt Xanh"
-                    },
-                    {
-                        id: "mock-3",
-                        name: "Táo Honeycrisp giòn ngọt",
-                        price: 69000,
-                        unit: "kg",
-                        imageUrl: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300",
-                        quantity: 3,
-                        checked: true,
-                        stockQuantity: 12,
-                        farmerId: 2,
-                        farmerName: "Nông trại Hoa Mặt Trời"
-                    }
-                ];
-
+            if (!savedCart) {
+                savedCart = [];
                 localStorage.setItem("agrimarket_cart", JSON.stringify(savedCart));
             }
 
@@ -147,6 +113,7 @@ export default function CartPage() {
             }));
 
             setCartItems(checkedCart);
+            setIsLoading(false);
         };
 
         loadCart();
@@ -180,13 +147,9 @@ export default function CartPage() {
     }, [cartItems]);
 
     const serviceFee = subtotal > 0 ? 15000 : 0;
-    const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
+    const shippingFee = 0;
     const discountAmount = 0;
-    const totalAmount = subtotal + serviceFee + shippingFee - discountAmount;
-
-    const freeShipProgress = useMemo(() => {
-        return Math.min((subtotal / 500000) * 100, 100);
-    }, [subtotal]);
+    const totalAmount = subtotal + serviceFee - discountAmount;
 
     const formatVND = (price) => {
         return new Intl.NumberFormat("vi-VN").format(price) + " đ";
@@ -214,108 +177,125 @@ export default function CartPage() {
         return Object.values(groups);
     }, [cartItems]);
 
-    const handleUpdateQuantity = async (itemId, newQuantity) => {
-        if (user) {
-            try {
-                const data = await cartService.updateCartItem(itemId, newQuantity, null);
-                await updateCartState(data);
-            } catch (err) {
-                console.error("Lỗi khi cập nhật số lượng:", err);
-                const errMsg = err.response?.data || "Không thể cập nhật số lượng. Đã vượt quá số lượng tồn kho.";
-                triggerToast(errMsg);
-            }
-        } else {
-            const item = cartItems.find(i => i.id === itemId);
-            if (item && item.stockQuantity !== undefined && newQuantity > item.stockQuantity) {
-                triggerToast(`Không thể cập nhật số lượng vượt quá tồn kho hiện có (${item.stockQuantity}).`);
-                return;
-            }
-            const updatedCart = cartItems.map(item =>
-                item.id === itemId ? { ...item, quantity: newQuantity } : item
-            );
-            await syncCart(updatedCart);
-        }
-    };
-
-    const handleRemoveItem = async (itemId) => {
-        if (user) {
-            try {
-                const data = await cartService.removeFromCart(itemId);
-                await updateCartState(data);
-                triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
-            } catch (err) {
-                console.error("Lỗi khi xóa sản phẩm:", err);
-            }
-        } else {
-            const updatedCart = cartItems.filter(item => item.id !== itemId);
-            await syncCart(updatedCart);
-            triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
-        }
-    };
-
-    const handleSelectItem = async (itemId) => {
+    const handleUpdateQuantity = (itemId, newQuantity) => {
         const item = cartItems.find(i => i.id === itemId);
         if (!item) return;
 
+        // Kiểm tra tồn kho ngay tại client
+        if (item.stockQuantity !== undefined && newQuantity > item.stockQuantity) {
+            triggerToast(`Không thể cập nhật số lượng vượt quá tồn kho hiện có (${item.stockQuantity}).`);
+            return;
+        }
+        if (newQuantity < 1) return;
+
+        const oldQuantity = item.quantity;
+
+        // 1. Cập nhật UI ngay lập tức
+        setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i));
+
+        // 2. Sync với backend ở background
         if (user) {
-            try {
-                const data = await cartService.updateCartItem(itemId, null, !item.checked);
-                await updateCartState(data);
-            } catch (err) {
-                console.error("Lỗi khi chọn sản phẩm:", err);
-            }
+            cartService.updateCartItem(itemId, newQuantity, null).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi cập nhật số lượng:", err);
+                setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, quantity: oldQuantity } : i));
+                const errMsg = err.response?.data || "Không thể cập nhật số lượng. Đã vượt quá số lượng tồn kho.";
+                triggerToast(errMsg);
+            });
         } else {
-            const updatedCart = cartItems.map(item =>
-                item.id === itemId ? { ...item, checked: !item.checked } : item
-            );
-            await syncCart(updatedCart);
+            const updatedCart = cartItems.map(i => i.id === itemId ? { ...i, quantity: newQuantity } : i);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
         }
     };
 
-    const handleSelectAllItems = async () => {
+    const handleRemoveItem = (itemId) => {
+        const oldItems = cartItems;
+
+        // 1. Xóa khỏi UI ngay lập tức
+        setCartItems(prev => prev.filter(i => i.id !== itemId));
+        triggerToast("Đã xóa sản phẩm khỏi giỏ hàng!");
+
+        // 2. Sync với backend ở background
+        if (user) {
+            cartService.removeFromCart(itemId).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi xóa sản phẩm:", err);
+                setCartItems(oldItems);
+                triggerToast("Không thể xóa sản phẩm. Vui lòng thử lại.");
+            });
+        } else {
+            const updatedCart = oldItems.filter(item => item.id !== itemId);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
+        }
+    };
+
+
+    // ─── Optimistic Select: cập nhật UI ngay lập tức, sync DB ở background ───
+    const handleSelectItem = (itemId) => {
+        const item = cartItems.find(i => i.id === itemId);
+        if (!item) return;
+        const newChecked = !item.checked;
+
+        // 1. Cập nhật UI ngay
+        setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, checked: newChecked } : i));
+
+        // 2. Sync với backend ở background (không chờ)
+        if (user) {
+            cartService.updateCartItem(itemId, null, newChecked).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi chọn sản phẩm:", err);
+                setCartItems(prev => prev.map(i => i.id === itemId ? { ...i, checked: !newChecked } : i));
+            });
+        } else {
+            const updatedCart = cartItems.map(i => i.id === itemId ? { ...i, checked: newChecked } : i);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
+        }
+    };
+
+    const handleSelectAllItems = () => {
         const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.checked);
         const newCheckedVal = !isAllSelected;
 
+        // 1. Cập nhật UI ngay
+        setCartItems(prev => prev.map(item => ({ ...item, checked: newCheckedVal })));
+
+        // 2. Sync với backend ở background bằng 1 lần gọi bulk
         if (user) {
-            try {
-                let lastData = cartItems;
-                for (const item of cartItems) {
-                    if (item.checked !== newCheckedVal) {
-                        lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
-                    }
-                }
-                await updateCartState(lastData);
-            } catch (err) {
-                console.error("Lỗi khi chọn tất cả sản phẩm:", err);
-            }
+            const allIds = cartItems.map(item => item.id);
+            cartService.bulkCheck(allIds, newCheckedVal).catch(err => {
+                // Rollback nếu lỗi
+                console.error("Lỗi khi chọn tất cả:", err);
+                setCartItems(prev => prev.map(item => ({ ...item, checked: !newCheckedVal })));
+            });
         } else {
-            const updatedCart = cartItems.map(item => ({
-                ...item,
-                checked: newCheckedVal
-            }));
-            await syncCart(updatedCart);
+            const updatedCart = cartItems.map(item => ({ ...item, checked: newCheckedVal }));
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
         }
     };
 
-    const handleSelectFarmerAll = async (farmerId, newCheckedVal) => {
-        const targetItems = cartItems.filter(item => (item.farmerId || 999) === farmerId);
+    const handleSelectFarmerAll = (farmerId, newCheckedVal) => {
+        // 1. Cập nhật UI ngay
+        setCartItems(prev => prev.map(item =>
+            (item.farmerId || 999) === farmerId ? { ...item, checked: newCheckedVal } : item
+        ));
+
+        // 2. Sync với backend ở background bằng 1 lần gọi bulk
         if (user) {
-            try {
-                let lastData = cartItems;
-                for (const item of targetItems) {
-                    if (item.checked !== newCheckedVal) {
-                        lastData = await cartService.updateCartItem(item.id, null, newCheckedVal);
-                    }
-                }
-                await updateCartState(lastData);
-            } catch (err) {
+            const farmerItemIds = cartItems
+                .filter(item => (item.farmerId || 999) === farmerId)
+                .map(item => item.id);
+            cartService.bulkCheck(farmerItemIds, newCheckedVal).catch(err => {
+                // Rollback nếu lỗi
                 console.error("Lỗi khi chọn sản phẩm của nhà vườn:", err);
-            }
+                setCartItems(prev => prev.map(item =>
+                    (item.farmerId || 999) === farmerId ? { ...item, checked: !newCheckedVal } : item
+                ));
+            });
         } else {
             const updatedCart = cartItems.map(item =>
                 (item.farmerId || 999) === farmerId ? { ...item, checked: newCheckedVal } : item
             );
-            await syncCart(updatedCart);
+            localStorage.setItem("agrimarket_cart", JSON.stringify(updatedCart));
         }
     };
 
@@ -410,9 +390,16 @@ export default function CartPage() {
                     </div>
                 </div>
 
-                {cartItems.length === 0 ? (
+                {isLoading ? (
+                    <div className="cart-loading-state">
+                        <div className="loading-spinner"></div>
+                        <p>Đang tải danh sách sản phẩm...</p>
+                    </div>
+                ) : cartItems.length === 0 ? (
                     <section className="cart-empty-state">
-                        <div className="empty-cart-icon">🛒</div>
+                        <div className="empty-cart-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "16px" }}>
+                            <ShoppingCart size={64} style={{ color: "#84918c" }} />
+                        </div>
                         <h2>Giỏ hàng của bạn đang trống</h2>
                         <p>Bạn chưa thêm sản phẩm nào vào giỏ hàng hoặc đã hoàn tất thanh toán.</p>
 
@@ -434,11 +421,9 @@ export default function CartPage() {
                                     type="button"
                                     className="btn-clear-all"
                                     onClick={handleClearCart}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
                                 >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                                        <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
+                                    <Trash2 size={16} />
                                     Làm trống giỏ hàng
                                 </button>
                             </div>
@@ -478,7 +463,7 @@ export default function CartPage() {
                                                 />
                                                 <span className="custom-checkbox-span"></span>
                                             </label>
-                                            <span className="farmer-icon">🏡</span>
+                                            <span className="farmer-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginRight: "6px", color: "#16a34a" }}><Store size={18} /></span>
                                             <span className="farmer-name">{group.farmerName}</span>
                                             <span className="farmer-badge">Nhà vườn</span>
                                         </div>
@@ -501,8 +486,9 @@ export default function CartPage() {
                                 type="button"
                                 className="btn-continue-shopping"
                                 onClick={() => navigate("/products")}
+                                style={{ display: "inline-flex", alignItems: "center", gap: "6px", justifyContent: "center" }}
                             >
-                                ← Tiếp tục mua sắm
+                                <ArrowLeft size={16} /> Tiếp tục mua sắm
                             </button>
                         </div>
 
@@ -543,30 +529,8 @@ export default function CartPage() {
                                     <span>{formatVND(serviceFee)}</span>
                                 </div>
 
-                                <div className="summary-row">
-                                    <span>Phí vận chuyển</span>
-                                    <span className={shippingFee === 0 ? "free-shipping-txt" : ""}>
-                                        {shippingFee === 0 ? "Miễn phí" : formatVND(shippingFee)}
-                                    </span>
-                                </div>
-
-                                <div className="freeship-info-container">
-                                    <div className="freeship-progress-wrapper">
-                                        <div className="freeship-progress-bar" style={{ width: `${freeShipProgress}%` }}></div>
-                                    </div>
-                                    {subtotal > 0 && subtotal < 500000 ? (
-                                        <p className="shipping-hint-text">
-                                            Mua thêm <strong>{formatVND(500000 - subtotal)}</strong> để được miễn phí giao hàng.
-                                        </p>
-                                    ) : subtotal >= 500000 ? (
-                                        <p className="shipping-hint-text success-hint">
-                                            🎉 Chúc mừng! Đơn hàng của bạn được miễn phí giao hàng.
-                                        </p>
-                                    ) : (
-                                        <p className="shipping-hint-text">
-                                            Đạt tối thiểu <strong>500.000 đ</strong> để được miễn phí vận chuyển.
-                                        </p>
-                                    )}
+                                <div className="summary-row" style={{ fontSize: "0.82rem", color: "#64748b", fontStyle: "italic", marginTop: "4px", marginBottom: "8px" }}>
+                                    <span>* Phí vận chuyển sẽ được tính ở bước thanh toán</span>
                                 </div>
 
                                 <hr className="summary-divider" />

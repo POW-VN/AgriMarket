@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Search, Bell, User, Lightbulb, DollarSign } from "lucide-react";
 import authService from "../../services/authService";
+import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
@@ -379,131 +381,15 @@ const ProductApproval = () => {
     };
   };
 
-  // ─── Sidebar nav ─────────────────────────────────────────────────────────────
-  const renderSidebarNav = () => (
-    <aside className="admin-sidebar">
-      <div className="admin-logo-section">
-        <Link to="/" className="admin-logo-link">
-          <h1>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="7" cy="18" r="2"></circle>
-              <circle cx="18" cy="18" r="2"></circle>
-              <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-              <path d="M16 9h3l2 3v4"></path>
-            </svg>
-            AgriAdmin
-          </h1>
-        </Link>
-      </div>
-      <nav className="admin-nav-menu">
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng Bảng điều khiển đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-          </span>
-          Bảng điều khiển
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          </span>
-          Quản lý tài khoản
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý nông dân đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
-          </span>
-          Nông dân
-        </button>
-        <button className="admin-nav-item active" onClick={() => { setSelectedProduct(null); setAiInsights(null); }}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-          </span>
-          Duyệt sản phẩm
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng quản lý danh mục đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          </span>
-          Danh mục
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-          </span>
-          Đơn hàng
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng giao dịch đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-          </span>
-          Giao dịch
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-          </span>
-          Hỗ trợ
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-          </span>
-          Báo cáo
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="m22 8-6 4 6 4V8Z"></path><rect width="14" height="12" x="2" y="6" rx="2" ry="2"></rect></svg>
-          </span>
-          Quản lý Livestream
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng AI Monitoring đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-          </span>
-          Giám sát AI
-        </button>
-        <button className="admin-nav-item" onClick={() => navigate("/admin/notifications")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          </span>
-          Thông báo
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng thống kê hệ thống đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-          </span>
-          Thống kê hệ thống
-        </button>
-        <button className="admin-nav-item" onClick={() => showToast("Chức năng cài đặt đang phát triển.")}>
-          <span className="admin-nav-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          </span>
-          Cài đặt
-        </button>
-      </nav>
-      <div className="admin-sidebar-footer">
-        <img
-          src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-          alt="Avatar admin"
-          className="admin-footer-avatar"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-          }}
-        />
-        <div className="admin-footer-info">
-          <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-          <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
-        </div>
-      </div>
-    </aside>
-  );
+  const handleLogout = () => {
+    authService.logout();
+    navigate("/login");
+  };
 
   // ─── DETAIL VIEW ─────────────────────────────────────────────────────────────
   const renderDetailView = () => {
     const prod = selectedProduct;
+    const isPreorder = prod.isPreorder || prod.preorder;
 
     const statusColors = {
       pending: { bg: "#fff7ed", text: "#92400e", border: "#fcd34d" },
@@ -530,7 +416,14 @@ const ProductApproval = () => {
         {/* ── Header: title + action buttons ── */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "24px", gap: "20px", flexWrap: "wrap" }}>
           <div>
-            <h2 style={{ margin: "0 0 6px 0", fontSize: "24px", fontWeight: "800", color: "#111827" }}>{prod.name}</h2>
+            <h2 style={{ margin: "0 0 6px 0", fontSize: "24px", fontWeight: "800", color: "#111827", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {prod.name}
+              {isPreorder && (
+                <span style={{ backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1.5px solid #a7f3d0", borderRadius: "20px", padding: "2px 10px", fontSize: "12px", fontWeight: "700" }}>
+                  Đặt trước (Preorder)
+                </span>
+              )}
+            </h2>
             <p style={{ margin: 0, fontSize: "14px", color: "#6b7280" }}>
               Đăng tải bởi: <strong style={{ color: "#374151" }}>{prod.farmerName}</strong>
               {prod.farmLocation && <> &bull; {prod.farmLocation}</>}
@@ -622,7 +515,7 @@ const ProductApproval = () => {
               <InfoCard label="Danh mục" value={prod.categoryName || "—"} />
               <InfoCard label="Giá bán" value={`${prod.price?.toLocaleString("vi-VN")} đ / ${prod.unit}`} highlight />
               <InfoCard label="Tồn kho" value={prod.stockQuantity ? `${prod.stockQuantity} ${prod.unit}` : "—"} />
-              <InfoCard label="Ngày thu hoạch" value={prod.harvestDate || "—"} />
+              <InfoCard label={isPreorder ? "Ngày thu hoạch dự kiến" : "Ngày thu hoạch"} value={prod.harvestDate || "—"} />
               <InfoCard label="Hạn sử dụng" value={prod.expirationDate || "—"} />
               <InfoCard
                 label="Độ hư hỏng / Vận chuyển"
@@ -638,12 +531,17 @@ const ProductApproval = () => {
                 label="Bán kính giới hạn"
                 value={prod.limitDistance !== undefined && prod.limitDistance !== null ? `${prod.limitDistance} km` : "Không giới hạn"}
               />
+              <InfoCard 
+                label="Hình thức bán" 
+                value={isPreorder ? "Đặt trước (Preorder)" : "Bán ngay (Thông thường)"} 
+                highlight={isPreorder} 
+              />
             </div>
 
             {/* Farmer Info */}
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fff" }}>
-              <h4 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                🧑‍🌾 Thông tin nhà vườn
+              <h4 style={{ margin: "0 0 14px 0", fontSize: "13px", fontWeight: "700", color: "#374151", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
+                <User size={16} /> Thông tin nhà vườn
               </h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {[
@@ -663,7 +561,7 @@ const ProductApproval = () => {
             <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", padding: "18px 20px", backgroundColor: "#fafafa" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "18px" }}>💰</span>
+                  <DollarSign size={18} style={{ color: "#0f766e" }} />
                   <span style={{ fontSize: "13px", fontWeight: "700", color: "#374151" }}>AI Price Monitoring Engine</span>
                 </div>
                 {aiLoading ? (
@@ -686,8 +584,8 @@ const ProductApproval = () => {
                       <strong style={{ color: "#111827" }}>{value}</strong>
                     </div>
                   ))}
-                  <p style={{ margin: "10px 0 0 0", fontSize: "12px", color: "#6b7280", fontStyle: "italic", borderTop: "1px solid #e5e7eb", paddingTop: "10px", lineHeight: "1.5" }}>
-                    💡 {aiInsights.explanation}
+                  <p style={{ margin: "10px 0 0 0", fontSize: "12px", color: "#6b7280", fontStyle: "italic", borderTop: "1px solid #e5e7eb", paddingTop: "10px", lineHeight: "1.5", display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                    <Lightbulb size={16} style={{ color: "#d97706", flexShrink: 0 }} /> {aiInsights.explanation}
                   </p>
                 </div>
               )}
@@ -787,22 +685,38 @@ const ProductApproval = () => {
   };
 
   // ─── LIST VIEW ───────────────────────────────────────────────────────────────
-  const renderListView = () => (
-    <>
-      <div className="admin-page-title-row">
-        <div className="admin-page-title-info">
-          <h2>Kiểm duyệt sản phẩm</h2>
-          <p>Duyệt, từ chối hoặc yêu cầu sửa đổi sản phẩm từ nông dân trước khi hiển thị trên chợ.</p>
-        </div>
-        <div className="admin-page-actions">
-          {selectedProductIds.length >= 2 && (
-            <button className="btn-admin-primary" onClick={handleBulkApprove} style={{ marginRight: "10px", padding: "10px 20px" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              Duyệt nhanh ({selectedProductIds.length})
-            </button>
-          )}
+  const renderListView = () => {
+    const selectedProducts = products.filter((p) => selectedProductIds.includes(p.id));
+    const hasApprovedSelected = selectedProducts.some((p) => p.status === "approved");
+
+    return (
+      <>
+        <div className="admin-page-title-row">
+          <div className="admin-page-title-info">
+            <h2>Kiểm duyệt sản phẩm</h2>
+            <p>Duyệt, từ chối hoặc yêu cầu sửa đổi sản phẩm từ nông dân trước khi hiển thị trên chợ.</p>
+          </div>
+          <div className="admin-page-actions">
+            {selectedProductIds.length >= 2 && (
+              <button 
+                className="btn-admin-primary" 
+                onClick={handleBulkApprove} 
+                disabled={hasApprovedSelected}
+                style={{ 
+                  marginRight: "10px", 
+                  padding: "10px 20px",
+                  opacity: hasApprovedSelected ? 0.4 : 1,
+                  backgroundColor: hasApprovedSelected ? "#374151" : undefined,
+                  borderColor: hasApprovedSelected ? "#374151" : undefined,
+                  cursor: hasApprovedSelected ? "not-allowed" : "pointer"
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Duyệt nhanh ({selectedProductIds.length})
+              </button>
+            )}
           <button className="btn-admin-outline" onClick={handleExport}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
@@ -824,7 +738,7 @@ const ProductApproval = () => {
       {/* Filters */}
       <div className="admin-filters-bar">
         <div className="filter-search-wrapper">
-          <span className="filter-search-icon">🔍</span>
+          <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
           <input type="text" placeholder="Tìm theo tên sản phẩm, nông dân..." className="filter-search-input"
             value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
         </div>
@@ -875,7 +789,14 @@ const ProductApproval = () => {
                           className="user-cell-avatar" style={{ borderRadius: "6px" }}
                           onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150"; }} />
                         <div>
-                          <p className="user-cell-name">{prod.name}</p>
+                          <p className="user-cell-name" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", margin: 0 }}>
+                            {prod.name}
+                            {(prod.isPreorder || prod.preorder) && (
+                              <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "10px", backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", fontWeight: "700" }}>
+                                Đặt trước
+                              </span>
+                            )}
+                          </p>
                           <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>#{prod.id} • {prod.categoryName}</span>
                         </div>
                       </div>
@@ -975,23 +896,25 @@ const ProductApproval = () => {
         </div>
       </div>
     </>
-  );
+    );
+  };
 
   // ─── MAIN RENDER ─────────────────────────────────────────────────────────────
   return (
     <div className="admin-layout">
-      {renderSidebarNav()}
+      <AdminSidebar activeItem="products" showToast={showToast} onProductsClick={() => { setSelectedProduct(null); setAiInsights(null); }} />
 
       <div className="admin-main-container">
         <header className="admin-header">
           <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
+            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
             <input type="text" placeholder="Tìm kiếm sản phẩm, nông dân..." className="admin-search-input"
               value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
           </div>
           <div className="admin-header-actions">
-            <button className="admin-notification-btn" onClick={() => showToast("Không có thông báo mới.")}>
-              <span>🔔</span><span className="admin-notification-dot"></span>
+            <button className="admin-notification-btn" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Bell size={18} />
+              <span className="admin-notification-dot"></span>
             </button>
             <button className="btn-quick-action" onClick={() => showToast("Tính năng thao tác nhanh đang chuẩn bị.")}>
               + Thao tác nhanh

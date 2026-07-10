@@ -129,12 +129,12 @@ export const normalizeProduct = (item) => {
             ? Number(item.reviewsCount)
             : ((item.reviews_count !== undefined && item.reviews_count !== null)
                 ? Number(item.reviews_count)
-                : (10 + (Number(item.id || 0) * 7) % 150)),
+                : 0),
 
         // rating and sales (sold)
         rating: (item.rating !== undefined && item.rating !== null)
             ? Number(item.rating)
-            : Number((4.0 + (Number(item.id || 0) % 11) * 0.1).toFixed(1)),
+            : 0,
         sold: (item.sold !== undefined && item.sold !== null)
             ? Number(item.sold)
             : 0,
@@ -155,6 +155,9 @@ export const normalizeProduct = (item) => {
         limitDistance: item.limitDistance !== undefined && item.limitDistance !== null 
             ? item.limitDistance 
             : (item.limit_distance !== undefined && item.limit_distance !== null ? item.limit_distance : null),
+        farmerLatitude: item.farmerLatitude !== undefined && item.farmerLatitude !== null ? Number(item.farmerLatitude) : null,
+        farmerLongitude: item.farmerLongitude !== undefined && item.farmerLongitude !== null ? Number(item.farmerLongitude) : null,
+        isPreorder: !!(item.isPreorder || item.preorder),
     };
 };
 
@@ -302,6 +305,16 @@ export const deleteFarmerProduct = async (productId) => {
     }
 };
 
+export const earlyHarvestProduct = async (productId) => {
+    try {
+        const response = await apiClient.post(`/api/farmer/products/${productId}/early-harvest`);
+        return response.data;
+    } catch (error) {
+        console.error("Lỗi khi thu hoạch sớm:", error);
+        throw error;
+    }
+};
+
 export const createFarmerProduct = async (productData) => {
     try {
         const response = await apiClient.post("/api/farmer/products", productData);
@@ -322,6 +335,16 @@ export const updateFarmerProduct = async (productId, productData) => {
     }
 };
 
+export const updateProductStock = async (productId, newStock) => {
+    try {
+        const response = await apiClient.put(`/api/farmer/products/${productId}/stock`, { newStock });
+        return normalizeProduct(response.data);
+    } catch (error) {
+        console.error("Lỗi khi cập nhật tồn kho:", error);
+        throw error;
+    }
+};
+
 export const getAllApprovedProducts = async () => {
     try {
         const response = await apiClient.get("/api/products");
@@ -333,6 +356,76 @@ export const getAllApprovedProducts = async () => {
         return [];
     }
 };
+
+/**
+ * Lấy sản phẩm với phân trang server-side.
+ * @param {Object} params - Các tham số lọc/phân trang
+ * @param {number}  params.page        - Số trang (bắt đầu từ 0)
+ * @param {number}  params.size        - Số sản phẩm/trang (mặc định 6)
+ * @param {string}  params.sort        - popular | newest | best_selling | price_asc | price_desc
+ * @param {string}  params.category    - Lọc theo danh mục
+ * @param {string}  params.search      - Từ khoá tìm kiếm
+ * @param {number}  params.minPrice    - Giá tối thiểu
+ * @param {number}  params.maxPrice    - Giá tối đa
+ * @param {string}  params.location    - Lọc theo địa điểm
+ * @param {string}  params.shopKeyword - Lọc theo tên cửa hàng
+ * @param {number}  params.minRating   - Rating tối thiểu
+ * @param {number}  params.farmerId    - Lọc theo ID nhà vườn
+ * @returns {Promise<{content: Array, totalElements: number, totalPages: number, currentPage: number, pageSize: number}>}
+ */
+export const getApprovedProductsPaged = async (params = {}) => {
+    try {
+        const {
+            page = 0,
+            size = 6,
+            sort = "popular",
+            category,
+            search,
+            minPrice,
+            maxPrice,
+            location,
+            shopKeyword,
+            minRating,
+            farmerId,
+        } = params;
+
+        // Xây dựng query params, bỏ qua các giá trị null/undefined/empty
+        const queryParams = new URLSearchParams();
+        queryParams.set("page", page);
+        queryParams.set("size", size);
+        queryParams.set("sort", sort);
+        if (category)    queryParams.set("category", category);
+        if (search)      queryParams.set("search", search);
+        if (minPrice != null) queryParams.set("minPrice", minPrice);
+        if (maxPrice != null) queryParams.set("maxPrice", maxPrice);
+        if (location)    queryParams.set("location", location);
+        if (shopKeyword) queryParams.set("shopKeyword", shopKeyword);
+        if (minRating != null && minRating > 0) queryParams.set("minRating", minRating);
+        if (farmerId != null) queryParams.set("farmerId", farmerId);
+
+        const response = await apiClient.get(`/api/products/paged?${queryParams.toString()}`);
+        const data = response.data;
+
+        return {
+            content: (data.content || []).map(normalizeProduct),
+            totalElements: data.totalElements || 0,
+            totalPages: data.totalPages || 1,
+            currentPage: data.currentPage || 0,
+            pageSize: data.pageSize || size,
+        };
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách sản phẩm (paged):", error);
+        return {
+            content: [],
+            totalElements: 0,
+            totalPages: 1,
+            currentPage: 0,
+            pageSize: params.size || 6,
+        };
+    }
+};
+
+
 
 export const getProductById = async (productId) => {
     try {

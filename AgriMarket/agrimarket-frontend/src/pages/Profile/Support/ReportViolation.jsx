@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Package, ShieldCheck, Store, User } from "lucide-react";
+import { Package, ShieldCheck, Store, User, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
 import Header from "../../../components/common/Header/Header";
 import authService from "../../../services/authService";
 import reportService from "../../../services/reportService";
@@ -33,7 +33,7 @@ export default function ReportViolation() {
 
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useState(null);
 
     const violationReasons = [
         "Sản phẩm không đúng mô tả",
@@ -48,7 +48,7 @@ export default function ReportViolation() {
     useEffect(() => {
         setFormData(buildInitialFormData(location));
         setErrors({});
-        setMessage("");
+        setMessage(null);
     }, [location]);
 
     const handleChange = (e) => {
@@ -115,7 +115,10 @@ export default function ReportViolation() {
         try {
             await reportService.createReport(payload);
 
-            setMessage("✅ Báo cáo của bạn đã được gửi thành công! Đội ngũ quản trị viên sẽ xem xét và xử lý trong thời gian sớm nhất.");
+            setMessage({
+                type: "success",
+                text: "Báo cáo của bạn đã được gửi thành công! Đội ngũ quản trị viên sẽ xem xét và xử lý trong thời gian sớm nhất."
+            });
 
             setFormData({
                 targetType: "",
@@ -135,7 +138,10 @@ export default function ReportViolation() {
                 error?.response?.data ||
                 error?.message ||
                 "Không thể gửi báo cáo. Vui lòng thử lại sau.";
-            setMessage(`❌ ${errMsg}`);
+            setMessage({
+                type: "error",
+                text: errMsg
+            });
         } finally {
             setSubmitting(false);
         }
@@ -147,7 +153,7 @@ export default function ReportViolation() {
 
             <main className="report-violation-wrapper">
                 <button className="report-back-btn" onClick={() => navigate("/support")}>
-                    ← Quay lại Trung tâm hỗ trợ
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><ArrowLeft size={14} /> Quay lại Trung tâm hỗ trợ</span>
                 </button>
 
                 <section className="report-hero">
@@ -335,7 +341,18 @@ export default function ReportViolation() {
                             </p>
                         </div>
 
-                        {message && <div className="report-message">{message}</div>}
+                        {message && (
+                            <div className={`report-message ${message.type}`} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", borderRadius: "8px", marginTop: "20px", fontSize: "14.5px", color: message.type === "success" ? "#10b981" : "#ef4444", backgroundColor: message.type === "success" ? "#ecfdf5" : "#fef2f2", border: `1px solid ${message.type === "success" ? "#a7f3d0" : "#fca5a5"}` }}>
+                                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                                    {message.type === "success" ? (
+                                        <CheckCircle2 size={18} />
+                                    ) : (
+                                        <XCircle size={18} />
+                                    )}
+                                </span>
+                                <span>{message.text}</span>
+                            </div>
+                        )}
 
                         <div className="form-actions">
                             <button

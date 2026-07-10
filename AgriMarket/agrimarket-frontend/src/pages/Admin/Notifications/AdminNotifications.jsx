@@ -1,37 +1,257 @@
 // src/pages/Admin/Notifications/AdminNotifications.jsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { Calendar, Bell, Search, Package, CreditCard, Tractor, Gift } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import adminNotificationService from "../../../services/adminNotificationService";
 import authService from "../../../services/authService";
+import AdminSidebar from "../../../components/common/Sidebar/AdminSidebar";
 import "../AdminStyles.css";
 import "./AdminNotifications.css";
+
+const PopoverDateTimePicker = ({ value, onChange, minDate }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  
+  const formatDisplay = (val) => {
+    if (!val) return "";
+    const parts = val.split("T");
+    if (parts.length !== 2) return val;
+    const [y, m, d] = parts[0].split("-");
+    const [h, min] = parts[1].split(":");
+    return `${h}:${min} - ${d}/${m}/${y}`;
+  };
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  
+  const initialDate = value ? new Date(value.split("T")[0]) : new Date();
+  const initialTime = value ? value.split("T")[1] : "12:00";
+  const [selectedTime, setSelectedTime] = useState(initialTime);
+  
+  const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
+  const [viewYear, setViewYear] = useState(initialDate.getFullYear());
+  
+  useEffect(() => {
+    if (value) {
+      const datePart = value.split("T")[0];
+      const d = new Date(datePart);
+      if (!isNaN(d.getTime())) {
+        setViewMonth(d.getMonth());
+        setViewYear(d.getFullYear());
+      }
+      setSelectedTime(value.split("T")[1] || "12:00");
+    }
+  }, [value]);
+  
+  const months = [
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+  ];
+  
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+  
+  const getFirstDayOfMonth = (month, year) => {
+    let day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1;
+  };
+  
+  const handlePrevMonth = (e) => {
+    e.stopPropagation();
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+  
+  const handleNextMonth = (e) => {
+    e.stopPropagation();
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+  
+  const daysInMonth = getDaysInMonth(viewMonth, viewYear);
+  const firstDay = getFirstDayOfMonth(viewMonth, viewYear);
+  
+  const calendarCells = [];
+  for (let i = 0; i < firstDay; i++) {
+    calendarCells.push({ dayNum: null, dateObj: null, selectable: false });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(viewYear, viewMonth, d);
+    
+    let selectable = true;
+    if (minDate) {
+      const minCopy = new Date(minDate);
+      minCopy.setHours(0,0,0,0);
+      const dateCopy = new Date(dateObj);
+      dateCopy.setHours(0,0,0,0);
+      if (dateCopy < minCopy) selectable = false;
+    }
+    
+    calendarCells.push({ dayNum: d, dateObj, selectable });
+  }
+  
+  const handleSelectDay = (cell, e) => {
+    e.stopPropagation();
+    if (!cell.selectable) return;
+    const y = cell.dateObj.getFullYear();
+    const m = String(cell.dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(cell.dateObj.getDate()).padStart(2, '0');
+    onChange(`${y}-${m}-${d}T${selectedTime}`);
+  };
+  
+  const handleTimeChange = (e) => {
+    setSelectedTime(e.target.value);
+    if (value) {
+      const datePart = value.split("T")[0];
+      onChange(`${datePart}T${e.target.value}`);
+    } else {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      onChange(`${y}-${m}-${d}T${e.target.value}`);
+    }
+  };
+  
+  const isSelected = (cell) => {
+    if (!cell.dateObj || !value) return false;
+    const valDate = new Date(value.split("T")[0]);
+    return cell.dateObj.getFullYear() === valDate.getFullYear() &&
+           cell.dateObj.getMonth() === valDate.getMonth() &&
+           cell.dateObj.getDate() === valDate.getDate();
+  };
+  
+  return (
+    <div className="popover-datepicker-wrapper" ref={wrapperRef} style={{ position: "relative" }}>
+      <div 
+        className="popover-datepicker-input-container" 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 12px",
+          border: "1px solid #cbd5e1",
+          borderRadius: "8px",
+          backgroundColor: "#fff",
+          cursor: "pointer",
+          fontSize: "14px"
+        }}
+      >
+        <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>
+          {formatDisplay(value) || "Chọn thời gian"}
+        </span>
+        <Calendar size={18} style={{ color: "#64748b" }} />
+      </div>
+      
+      {isOpen && (
+        <div 
+          className="custom-inline-calendar popover-calendar-dropdown" 
+          style={{ 
+            position: "absolute", 
+            top: "100%", 
+            left: 0, 
+            zIndex: 999, 
+            marginTop: "4px",
+            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)"
+          }}
+        >
+          <div className="calendar-header">
+            <button type="button" onClick={handlePrevMonth} className="calendar-nav-btn">&lt;</button>
+            <span className="calendar-title">{months[viewMonth]} {viewYear}</span>
+            <button type="button" onClick={handleNextMonth} className="calendar-nav-btn">&gt;</button>
+          </div>
+          <div className="calendar-weekdays">
+            <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+          </div>
+          <div className="calendar-grid">
+            {calendarCells.map((cell, idx) => {
+              if (cell.dayNum === null) {
+                return <div key={`empty-${idx}`} className="calendar-cell empty"></div>;
+              }
+              
+              let cellClass = "calendar-cell day";
+              if (!cell.selectable) {
+                cellClass += " disabled";
+              } else if (isSelected(cell)) {
+                cellClass += " selected";
+              }
+              
+              return (
+                <div 
+                  key={`day-${cell.dayNum}`} 
+                  className={cellClass}
+                  onClick={(e) => handleSelectDay(cell, e)}
+                >
+                  {cell.dayNum}
+                </div>
+              );
+            })}
+          </div>
+          
+          <div style={{ marginTop: "12px", borderTop: "1px solid #e2e8f0", paddingTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "600", color: "#475569" }}>Giờ gửi:</span>
+            <input 
+              type="time" 
+              value={selectedTime}
+              onChange={handleTimeChange}
+              style={{
+                padding: "4px 8px",
+                borderRadius: "4px",
+                border: "1px solid #cbd5e1",
+                fontSize: "13px",
+                outline: "none"
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const notificationTypes = [
     {
         value: "system",
         label: "Thông báo hệ thống",
-        icon: "🔔",
+        icon: <Bell size={16} />,
     },
     {
         value: "order",
         label: "Thông báo đơn hàng",
-        icon: "📦",
+        icon: <Package size={16} />,
     },
     {
         value: "payment",
         label: "Thông báo thanh toán",
-        icon: "💳",
+        icon: <CreditCard size={16} />,
     },
     {
         value: "farmer",
         label: "Thông báo nhà vườn",
-        icon: "🚜",
+        icon: <Tractor size={16} />,
     },
     {
         value: "promotion",
         label: "Thông báo khuyến mãi",
-        icon: "🎁",
+        icon: <Gift size={16} />,
     },
 ];
 
@@ -129,6 +349,7 @@ const AdminNotifications = () => {
     const [users, setUsers] = useState([]);
     const [userSearchQuery, setUserSearchQuery] = useState("");
     const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
 
     const handleToggleUser = (user) => {
@@ -147,7 +368,7 @@ const AdminNotifications = () => {
             return users;
         }
         const q = userSearchQuery.toLowerCase();
-        return users.filter(u => 
+        return users.filter(u =>
             String(u.id).includes(q) ||
             u.fullName.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q) ||
@@ -160,6 +381,9 @@ const AdminNotifications = () => {
         const handleClickOutside = (event) => {
             if (showUserDropdown && !event.target.closest(".single-user-selector-container")) {
                 setShowUserDropdown(false);
+            }
+            if (showTypeDropdown && !event.target.closest(".custom-type-selector-container")) {
+                setShowTypeDropdown(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -177,6 +401,12 @@ const AdminNotifications = () => {
     const [loading, setLoading] = useState(false);
     const [loadingPage, setLoadingPage] = useState(true);
     const [message, setMessage] = useState(null);
+    const [toastMessage, setToastMessage] = useState("");
+
+    const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(""), 3000);
+    };
 
     const getFullImageUrl = (url) => {
         if (!url) return "";
@@ -291,8 +521,8 @@ const AdminNotifications = () => {
             channels: form.channels,
             sendMode,
             scheduledAt: sendMode === "schedule" ? form.scheduledAt : null,
-            targetUsers: form.targetAudience === "single" 
-                ? selectedUsers.map(u => `${u.type}:${u.id}`).join(",") 
+            targetUsers: form.targetAudience === "single"
+                ? selectedUsers.map(u => `${u.type}:${u.id}`).join(",")
                 : null
         };
 
@@ -329,146 +559,21 @@ const AdminNotifications = () => {
         loadAdminNotificationData();
     };
 
+    const handleLogout = () => {
+        authService.logout();
+        navigate("/login");
+    };
+
     return (
         <div className="admin-layout">
-            <aside className="admin-sidebar">
-                <div className="admin-logo-section">
-                    <Link to="/" className="admin-logo-link">
-                        <h1>
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            >
-                                <circle cx="7" cy="18" r="2"></circle>
-                                <circle cx="18" cy="18" r="2"></circle>
-                                <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path>
-                                <path d="M16 9h3l2 3v4"></path>
-                            </svg>
-                            AgriAdmin
-                        </h1>
-                    </Link>
-                </div>
-
-                <nav className="admin-nav-menu">
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng Bảng điều khiển đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
-                        </span>
-                        Bảng điều khiển
-                    </button>
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/users")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        </span>
-                        Quản lý tài khoản
-                    </button>
-
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng quản lý nông dân đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M2 22 22 2"></path><path d="M8.5 20c.2-.5.5-1 1-1.4l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L6.7 15.8c-.4.4-.9.7-1.4 1"></path><path d="M16 18c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M14 11.5c.2-.5.5-1 1-1.4l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-3.7 3.7c-.4.4-.9.7-1.4 1"></path><path d="M5.5 14.5c.5-.2 1-.5 1.4-1l5.2-5.2c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0l-5.2 5.2c-.4.4-.7.9-1 1.4"></path><path d="M11.5 6c.5-.2 1-.5 1.4-1l3.7-3.7c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L10.3 3.3c-.4.4-.7.9-1 1.4"></path></svg>
-                        </span>
-                        Nông dân
-                    </button>
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/products")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                        </span>
-                        Duyệt sản phẩm
-                    </button>
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng quản lý danh mục đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                        </span>
-                        Danh mục
-                    </button>
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/orders")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                        </span>
-                        Đơn hàng
-                    </button>
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng giao dịch đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                        </span>
-                        Giao dịch
-                    </button>
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/complaints")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                        </span>
-                        Hỗ trợ
-                    </button>
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/reports")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        </span>
-                        Báo cáo
-                    </button>
-                    <button className="admin-nav-item" onClick={() => navigate("/admin/livestreams")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="m22 8-6 4 6 4V8Z"></path><rect width="14" height="12" x="2" y="6" rx="2" ry="2"></rect></svg>
-                        </span>
-                        Quản lý Livestream
-                    </button>
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng AI Monitoring đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
-                        </span>
-                        Giám sát AI
-                    </button>
-                    <button className="admin-nav-item active" onClick={() => navigate("/admin/notifications")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                        </span>
-                        Thông báo
-                    </button>
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng thống kê hệ thống đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                        </span>
-                        Thống kê hệ thống
-                    </button>
-                    <button className="admin-nav-item" onClick={() => alert("Chức năng cài đặt đang phát triển.")}>
-                        <span className="admin-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="admin-nav-icon-svg"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                        </span>
-                        Cài đặt
-                    </button>
-                </nav>
-
-                <div className="admin-sidebar-footer">
-                    <img
-                        src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-                        alt="Avatar admin"
-                        className="admin-footer-avatar"
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-                        }}
-                    />
-                    <div className="admin-footer-info">
-                        <p className="admin-footer-name">{currentUser?.fullName || "Quản trị viên"}</p>
-                        <p className="admin-footer-email">{currentUser?.email || "admin@agriadmin.com"}</p>
-                    </div>
-                </div>
-            </aside>
+            <AdminSidebar activeItem="notifications" showToast={showToast} />
 
             {/* Main Content Area */}
             <div className="admin-main-container">
                 {/* Header */}
                 <header className="admin-header">
                     <div className="admin-search-wrapper">
-                        <span className="admin-search-icon">🔍</span>
+                        <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
                         <input
                             type="text"
                             placeholder="Tìm kiếm thông báo..."
@@ -479,8 +584,8 @@ const AdminNotifications = () => {
                     </div>
 
                     <div className="admin-header-actions">
-                        <button className="admin-notification-btn" aria-label="Notifications" onClick={() => alert("Không có thông báo mới.")}>
-                            <span>🔔</span>
+                        <button className="admin-notification-btn" aria-label="Notifications" onClick={() => alert("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                            <Bell size={18} />
                             <span className="admin-notification-dot"></span>
                         </button>
                         <div className="admin-profile-pill" style={{ display: "flex", alignItems: "center", gap: "8px", borderLeft: "1px solid var(--admin-border)", paddingLeft: "12px" }}>
@@ -573,19 +678,45 @@ const AdminNotifications = () => {
                                     />
                                 </div>
 
-                                <div className="form-group">
+                                <div className="form-group custom-type-selector-container" style={{ position: "relative" }}>
                                     <label>Loại thông báo *</label>
-                                    <select
-                                        name="notificationType"
-                                        value={form.notificationType}
-                                        onChange={handleChange}
+                                    <div
+                                        className="searchable-dropdown-trigger"
+                                        onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                                     >
-                                        {notificationTypes.map((type) => (
-                                            <option key={type.value} value={type.value}>
-                                                {type.icon} {type.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span style={{ display: "inline-flex", color: "#1B5E20" }}>
+                                                {selectedTypeInfo.icon}
+                                            </span>
+                                            <span>{selectedTypeInfo.label}</span>
+                                        </span>
+                                        <svg className="dropdown-chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: "transform 0.2s", transform: showTypeDropdown ? "rotate(180deg)" : "none" }}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                    
+                                    {showTypeDropdown && (
+                                        <div className="searchable-dropdown-menu" style={{ width: "100%", zIndex: 110 }}>
+                                            <div className="searchable-dropdown-list" style={{ maxHeight: "250px", overflowY: "auto" }}>
+                                                {notificationTypes.map((type) => (
+                                                    <div
+                                                        key={type.value}
+                                                        className={`searchable-type-item ${form.notificationType === type.value ? "selected" : ""}`}
+                                                        onClick={() => {
+                                                            setForm(prev => ({ ...prev, notificationType: type.value }));
+                                                            setShowTypeDropdown(false);
+                                                        }}
+                                                    >
+                                                        <span style={{ display: "inline-flex" }}>
+                                                            {type.icon}
+                                                        </span>
+                                                        <span>{type.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -628,15 +759,15 @@ const AdminNotifications = () => {
                                             <label>
                                                 Chọn một hoặc nhiều người nhận cụ thể *
                                             </label>
-                                            <div 
+                                            <div
                                                 className="searchable-dropdown-trigger"
                                                 onClick={() => setShowUserDropdown(!showUserDropdown)}
                                             >
                                                 {selectedUsers.length > 0 ? (
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", width: "90%" }}>
                                                         {selectedUsers.map(u => (
-                                                            <span 
-                                                                key={`${u.type}-${u.id}`} 
+                                                            <span
+                                                                key={`${u.type}-${u.id}`}
                                                                 className={`dropdown-selected-pill ${u.type}`}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -684,7 +815,7 @@ const AdminNotifications = () => {
                                                                         }}
                                                                         className="searchable-user-item"
                                                                     >
-                                                                        <input 
+                                                                        <input
                                                                             type="checkbox"
                                                                             checked={isChecked}
                                                                             readOnly
@@ -692,10 +823,10 @@ const AdminNotifications = () => {
                                                                         <div style={{ flex: 1 }}>
                                                                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
                                                                                 <strong>{u.fullName}</strong>
-                                                                                <span style={{ 
-                                                                                    fontSize: "11px", 
-                                                                                    padding: "2px 6px", 
-                                                                                    borderRadius: "4px", 
+                                                                                <span style={{
+                                                                                    fontSize: "11px",
+                                                                                    padding: "2px 6px",
+                                                                                    borderRadius: "4px",
                                                                                     backgroundColor: u.type === "farmer" ? "#eef9f1" : u.type === "customer" ? "#e8f4fd" : "#f1f1f1",
                                                                                     color: u.type === "farmer" ? "#2e7d32" : u.type === "customer" ? "#1565c0" : "#616161",
                                                                                     fontWeight: "600"
@@ -770,11 +901,12 @@ const AdminNotifications = () => {
                             {form.sendMode === "schedule" && (
                                 <div className="form-group">
                                     <label>Thời gian gửi *</label>
-                                    <input
-                                        type="datetime-local"
-                                        name="scheduledAt"
+                                    <PopoverDateTimePicker
                                         value={form.scheduledAt}
-                                        onChange={handleChange}
+                                        onChange={(val) =>
+                                            setForm((prev) => ({ ...prev, scheduledAt: val }))
+                                        }
+                                        minDate={new Date()}
                                     />
                                 </div>
                             )}
@@ -927,6 +1059,16 @@ const AdminNotifications = () => {
                     </section>
                 </main>
             </div>
+
+            {/* Toast alert */}
+            {toastMessage && (
+                <div className="admin-toast-container">
+                    <div className="admin-toast">
+                        <div className="toast-message-content"><span>✅</span> {toastMessage}</div>
+                        <button className="toast-close-btn" onClick={() => setToastMessage("")}>✕</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

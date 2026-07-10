@@ -35,32 +35,58 @@ public class PaymentService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private PreorderRepository preorderRepository;
+
+    @Autowired
+    private PreorderItemRepository preorderItemRepository;
+
     @Transactional
-    public String createVNPayPaymentUrl(HttpServletRequest request, String orderCode, String email) {
+    public String createVNPayPaymentUrl(HttpServletRequest request, String orderCode, String email, String deliveryMode) {
         double amount = 0;
 
-        // Try to find in OrderGroup first
-        Optional<OrderGroup> groupOpt = orderGroupRepository.findByGroupCode(orderCode);
-        if (groupOpt.isPresent()) {
-            OrderGroup group = groupOpt.get();
-            if (!group.getCustomer().getEmail().equalsIgnoreCase(email)) {
-                throw new RuntimeException("Bạn không có quyền thao tác trên đơn hàng này.");
+        if (orderCode != null && orderCode.startsWith("PRE-")) {
+            Long preorderId = Long.parseLong(orderCode.substring(4));
+            Preorder preorder = preorderRepository.findById(preorderId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt trước: " + orderCode));
+            if (!preorder.getCustomer().getEmail().equalsIgnoreCase(email)) {
+                throw new RuntimeException("Bạn không có quyền thao tác trên đơn đặt trước này.");
             }
-            if ("paid".equalsIgnoreCase(group.getPaymentStatus())) {
-                throw new RuntimeException("Đơn hàng này đã được thanh toán trước đó.");
+            if ("paid".equalsIgnoreCase(preorder.getStatus())) {
+                throw new RuntimeException("Đơn đặt trước này đã được thanh toán cọc.");
             }
-            amount = group.getGrandTotal();
+
+            List<PreorderItem> items = preorderItemRepository.findByPreorderId(preorderId);
+            double subtotal = items.stream().mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
+            double shippingFee = "pickup".equalsIgnoreCase(deliveryMode) ? 0 : 35000;
+            double serviceFee = 15000;
+            double totalAmount = subtotal + shippingFee + serviceFee;
+            // Deposit is 20% of the total amount
+            amount = totalAmount * 0.2;
         } else {
-            // Fallback to individual Order
-            Order order = orderRepository.findByOrderCode(orderCode)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng hoặc nhóm đơn hàng: " + orderCode));
-            if (!order.getCustomer().getEmail().equalsIgnoreCase(email)) {
-                throw new RuntimeException("Bạn không có quyền thao tác trên đơn hàng này.");
+            // Try to find in OrderGroup first
+            Optional<OrderGroup> groupOpt = orderGroupRepository.findByGroupCode(orderCode);
+            if (groupOpt.isPresent()) {
+                OrderGroup group = groupOpt.get();
+                if (!group.getCustomer().getEmail().equalsIgnoreCase(email)) {
+                    throw new RuntimeException("Bạn không có quyền thao tác trên đơn hàng này.");
+                }
+                if ("paid".equalsIgnoreCase(group.getPaymentStatus())) {
+                    throw new RuntimeException("Đơn hàng này đã được thanh toán trước đó.");
+                }
+                amount = group.getGrandTotal();
+            } else {
+                // Fallback to individual Order
+                Order order = orderRepository.findByOrderCode(orderCode)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng hoặc nhóm đơn hàng: " + orderCode));
+                if (!order.getCustomer().getEmail().equalsIgnoreCase(email)) {
+                    throw new RuntimeException("Bạn không có quyền thao tác trên đơn hàng này.");
+                }
+                if ("paid".equalsIgnoreCase(order.getPaymentStatus())) {
+                    throw new RuntimeException("Đơn hàng này đã được thanh toán trước đó.");
+                }
+                amount = order.getAmount();
             }
-            if ("paid".equalsIgnoreCase(order.getPaymentStatus())) {
-                throw new RuntimeException("Đơn hàng này đã được thanh toán trước đó.");
-            }
-            amount = order.getAmount();
         }
 
         long amountInCents = Math.round(amount * 100);
@@ -200,9 +226,43 @@ public class PaymentService {
     }
 
     private void updatePaymentStatusToPaid(String orderCode, String paymentMethod) {
+        if (orderCode != null && orderCode.startsWith("PRE-")) {
+            Long preorderId = Long.parseLong(orderCode.substring(4));
+            Preorder preorder = preorderRepository.findById(preorderId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn đặt trước: " + orderCode));
+            
+            // Kiểm tra trùng lặp (Idempotency) để tránh trừ kho 2 lần khi callback gọi trùng
+            if ("paid".equalsIgnoreCase(preorder.getStatus())) {
+                System.out.println("[VNPay Callback] Đơn đặt trước " + orderCode + " đã được xử lý thanh toán trước đó. Bỏ qua trừ kho.");
+                return;
+            }
+
+            preorder.setStatus("paid");
+            preorderRepository.save(preorder);
+
+            // Tự động trừ số lượng sản phẩm đặt trước khỏi tồn kho / quota còn lại
+            List<PreorderItem> items = preorderItemRepository.findByPreorderId(preorderId);
+            for (PreorderItem item : items) {
+                Product product = item.getProduct();
+                if (product != null) {
+                    int remainingQuota = Math.max(0, product.getStockQuantity() - item.getQuantity());
+                    product.setStockQuantity(remainingQuota);
+                    productRepository.save(product);
+                }
+            }
+            return;
+        }
+
         Optional<OrderGroup> groupOpt = orderGroupRepository.findByGroupCode(orderCode);
         if (groupOpt.isPresent()) {
             OrderGroup group = groupOpt.get();
+
+            // Kiểm tra trùng lặp (Idempotency)
+            if ("paid".equalsIgnoreCase(group.getPaymentStatus())) {
+                System.out.println("[VNPay Callback] Nhóm đơn hàng " + orderCode + " đã được xử lý thanh toán trước đó. Bỏ qua.");
+                return;
+            }
+
             group.setPaymentStatus("paid");
             if (paymentMethod != null && !paymentMethod.isEmpty()) {
                 group.setPaymentMethod(paymentMethod);
@@ -221,6 +281,12 @@ public class PaymentService {
 
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng hoặc nhóm đơn hàng: " + orderCode));
+
+        // Kiểm tra trùng lặp (Idempotency)
+        if ("paid".equalsIgnoreCase(order.getPaymentStatus())) {
+            System.out.println("[VNPay Callback] Đơn hàng " + orderCode + " đã được xử lý thanh toán trước đó. Bỏ qua.");
+            return;
+        }
 
         order.setStatus("pending");
         order.setPaymentStatus("paid");
@@ -242,6 +308,16 @@ public class PaymentService {
 
     @Transactional
     public void restoreCartAndCleanUpFailedPayment(String orderCode) {
+        if (orderCode != null && orderCode.startsWith("PRE-")) {
+            Long preorderId = Long.parseLong(orderCode.substring(4));
+            List<PreorderItem> items = preorderItemRepository.findByPreorderId(preorderId);
+            if (!items.isEmpty()) {
+                preorderItemRepository.deleteAll(items);
+            }
+            preorderRepository.deleteById(preorderId);
+            return;
+        }
+
         Optional<OrderGroup> groupOpt = orderGroupRepository.findByGroupCode(orderCode);
         if (groupOpt.isPresent()) {
             OrderGroup group = groupOpt.get();
