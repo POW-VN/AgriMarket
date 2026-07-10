@@ -57,7 +57,8 @@ public class SecurityConfig {
                                 "/api/products/**",
                                 "/api/payment/vnpay-callback",
                                 "/api/livestreams/*/join",
-                                "/api/livestreams/*/leave"
+                                "/api/livestreams/*/leave",
+                                "/api/moderation/livestream-alert"
                         ).permitAll()
 
                         // Other APIs need login

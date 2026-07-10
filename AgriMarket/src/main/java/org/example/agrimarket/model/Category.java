@@ -25,4 +25,14 @@ public class Category {
 
     @Column(name = "parent_id")
     private Long parentId;
+
+    @Column(length = 255)
+    private String icon;
+
+    @Column(length = 50)
+    private String level; // "root" or "sub"
+
+    @Column(length = 50)
+    private String status; // "active" or "inactive"
 }
+

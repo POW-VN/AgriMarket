@@ -795,7 +795,7 @@ const AdminDashboard = () => {
 
           {/* Footer standard section */}
           <footer className="admin-portal-footer">
-            <span>© 2024 FinTech Admin Portal. Hệ thống được bảo mật bởi chuẩn quốc tế DSS/PCI.</span>
+            <span>© 2024 AgriAdmin Portal. Hệ thống được bảo mật bởi chuẩn quốc tế DSS/PCI.</span>
           </footer>
 
         </div>

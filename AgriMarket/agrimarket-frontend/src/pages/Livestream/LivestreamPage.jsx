@@ -518,6 +518,10 @@ const LivestreamPage = () => {
         setChatInput("");
       } catch (err) {
         console.error("Lỗi gửi bình luận lên backend:", err);
+        const errorMsg = typeof err.response?.data === "string" 
+          ? err.response.data 
+          : "Không thể gửi bình luận. Vui lòng thử lại!";
+        showToast(errorMsg, "error");
       }
     } else {
       const currentUser = JSON.parse(localStorage.getItem("agrimarket_user")) || { fullName: "Bạn", avatarUrl: "" };

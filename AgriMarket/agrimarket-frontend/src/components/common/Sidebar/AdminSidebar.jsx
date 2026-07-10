@@ -54,7 +54,7 @@ const AdminSidebar = ({ activeItem, showToast, onProductsClick, onComplaintsClic
             </svg>
           </div>
           <div className="nav-label" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <h1 style={{ margin: 0, fontSize: "19px", fontWeight: 800, color: "#0f766e", lineHeight: 1.1 }}>FinTech Admin</h1>
+            <h1 style={{ margin: 0, fontSize: "19px", fontWeight: 800, color: "#0f766e", lineHeight: 1.1 }}>AgriAdmin</h1>
             <p style={{ margin: "2px 0 0 0", fontSize: "11px", color: "var(--admin-text-muted)", fontWeight: "600", textTransform: "none", letterSpacing: "normal" }}>Quản lý hệ thống</p>
           </div>
         </Link>

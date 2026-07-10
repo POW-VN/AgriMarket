@@ -48,6 +48,7 @@ export default function LiveManagement() {
   // Custom terminate confirm modal state
   const [terminatingSession, setTerminatingSession] = useState(null); // { id, brand } or null
   const [monitoringSession, setMonitoringSession] = useState(null); // session object or null
+  const [monitorInitialTab, setMonitorInitialTab] = useState("comments");
 
   // Interactive filters state
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -169,6 +170,8 @@ export default function LiveManagement() {
     setCurrentPage(1);
   }, [searchQuery, statusFilter, sortBy]);
 
+  const [alerts, setAlerts] = useState([]);
+
   // Check auth and load sessions
   useEffect(() => {
     const user = authService.getCurrentUser();
@@ -180,12 +183,18 @@ export default function LiveManagement() {
     }
 
     loadSessions();
+    const pollInterval = setInterval(loadSessions, 4000);
+    return () => clearInterval(pollInterval);
   }, [navigate]);
 
   const loadSessions = async () => {
     try {
-      const res = await apiClient.get("/api/livestreams/admin/all");
+      const [res, alertsRes] = await Promise.all([
+        apiClient.get("/api/livestreams/admin/all"),
+        apiClient.get("/api/moderation/alerts?status=PENDING")
+      ]);
       const dbStreams = res.data;
+      setAlerts(alertsRes.data || []);
 
       const formatted = dbStreams.map((s) => {
         const parsedProducts = (s.products || []).map((p) => ({
@@ -280,8 +289,11 @@ export default function LiveManagement() {
       loadSessions();
     } catch (err) {
       console.error("Lỗi chấm dứt livestream:", err);
+      const errorMsg = typeof err.response?.data === "string"
+        ? err.response.data
+        : (err.response?.data?.message || err.response?.data?.error || err.message || "Đã xảy ra lỗi không xác định, vui lòng thử lại.");
       showToast(
-        err.response?.data || err.message || "Đã xảy ra lỗi không xác định, vui lòng thử lại.",
+        errorMsg,
         "error",
         "Thao tác thất bại"
       );
@@ -607,7 +619,35 @@ export default function LiveManagement() {
                         {/* Title column */}
                         <td>
                           <div className="live-title-cell">
-                            <p className="live-stream-title">{session.title}</p>
+                            <p className="live-stream-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              {session.title}
+                              {alerts.filter(a => Number(a.livestreamId) === Number(session.id)).length > 0 && (
+                                <span 
+                                  className="ai-alert-badge" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMonitorInitialTab("alerts");
+                                    setMonitoringSession(session);
+                                  }}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                    backgroundColor: "#fee2e2",
+                                    color: "#b91c1c",
+                                    fontSize: "0.7rem",
+                                    fontWeight: "700",
+                                    padding: "2px 6px",
+                                    borderRadius: "4px",
+                                    border: "1px solid #fca5a5",
+                                    cursor: "pointer"
+                                  }} 
+                                  title="AI phát hiện dấu hiệu vi phạm. Click để xem chi tiết."
+                                >
+                                  <AlertTriangle size={12} style={{ color: "#ef4444" }} /> AI ALERT
+                                </span>
+                              )}
+                            </p>
                             <p className="live-stream-subtitle">
                               {session.status === "live" ? (
                                 <>
@@ -672,7 +712,10 @@ export default function LiveManagement() {
                             <div style={{ display: "flex", gap: "8px" }}>
                               <button
                                 className="btn-monitor-stream"
-                                onClick={() => setMonitoringSession(session)}
+                                onClick={() => {
+                                  setMonitorInitialTab("comments");
+                                  setMonitoringSession(session);
+                                }}
                               >
                                 <Video size={14} /> Giám sát
                               </button>
@@ -883,14 +926,22 @@ export default function LiveManagement() {
       )}
 
       {monitoringSession && (
-        <AdminMonitorModal session={monitoringSession} onClose={() => setMonitoringSession(null)} />
+        <AdminMonitorModal 
+          session={monitoringSession} 
+          initialTab={monitorInitialTab}
+          onClose={() => setMonitoringSession(null)} 
+          onOpenTerminateModal={(sessionInfo) => {
+            setMonitoringSession(null);
+            setTerminatingSession(sessionInfo);
+          }}
+        />
       )}
     </div>
   );
 }
 
 // SUB-COMPONENT: REAL-TIME ADMIN MONITOR MODAL (OPTION 1)
-function AdminMonitorModal({ session, onClose }) {
+function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab }) {
   const [comments, setComments] = useState([]);
   const [heartsCount, setHeartsCount] = useState(session.likes || 0);
   const [viewersCount, setViewersCount] = useState(session.viewers || 0);
@@ -899,7 +950,10 @@ function AdminMonitorModal({ session, onClose }) {
   const rtcRef = React.useRef({ client: null, videoTrack: null, audioTrack: null });
   const [loading, setLoading] = useState(true);
 
-  // Poll comments and stats every 3 seconds
+  const [sessionAlerts, setSessionAlerts] = useState([]);
+  const [activeTab, setActiveTab] = useState(initialTab || "comments"); // "comments" | "alerts"
+
+  // Poll comments, stats and alerts every 3 seconds
   useEffect(() => {
     let active = true;
     const fetchStatsAndComments = async () => {
@@ -914,6 +968,17 @@ function AdminMonitorModal({ session, onClose }) {
           setHeartsCount(detRes.data.heartsCount || 0);
           setViewersCount(detRes.data.viewersCount || 0);
           setPinnedComment(detRes.data.pinnedComment || null);
+        }
+
+        // Fetch AI alerts
+        const alertsRes = await apiClient.get(`/api/moderation/livestreams/${session.id}/alerts`);
+        if (active) {
+          setSessionAlerts(prev => {
+            if (alertsRes.data && alertsRes.data.length > prev.length && prev.length > 0) {
+              setActiveTab("alerts");
+            }
+            return alertsRes.data || [];
+          });
         }
       } catch (err) {
         console.error("Lỗi đồng bộ dữ liệu giám sát:", err);
@@ -932,10 +997,12 @@ function AdminMonitorModal({ session, onClose }) {
   // Connect to Agora channel
   useEffect(() => {
     let client;
+    let active = true;
     const initAgora = async () => {
       try {
         setLoading(true);
         const detRes = await apiClient.get(`/api/livestreams/${session.id}`);
+        if (!active) return;
         const { appId, token, channelName } = detRes.data;
 
         if (!appId || !token || !channelName) {
@@ -947,7 +1014,12 @@ function AdminMonitorModal({ session, onClose }) {
         await client.setClientRole("audience");
 
         client.on("user-published", async (user, mediaType) => {
+          if (!active) return;
           await client.subscribe(user, mediaType);
+          if (!active) {
+            client.unsubscribe(user, mediaType).catch(e => console.error(e));
+            return;
+          }
           if (mediaType === "video") {
             const remoteVideoTrack = user.videoTrack;
             rtcRef.current.videoTrack = remoteVideoTrack;
@@ -963,23 +1035,34 @@ function AdminMonitorModal({ session, onClose }) {
         });
 
         await client.join(appId, channelName, token, null);
+        if (!active) {
+          client.leave().catch(e => console.error(e));
+          return;
+        }
         rtcRef.current.client = client;
         setLoading(false);
       } catch (err) {
         console.error("Lỗi Agora Monitor:", err);
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     initAgora();
 
     return () => {
-      if (rtcRef.current.videoTrack) rtcRef.current.videoTrack.stop();
-      if (rtcRef.current.audioTrack) rtcRef.current.audioTrack.stop();
+      active = false;
+      if (rtcRef.current.videoTrack) {
+        try { rtcRef.current.videoTrack.stop(); } catch(e){}
+      }
+      if (rtcRef.current.audioTrack) {
+        try { rtcRef.current.audioTrack.stop(); } catch(e){}
+      }
       if (client) {
         client.leave().catch((e) => console.error(e));
       }
       rtcRef.current.client = null;
+      rtcRef.current.videoTrack = null;
+      rtcRef.current.audioTrack = null;
     };
   }, [session.id]);
 
@@ -995,8 +1078,8 @@ function AdminMonitorModal({ session, onClose }) {
 
   return (
     <div className="live-monitor-overlay">
-      <div className="live-monitor-modal">
-        <div className="monitor-header">
+      <div className="live-monitor-modal" style={{ width: "95vw", maxWidth: "1200px", height: "85vh", display: "flex", flexDirection: "column" }}>
+        <div className="monitor-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="monitor-farmer-info">
             <img src={getFullImageUrl(session.farmerAvatar)} alt="Avatar" className="monitor-avatar" />
             <div>
@@ -1004,13 +1087,34 @@ function AdminMonitorModal({ session, onClose }) {
               <p className="monitor-title">Tiêu đề: {session.title}</p>
             </div>
           </div>
-          <button className="btn-close-monitor" onClick={onClose}>
-            &times;
-          </button>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button 
+              className="btn-terminate-stream"
+              style={{
+                backgroundColor: "#ef4444",
+                color: "white",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                fontSize: "0.8rem",
+                fontWeight: "700",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px"
+              }}
+              onClick={() => onOpenTerminateModal({ id: session.id, brand: session.farmerBrand })}
+            >
+              <AlertTriangle size={14} /> Buộc dừng
+            </button>
+            <button className="btn-close-monitor" onClick={onClose}>
+              &times;
+            </button>
+          </div>
         </div>
 
-        <div className="monitor-content-grid">
-          <div className="monitor-video-area">
+        <div className="monitor-content-grid" style={{ flex: 1, display: "grid", gridTemplateColumns: "1.2fr 1fr", overflow: "hidden" }}>
+          <div className="monitor-video-area" style={{ position: "relative", backgroundColor: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {loading && <div className="monitor-loading">Đang kết nối luồng phát...</div>}
             <video
               ref={videoRef}
@@ -1026,55 +1130,179 @@ function AdminMonitorModal({ session, onClose }) {
             </div>
           </div>
 
-          <div className="monitor-comments-area">
-            <h4 className="comments-header">💬 Bình luận trực tiếp</h4>
-            {pinnedComment && (
-              <div className="monitor-pinned-chat-row" style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                backgroundColor: "#fef3c7",
-                borderBottom: "1px solid #fcd34d",
-                padding: "8px 16px",
-                fontSize: "0.85rem",
-                color: "#78350f"
-              }}>
-                <span style={{ fontWeight: "700", whiteSpace: "nowrap" }}>📌 Đã ghim:</span>
-                <span style={{ fontWeight: "600", whiteSpace: "nowrap" }}>{pinnedComment.user}:</span>
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {pinnedComment.text}
-                </span>
+          <div className="monitor-comments-area" style={{ display: "flex", flexDirection: "column", height: "100%", backgroundColor: "#fff", borderLeft: "1px solid #e2e8f0", overflow: "hidden" }}>
+            <div style={{
+              display: "flex",
+              borderBottom: "1px solid #e2e8f0",
+              backgroundColor: "#f1f5f9",
+              flexShrink: 0
+            }}>
+              <button 
+                onClick={() => setActiveTab("comments")}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  border: "none",
+                  background: activeTab === "comments" ? "#fff" : "transparent",
+                  fontWeight: activeTab === "comments" ? "700" : "500",
+                  color: activeTab === "comments" ? "#0f766e" : "#475569",
+                  borderBottom: activeTab === "comments" ? "3px solid #0f766e" : "none",
+                  cursor: "pointer",
+                  fontSize: "0.85rem"
+                }}
+              >
+                💬 Bình luận ({comments.length})
+              </button>
+              <button 
+                onClick={() => setActiveTab("alerts")}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  border: "none",
+                  background: activeTab === "alerts" ? "#fff" : "transparent",
+                  fontWeight: activeTab === "alerts" ? "700" : "500",
+                  color: activeTab === "alerts" ? "#b91c1c" : "#475569",
+                  borderBottom: activeTab === "alerts" ? "3px solid #b91c1c" : "none",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px"
+                }}
+              >
+                <AlertTriangle size={14} /> Cảnh báo AI ({sessionAlerts.length})
+              </button>
+            </div>
+
+            {activeTab === "comments" ? (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+                {pinnedComment && (
+                  <div className="monitor-pinned-chat-row" style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    backgroundColor: "#fef3c7",
+                    borderBottom: "1px solid #fcd34d",
+                    padding: "8px 16px",
+                    fontSize: "0.85rem",
+                    color: "#78350f",
+                    flexShrink: 0
+                  }}>
+                    <span style={{ fontWeight: "700", whiteSpace: "nowrap" }}>📌 Đã ghim:</span>
+                    <span style={{ fontWeight: "600", whiteSpace: "nowrap" }}>{pinnedComment.user}:</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {pinnedComment.text}
+                    </span>
+                  </div>
+                )}
+                <div className="monitor-comments-list" style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+                  {comments.length > 0 ? (
+                    comments.map((c) => (
+                      <div key={c.id} className="monitor-comment-row">
+                        <img src={getFullImageUrl(c.avatar) || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100"} alt="User" className="comment-avatar" />
+                        <div className="comment-text-box">
+                          <span className="comment-user">
+                            {c.user}
+                            {c.isHost && (
+                              <span className="host-badge" style={{
+                                backgroundColor: "#10b981",
+                                color: "white",
+                                fontSize: "0.68rem",
+                                fontWeight: "700",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                marginLeft: "6px",
+                                display: "inline-block"
+                              }}>Chủ phòng</span>
+                            )}
+                          </span>
+                          <p className="comment-text">{c.text}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="no-comments">Chưa có bình luận nào.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+                {sessionAlerts.length > 0 ? (
+                  sessionAlerts.map((alert) => (
+                    <div key={alert.id} style={{
+                      backgroundColor: alert.status === "PENDING" ? "#fee2e2" : "#f1f5f9",
+                      border: alert.status === "PENDING" ? "1px solid #fca5a5" : "1px solid #cbd5e1",
+                      borderRadius: "8px",
+                      padding: "12px",
+                      marginBottom: "12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{
+                          fontWeight: "700",
+                          color: alert.status === "PENDING" ? "#b91c1c" : "#475569",
+                          fontSize: "0.75rem",
+                          textTransform: "uppercase"
+                        }}>
+                          ⚠️ {alert.alertType === "WEAPONS" ? "Phát hiện Vũ khí" : alert.alertType === "NUDITY" ? "Hình ảnh nhạy cảm" : alert.alertType === "TRASH_LIVE" ? "Live rác (Màn hình đen/Trống)" : "Phát ngôn vi phạm"}
+                        </span>
+                        <span style={{ fontSize: "0.7rem", color: "#64748b" }}>
+                          {alert.createdAt ? new Date(alert.createdAt).toLocaleTimeString("vi-VN") : ""}
+                        </span>
+                      </div>
+                      {alert.alertType === "AUDIO_VIOLATION" ? (
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "#1e293b", fontStyle: "italic", backgroundColor: "#fff", padding: "8px", borderRadius: "4px", border: "1px solid #e2e8f0" }}>
+                          {alert.evidenceUrl}
+                        </p>
+                      ) : (
+                        <div>
+                          <p style={{ margin: "0 0 6px 0", fontSize: "0.75rem", color: "#475569" }}>Ảnh chụp bằng chứng:</p>
+                          {alert.evidenceUrl && alert.evidenceUrl.startsWith("data:image") ? (
+                            <img src={alert.evidenceUrl} alt="Evidence" style={{ width: "100%", borderRadius: "4px", maxHeight: "150px", objectFit: "contain", border: "1px solid #e2e8f0", backgroundColor: "#000" }} />
+                          ) : (
+                            <img src={getFullImageUrl(alert.evidenceUrl)} alt="Evidence" style={{ width: "100%", borderRadius: "4px", maxHeight: "150px", objectFit: "contain", border: "1px solid #e2e8f0", backgroundColor: "#000" }} />
+                          )}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        {alert.status === "PENDING" && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                await apiClient.post(`/api/moderation/alerts/${alert.id}/resolve`);
+                                setSessionAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, status: "RESOLVED" } : a));
+                              } catch (err) {
+                                console.error("Lỗi bỏ qua cảnh báo:", err);
+                              }
+                            }}
+                            style={{
+                              backgroundColor: "#fff",
+                              border: "1px solid #cbd5e1",
+                              color: "#475569",
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              fontSize: "0.72rem",
+                              cursor: "pointer",
+                              fontWeight: "600"
+                            }}
+                          >
+                            Bỏ qua
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: "center", padding: "32px 16px", color: "#64748b" }}>
+                    <p style={{ margin: 0, fontSize: "0.85rem" }}>🟢 Không có cảnh báo vi phạm nào.</p>
+                  </div>
+                )}
               </div>
             )}
-            <div className="monitor-comments-list">
-              {comments.length > 0 ? (
-                comments.map((c) => (
-                  <div key={c.id} className="monitor-comment-row">
-                    <img src={getFullImageUrl(c.avatar) || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100"} alt="User" className="comment-avatar" />
-                    <div className="comment-text-box">
-                      <span className="comment-user">
-                        {c.user}
-                        {c.isHost && (
-                          <span className="host-badge" style={{
-                            backgroundColor: "#10b981",
-                            color: "white",
-                            fontSize: "0.68rem",
-                            fontWeight: "700",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            marginLeft: "6px",
-                            display: "inline-block"
-                          }}>Chủ phòng</span>
-                        )}
-                      </span>
-                      <p className="comment-text">{c.text}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="no-comments">Chưa có bình luận nào.</p>
-              )}
-            </div>
           </div>
         </div>
       </div>

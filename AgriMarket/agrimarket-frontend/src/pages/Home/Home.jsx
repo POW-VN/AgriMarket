@@ -120,6 +120,15 @@ const Home = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [activePromotions, setActivePromotions] = useState([]);
 
+  const formatPromoDate = (dateStr) => {
+    if (!dateStr) return "Đang cập nhật";
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   // Remaining time calculations for Flash Sale (countdown to end of day)
   const getRemainingTime = () => {
     const now = new Date();
@@ -166,11 +175,21 @@ const Home = () => {
   };
 
   useEffect(() => {
-    // Merge persisted user-created promotions with mock data
-    const saved = localStorage.getItem('mockPromotions');
-    const extraPromos = saved ? JSON.parse(saved) : [];
-    const allPromos = [...extraPromos, ...mockPromotions];
-    setActivePromotions(allPromos.filter(p => p.status === 'active'));
+    const fetchActivePromotions = async () => {
+      try {
+        const response = await apiClient.get('/api/admin/promotions');
+        const now = new Date();
+        const active = response.data.filter(p => {
+          const start = new Date(p.startDate);
+          const end = new Date(p.endDate);
+          return p.status === 'active' || (now >= start && now <= end);
+        });
+        setActivePromotions(active);
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách khuyến mãi:", err);
+      }
+    };
+    fetchActivePromotions();
 
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
@@ -1047,13 +1066,15 @@ const Home = () => {
                   onMouseOver={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 12px 28px rgba(251,146,60,0.25)'; }}
                   onMouseOut={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(251,146,60,0.1)'; }}
                 >
-                  {promo.image && (
-                    <img src={promo.image} alt={promo.title} style={{ width: '120px', height: '100%', minHeight: '100px', objectFit: 'cover', flexShrink: 0 }} />
-                  )}
+                  <img 
+                    src={promo.image || "https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=400"} 
+                    alt={promo.title} 
+                    style={{ width: '120px', height: '100%', minHeight: '100px', objectFit: 'cover', flexShrink: 0 }} 
+                  />
                   <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
                       <span style={{ background: '#dc2626', color: 'white', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', fontWeight: 700 }}>
-                        {promo.discountType === 'percent' ? `GIẢM ${promo.discountVal}%` : `GIẢM ${(promo.discountVal/1000).toFixed(0)}K`}
+                        {promo.discountType === 'percent' ? `GIẢM ${promo.discountVal || 0}%` : `GIẢM ${((promo.discountVal || 0)/1000).toFixed(0)}K`}
                       </span>
                       <span style={{ background: '#10b981', color: 'white', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', fontWeight: 600 }}>ĐANG DIỄN RA</span>
                     </div>
@@ -1062,7 +1083,7 @@ const Home = () => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#d97706' }}>
                         <Clock size={12} />
-                        <span>Đến {promo.endDate}</span>
+                        <span>Đến {formatPromoDate(promo.endDate)}</span>
                         {promo.maxUses > 0 && (
                           <span style={{ marginLeft: '6px', background: '#fef3c7', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px' }}>
                             Còn {promo.maxUses - (promo.usedCount||0)} lượt

@@ -60,7 +60,8 @@ public class PaymentService {
             double subtotal = items.stream().mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
             double shippingFee = "pickup".equalsIgnoreCase(deliveryMode) ? 0 : 35000;
             double serviceFee = 15000;
-            double totalAmount = subtotal + shippingFee + serviceFee;
+            double discount = preorder.getDiscount() != null ? preorder.getDiscount() : 0.0;
+            double totalAmount = Math.max(0, subtotal + shippingFee + serviceFee - discount);
             // Deposit is 20% of the total amount
             amount = totalAmount * 0.2;
         } else {

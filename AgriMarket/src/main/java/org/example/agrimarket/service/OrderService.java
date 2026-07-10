@@ -60,6 +60,9 @@ public class OrderService {
     @Autowired
     private PreorderItemRepository preorderItemRepository;
 
+    @Autowired
+    private PromotionRepository promotionRepository;
+
     @Transactional
     public OrderResponse createOrder(String email, OrderCreateRequest request) {
         Customer customer = customerRepository.findByEmail(email)
@@ -90,6 +93,34 @@ public class OrderService {
         orderGroup.setDeliveryAddress(request.getAddress());
         orderGroup.setPaymentMethod(request.getPaymentMethod());
         orderGroup.setPaymentStatus("unpaid");
+
+        // Validate and apply promotion if specified
+        if (request.getAppliedPromoCode() != null && !request.getAppliedPromoCode().isBlank()) {
+            Promotion promotion = promotionRepository.findByCode(request.getAppliedPromoCode())
+                    .orElseThrow(() -> new RuntimeException("Chương trình khuyến mãi không hợp lệ."));
+
+            // Check person limit
+            if (promotion.getUsageLimitPerPerson() != null && promotion.getUsageLimitPerPerson() > 0) {
+                long orderGroupCount = orderGroupRepository.countByCustomerIdAndAppliedPromoCode(customer.getId(), promotion.getCode());
+                long preorderCount = preorderRepository.countByCustomerIdAndAppliedPromoCode(customer.getId(), promotion.getCode());
+                if ((orderGroupCount + preorderCount) >= promotion.getUsageLimitPerPerson()) {
+                    throw new RuntimeException("Bạn đã hết lượt sử dụng mã khuyến mãi này.");
+                }
+            }
+
+            // Check global limit
+            if (promotion.getMaxUses() != null && promotion.getMaxUses() > 0 
+                    && promotion.getUsedCount() >= promotion.getMaxUses()) {
+                throw new RuntimeException("Mã khuyến mãi này đã hết lượt sử dụng.");
+            }
+
+            // Increment promotion usage
+            promotion.setUsedCount(promotion.getUsedCount() + 1);
+            promotion.setUsedBudget(promotion.getUsedBudget() + request.getDiscount());
+            promotionRepository.save(promotion);
+
+            orderGroup.setAppliedPromoCode(promotion.getCode());
+        }
 
         orderGroup = orderGroupRepository.save(orderGroup);
 
@@ -313,6 +344,23 @@ public class OrderService {
     public List<OrderResponse> getCustomerOrders(String email) {
         List<Order> orders = orderRepository.findByCustomerEmailOrderByCreatedAtDesc(email);
         return mapToResponseList(orders);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getUsedPromotions(String email) {
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng."));
+        List<String> groupPromoCodes = orderGroupRepository.findAppliedPromoCodesByCustomerId(customer.getId());
+        List<String> preorderPromoCodes = preorderRepository.findAppliedPromoCodesByCustomerId(customer.getId());
+        
+        List<String> allCodes = new ArrayList<>();
+        if (groupPromoCodes != null) {
+            allCodes.addAll(groupPromoCodes.stream().filter(Objects::nonNull).collect(Collectors.toList()));
+        }
+        if (preorderPromoCodes != null) {
+            allCodes.addAll(preorderPromoCodes.stream().filter(Objects::nonNull).collect(Collectors.toList()));
+        }
+        return allCodes;
     }
 
     @Transactional(readOnly = true)

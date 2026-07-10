@@ -19,6 +19,7 @@ public class PreorderResponse {
     private String customerName;
     private String status;
     private LocalDateTime createdAt;
+    private Double discount;
     private List<PreorderItemResponse> items;
 
     @Data

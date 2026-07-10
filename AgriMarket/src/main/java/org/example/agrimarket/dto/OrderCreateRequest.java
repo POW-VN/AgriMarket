@@ -17,5 +17,6 @@ public class OrderCreateRequest {
     private Double amount;
     private Double latitude;
     private Double longitude;
+    private String appliedPromoCode;
     private List<OrderItemRequest> items;
 }

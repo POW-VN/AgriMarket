@@ -11,4 +11,9 @@ import java.util.Optional;
 public interface OrderGroupRepository extends JpaRepository<OrderGroup, Long> {
     List<OrderGroup> findByCustomerEmailOrderByCreatedAtDesc(String email);
     Optional<OrderGroup> findByGroupCode(String groupCode);
+    
+    long countByCustomerIdAndAppliedPromoCode(Long customerId, String appliedPromoCode);
+
+    @org.springframework.data.jpa.repository.Query("SELECT og.appliedPromoCode FROM OrderGroup og WHERE og.customer.id = :customerId")
+    List<String> findAppliedPromoCodesByCustomerId(@org.springframework.data.repository.query.Param("customerId") Long customerId);
 }

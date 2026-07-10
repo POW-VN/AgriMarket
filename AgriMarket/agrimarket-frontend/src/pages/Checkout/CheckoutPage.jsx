@@ -120,6 +120,9 @@ export default function CheckoutPage() {
     // Checkout data from localStorage
     const [checkoutData, setCheckoutData] = useState(null);
 
+    // Page-level loading state
+    const [isPageLoading, setIsPageLoading] = useState(true);
+
     // Form inputs
     const [recipientName, setRecipientName] = useState("");
     const [recipientPhone, setRecipientPhone] = useState("");
@@ -143,6 +146,12 @@ export default function CheckoutPage() {
 
     // Payment method
     const [paymentMethod, setPaymentMethod] = useState("cod"); // cod, vnpay
+
+    // Promotions states
+    const [promotions, setPromotions] = useState([]);
+    const [selectedPromo, setSelectedPromo] = useState(null);
+    const [promoError, setPromoError] = useState("");
+    const [usedPromoCodes, setUsedPromoCodes] = useState([]);
 
     // Form Validation errors
     const [errors, setErrors] = useState({});
@@ -274,21 +283,32 @@ export default function CheckoutPage() {
     }, [checkoutData]);
 
     useEffect(() => {
-        // Load user session
-        const currentUser = authService.getCurrentUser();
-        setUser(currentUser);
-        if (currentUser) {
-            setRecipientName(currentUser.fullName || "");
-        }
+        const init = async () => {
+            setIsPageLoading(true);
+            // Load user session
+            const currentUser = authService.getCurrentUser();
+            setUser(currentUser);
+            if (currentUser) {
+                setRecipientName(currentUser.fullName || "");
+            }
 
-        // Load checkout data
-        const data = localStorage.getItem("agrimarket_checkout");
-        if (data) {
-            setCheckoutData(JSON.parse(data));
-        }
+            // Load checkout data
+            const data = localStorage.getItem("agrimarket_checkout");
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (parsed.discountAmount === undefined) {
+                    parsed.discountAmount = 0;
+                }
+                parsed.totalAmount = parsed.subtotal + (parsed.serviceFee || 0) + (parsed.shippingFee || 0) - parsed.discountAmount;
+                setCheckoutData(parsed);
+            }
 
-        // Load cart count
-        const fetchCartCount = async () => {
+            // Load cart count
+            const loadLocalCartCount = () => {
+                const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+                setCartItemsCount(savedCart.length);
+            };
+
             if (currentUser) {
                 try {
                     const cart = await cartService.getCart();
@@ -300,15 +320,171 @@ export default function CheckoutPage() {
             } else {
                 loadLocalCartCount();
             }
-        };
 
-        const loadLocalCartCount = () => {
-            const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-            setCartItemsCount(savedCart.length);
+            setIsPageLoading(false);
         };
-
-        fetchCartCount();
+        init();
     }, [isSuccess]);
+
+    useEffect(() => {
+        const fetchUsedPromotions = async () => {
+            try {
+                const res = await apiClient.get('/api/orders/used-promotions');
+                if (res && res.data) {
+                    setUsedPromoCodes(res.data);
+                }
+            } catch (err) {
+                console.error("Lỗi khi tải danh sách khuyến mãi đã sử dụng:", err);
+            }
+        };
+
+        const fetchPromotions = async () => {
+            try {
+                const response = await apiClient.get('/api/admin/promotions');
+                const now = new Date();
+
+                // Get farmer IDs from localStorage checkout items
+                let cartFarmerIds = new Set();
+                const savedCheckout = localStorage.getItem("agrimarket_checkout");
+                if (savedCheckout) {
+                    try {
+                        const parsed = JSON.parse(savedCheckout);
+                        if (parsed && parsed.selectedItems) {
+                            parsed.selectedItems.forEach(item => {
+                                const fid = item.farmerId || item.providerId;
+                                if (fid) cartFarmerIds.add(String(fid));
+                            });
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+
+                const active = response.data.filter(p => {
+                    const start = new Date(p.startDate);
+                    const end = new Date(p.endDate);
+                    const isTimeActive = p.status === 'active' || (now >= start && now <= end);
+                    if (!isTimeActive) return false;
+
+                    // Keep if system promotion OR matches a farmer in the cart
+                    return !p.farmerId || cartFarmerIds.has(String(p.farmerId));
+                });
+                setPromotions(active);
+            } catch (e) {
+                console.error("Lỗi khi tải danh sách khuyến mãi:", e);
+            }
+        };
+        fetchPromotions();
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+            fetchUsedPromotions();
+        }
+    }, []);
+
+    const getPromoApplicability = (promo) => {
+        if (!checkoutData) return { applicable: false, reason: "" };
+
+        // 0. Check usage limit per person
+        if (promo.usageLimitPerPerson && promo.usageLimitPerPerson > 0) {
+            const usageCount = usedPromoCodes.filter(c => c === promo.code).length;
+            if (usageCount >= promo.usageLimitPerPerson) {
+                return { applicable: false, reason: `Bạn đã hết lượt sử dụng mã khuyến mãi này (Giới hạn: ${promo.usageLimitPerPerson} lần/người).` };
+            }
+        }
+
+        // 1. Check usage count limit
+        if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) {
+            return { applicable: false, reason: "Khuyến mãi đã hết lượt sử dụng" };
+        }
+
+        // 2. Check min order
+        if (promo.minOrder && checkoutData.subtotal < promo.minOrder) {
+            return { applicable: false, reason: `Đơn hàng tối thiểu phải từ ${formatVND(promo.minOrder)} để áp dụng mã này.` };
+        }
+
+        // 3. Check farmer constraint
+        if (promo.farmerId) {
+            const hasFarmerProduct = checkoutData.selectedItems.some(item => {
+                const itemFarmerId = item.farmerId || item.providerId;
+                return String(itemFarmerId) === String(promo.farmerId);
+            });
+            if (!hasFarmerProduct) {
+                return { applicable: false, reason: `Mã khuyến mãi này chỉ áp dụng cho các sản phẩm của nhà vườn ${promo.farmerName || 'đã chỉ định'}.` };
+            }
+        }
+
+        // 4. Check product constraint
+        if (promo.selectedProducts && promo.selectedProducts.length > 0) {
+            const hasApplicableProduct = checkoutData.selectedItems.some(item => 
+                promo.selectedProducts.some(p => String(p.id) === String(item.id))
+            );
+            if (!hasApplicableProduct) {
+                const productList = promo.selectedProducts.map(p => p.name).join(', ');
+                return { applicable: false, reason: `Mã này chỉ áp dụng cho sản phẩm: ${productList}` };
+            }
+        }
+
+        return { applicable: true, reason: "" };
+    };
+
+    const handleApplyPromo = (promo) => {
+        if (!promo || !checkoutData) return;
+        setPromoError("");
+
+        const appCheck = getPromoApplicability(promo);
+        if (!appCheck.applicable) {
+            setPromoError(appCheck.reason);
+            handleRemovePromo();
+            return;
+        }
+
+        // Calculate discount only on applicable items
+        let applicableSubtotal = checkoutData.subtotal;
+        if (promo.selectedProducts && promo.selectedProducts.length > 0) {
+            applicableSubtotal = checkoutData.selectedItems
+                .filter(item => promo.selectedProducts.some(p => String(p.id) === String(item.id)))
+                .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        }
+
+        // Calculate discount
+        let discount = 0;
+        if (promo.discountType === 'percent') {
+            discount = Math.round(applicableSubtotal * (promo.discountVal / 100));
+            if (promo.maxDiscount) {
+                discount = Math.min(discount, promo.maxDiscount);
+            }
+        } else if (promo.discountType === 'fixed') {
+            discount = Math.min(promo.discountVal, applicableSubtotal);
+        } else if (promo.discountType === 'free_ship') {
+            discount = checkoutData.shippingFee || 0;
+        }
+
+        setSelectedPromo(promo);
+        setCheckoutData(prev => {
+            if (!prev) return null;
+            const updatedDiscount = discount;
+            const updatedTotal = Math.max(0, prev.subtotal + (prev.serviceFee || 0) + (prev.shippingFee || 0) - updatedDiscount);
+            return {
+                ...prev,
+                discountAmount: updatedDiscount,
+                totalAmount: updatedTotal
+            };
+        });
+    };
+
+    const handleRemovePromo = () => {
+        setSelectedPromo(null);
+        setPromoError("");
+        setCheckoutData(prev => {
+            if (!prev) return null;
+            const updatedTotal = prev.subtotal + (prev.serviceFee || 0) + (prev.shippingFee || 0);
+            return {
+                ...prev,
+                discountAmount: 0,
+                totalAmount: updatedTotal
+            };
+        });
+    };
 
     const selectedProductIdsRef = useRef([]);
     useEffect(() => {
@@ -985,6 +1161,7 @@ export default function CheckoutPage() {
             amount: totalAmount,
             latitude: latitude ? parseFloat(latitude) : null,
             longitude: longitude ? parseFloat(longitude) : null,
+            appliedPromoCode: selectedPromo ? selectedPromo.code : null,
             items: selectedItems.map(item => ({
                 productId: item.id,
                 quantity: item.quantity
@@ -1110,7 +1287,44 @@ export default function CheckoutPage() {
         return savedCart.reduce((sum, item) => sum + item.quantity, 0);
     }, [isSuccess]);
 
-    // Render loading or empty state
+    // Render loading skeleton
+    if (isPageLoading) {
+        return (
+            <div className="payment-page-wrapper">
+                <Header />
+                <main className="payment-main-container" style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", gap: "24px", padding: "40px 20px" }}>
+                    <div style={{ flex: 1, maxWidth: "660px", display: "flex", flexDirection: "column", gap: "20px" }}>
+                        {[1, 2, 3].map(i => (
+                            <div key={i} style={{ background: "#fff", borderRadius: "16px", padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                                <div style={{ height: "20px", width: "40%", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", borderRadius: "6px", marginBottom: "16px", animation: "shimmer 1.4s infinite" }} />
+                                <div style={{ height: "14px", width: "80%", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", borderRadius: "6px", marginBottom: "10px", animation: "shimmer 1.4s infinite" }} />
+                                <div style={{ height: "14px", width: "65%", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", borderRadius: "6px", animation: "shimmer 1.4s infinite" }} />
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ width: "340px", flexShrink: 0, background: "#fff", borderRadius: "16px", padding: "24px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                        <div style={{ height: "20px", width: "55%", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", borderRadius: "6px", marginBottom: "20px", animation: "shimmer 1.4s infinite" }} />
+                        {[1,2,3,4,5].map(i => (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                                <div style={{ height: "13px", width: "45%", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", borderRadius: "4px", animation: "shimmer 1.4s infinite" }} />
+                                <div style={{ height: "13px", width: "30%", background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", borderRadius: "4px", animation: "shimmer 1.4s infinite" }} />
+                            </div>
+                        ))}
+                        <div style={{ height: "44px", width: "100%", background: "linear-gradient(90deg, #d1f5d3 25%, #b6edba 50%, #d1f5d3 75%)", backgroundSize: "200% 100%", borderRadius: "10px", marginTop: "20px", animation: "shimmer 1.4s infinite" }} />
+                    </div>
+                </main>
+                <style>{`
+                    @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                    }
+                `}</style>
+                <Footer />
+            </div>
+        );
+    }
+
+    // Render empty state (only after loading completes)
     if (!checkoutData && !isSuccess) {
         return (
             <div className="payment-page-wrapper">
@@ -1592,6 +1806,201 @@ export default function CheckoutPage() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Card 3: Promotions */}
+                            <div className="payment-form-card" style={{ marginTop: "24px" }}>
+                                <h3>3. Chương trình khuyến mãi</h3>
+                                <p className="form-card-subtitle">Áp dụng mã khuyến mãi hoặc chương trình ưu đãi để nhận thêm giảm giá.</p>
+                                
+                                {promotions.length === 0 ? (
+                                    <p style={{ color: "#64748b", fontSize: "14px", margin: "10px 0" }}>Không có chương trình khuyến mãi nào khả dụng.</p>
+                                ) : (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "15px" }}>
+                                        {selectedPromo && (
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px", borderRadius: "8px", marginTop: "4px" }}>
+                                                <div style={{ color: "#16a34a", display: "flex" }}>
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                                    <span style={{ fontSize: "14px", fontWeight: "600", color: "#166534" }}>Đã áp dụng mã {selectedPromo.code}</span>
+                                                    <span style={{ fontSize: "12px", color: "#15803d" }}>
+                                                        Tiết kiệm được {formatVND(checkoutData.discountAmount || 0)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {promoError && (
+                                            <span style={{ color: "#dc2626", fontSize: "13px", fontWeight: "500" }}>{promoError}</span>
+                                        )}
+
+                                        {/* Detailed Voucher Cards */}
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                            {promotions.map(promo => {
+                                                const checkResult = getPromoApplicability(promo);
+                                                const isSelected = selectedPromo && String(selectedPromo.id) === String(promo.id);
+                                                
+                                                const discountText = promo.discountType === 'percent'
+                                                    ? `Giảm ${promo.discountVal}%`
+                                                    : `Giảm ${promo.discountVal ? promo.discountVal.toLocaleString() : '0'}đ`;
+                                                
+                                                const maxDiscountText = promo.discountType === 'percent' && promo.maxDiscount
+                                                    ? ` (Tối đa ${promo.maxDiscount.toLocaleString()}đ)`
+                                                    : '';
+
+                                                const minOrderText = promo.minOrder 
+                                                    ? `Đơn tối thiểu ${promo.minOrder.toLocaleString()}đ`
+                                                    : 'Không giới hạn đơn tối thiểu';
+
+                                                const remainingUses = promo.maxUses > 0 
+                                                    ? `Còn lại: ${Math.max(0, promo.maxUses - promo.usedCount)} lượt`
+                                                    : 'Lượt dùng: Không giới hạn';
+
+                                                const usageLimitText = promo.usageLimitPerPerson
+                                                    ? `Tối đa ${promo.usageLimitPerPerson} lần/người`
+                                                    : '';
+
+                                                return (
+                                                    <div 
+                                                        key={promo.id} 
+                                                        style={{ 
+                                                            border: isSelected ? "2px solid #22c55e" : "1px solid #e2e8f0",
+                                                            borderRadius: "10px",
+                                                            padding: "12px",
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: "8px",
+                                                            background: isSelected ? "#f0fdf4" : (checkResult.applicable ? "#ffffff" : "#f8fafc"),
+                                                            opacity: checkResult.applicable ? 1 : 0.75,
+                                                            transition: "all 0.2s ease"
+                                                        }}
+                                                    >
+                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                                                            <div style={{ flex: 1 }}>
+                                                                <span style={{ 
+                                                                    background: isSelected ? "#22c55e" : "#e2e8f0", 
+                                                                    color: isSelected ? "#ffffff" : "#475569", 
+                                                                    padding: "2px 8px", 
+                                                                    borderRadius: "4px", 
+                                                                    fontSize: "12px", 
+                                                                    fontWeight: "bold",
+                                                                    marginRight: "8px",
+                                                                    display: "inline-block"
+                                                                }}>
+                                                                    {promo.code}
+                                                                </span>
+                                                                <strong style={{ fontSize: "14px", color: "#1e293b" }}>{promo.title}</strong>
+                                                                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                                                                    {promo.description || "Nhận ưu đãi giảm giá đặc biệt khi thanh toán."}
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {checkResult.applicable ? (
+                                                                isSelected ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={handleRemovePromo}
+                                                                        style={{ 
+                                                                            background: "#dc2626", 
+                                                                            color: "#fff", 
+                                                                            border: "none", 
+                                                                            padding: "6px 12px", 
+                                                                            borderRadius: "6px", 
+                                                                            cursor: "pointer", 
+                                                                            fontWeight: "600", 
+                                                                            fontSize: "12px" 
+                                                                        }}
+                                                                    >
+                                                                        Hủy
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleApplyPromo(promo)}
+                                                                        style={{ 
+                                                                            background: "#22c55e", 
+                                                                            color: "#fff", 
+                                                                            border: "none", 
+                                                                            padding: "6px 12px", 
+                                                                            borderRadius: "6px", 
+                                                                            cursor: "pointer", 
+                                                                            fontWeight: "600", 
+                                                                            fontSize: "12px" 
+                                                                        }}
+                                                                    >
+                                                                        Áp dụng
+                                                                    </button>
+                                                                )
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    style={{ 
+                                                                        background: "#cbd5e1", 
+                                                                        color: "#64748b", 
+                                                                        border: "none", 
+                                                                        padding: "6px 12px", 
+                                                                        borderRadius: "6px", 
+                                                                        fontWeight: "600", 
+                                                                        fontSize: "12px",
+                                                                        cursor: "not-allowed"
+                                                                    }}
+                                                                >
+                                                                    K.Khả Dụng
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Badges info */}
+                                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "11px", marginTop: "2px" }}>
+                                                            <span style={{ background: promo.farmerId ? "#e0f2fe" : "#f3e8ff", color: promo.farmerId ? "#0369a1" : "#6b21a8", padding: "2px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                                                 {promo.farmerId ? `Nhà vườn: ${promo.farmerName}` : 'Khuyến mãi Hệ thống'}
+                                                             </span>
+                                                             <span style={{ background: "#dcfce7", color: "#15803d", padding: "2px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                                                {discountText}{maxDiscountText}
+                                                            </span>
+                                                            <span style={{ background: "#fee2e2", color: "#991b1b", padding: "2px 6px", borderRadius: "4px", fontWeight: "600" }}>
+                                                                {minOrderText}
+                                                            </span>
+                                                            <span style={{ background: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: "4px", fontWeight: "500" }}>
+                                                                {remainingUses}
+                                                            </span>
+                                                            {usageLimitText && (
+                                                                <span style={{ background: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: "4px", fontWeight: "500" }}>
+                                                                    {usageLimitText}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Applicable products */}
+                                                        <div style={{ fontSize: "12px", color: "#475569", borderTop: "1px dashed #e2e8f0", paddingTop: "6px", marginTop: "4px" }}>
+                                                            <span style={{ fontWeight: "600" }}>Sản phẩm áp dụng: </span>
+                                                            {promo.selectedProducts && promo.selectedProducts.length > 0 ? (
+                                                                <span style={{ color: "#0891b2", fontWeight: "500" }}>
+                                                                    {promo.selectedProducts.map(p => `${p.name} (${p.unit})`).join(', ')}
+                                                                </span>
+                                                            ) : (
+                                                                <span>Tất cả sản phẩm của nhà vườn {promo.farmerName || 'hệ thống'}</span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Warnings */}
+                                                        {!checkResult.applicable && (
+                                                            <div style={{ color: "#dc2626", fontSize: "12px", fontWeight: "500", marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                                                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                                </svg>
+                                                                <span>{checkResult.reason}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* RIGHT COLUMN: Order Summary & Placement */}
@@ -1623,6 +2032,12 @@ export default function CheckoutPage() {
                                         <span>Tạm tính</span>
                                         <span>{formatVND(checkoutData.subtotal)}</span>
                                     </div>
+                                    {checkoutData.discountAmount > 0 && (
+                                        <div className="summary-row" style={{ color: "#dc2626", fontWeight: "600" }}>
+                                            <span>Khuyến mãi</span>
+                                            <span>-{formatVND(checkoutData.discountAmount)}</span>
+                                        </div>
+                                    )}
                                     {checkoutData.serviceFee > 0 && (
                                         <div className="summary-row">
                                             <span>Phí dịch vụ</span>

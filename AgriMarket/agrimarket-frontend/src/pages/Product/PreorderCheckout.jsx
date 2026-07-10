@@ -5,6 +5,7 @@ import Header from "../../components/common/Header/Header";
 import authService from "../../services/authService";
 import * as preorderService from "../../services/preorderService";
 import orderService from "../../services/orderService";
+import apiClient from "../../services/apiClient";
 import { Leaf, Shield } from "lucide-react";
 import "./PreorderCheckout.css";
 
@@ -171,6 +172,10 @@ const PreorderCheckout = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [placedPreorderId, setPlacedPreorderId] = useState(null);
 
+  // Payment & Promotion states
+  const [paymentMethod, setPaymentMethod] = useState("cod"); // cod, vnpay
+  const discountAmount = 0;
+
   const parsedLimits = useMemo(() => {
     if (!product) return { min: null, max: null };
     
@@ -262,6 +267,8 @@ const PreorderCheckout = () => {
     }
   }, []);
 
+
+
   const loadMockFallback = () => {
     setProduct({
       id: "mock-2",
@@ -293,7 +300,7 @@ const PreorderCheckout = () => {
   const subtotal = pricePerUnit * quantity;
   const deliveryFee = 35000; // Luôn vận chuyển qua GHN
   const serviceFee = 15000; // Phí dịch vụ cố định
-  const totalAmount = subtotal + deliveryFee + serviceFee;
+  const totalAmount = Math.max(0, subtotal + deliveryFee + serviceFee - discountAmount);
   const depositAmount = Math.round(totalAmount * 0.2); // 20% Deposit cọc
 
   const handleQuantityChange = (newVal) => {
@@ -310,7 +317,8 @@ const PreorderCheckout = () => {
             quantity: quantity,
             expectedHarvestDate: product.harvestDate || null
           }
-        ]
+        ],
+        discount: 0
       };
       const result = await preorderService.createPreorder(payload);
       setPlacedPreorderId(result.id);
@@ -318,12 +326,21 @@ const PreorderCheckout = () => {
       // Dispatch event to update tabs/badges elsewhere
       window.dispatchEvent(new Event("preordersUpdated"));
       
-      // Request VNPay payment URL for preorder deposit
-      const paymentRes = await orderService.createVNPayPaymentUrl("PRE-" + result.id, deliveryMode);
-      if (paymentRes && paymentRes.paymentUrl) {
-        window.location.href = paymentRes.paymentUrl;
+      if (paymentMethod === "cod") {
+        try {
+          await apiClient.put(`/api/preorders/${result.id}/status?status=pending`);
+        } catch (statusErr) {
+          console.error("Lỗi khi cập nhật trạng thái đơn đặt trước:", statusErr);
+        }
+        setShowSuccessModal(true);
       } else {
-        throw new Error("Không thể tạo liên kết thanh toán VNPay.");
+        // Request VNPay payment URL for preorder deposit
+        const paymentRes = await orderService.createVNPayPaymentUrl("PRE-" + result.id, "delivery");
+        if (paymentRes && paymentRes.paymentUrl) {
+          window.location.href = paymentRes.paymentUrl;
+        } else {
+          throw new Error("Không thể tạo liên kết thanh toán VNPay.");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -492,7 +509,45 @@ const PreorderCheckout = () => {
 
             </div>
 
-            {/* 3. Bottom Trust Badges */}
+            {/* 3. Payment Methods */}
+            <div className="preorder-card-panel" style={{ marginTop: "24px" }}>
+              <h3 className="config-title">Phương thức thanh toán</h3>
+              <p style={{ fontSize: "13px", color: "#64748b", marginBottom: "16px" }}>Lựa chọn phương thức thanh toán khoản đặt cọc 20%.</p>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", border: `1px solid ${paymentMethod === 'cod' ? '#16a34a' : '#e2e8f0'}`, borderRadius: "8px", backgroundColor: paymentMethod === 'cod' ? '#f0fdf4' : 'transparent', cursor: "pointer" }}>
+                  <input 
+                    type="radio" 
+                    name="preorderPayment" 
+                    value="cod" 
+                    checked={paymentMethod === 'cod'} 
+                    onChange={() => setPaymentMethod('cod')}
+                  />
+                  <div>
+                    <strong style={{ display: "block", fontSize: "14px", color: "#1e293b" }}>COD (Đặt cọc giữ chỗ)</strong>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Thanh toán cọc cho shipper hoặc nhân viên khi có thông báo xác nhận đơn.</span>
+                  </div>
+                </label>
+                
+                <label style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", border: `1px solid ${paymentMethod === 'vnpay' ? '#16a34a' : '#e2e8f0'}`, borderRadius: "8px", backgroundColor: paymentMethod === 'vnpay' ? '#f0fdf4' : 'transparent', cursor: "pointer" }}>
+                  <input 
+                    type="radio" 
+                    name="preorderPayment" 
+                    value="vnpay" 
+                    checked={paymentMethod === 'vnpay'} 
+                    onChange={() => setPaymentMethod('vnpay')}
+                  />
+                  <div>
+                    <strong style={{ display: "block", fontSize: "14px", color: "#1e293b" }}>Thanh toán trực tuyến qua VNPAY</strong>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Thanh toán cọc 20% ngay trực tuyến bằng quét mã VietQR hoặc ATM nội địa.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+
+
+            {/* 5. Bottom Trust Badges */}
             <div className="preorder-trust-badges">
               <div className="trust-badge-item">
                 <div className="trust-badge-icon leaf-icon">
@@ -527,6 +582,12 @@ const PreorderCheckout = () => {
                   <span>Tạm tính</span>
                   <span>{formatVND(subtotal)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#dc2626", fontWeight: "600" }}>
+                    <span>Khuyến mãi</span>
+                    <span>-{formatVND(discountAmount)}</span>
+                  </div>
+                )}
                 <div className="summary-item-line" style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", fontSize: "14px", color: "#475569" }}>
                   <span>Phí vận chuyển (GHN)</span>
                   <span>{formatVND(deliveryFee)}</span>

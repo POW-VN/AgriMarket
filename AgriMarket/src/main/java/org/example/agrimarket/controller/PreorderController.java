@@ -43,6 +43,12 @@ public class PreorderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private PromotionRepository promotionRepository;
+
+    @Autowired
+    private OrderGroupRepository orderGroupRepository;
+
     // 1. Create Preorder
     @PostMapping
     @Transactional
@@ -56,9 +62,41 @@ public class PreorderController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Customer profile not found.");
         }
 
+        Customer customer = customerOpt.get();
+        String promoCode = null;
+
+        if (request.getAppliedPromoCode() != null && !request.getAppliedPromoCode().isBlank()) {
+            Promotion promotion = promotionRepository.findByCode(request.getAppliedPromoCode())
+                    .orElseThrow(() -> new IllegalArgumentException("Chương trình khuyến mãi không hợp lệ."));
+
+            // Check usage limit per person
+            if (promotion.getUsageLimitPerPerson() != null && promotion.getUsageLimitPerPerson() > 0) {
+                long orderGroupCount = orderGroupRepository.countByCustomerIdAndAppliedPromoCode(customer.getId(), promotion.getCode());
+                long preorderCount = preorderRepository.countByCustomerIdAndAppliedPromoCode(customer.getId(), promotion.getCode());
+                if ((orderGroupCount + preorderCount) >= promotion.getUsageLimitPerPerson()) {
+                    throw new IllegalArgumentException("Bạn đã hết lượt sử dụng mã khuyến mãi này.");
+                }
+            }
+
+            // Check global limit
+            if (promotion.getMaxUses() != null && promotion.getMaxUses() > 0 
+                    && promotion.getUsedCount() >= promotion.getMaxUses()) {
+                throw new IllegalArgumentException("Mã khuyến mãi này đã hết lượt sử dụng.");
+            }
+
+            // Increment promotion usage
+            promotion.setUsedCount(promotion.getUsedCount() + 1);
+            promotion.setUsedBudget(promotion.getUsedBudget() + (request.getDiscount() != null ? request.getDiscount() : 0.0));
+            promotionRepository.save(promotion);
+
+            promoCode = promotion.getCode();
+        }
+
         Preorder preorder = Preorder.builder()
-                .customer(customerOpt.get())
+                .customer(customer)
                 .status("pending_payment")
+                .discount(request.getDiscount() != null ? request.getDiscount() : 0.0)
+                .appliedPromoCode(promoCode)
                 .build();
 
         preorder = preorderRepository.save(preorder);
@@ -282,6 +320,7 @@ public class PreorderController {
                 .customerName(customerName)
                 .status(preorder.getStatus())
                 .createdAt(preorder.getCreatedAt())
+                .discount(preorder.getDiscount() != null ? preorder.getDiscount() : 0.0)
                 .items(itemResponses)
                 .build();
     }

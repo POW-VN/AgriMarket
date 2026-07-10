@@ -1,8 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PreviewSidebar from './PreviewSidebar';
-import { mockFarmers } from '../PromotionsMockData';
+import apiClient from '../../../services/apiClient';
 
-const Step1BasicInfo = ({ formData, updateFormData, role }) => {
+const Step1BasicInfo = ({ formData, updateFormData, role, farmersList = [] }) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setUploading(true);
+      try {
+        const formDataUpload = new FormData();
+        formDataUpload.append("file", file);
+        const response = await apiClient.post("/api/upload/promotion", formDataUpload, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        if (response.data && response.data.fileUrl) {
+          updateFormData({ image: response.data.fileUrl });
+        }
+      } catch (err) {
+        console.error("Lỗi upload ảnh khuyến mãi:", err);
+        alert("Không thể tải ảnh lên hệ thống.");
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
       <div>
@@ -31,12 +56,21 @@ const Step1BasicInfo = ({ formData, updateFormData, role }) => {
               <input 
                 type="date" 
                 value={formData.startDate}
-                onChange={(e) => updateFormData({ startDate: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  const updates = { startDate: newStart };
+                  if (formData.endDate && formData.endDate < newStart) {
+                    updates.endDate = '';
+                  }
+                  updateFormData(updates);
+                }}
               />
               <span>-</span>
               <input 
                 type="date" 
                 value={formData.endDate}
+                min={formData.startDate || new Date().toISOString().split('T')[0]}
                 onChange={(e) => updateFormData({ endDate: e.target.value })}
               />
             </div>
@@ -66,55 +100,41 @@ const Step1BasicInfo = ({ formData, updateFormData, role }) => {
                 id="promo-image-upload" 
                 accept="image/*" 
                 style={{ display: 'none' }}
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    const file = e.target.files[0];
-                    const imageUrl = URL.createObjectURL(file);
-                    updateFormData({ image: imageUrl });
-                  }
-                }}
+                onChange={handleImageChange}
+                disabled={uploading}
               />
               <label 
                 htmlFor="promo-image-upload" 
                 className="btn-spromo-secondary" 
-                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                style={{ cursor: uploading ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', opacity: uploading ? 0.6 : 1 }}
               >
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                Tải ảnh lên
+                {uploading ? "Đang tải lên..." : "Tải ảnh lên"}
               </label>
-              {formData.image && <span style={{ fontSize: '13px', color: 'var(--spromo-primary)', fontWeight: 500 }}>Đã tải ảnh thành công</span>}
+              {formData.image && !uploading && <span style={{ fontSize: '13px', color: 'var(--spromo-primary)', fontWeight: 500 }}>Đã tải ảnh thành công</span>}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
-              <label>Tên nông dân {role === 'admin' && '*'}</label>
+              <label>Tên nhà vườn được áp dụng {role === 'admin' && '*'}</label>
               {role === 'admin' ? (
                 <div>
-                  <input 
-                    type="text"
-                    list="farmer-list" 
-                    placeholder="Nhập tên hoặc chọn nông dân" 
-                    value={
-                      formData.farmerSearchText !== undefined 
-                        ? formData.farmerSearchText 
-                        : (mockFarmers.find(f => f.id == formData.farmerId)?.name || '')
-                    }
+                  <select 
+                    value={formData.farmerId || ''} 
                     onChange={(e) => {
                       const val = e.target.value;
-                      const selectedFarmer = mockFarmers.find(f => f.name === val);
-                      if (selectedFarmer) {
-                        updateFormData({ farmerId: selectedFarmer.id, farmerSearchText: val });
-                      } else {
-                        updateFormData({ farmerId: '', farmerSearchText: val });
-                      }
+                      updateFormData({ farmerId: val });
                     }}
-                  />
-                  <datalist id="farmer-list">
-                    {mockFarmers.map(farmer => (
-                      <option key={farmer.id} value={farmer.name} />
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--spromo-border)', borderRadius: '8px', fontSize: '14px', background: 'white' }}
+                  >
+                    {farmersList.map(f => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
-                  </datalist>
+                  </select>
+                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--spromo-text-muted)', marginTop: '4px' }}>
+                    Chọn nhà vườn cụ thể muốn áp dụng chương trình khuyến mãi này, hoặc chọn "Toàn hệ thống" để áp dụng cho tất cả nhà vườn.
+                  </span>
                 </div>
               ) : (
                 <input type="text" value="Gian hàng của tôi" disabled />
