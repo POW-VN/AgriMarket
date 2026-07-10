@@ -37,6 +37,7 @@ import PreorderCheckout from "../pages/Product/PreorderCheckout";
 import PreorderList from "../pages/Product/PreorderList";
 import PaymentPage from "../pages/Payment/PaymentPage";
 import VNPayCallbackPage from "../pages/Payment/VNPayCallbackPage";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
 import UserAccounts from "../pages/Admin/UserAccounts";
 import CreateAccount from "../pages/Admin/CreateAccount";
 import ProductApproval from "../pages/Admin/ProductApproval";
@@ -80,7 +81,7 @@ const FarmsRoute = () => {
 const NonAdminRoute = () => {
   const user = authService.getCurrentUser();
   if (user && user.role?.toLowerCase() === 'admin') {
-    return <Navigate to="/admin/users" replace />;
+    return <Navigate to="/admin/dashboard" replace />;
   }
   return <Outlet />;
 };
@@ -164,6 +165,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<UserAccounts />} />
         <Route path="/admin/users/create" element={<CreateAccount />} />
         <Route path="/admin/products" element={<ProductApproval />} />
