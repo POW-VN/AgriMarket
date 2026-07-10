@@ -46,23 +46,26 @@ const AdminSidebar = ({ activeItem, showToast, onProductsClick, onComplaintsClic
   return (
     <aside className="admin-sidebar">
       <div className="admin-logo-section">
-        <Link to="/admin/users" className="admin-logo-link">
+        <Link to="/admin/dashboard" className="admin-logo-link">
           <div className="admin-logo-link-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--admin-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f766e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="7" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle>
               <path d="M7 16h11v-2H9v-3h7V9H9V6H7v10z"></path><path d="M16 9h3l2 3v4"></path>
             </svg>
           </div>
-          <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "var(--admin-primary)", whiteSpace: "nowrap" }}>AgriAdmin</h1>
+          <div className="nav-label" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <h1 style={{ margin: 0, fontSize: "19px", fontWeight: 800, color: "#0f766e", lineHeight: 1.1 }}>FinTech Admin</h1>
+            <p style={{ margin: "2px 0 0 0", fontSize: "11px", color: "var(--admin-text-muted)", fontWeight: "600", textTransform: "none", letterSpacing: "normal" }}>Quản lý hệ thống</p>
+          </div>
         </Link>
       </div>
 
       <nav className="admin-nav-menu">
-        <button className={`admin-nav-item ${activeItem === "dashboard" ? "active" : ""}`} onClick={() => handleShowToast("Chức năng Bảng điều khiển đang phát triển.")}>
+        <button className={`admin-nav-item ${activeItem === "dashboard" ? "active" : ""}`} onClick={() => navigate("/admin/dashboard")}>
           <span className="admin-nav-icon">
             <LayoutDashboard className="admin-nav-icon-svg" size={18} />
           </span>
-          <span className="nav-label">Bảng điều khiển</span>
+          <span className="nav-label">Tổng quan</span>
         </button>
 
         <button className={`admin-nav-item ${activeItem === "users" ? "active" : ""}`} onClick={() => navigate("/admin/users")}>
