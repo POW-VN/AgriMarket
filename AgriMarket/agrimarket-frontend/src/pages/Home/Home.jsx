@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import authService from "../../services/authService";
 import profileService from "../../services/profileService";
-import { getAllApprovedProducts, getApprovedProductsPaged } from "../../services/productService";
+import { getAllApprovedProducts, getApprovedProductsPaged, getFullImageUrl } from "../../services/productService";
 import cartService from "../../services/cartService";
 import apiClient from "../../services/apiClient";
 import wishlistService from "../../services/wishlistService";
@@ -649,13 +649,51 @@ const Home = () => {
     return { sold, percent: Math.round((sold / 20) * 100) };
   };
 
-  const flashSaleProducts = products.filter(p => p.oldPrice).slice(0, 4);
-  const displayFlashSale = flashSaleProducts.length > 0
-    ? flashSaleProducts
-    : products.slice(0, 4).map(p => ({
-      ...p,
-      oldPrice: p.oldPrice || p.price * 1.25
-    }));
+  const getFlashSaleProducts = () => {
+    const list = [];
+    const seenProductIds = new Set();
+    
+    const sortedPromos = [...activePromotions].sort((a, b) => {
+      const valA = a.discountType === "percent" ? a.discountVal : 0;
+      const valB = b.discountType === "percent" ? b.discountVal : 0;
+      return valB - valA;
+    });
+
+    for (const promo of sortedPromos) {
+      if (!promo.selectedProducts || promo.selectedProducts.length === 0) continue;
+      
+      const isPercent = promo.discountType?.toLowerCase() === "percent";
+      const isAmount = promo.discountType?.toLowerCase() === "amount";
+      
+      if (!isPercent && !isAmount) continue;
+
+      for (const prod of promo.selectedProducts) {
+        if (seenProductIds.has(prod.id)) continue;
+        seenProductIds.add(prod.id);
+
+        let finalPrice = prod.price;
+        if (isPercent) {
+          finalPrice = prod.price * (1 - (promo.discountVal / 100));
+        } else if (isAmount) {
+          finalPrice = Math.max(0, prod.price - promo.discountVal);
+        }
+
+        list.push({
+          id: prod.id,
+          name: prod.name,
+          price: finalPrice,
+          oldPrice: prod.price,
+          imageUrl: getFullImageUrl(prod.image),
+          unit: prod.unit,
+          promoCode: promo.code,
+          promoTitle: promo.title
+        });
+      }
+    }
+    return list.slice(0, 4);
+  };
+
+  const displayFlashSale = getFlashSaleProducts();
 
   return (
     <div className="home-page">

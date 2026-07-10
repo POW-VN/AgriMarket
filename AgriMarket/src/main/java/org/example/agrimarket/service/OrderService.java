@@ -276,7 +276,14 @@ public class OrderService {
             order.setCustomer(customer);
             order.setShippingNote(request.getShippingNote());
             order.setPaymentStatus("unpaid");
-            order.setStatus("pending");
+
+            // Với VNPay: đặt trạng thái 'awaiting_payment' để ẩn đơn hàng khỏi farmer
+            // cho đến khi thanh toán được xác nhận thành công qua callback.
+            // Với COD và các phương thức khác: chuyển thẳng sang 'pending'.
+            boolean isVnPay = "VNPay".equalsIgnoreCase(request.getPaymentMethod())
+                    || "VNPAY".equalsIgnoreCase(request.getPaymentMethod());
+            order.setStatus(isVnPay ? "awaiting_payment" : "pending");
+
             order.setSubtotal(farmerSubtotal);
             order.setShippingFee(shippingFee);
             order.setServiceFee(serviceFee);
@@ -302,20 +309,23 @@ public class OrderService {
             Order savedOrder = orderRepository.save(order);
             savedSubOrders.add(savedOrder);
 
-            // Send notification to farmer
-            try {
-                Notification notif = Notification.builder()
-                        .receiverType("farmer")
-                        .receiverId(farmer.getId())
-                        .title("Đơn hàng mới!")
-                        .content("Bạn có một đơn hàng mới từ khách hàng " + customer.getFullName() + ". Mã đơn hàng: " + savedOrder.getOrderCode())
-                        .link("/farmer/orders/orderdetail/" + savedOrder.getOrderCode())
-                        .createdAt(LocalDateTime.now())
-                        .isRead(false)
-                        .build();
-                notificationRepository.save(notif);
-            } catch (Exception e) {
-                System.err.println("Lỗi tạo thông báo đơn hàng mới cho farmer: " + e.getMessage());
+            // Chỉ thông báo farmer ngay nếu KHÔNG phải VNPay.
+            // Với VNPay, thông báo sẽ được gửi sau khi callback thành công.
+            if (!isVnPay) {
+                try {
+                    Notification notif = Notification.builder()
+                            .receiverType("farmer")
+                            .receiverId(farmer.getId())
+                            .title("Đơn hàng mới!")
+                            .content("Bạn có một đơn hàng mới từ khách hàng " + customer.getFullName() + ". Mã đơn hàng: " + savedOrder.getOrderCode())
+                            .link("/farmer/orders/orderdetail/" + savedOrder.getOrderCode())
+                            .createdAt(LocalDateTime.now())
+                            .isRead(false)
+                            .build();
+                    notificationRepository.save(notif);
+                } catch (Exception e) {
+                    System.err.println("Lỗi tạo thông báo đơn hàng mới cho farmer: " + e.getMessage());
+                }
             }
         }
 
@@ -470,6 +480,8 @@ public class OrderService {
     public List<OrderResponse> getFarmerOrders(String farmerEmail) {
         List<Order> orders = orderRepository.findByFarmerEmail(farmerEmail);
         return orders.stream()
+                // Lọc bỏ đơn đang chờ thanh toán VNPay – chưa được xác nhận
+                .filter(order -> !"awaiting_payment".equalsIgnoreCase(order.getStatus()))
                 .map(order -> mapToFarmerResponse(order, farmerEmail))
                 .collect(Collectors.toList());
     }
@@ -617,6 +629,9 @@ public class OrderService {
         // Status mapping
         String statusLabel = order.getStatus();
         switch (order.getStatus().toLowerCase()) {
+            case "awaiting_payment":
+                statusLabel = "Chờ thanh toán";
+                break;
             case "pending":
                 statusLabel = "Chờ xác nhận";
                 break;

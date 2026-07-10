@@ -37,42 +37,20 @@ const AdminDashboard = () => {
   const [toastMessage, setToastMessage] = useState("");
 
   const [data, setData] = useState({
-    revenue: 4520000000,
-    revenueTrend: "+12.4%",
-    ordersCount: 12840,
-    ordersCompletedPercent: 85,
-    ordersPendingPercent: 15,
-    usersTotal: 1580,
-    usersCustomers: 1240,
-    usersFarmers: 340,
-    pendingProducts: 5,
-    pendingComplaints: 2,
-    revenueChart: [
-      { label: "Thứ 2", value: 350000000 },
-      { label: "Thứ 3", value: 520000000 },
-      { label: "Thứ 4", value: 480000000 },
-      { label: "Thứ 5", value: 610000000 },
-      { label: "Thứ 6", value: 580000000 },
-      { label: "Thứ 7", value: 720000000 },
-      { label: "Chủ nhật", value: 790000000 }
-    ],
-    popularCategories: [
-      { name: "Rau củ hữu cơ", percentage: 45, color: "#0f766e" },
-      { name: "Trái cây Đà Lạt", percentage: 25, color: "#475569" },
-      { name: "Hoa tươi", percentage: 20, color: "#854d0e" },
-      { name: "Gạo & Ngũ cốc", percentage: 10, color: "#94a3b8" }
-    ],
-    topFarmers: [
-      { initials: "NL", name: "Nông Trại Lam Anh", address: "Đà Lạt, Lâm Đồng", rating: 5, sold: 1420, revenue: 840000000 },
-      { initials: "HG", name: "Hợp Tác Xã GreenWay", address: "Hòa Vang, Đà Nẵng", rating: 5, sold: 1150, revenue: 620000000 },
-      { initials: "MT", name: "Vườn Cây Minh Tâm", address: "Cái Bè, Tiền Giang", rating: 5, sold: 980, revenue: 450000000 }
-    ],
-    operationalLogs: [
-      { id: "mock_1", type: "VNPAY", title: "VNPay: Thanh toán #8492", time: "2 phút trước", description: "Giao dịch 1,200,000đ thành công từ khách hàng Nguyễn Văn A." },
-      { id: "mock_2", type: "COMPLAINT", title: "Khiếu nại: Đơn hàng #9931", time: "45 phút trước", description: "Người dùng yêu cầu hoàn tiền do sản phẩm bị dập nát khi vận chuyển." },
-      { id: "mock_3", type: "PRODUCT", title: "Duyệt sản phẩm: Măng tây hữu cơ", time: "2 giờ trước", description: "Nông trại Lam Anh vừa thêm danh mục sản phẩm mới vào gian hàng." },
-      { id: "mock_4", type: "PARTNER", title: "Đối tác mới đăng ký", time: "5 giờ trước", description: "Hợp tác xã Mộc Châu vừa hoàn tất hồ sơ đăng ký đối tác chiến lược." }
-    ]
+    revenue: 0,
+    revenueTrend: "+0.0%",
+    ordersCount: 0,
+    ordersCompletedPercent: 0,
+    ordersPendingPercent: 0,
+    usersTotal: 0,
+    usersCustomers: 0,
+    usersFarmers: 0,
+    pendingProducts: 0,
+    pendingFarmers: 0,
+    revenueChart: [],
+    popularCategories: [],
+    topFarmers: [],
+    operationalLogs: []
   });
 
   const getFullImageUrl = (url) => {
@@ -97,6 +75,7 @@ const AdminDashboard = () => {
 
   const fetchDashboardData = async (range) => {
     setLoading(true);
+    setError("");
     try {
       const response = await apiClient.get("/api/admin/dashboard", {
         params: { range }
@@ -105,90 +84,11 @@ const AdminDashboard = () => {
         setData(response.data);
       }
     } catch (err) {
-      console.warn("Backend API không khả dụng, sử dụng dữ liệu mô phỏng local:", err.message);
-      setError("Đang hiển thị dữ liệu mô phỏng do lỗi kết nối server.");
-      // Simulated delay for local mock transitions
-      setTimeout(() => {
-        generateMockDataForRange(range);
-      }, 300);
+      console.error("Lỗi tải dữ liệu bảng điều khiển:", err.message);
+      setError("Không thể kết nối đến server để tải dữ liệu.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateMockDataForRange = (range) => {
-    let revenue = 4520000000;
-    let revenueTrend = "+12.4%";
-    let ordersCount = 12840;
-    let ordersCompletedPercent = 85;
-    let ordersPendingPercent = 15;
-    let chartData = [];
-
-    if (range === "today") {
-      revenue = 152000000;
-      revenueTrend = "+5.8%";
-      ordersCount = 450;
-      ordersCompletedPercent = 90;
-      ordersPendingPercent = 10;
-      chartData = [
-        { label: "00:00", value: 10000000 },
-        { label: "04:00", value: 15000000 },
-        { label: "08:00", value: 35000000 },
-        { label: "12:00", value: 42000000 },
-        { label: "16:00", value: 28000000 },
-        { label: "20:00", value: 18000000 },
-        { label: "24:00", value: 4000000 }
-      ];
-    } else if (range === "7days") {
-      revenue = 4520000000;
-      revenueTrend = "+12.4%";
-      ordersCount = 12840;
-      ordersCompletedPercent = 85;
-      ordersPendingPercent = 15;
-      chartData = [
-        { label: "Thứ 2", value: 350000000 },
-        { label: "Thứ 3", value: 520000000 },
-        { label: "Thứ 4", value: 480000000 },
-        { label: "Thứ 5", value: 610000000 },
-        { label: "Thứ 6", value: 580000000 },
-        { label: "Thứ 7", value: 720000000 },
-        { label: "Chủ nhật", value: 790000000 }
-      ];
-    } else if (range === "30days") {
-      revenue = 18240000000;
-      revenueTrend = "+18.2%";
-      ordersCount = 52190;
-      ordersCompletedPercent = 82;
-      ordersPendingPercent = 18;
-      chartData = [
-        { label: "Tuần 1", value: 4200000000 },
-        { label: "Tuần 2", value: 4800000000 },
-        { label: "Tuần 3", value: 4400000000 },
-        { label: "Tuần 4", value: 4840000000 }
-      ];
-    } else if (range === "year") {
-      revenue = 218500000000;
-      revenueTrend = "+24.5%";
-      ordersCount = 620800;
-      ordersCompletedPercent = 88;
-      ordersPendingPercent = 12;
-      chartData = [
-        { label: "Quý 1", value: 48000000000 },
-        { label: "Quý 2", value: 55000000000 },
-        { label: "Quý 3", value: 52000000000 },
-        { label: "Quý 4", value: 63500000000 }
-      ];
-    }
-
-    setData(prev => ({
-      ...prev,
-      revenue,
-      revenueTrend,
-      ordersCount,
-      ordersCompletedPercent,
-      ordersPendingPercent,
-      revenueChart: chartData
-    }));
   };
 
   const showToast = (msg) => {
@@ -201,36 +101,26 @@ const AdminDashboard = () => {
   // Export report to CSV function
   const handleExportCSV = () => {
     const csvContent = "data:text/csv;charset=utf-8,"
-      + ["Thoi Gian,Doanh Thu (VND)"].join(",") + "\n"
+      + ["Thoi Gian,So Luot Mua"].join(",") + "\n"
       + data.revenueChart.map(p => `${p.label},${p.value}`).join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `bao_cao_doanh_thu_${selectedRange}.csv`);
+    link.setAttribute("download", `bao_cao_luot_mua_${selectedRange}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast("📊 Xuất báo cáo doanh thu thành công!");
+    showToast("📊 Xuất báo cáo lượt mua thành công!");
   };
 
-  // Load more logs mock handler
+  // Load more logs handler
   const handleLoadMoreLogs = () => {
     if (visibleLogsCount >= data.operationalLogs.length) {
-      // Add dynamic mock operations
-      const newLogs = [
-        { id: `dyn_${Date.now()}_1`, type: "PARTNER", title: "Đối tác mới đăng ký", time: "1 ngày trước", description: "Hợp tác xã Mộc Châu vừa hoàn tất hồ sơ đăng ký đối tác chiến lược." },
-        { id: `dyn_${Date.now()}_2`, type: "VNPAY", title: "VNPay: Thanh toán #8480", time: "1 ngày trước", description: "Giao dịch 750,000đ thành công từ khách hàng Lê Văn Tám." },
-        { id: `dyn_${Date.now()}_3`, type: "PRODUCT", title: "Duyệt sản phẩm: Cam Cao Phong", time: "2 ngày trước", description: "Nông trại Cao Phong vừa gửi sản phẩm mới cần kiểm tra." },
-        { id: `dyn_${Date.now()}_4`, type: "COMPLAINT", title: "Khiếu nại: Đơn hàng #9905", time: "2 ngày trước", description: "Hỗ trợ khách hàng đổi trả sản phẩm bị hỏng trong quá trình vận chuyển." }
-      ];
-      setData(prev => ({
-        ...prev,
-        operationalLogs: [...prev.operationalLogs, ...newLogs]
-      }));
-      showToast("🔄 Đã tải thêm nhật ký vận hành.");
+      showToast("🔄 Đã hiển thị tất cả nhật ký hoạt động.");
+    } else {
+      setVisibleLogsCount(prev => prev + 4);
     }
-    setVisibleLogsCount(prev => prev + 4);
   };
 
   // SVG Chart Plotting parameters
@@ -366,7 +256,24 @@ const AdminDashboard = () => {
         </header>
 
         {/* Dashboard contents */}
-        <div className="admin-dashboard-wrapper">
+        <div className="admin-dashboard-wrapper" style={{ position: "relative" }}>
+          {loading && (
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              backgroundColor: "rgba(255, 255, 255, 0.75)",
+              zIndex: 1000,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "12px",
+              minHeight: "450px"
+            }}>
+              <RefreshCw className="spin" size={32} style={{ color: "#0f766e" }} />
+              <span style={{ color: "#0f766e", fontWeight: "700", fontSize: "15px" }}>Đang tải dữ liệu...</span>
+            </div>
+          )}
           
           {/* Header Row */}
           <div className="dashboard-header-section">
@@ -426,7 +333,7 @@ const AdminDashboard = () => {
           <div className="dashboard-metrics-grid">
             
             {/* CARD 1: TỔNG DOANH THU */}
-            <div className="metric-card" style={{ height: "200px", minHeight: "200px", display: "flex", flexDirection: "column", padding: "20px 24px", boxSizing: "border-box" }}>
+            <div className="metric-card" style={{ minHeight: "220px", display: "flex", flexDirection: "column", padding: "16px 22px", boxSizing: "border-box" }}>
               <div className="metric-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", height: "40px" }}>
                 <div className="metric-icon-wrapper metric-icon-revenue">
                   <CreditCard size={20} />
@@ -464,7 +371,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* CARD 2: ĐƠN HÀNG */}
-            <div className="metric-card" style={{ height: "200px", minHeight: "200px", display: "flex", flexDirection: "column", padding: "20px 24px", boxSizing: "border-box" }}>
+            <div className="metric-card" style={{ minHeight: "220px", display: "flex", flexDirection: "column", padding: "16px 22px", boxSizing: "border-box" }}>
               <div className="metric-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", height: "40px" }}>
                 <div className="metric-icon-wrapper" style={{ backgroundColor: "#f1f5f9", color: "#475569", width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <ScrollText size={20} />
@@ -475,7 +382,7 @@ const AdminDashboard = () => {
               <h3 className="metric-card-value" style={{ margin: "0", fontSize: "24px", fontWeight: "800", color: "#0f172a" }}>{data.ordersCount.toLocaleString("en-US")}</h3>
               
               {/* Progress bar info */}
-              <div className="progress-bar-container" style={{ marginTop: "12px", marginBottom: "0", width: "100%" }}>
+              <div className="admin-orders-progress-container" style={{ marginTop: "8px", marginBottom: "0", width: "100%" }}>
                 <div className="progress-info-row" style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#475569", marginBottom: "6px", fontWeight: "600" }}>
                   <span>Hoàn tất: <span className="progress-info-label-highlight" style={{ fontWeight: "800", color: "#0f766e", fontSize: "15px" }}>{data.ordersCompletedPercent}%</span></span>
                   <span>Chờ xử lý: <span style={{ fontWeight: "800", color: "#ea580c", fontSize: "15px" }}>{data.ordersPendingPercent}%</span></span>
@@ -487,7 +394,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* CARD 3: TỔNG NGƯỜI DÙNG */}
-            <div className="metric-card" style={{ height: "200px", minHeight: "200px", display: "flex", flexDirection: "column", padding: "20px 24px", boxSizing: "border-box" }}>
+            <div className="metric-card" style={{ minHeight: "220px", display: "flex", flexDirection: "column", padding: "16px 22px", boxSizing: "border-box" }}>
               <div className="metric-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", height: "40px" }}>
                 <div className="metric-icon-wrapper metric-icon-users" style={{ width: "40px", height: "40px", borderRadius: "10px" }}>
                   <UserPlus size={20} />
@@ -525,7 +432,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* CARD 4: CẦN PHÊ DUYỆT */}
-            <div className="metric-card" style={{ height: "200px", minHeight: "200px", display: "flex", flexDirection: "column", padding: "20px 24px", boxSizing: "border-box", border: "1px solid #fee2e2" }}>
+            <div className="metric-card" style={{ minHeight: "220px", display: "flex", flexDirection: "column", padding: "16px 22px", boxSizing: "border-box", border: "1px solid #fee2e2" }}>
               <div className="metric-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", height: "40px" }}>
                 <div className="metric-icon-wrapper metric-icon-approval" style={{ width: "40px", height: "40px", borderRadius: "10px" }}>
                   <AlertTriangle size={20} />
@@ -539,11 +446,11 @@ const AdminDashboard = () => {
               
               <div className="pending-action-list" style={{ marginTop: "12px", marginBottom: "0" }}>
                 <div className="pending-action-item" onClick={() => navigate("/admin/products")}>
-                  <span>{data.pendingProducts} sản phẩm</span>
+                  <span>{data.pendingProducts} sản phẩm cần duyệt</span>
                   <ChevronRight size={14} className="pending-action-icon" />
                 </div>
-                <div className="pending-action-item" onClick={() => navigate("/admin/complaints")}>
-                  <span>{data.pendingComplaints} khiếu nại</span>
+                <div className="pending-action-item" onClick={() => navigate("/admin/users")}>
+                  <span>{data.pendingFarmers} nhà vườn cần duyệt</span>
                   <ChevronRight size={14} className="pending-action-icon" />
                 </div>
               </div>
@@ -558,8 +465,8 @@ const AdminDashboard = () => {
             <div className="dashboard-panel">
               <div className="panel-header-row">
                 <div>
-                  <h4 className="panel-title">Biểu đồ doanh thu</h4>
-                  <p className="panel-subtitle">Xu hướng 7 ngày gần nhất</p>
+                  <h4 className="panel-title">Biểu đồ người dùng mua hàng</h4>
+                  <p className="panel-subtitle">Số lượt mua hàng thành công</p>
                 </div>
                 <button className="panel-action-link" onClick={handleExportCSV}>
                   <Download size={15} />
@@ -574,7 +481,7 @@ const AdminDashboard = () => {
                     className="chart-tooltip-bubble"
                     style={{ left: `${hoveredPoint.x}px`, top: `${hoveredPoint.y}px` }}
                   >
-                    {hoveredPoint.label}: {hoveredPoint.value.toLocaleString("vi-VN")} đ
+                    {hoveredPoint.label}: {hoveredPoint.value.toLocaleString("vi-VN")} lượt mua
                   </div>
                 )}
                 
@@ -631,7 +538,7 @@ const AdminDashboard = () => {
               <div className="panel-header-row">
                 <div>
                   <h4 className="panel-title">Danh mục phổ biến</h4>
-                  <p className="panel-subtitle">Phân bổ doanh thu theo ngành hàng</p>
+                  <p className="panel-subtitle">Tỷ lệ số lượng sản phẩm bán ra theo ngành hàng</p>
                 </div>
               </div>
 

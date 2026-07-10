@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,5 +31,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatusIgnoreCase(String status);
 
     long countByCustomerIdAndStatus(Long customerId, String status);
-}
 
+    /**
+     * Tìm các đơn hàng ở trạng thái 'awaiting_payment' được tạo trước thời điểm cutoff.
+     * Dùng để dọn dẹp các đơn VNPay bị bỏ rơi (customer không hoàn thành thanh toán).
+     */
+    @EntityGraph(attributePaths = {"items", "customer", "farmer", "orderGroup"})
+    @Query("SELECT o FROM Order o WHERE LOWER(o.status) = 'awaiting_payment' AND o.createdAt < :cutoff")
+    List<Order> findAbandonedAwaitingPaymentOrders(@Param("cutoff") LocalDateTime cutoff);
+}
