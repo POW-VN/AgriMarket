@@ -642,6 +642,40 @@
   z-index: 2;
 }
 
+/* Promo badge override - bright red for promotion */
+.new-card-sale-tag.promo-badge {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.35);
+  animation: promoPulse 2s infinite;
+}
+
+@keyframes promoPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(220,38,38,0.35); }
+  50% { box-shadow: 0 2px 16px rgba(220,38,38,0.6); }
+}
+
+/* Promo program name label at bottom of image */
+.new-card-promo-name {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
 .new-card-body {
   padding: 16px;
   display: flex;

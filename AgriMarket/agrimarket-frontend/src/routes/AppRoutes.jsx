@@ -63,6 +63,7 @@ import CategoryManagement from "../pages/Admin/CategoryManagement";
 import FarmerPromotions from "../pages/Farmer/FarmerPromotions/FarmerPromotions";
 import AdminPromotions from "../pages/Admin/Promotions/AdminPromotions";
 import AdminTransactions from "../pages/Admin/Transactions/AdminTransactions";
+import PromotionLandingPage from "../pages/Promotion/PromotionLandingPage";
 
 
 const FarmsRoute = () => {
@@ -94,6 +95,7 @@ const AppRoutes = () => {
           <Route path="/" element={<Home />} />
           <Route path="/Home" element={<Home />} />
           <Route path="/farms" element={<FarmsRoute />} />
+          <Route path="/promotions/:id" element={<PromotionLandingPage />} />
 
           {/* Auth routes under AuthLayout */}
           <Route element={<AuthLayout />}>

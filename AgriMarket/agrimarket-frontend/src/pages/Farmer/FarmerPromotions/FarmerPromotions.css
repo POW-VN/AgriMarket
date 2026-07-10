@@ -38,14 +38,14 @@
 }
 
 .fp-title-area h1 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   margin: 0 0 4px 0;
   color: var(--fp-text-main);
 }
 
 .fp-title-area p {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fp-text-muted);
   margin: 0;
 }
@@ -62,7 +62,7 @@
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -78,7 +78,7 @@
 /* Top Stats Grid */
 .fp-stats-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -100,7 +100,7 @@
 }
 
 .fp-stat-label {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fp-text-muted);
   margin: 0;
   font-weight: 500;
@@ -121,14 +121,14 @@
 .fp-stat-icon.savings-icon { color: #ec4899; background: #fdf2f8; padding: 6px; border-radius: 8px; }
 
 .fp-stat-value {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   margin: 0 0 12px 0;
   color: var(--fp-text-main);
 }
 
 .fp-stat-trend {
-  font-size: 12px;
+  font-size: 14px;
   margin: 0;
   display: flex;
   align-items: center;
@@ -150,7 +150,7 @@
 }
 
 .trend-arrow {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 /* Filter Bar */
@@ -190,7 +190,7 @@
   padding: 0 !important;
   width: 100%;
   height: 100% !important;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .fp-search-box input::placeholder {
@@ -209,7 +209,7 @@
   border-radius: 8px;
   padding: 0 16px;
   height: 40px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fp-text-main);
   display: flex;
   align-items: center;
@@ -235,7 +235,7 @@
   border-radius: 8px;
   padding: 0 16px;
   height: 40px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fp-text-main);
   display: flex;
   align-items: center;
@@ -284,7 +284,7 @@
 }
 
 .fp-promo-info h3 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   margin: 0 0 16px 0;
   color: var(--fp-text-main);
@@ -298,7 +298,7 @@
 }
 
 .fp-discount-val {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--fp-red);
 }
@@ -306,7 +306,7 @@
 .fp-badge {
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -336,7 +336,7 @@
 }
 
 .fp-discount-type {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fp-text-muted);
   margin: 0;
 }
@@ -348,7 +348,7 @@
 }
 
 .fp-col-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fp-text-light);
   margin: 0 0 12px 0;
 }
@@ -363,7 +363,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fp-text-main);
   font-weight: 500;
 }
@@ -386,7 +386,7 @@
 }
 
 .fp-stat-val-small {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--fp-text-main);
 }
@@ -406,7 +406,7 @@
 }
 
 .fp-revenue-val {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--fp-text-main);
 }
@@ -482,7 +482,7 @@
 }
 
 .fp-modal-header h2 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   margin: 0;
   color: var(--fp-text-main);
@@ -503,7 +503,7 @@
 }
 
 .fp-form-group label {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--fp-text-main);
 }
@@ -548,7 +548,7 @@
   border: 1px solid var(--fp-border-dark);
   border-radius: 6px;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 16px;
   width: 100%;
   outline: none;
   transition: border-color 0.2s;
@@ -575,7 +575,7 @@
   border: 1px solid var(--fp-border-dark);
   border-radius: 8px;
   padding: 12px 8px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--fp-text-muted);
   cursor: pointer;
@@ -598,7 +598,7 @@
   position: absolute;
   right: 12px;
   color: var(--fp-text-muted);
-  font-size: 14px;
+  font-size: 16px;
   pointer-events: none;
 }
 
@@ -616,13 +616,13 @@
 }
 
 .sub-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fp-text-muted) !important;
   font-weight: 400 !important;
 }
 
 .fp-help-text {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fp-text-light);
   margin: 4px 0 0 0;
 }
@@ -651,7 +651,7 @@
   align-items: center;
   cursor: pointer;
   color: var(--fp-text-muted);
-  font-size: 14px;
+  font-size: 16px;
   border-bottom: 1px solid var(--fp-border-dark);
 }
 
@@ -689,13 +689,13 @@
 
 .fp-picker-name {
   flex: 1;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--fp-text-main);
   font-weight: 500;
 }
 
 .fp-picker-price {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fp-text-muted);
 }
 
@@ -705,7 +705,7 @@
   background: transparent;
   border: none;
   color: var(--fp-text-muted);
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
   text-align: left;
 }
@@ -716,7 +716,7 @@
 
 /* Preview Card */
 .fp-preview-header {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 16px;
   color: var(--fp-text-main);
@@ -748,7 +748,7 @@
   right: 10px;
   background: var(--fp-red);
   color: white;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 4px;
@@ -759,7 +759,7 @@
 }
 
 .fpp-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   margin: 0 0 8px 0;
   color: var(--fp-text-main);
@@ -773,13 +773,13 @@
 }
 
 .fpp-old {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--fp-text-light);
   text-decoration: line-through;
 }
 
 .fpp-new {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--fp-red);
 }
@@ -788,7 +788,7 @@
   display: inline-block;
   background: var(--fp-green-light);
   color: var(--fp-green);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   padding: 4px 8px;
   border-radius: 4px;
@@ -796,7 +796,7 @@
 }
 
 .fpp-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fp-text-main);
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -806,7 +806,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fp-text-muted);
   margin-bottom: 4px;
 }
@@ -818,13 +818,13 @@
 }
 
 .fpp-time-val {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--fp-text-main);
   font-weight: 500;
 }
 
 .fp-preview-note {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fp-text-light);
   margin-top: 12px;
   text-align: center;
@@ -834,7 +834,7 @@
   flex: 1;
   padding: 10px 12px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   text-align: center;
@@ -861,7 +861,7 @@
   color: var(--fp-text-main);
   padding: 10px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -871,7 +871,7 @@
   color: white;
   padding: 10px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -901,7 +901,7 @@
   left: 12px;
   background: var(--fp-red);
   color: white;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 4px;
@@ -925,7 +925,7 @@
   padding: 16px;
 }
 .fpm-category {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--fp-green);
   font-weight: 600;
   letter-spacing: 0.5px;
