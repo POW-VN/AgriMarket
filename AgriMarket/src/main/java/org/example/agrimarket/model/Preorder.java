@@ -24,6 +24,13 @@ public class Preorder {
     @Column(length = 50)
     private String status; // pending, paid, cancelled, completed
 
+    @Column(name = "applied_promo_code", length = 100)
+    private String appliedPromoCode;
+
+    @Builder.Default
+    @Column(name = "discount")
+    private Double discount = 0.0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -32,6 +39,9 @@ public class Preorder {
         this.createdAt = LocalDateTime.now();
         if (this.status == null) {
             this.status = "pending";
+        }
+        if (this.discount == null) {
+            this.discount = 0.0;
         }
     }
 }

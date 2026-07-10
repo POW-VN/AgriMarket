@@ -52,5 +52,21 @@ public class UploadController {
                     .body("Failed to upload file: " + e.getMessage());
         }
     }
+
+    @PostMapping("/promotion")
+    public ResponseEntity<?> uploadPromotionImage(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File is empty");
+        }
+
+        try {
+            String fileUrl = supabaseStorageService.uploadMultipartFile(file, "promotions");
+            return ResponseEntity.ok(Map.of("fileUrl", fileUrl));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to upload promotion image: " + e.getMessage());
+        }
+    }
 }
 

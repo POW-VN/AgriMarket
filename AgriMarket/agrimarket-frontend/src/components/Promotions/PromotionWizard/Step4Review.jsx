@@ -1,9 +1,8 @@
 import React from 'react';
-import { mockFarmers } from '../PromotionsMockData';
 
-const Step4Review = ({ formData, onEditStep }) => {
+const Step4Review = ({ formData, onEditStep, farmersList = [] }) => {
   const farmerName = formData.farmerId 
-    ? mockFarmers.find(f => f.id === formData.farmerId)?.name 
+    ? (farmersList.find(f => String(f.id) === String(formData.farmerId))?.name || 'Đang tải...') 
     : 'Toàn hệ thống';
 
   return (
@@ -55,7 +54,7 @@ const Step4Review = ({ formData, onEditStep }) => {
             <div style={{ fontWeight: 500 }}>{formData.description || 'Không có mô tả'}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--spromo-text-muted)', marginBottom: '4px' }}>Tên nông dân</div>
+            <div style={{ color: 'var(--spromo-text-muted)', marginBottom: '4px' }}>Tên nhà vườn được áp dụng</div>
             <div style={{ fontWeight: 500 }}>{farmerName}</div>
           </div>
           <div>

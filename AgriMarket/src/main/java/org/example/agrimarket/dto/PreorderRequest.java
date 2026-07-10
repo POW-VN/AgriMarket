@@ -13,6 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PreorderRequest {
     private List<PreorderItemRequest> items;
+    private Double discount;
+    private String appliedPromoCode;
 
     @Data
     @NoArgsConstructor

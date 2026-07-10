@@ -16,4 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("SELECT p FROM Product p WHERE p.status = 'approved' AND p.farmer.verificationStatus = 'verified' AND p.farmer.status = 'active' ORDER BY p.createdAt DESC")
     List<Product> findApprovedProductsFromVerifiedFarmers();
+
+    long countByCategoryId(Long categoryId);
+    long countByCategoryIdIn(List<Long> categoryIds);
 }
+

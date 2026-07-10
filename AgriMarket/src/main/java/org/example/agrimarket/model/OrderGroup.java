@@ -58,6 +58,9 @@ public class OrderGroup {
     @Column(name = "payment_status")
     private String paymentStatus; // unpaid, paid, refunded
 
+    @Column(name = "applied_promo_code", length = 100)
+    private String appliedPromoCode;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

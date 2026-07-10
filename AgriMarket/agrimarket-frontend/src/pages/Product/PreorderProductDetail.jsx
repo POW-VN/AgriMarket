@@ -206,7 +206,7 @@ export default function PreorderProductDetail({
       window.dispatchEvent(new Event("preordersUpdated"));
       
       // Request VNPay payment URL for preorder deposit
-      const paymentRes = await orderService.createVNPayPaymentUrl("PRE-" + result.id, deliveryMode);
+      const paymentRes = await orderService.createVNPayPaymentUrl("PRE-" + result.id, "delivery");
       if (paymentRes && paymentRes.paymentUrl) {
         window.location.href = paymentRes.paymentUrl;
       } else {

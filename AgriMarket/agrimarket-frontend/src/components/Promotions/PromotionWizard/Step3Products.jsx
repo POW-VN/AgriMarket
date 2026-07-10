@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
-
-const allProducts = [
-  { id: 1, name: 'Cà chua hữu cơ Đà Lạt', unit: 'kg', price: 45000, category: 'Rau củ', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=100' },
-  { id: 2, name: 'Cà rốt baby sấy khô', unit: 'Hộp 500g', price: 85000, category: 'Rau củ', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&q=80&w=100' },
-  { id: 3, name: 'Xoài Cát Hòa Lộc', unit: 'kg', price: 65000, category: 'Trái cây', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&q=80&w=100' },
-  { id: 4, name: 'Lúa gạo ST25', unit: 'Bao 10kg', price: 350000, category: 'Lương thực', image: 'https://images.unsplash.com/photo-1586201375761-83865001e8ac?auto=format&fit=crop&q=80&w=100' }
-];
-
-const categories = ['Rau củ', 'Trái cây', 'Lương thực'];
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../../services/apiClient';
 
 const Step3Products = ({ formData, updateFormData }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [allProducts, setAllProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const response = await apiClient.get('/api/admin/products');
+        const mapped = response.data.map(p => ({
+          id: p.id,
+          name: p.name,
+          unit: p.unit || 'kg',
+          price: p.price || 0,
+          category: p.categoryName || '',
+          image: p.thumbnailUrl || (p.images && p.images[0]) || "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&q=80&w=100",
+          farmerId: p.farmerId
+        }));
+
+        if (formData.farmerId) {
+          const filtered = mapped.filter(p => String(p.farmerId) === String(formData.farmerId));
+          setAllProducts(filtered);
+        } else {
+          setAllProducts(mapped);
+        }
+      } catch (e) {
+        console.error("Lỗi khi tải danh sách sản phẩm:", e);
+        setAllProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [formData.farmerId]);
 
   const filteredProducts = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -35,22 +60,6 @@ const Step3Products = ({ formData, updateFormData }) => {
     } else {
       const remaining = formData.selectedProducts.filter(
         sp => !filteredProducts.find(fp => fp.id === sp.id)
-      );
-      updateFormData({ selectedProducts: remaining });
-    }
-  };
-  
-  const handleSelectCategory = (category, e) => {
-    const categoryProducts = allProducts.filter(p => p.category === category);
-    if (e.target.checked) {
-      const newSelections = [...formData.selectedProducts];
-      categoryProducts.forEach(p => {
-        if (!newSelections.find(sp => sp.id === p.id)) newSelections.push(p);
-      });
-      updateFormData({ selectedProducts: newSelections });
-    } else {
-      const remaining = formData.selectedProducts.filter(
-        sp => sp.category !== category
       );
       updateFormData({ selectedProducts: remaining });
     }

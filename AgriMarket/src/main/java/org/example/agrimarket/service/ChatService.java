@@ -58,6 +58,12 @@ public class ChatService {
                     .collect(Collectors.toList());
         }
 
+        // Return empty list instead of throwing an error for Admins to keep global ChatPopup clean
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isPresent()) {
+            return new ArrayList<>();
+        }
+
         throw new RuntimeException("Tài khoản không tìm thấy");
     }
 

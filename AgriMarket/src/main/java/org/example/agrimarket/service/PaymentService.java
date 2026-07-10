@@ -12,6 +12,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -41,6 +42,9 @@ public class PaymentService {
     @Autowired
     private PreorderItemRepository preorderItemRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     @Transactional
     public String createVNPayPaymentUrl(HttpServletRequest request, String orderCode, String email, String deliveryMode) {
         double amount = 0;
@@ -60,7 +64,8 @@ public class PaymentService {
             double subtotal = items.stream().mapToDouble(item -> item.getProduct().getPrice() * item.getQuantity()).sum();
             double shippingFee = "pickup".equalsIgnoreCase(deliveryMode) ? 0 : 35000;
             double serviceFee = 15000;
-            double totalAmount = subtotal + shippingFee + serviceFee;
+            double discount = preorder.getDiscount() != null ? preorder.getDiscount() : 0.0;
+            double totalAmount = Math.max(0, subtotal + shippingFee + serviceFee - discount);
             // Deposit is 20% of the total amount
             amount = totalAmount * 0.2;
         } else {
@@ -268,11 +273,33 @@ public class PaymentService {
                 group.setPaymentMethod(paymentMethod);
             }
 
+            // Chuyển tất cả sub-order từ 'awaiting_payment' / 'unpaid' sang 'pending' (paid)
+            // và gửi thông báo cho farmer
             if (group.getSubOrders() != null) {
+                String customerName = group.getCustomer() != null ? group.getCustomer().getFullName() : "Khách hàng";
                 for (Order subOrder : group.getSubOrders()) {
                     subOrder.setStatus("pending");
                     subOrder.setPaymentStatus("paid");
                     orderRepository.save(subOrder);
+
+                    // Gửi thông báo đơn hàng mới cho farmer (chỉ lúc này mới thực sự có tiền)
+                    if (subOrder.getFarmer() != null) {
+                        try {
+                            Notification notif = Notification.builder()
+                                    .receiverType("farmer")
+                                    .receiverId(subOrder.getFarmer().getId())
+                                    .title("Đơn hàng mới đã thanh toán!")
+                                    .content("Bạn có đơn hàng mới đã thanh toán từ khách hàng " + customerName
+                                            + ". Mã đơn: " + subOrder.getOrderCode())
+                                    .link("/farmer/orders/orderdetail/" + subOrder.getOrderCode())
+                                    .createdAt(LocalDateTime.now())
+                                    .isRead(false)
+                                    .build();
+                            notificationRepository.save(notif);
+                        } catch (Exception e) {
+                            System.err.println("Lỗi gửi thông báo farmer sau VNPay: " + e.getMessage());
+                        }
+                    }
                 }
             }
             orderGroupRepository.save(group);
