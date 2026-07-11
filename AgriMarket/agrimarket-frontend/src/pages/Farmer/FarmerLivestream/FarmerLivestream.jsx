@@ -536,10 +536,16 @@ export const FarmerLivestream = () => {
       const lastResultIndex = event.results.length - 1;
       const transcript = event.results[lastResultIndex][0].transcript;
       if (transcript && transcript.trim().length > 0) {
-        apiClient.post("/api/moderation/livestream-stt-check", {
-          livestreamId: liveSessionId,
-          transcript: transcript.trim()
-        }).catch(err => console.error("Lỗi gửi giọng nói kiểm duyệt:", err));
+        fetch("http://localhost:8000/moderation/text", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            livestreamId: liveSessionId,
+            text: transcript.trim()
+          })
+        }).catch(err => console.error("Lỗi gửi giọng nói kiểm duyệt AI:", err));
       }
     };
 

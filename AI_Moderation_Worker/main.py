@@ -34,6 +34,23 @@ except Exception as e:
     print(f">>> Error loading YOLOv8: {e}. Running in fallback mode.")
     yolo_model = None
 
+# Load pre-trained PhoBERT model for toxicity classification
+nlp_tokenizer = None
+nlp_model = None
+
+try:
+    print(">>> Loading PhoBERT Toxic Comment Classifier...")
+    model_name = "nguyenvanhop/phobert-toxic-comment"
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    import torch
+    
+    cache_directory = os.path.join(os.path.dirname(__file__), "huggingface_cache")
+    nlp_tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_directory)
+    nlp_model = AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_directory)
+    print(">>> PhoBERT loaded successfully.")
+except Exception as e:
+    print(f">>> Error loading PhoBERT model: {e}. Text checks will fallback to local regex.")
+
 # Memory cache to detect static/trash livestreams
 # Format: { livestream_id: { "last_frame": ndarray, "static_count": int } }
 stream_history = {}
@@ -164,9 +181,74 @@ async def moderate_frame(payload: FramePayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class TextPayload(BaseModel):
+    livestreamId: int
+    text: str
+
+
+@app.post("/moderation/text")
+async def moderate_text(payload: TextPayload):
+    is_violation = False
+    reason = None
+    
+    if nlp_model is None or nlp_tokenizer is None:
+        # Fallback to local regex-based check if model is not loaded
+        lower = payload.text.lower()
+        bad_words = ["địt", "đm", "đkm", "đcm", "vcl", "vãi lồn", "cặc", "lồn", "đéo", "đĩ", "chó đẻ"]
+        is_bad = any(w in lower for w in bad_words) or any(p in lower for p in ["zalo", "facebook", "shopee", "sđt", "điện thoại"])
+        if is_bad:
+            is_violation = True
+            reason = "LOCAL_REGEX_FALLBACK"
+    else:
+        try:
+            import torch
+            inputs = nlp_tokenizer(payload.text, return_tensors="pt", truncation=True, max_length=256)
+            with torch.no_grad():
+                outputs = nlp_model(**inputs)
+            
+            prediction = torch.argmax(outputs.logits, dim=1).item()
+            if prediction == 1:
+                is_violation = True
+                reason = "TOXIC_OR_OFFENSIVE"
+        except Exception as e:
+            print(f">>> Text classification error: {e}")
+            # Fallback on exception
+            lower = payload.text.lower()
+            bad_words = ["địt", "đm", "đkm", "đcm", "vcl", "vãi lồn", "cặc", "lồn", "đéo", "đĩ", "chó đẻ"]
+            is_bad = any(w in lower for w in bad_words) or any(p in lower for p in ["zalo", "facebook", "shopee", "sđt", "điện thoại"])
+            if is_bad:
+                is_violation = True
+                reason = "LOCAL_REGEX_FALLBACK"
+
+    if is_violation:
+        print(f">>> AI Text Moderation Violation: {reason} - {payload.text}")
+        webhook_payload = {
+            "livestreamId": payload.livestreamId,
+            "alertType": "AUDIO_VIOLATION",
+            "evidenceUrl": f"Phát ngôn vi phạm: \"{payload.text}\" (AI nhận diện: {reason})"
+        }
+        try:
+            r = requests.post(SPRING_BOOT_URL, json=webhook_payload)
+            if r.status_code == 200:
+                print(f"    Alert successfully reported to Spring Boot.")
+            else:
+                print(f"    Failed to report alert to Spring Boot: {r.status_code} - {r.text}")
+        except Exception as e:
+            print(f"    Error connecting to Spring Boot webhook: {e}")
+
+    return {
+        "flagged": is_violation,
+        "reason": reason
+    }
+
+
 @app.get("/")
 def index():
-    return {"status": "running", "yolo_loaded": yolo_model is not None}
+    return {
+        "status": "running", 
+        "yolo_loaded": yolo_model is not None,
+        "phobert_loaded": nlp_model is not None
+    }
 
 
 if __name__ == "__main__":
