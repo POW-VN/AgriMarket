@@ -1,5 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Calendar, Radio, Video, VideoOff, Mic, MicOff, Trash2, Ban } from "lucide-react";
+import { 
+  Calendar, 
+  Radio, 
+  Video, 
+  VideoOff, 
+  Mic, 
+  MicOff, 
+  Trash2, 
+  Ban, 
+  ClipboardList, 
+  Package, 
+  Ticket, 
+  Lightbulb, 
+  Pin, 
+  MessageSquare, 
+  Sparkles, 
+  AlertTriangle, 
+  Pencil, 
+  Users, 
+  Heart 
+} from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import * as productService from "../../../services/productService";
 import AgoraRTC from "agora-rtc-sdk-ng";
@@ -359,12 +379,16 @@ const FarmerScheduledCountdown = ({ title, description, scheduledTime, onStartLi
           fontSize: "1rem",
           cursor: connecting ? "not-allowed" : "pointer",
           boxShadow: connecting ? "none" : "0 4px 14px rgba(16, 185, 129, 0.4)",
-          transition: "all 0.2s"
+          transition: "all 0.2s",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px"
         }}
         onMouseOver={(e) => { if (!connecting) e.currentTarget.style.backgroundColor = "#059669"; }}
         onMouseOut={(e) => { if (!connecting) e.currentTarget.style.backgroundColor = "#10b981"; }}
       >
-        📡 {connecting ? "Đang kết nối với server..." : "Phát Sóng Ngay Lập Tức"}
+        <Radio size={18} /> {connecting ? "Đang kết nối với server..." : "Phát Sóng Ngay Lập Tức"}
       </button>
     </div>
   );
@@ -1446,8 +1470,8 @@ export const FarmerLivestream = () => {
         <div className="prep-layout-grid">
           {/* Setup configurations */}
           <div className="live-card">
-            <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: "1.3rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px" }}>
-              📋 Thiết lập Phòng Livestream
+            <h2 style={{ marginTop: 0, color: "#0f172a", fontSize: "1.3rem", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <ClipboardList size={22} style={{ color: "#10b981" }} /> Thiết lập Phòng Livestream
             </h2>
 
             <div className="form-group-live">
@@ -1472,7 +1496,9 @@ export const FarmerLivestream = () => {
 
             <div className="form-group-live" style={{ marginBottom: "24px" }}>
               <label className="product-pin-title-row">
-                <span>📦 Chọn Nông sản bán trong live</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Package size={18} style={{ color: "#10b981" }} /> Chọn Nông sản bán trong live
+                </span>
                 {selectedProductIds.length > 0 && (
                   <span className="selected-count-tag">Đã chọn: {selectedProductIds.length}</span>
                 )}
@@ -1543,7 +1569,9 @@ export const FarmerLivestream = () => {
             </div>
 
             <div className="form-group-live">
-              <label>🎟️ Voucher/Mã giảm giá áp dụng (Độc quyền trên live)</label>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Ticket size={18} style={{ color: "#10b981" }} /> Voucher/Mã giảm giá áp dụng (Độc quyền trên live)
+              </label>
               <div className="voucher-option-pills">
                 <button
                   className={`voucher-pill ${voucherPercent === 0 ? "active" : ""}`}
@@ -1576,8 +1604,8 @@ export const FarmerLivestream = () => {
           {/* Device & Settings Check */}
           <div>
             <div className="live-card" style={{ paddingBottom: "16px" }}>
-              <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "1.1rem", marginBottom: "16px" }}>
-                🎥 Kiểm tra thiết bị
+              <h3 style={{ marginTop: 0, color: "#0f172a", fontSize: "1.1rem", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <Video size={20} style={{ color: "#10b981" }} /> Kiểm tra thiết bị
               </h3>
 
               {/* Viewfinder Preview */}
@@ -1592,7 +1620,9 @@ export const FarmerLivestream = () => {
                   ></video>
                 ) : (
                   <div className="camera-placeholder-graphic">
-                    <span className="placeholder-cam-icon">📹</span>
+                    <span className="placeholder-cam-icon" style={{ display: "inline-flex", justifyContent: "center", alignItems: "center", marginBottom: "8px" }}>
+                      <VideoOff size={48} style={{ color: "#64748b" }} />
+                    </span>
                     <p style={{ margin: 0, fontSize: "0.85rem" }}>
                       {!isCamOn ? "Camera đã tắt" : "Đang chờ kết nối camera..."}
                     </p>
@@ -1653,7 +1683,9 @@ export const FarmerLivestream = () => {
 
               {/* Guideline reminders */}
               <div className="stream-tips-box">
-                <h4 className="tips-title">💡 Mẹo Livestream đạt hiệu quả:</h4>
+                <h4 className="tips-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Lightbulb size={18} style={{ color: "#f59e0b" }} /> Mẹo Livestream đạt hiệu quả:
+                </h4>
                 <ul className="tips-list">
                   <li>Đảm bảo vị trí quay có đủ ánh sáng mặt trời tự nhiên.</li>
                   <li>Giữ đường truyền mạng Wifi/4G ổn định trong suốt buổi live.</li>
@@ -1735,8 +1767,8 @@ export const FarmerLivestream = () => {
             padding: "16px 20px",
             marginBottom: "20px"
           }}>
-            <h3 style={{ margin: "0 0 6px 0", color: "#0f172a", fontSize: "1.15rem", fontWeight: "700" }}>
-              🔴 Phiên live hiện tại: {title}
+            <h3 style={{ margin: "0 0 6px 0", color: "#0f172a", fontSize: "1.15rem", fontWeight: "700", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ display: "inline-block", width: "10px", height: "10px", backgroundColor: "#ef4444", borderRadius: "50%", animation: "pulse-red 1.5s infinite" }}></span> Phiên live hiện tại: {title}
             </h3>
             {description && (
               <p style={{ margin: 0, color: "#64748b", fontSize: "0.9rem", whiteSpace: "pre-line" }}>
@@ -1770,7 +1802,9 @@ export const FarmerLivestream = () => {
                       color: "white"
                     }}
                   >
-                    <span style={{ fontSize: "3rem", animation: "bounce 2s infinite" }}>🎥</span>
+                    <span style={{ display: "inline-flex", animation: "bounce 2s infinite" }}>
+                      <VideoOff size={48} style={{ color: "#cbd5e1" }} />
+                    </span>
                     <p style={{ marginTop: "12px", fontSize: "0.95rem", fontWeight: "600", color: "#cbd5e1" }}>
                       Camera đang tắt (Livestream đang chạy)
                     </p>
@@ -1790,11 +1824,11 @@ export const FarmerLivestream = () => {
                   </div>
 
                   <div className="viewfinder-badges-right">
-                    <span className="badge-console-stats">
-                      👥 {viewersCount} người xem
+                    <span className="badge-console-stats" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <Users size={14} /> {viewersCount} người xem
                     </span>
-                    <span className="badge-console-stats">
-                      ❤️ {heartsCount} Thích
+                    <span className="badge-console-stats" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <Heart size={14} style={{ fill: "#ef4444", color: "#ef4444" }} /> {heartsCount} Thích
                     </span>
                   </div>
                 </div>
@@ -1859,8 +1893,8 @@ export const FarmerLivestream = () => {
                 {/* Console Products pinning selection list */}
                 <div className="console-products-card">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                    <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569" }}>
-                      📌 Sản phẩm trong buổi live ({selectedProductIds.length})
+                    <h4 style={{ margin: 0, fontSize: "0.9rem", color: "#475569", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Pin size={16} style={{ color: "#ef4444", transform: "rotate(45deg)" }} /> Sản phẩm trong buổi live ({selectedProductIds.length})
                     </h4>
                     <button
                       className="btn-edit-live-products"
@@ -1877,7 +1911,7 @@ export const FarmerLivestream = () => {
                         gap: "4px"
                       }}
                     >
-                      ✏️ Chỉnh sửa
+                      <Pencil size={12} /> Chỉnh sửa
                     </button>
                   </div>
                   <div className="pinned-products-grid">
@@ -1905,8 +1939,15 @@ export const FarmerLivestream = () => {
                             <button
                               className={`btn-pin-control ${isActivePin ? "active" : ""}`}
                               onClick={() => handlePinProduct(p.id)}
+                              style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
                             >
-                              {isActivePin ? "📌 Đang ghim" : "Ghim lên live"}
+                              {isActivePin ? (
+                                <>
+                                  <Pin size={12} style={{ transform: "rotate(45deg)", fill: "currentColor" }} /> Đang ghim
+                                </>
+                              ) : (
+                                "Ghim lên live"
+                              )}
                             </button>
                           </div>
                         );
@@ -1916,8 +1957,8 @@ export const FarmerLivestream = () => {
 
                 {/* Voucher edit section during live */}
                 <div className="console-voucher-edit-card" style={{ marginTop: "20px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
-                  <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569" }}>
-                    🎟️ Điều chỉnh Voucher phiên live
+                  <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#475569", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Ticket size={16} style={{ color: "#10b981" }} /> Điều chỉnh Voucher phiên live
                   </h4>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <div className="voucher-option-pills" style={{ gap: "6px", display: "flex", flexWrap: "wrap" }}>
@@ -1981,8 +2022,8 @@ export const FarmerLivestream = () => {
             {/* Right column: Live Chat box */}
             <div className="live-card live-chat-panel">
               <div className="chat-panel-header">
-                <h3 className="chat-panel-title">
-                  💬 Khán giả trò chuyện
+                <h3 className="chat-panel-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <MessageSquare size={18} style={{ color: "#10b981" }} /> Khán giả trò chuyện
                 </h3>
                 <span className="badge-role" style={{ backgroundColor: "#e2e8f0", color: "#475569" }}>
                   Host Console
@@ -1993,7 +2034,9 @@ export const FarmerLivestream = () => {
               {pinnedChatMessage && (
                 <div className="console-pinned-chat-row">
                   <div className="console-pinned-chat-content">
-                    <span className="pinned-badge">📌 Đã ghim:</span>
+                    <span className="pinned-badge" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <Pin size={12} style={{ transform: "rotate(45deg)", fill: "currentColor" }} /> Đã ghim:
+                    </span>
                     <span className="pinned-user">{pinnedChatMessage.user}:</span>
                     <span className="pinned-text">{pinnedChatMessage.text}</span>
                   </div>
@@ -2022,8 +2065,9 @@ export const FarmerLivestream = () => {
                             className="btn-pin-chat-msg"
                             onClick={() => handlePinChat(msg)}
                             title="Ghim tin nhắn"
+                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                           >
-                            📌
+                            <Pin size={14} style={{ transform: "rotate(45deg)" }} />
                           </button>
                           <button
                             className="btn-delete-chat-msg"
@@ -2075,7 +2119,7 @@ export const FarmerLivestream = () => {
         <div className="live-report-overlay">
           <div className="live-report-modal">
             <div className="report-icon-container">
-              🎉
+              <Sparkles size={36} style={{ color: "#10b981" }} />
             </div>
             <h2 className="report-title">
               Đã Kết Thúc Livestream!
@@ -2162,7 +2206,9 @@ export const FarmerLivestream = () => {
         <div className="live-modal-overlay">
           <div className="live-modal-content">
             <div className="live-modal-header">
-              <h3>✏️ Quản lý sản phẩm trên Livestream</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Pencil size={18} style={{ color: "#10b981" }} /> Quản lý sản phẩm trên Livestream
+              </h3>
               <button className="btn-close-modal" onClick={() => setIsEditProductsOpen(false)}>
                 &times;
               </button>
@@ -2253,7 +2299,7 @@ export const FarmerLivestream = () => {
         <div className="live-report-overlay">
           <div className="live-report-modal" style={{ maxWidth: "420px", padding: "28px" }}>
             <div className="report-icon-container" style={{ backgroundColor: "#fee2e2", color: "#ef4444", marginBottom: "16px" }}>
-              ⚠️
+              <AlertTriangle size={36} />
             </div>
             <h3 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#1f2937", margin: "0 0 8px 0" }}>
               Xác nhận Kết thúc Live

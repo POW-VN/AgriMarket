@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Download, Plus, Search, ChevronDown, X, Eye } from 'lucide-react';
 
 const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loading }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,18 +111,18 @@ const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loadi
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
             }}
           >
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            <Download size={18} />
             Xuất báo cáo
           </button>
-          <button className="btn-spromo-primary" onClick={onCreateNew}>
-            <span>+</span> Tạo khuyến mãi mới
+          <button className="btn-spromo-primary" onClick={onCreateNew} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Plus size={16} /> Tạo khuyến mãi mới
           </button>
         </div>
       </div>
 
       <div className="spromo-list-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div className="spromo-search-box" style={{ flex: '1', minWidth: '300px' }}>
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <Search size={18} />
           <input 
             type="text" 
             placeholder="Tìm kiếm khuyến mãi, nông dân, sản phẩm..." 
@@ -133,7 +134,7 @@ const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loadi
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button style={{ padding: '8px 16px', border: '1px solid #10b981', color: '#10b981', background: '#f0fdf4', borderRadius: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
             Tất cả ({filteredPromotions.length})
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            <ChevronDown size={14} />
           </button>
           
           <select 
@@ -185,7 +186,7 @@ const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loadi
                 style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Xóa bộ lọc ngày"
               >
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                <X size={14} />
               </button>
             )}
           </div>
@@ -277,8 +278,8 @@ const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loadi
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', color: 'var(--spromo-text-muted)' }}>
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} onClick={() => onViewDetail(promo.id)}>
-                      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'inline-flex', alignItems: 'center' }} onClick={() => onViewDetail(promo.id)}>
+                      <Eye size={18} />
                     </button>
 
                   </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PreviewSidebar from './PreviewSidebar';
 import apiClient from '../../../services/apiClient';
+import { Percent, DollarSign, ShoppingCart, Ticket } from 'lucide-react';
 
 const Step1BasicInfo = ({ formData, updateFormData, role, farmersList = [] }) => {
   const [uploading, setUploading] = useState(false);
@@ -167,7 +168,7 @@ const Step1BasicInfo = ({ formData, updateFormData, role, farmersList = [] }) =>
               onClick={() => updateFormData({ discountType: 'percent' })}
             >
               <div className="radio-card-header">
-                <span className="icon">%</span> Giảm theo %
+                <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}><Percent size={18} /></span> Giảm theo %
               </div>
               <div className="radio-card-desc">
                 Giảm giá theo phần trăm<br/>Ví dụ: Giảm 15%
@@ -180,7 +181,7 @@ const Step1BasicInfo = ({ formData, updateFormData, role, farmersList = [] }) =>
               onClick={() => updateFormData({ discountType: 'amount' })}
             >
               <div className="radio-card-header">
-                <span className="icon">$</span> Giảm theo số tiền
+                <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}><DollarSign size={18} /></span> Giảm theo số tiền
               </div>
               <div className="radio-card-desc">
                 Giảm giá theo số tiền cố định<br/>Ví dụ: Giảm 20.000đ
@@ -193,7 +194,7 @@ const Step1BasicInfo = ({ formData, updateFormData, role, farmersList = [] }) =>
               onClick={() => updateFormData({ discountType: 'order' })}
             >
               <div className="radio-card-header">
-                <span className="icon">🛒</span> Giảm đơn hàng
+                <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}><ShoppingCart size={18} /></span> Giảm đơn hàng
               </div>
               <div className="radio-card-desc">
                 Giảm giá cho đơn hàng<br/>Ví dụ: Giảm 30.000đ cho đơn từ 200.000đ
@@ -206,7 +207,7 @@ const Step1BasicInfo = ({ formData, updateFormData, role, farmersList = [] }) =>
               onClick={() => updateFormData({ discountType: 'code' })}
             >
               <div className="radio-card-header">
-                <span className="icon">🎟️</span> Mã giảm giá
+                <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}><Ticket size={18} /></span> Mã giảm giá
               </div>
               <div className="radio-card-desc">
                 Tạo mã giảm giá cho khách hàng<br/>Ví dụ: FREESHIP
