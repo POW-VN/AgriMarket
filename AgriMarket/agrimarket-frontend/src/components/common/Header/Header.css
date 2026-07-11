@@ -285,8 +285,11 @@
 }
 
 .search-prefix-btn {
-  background: transparent;
-  border: none;
+  position: static !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,7 +301,7 @@
 }
 
 .search-prefix-btn:hover {
-  background-color: #f3f4f6;
+  background-color: #f3f4f6 !important;
 }
 
 .search-input-prefix-icon {
