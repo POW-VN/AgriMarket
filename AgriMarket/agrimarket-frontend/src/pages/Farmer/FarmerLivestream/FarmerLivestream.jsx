@@ -1190,9 +1190,15 @@ export const FarmerLivestream = () => {
       // Sync initial discounts to backend
       const initialDiscs = {};
       selectedProductIds.forEach((id) => {
-        initialDiscs[id] = productDiscounts[id] !== undefined ? parseInt(productDiscounts[id]) || 0 : (voucherPercent > 0 ? voucherPercent : 10);
+        if (voucherPercent === 0) {
+          // Farmer chọn "Không áp dụng" → không có discount
+          initialDiscs[id] = 0;
+        } else {
+          // Dùng discount riêng của sản phẩm (nếu đã set), fallback về voucherPercent
+          initialDiscs[id] = productDiscounts[id] !== undefined ? parseInt(productDiscounts[id]) || 0 : voucherPercent;
+        }
       });
-      apiClient.post(`/api/livestreams/${data.liveSessionId}/discounts`, {
+      apiClient.post(`/api/livestreams/${data.livestreamId}/discounts`, {
         voucherPercent: voucherPercent,
         productDiscounts: initialDiscs
       }).catch(err => console.error("Lỗi đồng bộ chiết khấu ban đầu:", err));

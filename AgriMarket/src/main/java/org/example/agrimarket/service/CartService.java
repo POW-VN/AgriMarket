@@ -137,10 +137,13 @@ public class CartService {
             }
         }
 
+        // Nếu sản phẩm được thêm từ livestream, dùng livestreamPrice làm giá hiển thị
+        Double displayPrice = (item.getLivestreamPrice() != null) ? item.getLivestreamPrice() : product.getPrice();
+
         CartItemResponse response = CartItemResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
-                .price(product.getPrice())
+                .price(displayPrice)
                 .unit(product.getUnit())
                 .imageUrl(imageUrl)
                 .quantity(item.getQuantity())
@@ -152,6 +155,8 @@ public class CartService {
                 .maxDeliveryRange(maxDeliveryRange)
                 .isWithinDeliveryRange(isWithinDeliveryRange)
                 .perishability(product.getPerishability())
+                .livestreamPrice(item.getLivestreamPrice())
+                .livestreamId(item.getLivestreamId())
                 .build();
 
         return Optional.of(response);
@@ -159,6 +164,16 @@ public class CartService {
 
     @Transactional
     public List<CartItemResponse> addToCart(String email, Long productId, int quantity) {
+        return addToCart(email, productId, quantity, null, null);
+    }
+
+    /**
+     * Thêm sản phẩm vào giỏ hàng, có hỗ trợ giá ưu đãi từ livestream.
+     * @param livestreamPrice Giá ưu đãi từ livestream (null nếu thêm bình thường)
+     * @param livestreamId    ID của livestream nguồn (null nếu thêm bình thường)
+     */
+    @Transactional
+    public List<CartItemResponse> addToCart(String email, Long productId, int quantity, Double livestreamPrice, Long livestreamId) {
         Cart cart = getOrCreateCart(email);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
@@ -178,6 +193,11 @@ public class CartService {
                 throw new IllegalArgumentException("Không thể thêm số lượng vượt quá tồn kho hiện có (" + product.getStockQuantity() + ").");
             }
             existingItem.setQuantity(newQty);
+            // Nếu thêm từ livestream và item chưa có giá live thì cập nhật giá live
+            if (livestreamPrice != null && existingItem.getLivestreamPrice() == null) {
+                existingItem.setLivestreamPrice(livestreamPrice);
+                existingItem.setLivestreamId(livestreamId);
+            }
             cartItemRepository.save(existingItem);
         } else {
             if (quantity > product.getStockQuantity()) {
@@ -188,6 +208,8 @@ public class CartService {
             newItem.setProductId(productId);
             newItem.setQuantity(quantity);
             newItem.setChecked(true);
+            newItem.setLivestreamPrice(livestreamPrice);
+            newItem.setLivestreamId(livestreamId);
             cart.getItems().add(newItem);
             cartItemRepository.save(newItem);
         }
@@ -306,6 +328,25 @@ public class CartService {
         if (changed) {
             cartItemRepository.saveAll(cart.getItems());
         }
+    }
+
+    /**
+     * Reset giá về giá gốc (product.price) cho tất cả CartItem có liên kết đến livestream đã kết thúc.
+     * Được gọi tự động khi farmer kết thúc phiên livestream.
+     *
+     * @param livestreamId ID của livestream vừa kết thúc
+     */
+    @Transactional
+    public void resetLivestreamPrices(Long livestreamId) {
+        List<CartItem> affectedItems = cartItemRepository.findByLivestreamId(livestreamId);
+        if (affectedItems == null || affectedItems.isEmpty()) {
+            return;
+        }
+        for (CartItem item : affectedItems) {
+            item.setLivestreamPrice(null);
+            item.setLivestreamId(null);
+        }
+        cartItemRepository.saveAll(affectedItems);
     }
 }
 

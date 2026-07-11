@@ -38,7 +38,13 @@ public class CartController {
             return ResponseEntity.badRequest().body("Thông tin sản phẩm hoặc số lượng không hợp lệ.");
         }
         try {
-            List<CartItemResponse> cart = cartService.addToCart(principal.getName(), request.getProductId(), request.getQuantity());
+            List<CartItemResponse> cart = cartService.addToCart(
+                    principal.getName(),
+                    request.getProductId(),
+                    request.getQuantity(),
+                    request.getLivestreamPrice(),
+                    request.getLivestreamId()
+            );
             return ResponseEntity.ok(cart);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
