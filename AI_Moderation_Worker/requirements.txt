@@ -4,4 +4,7 @@ opencv-python
 numpy
 requests
 ultralytics
-pillow
+torch
+transformers
+sentencepiece
+protobuf

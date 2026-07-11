@@ -20,7 +20,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SPRING_BOOT_URL = "http://localhost:8080/api/moderation/livestream-alert"
+SPRING_BOOT_URL = os.getenv(
+    "SPRING_BOOT_URL",
+    "https://agrimarket-cnpl.onrender.com/api/moderation/livestream-alert"
+)
+
+#SPRING_BOOT_URL = os.getenv(
+#    "SPRING_BOOT_URL",
+#    "http://localhost:8080/api/moderation/livestream-alert" # Gửi về Spring Boot local
+#)
 
 # Load pre-trained YOLOv8 model (automatically downloads coco weights on first run ~6MB)
 try:
@@ -30,6 +38,23 @@ try:
 except Exception as e:
     print(f">>> Error loading YOLOv8: {e}. Running in fallback mode.")
     yolo_model = None
+
+# Load pre-trained PhoBERT model for toxicity classification
+nlp_tokenizer = None
+nlp_model = None
+
+try:
+    print(">>> Loading PhoBERT Toxic Comment Classifier...")
+    model_name = "vijjj1/toxic-comment-phobert"
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+    import torch
+    
+    cache_directory = os.path.join(os.path.dirname(__file__), "huggingface_cache")
+    nlp_tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_directory)
+    nlp_model = AutoModelForSequenceClassification.from_pretrained(model_name, cache_dir=cache_directory)
+    print(">>> PhoBERT loaded successfully.")
+except Exception as e:
+    print(f">>> Error loading PhoBERT model: {e}. Text checks will fallback to local regex.")
 
 # Memory cache to detect static/trash livestreams
 # Format: { livestream_id: { "last_frame": ndarray, "static_count": int } }
@@ -161,9 +186,92 @@ async def moderate_frame(payload: FramePayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class TextPayload(BaseModel):
+    livestreamId: int
+    text: str
+
+
+@app.post("/moderation/text")
+async def moderate_text(payload: TextPayload):
+    import re
+    is_violation = False
+    reason = None
+    
+    # 1. LỚP 1: Kiểm tra nhanh bằng Regex (Chặn tên đối thủ, SĐT, hoặc từ tục thô thiển)
+    lower_text = payload.text.lower()
+    
+    # Quét tên nền tảng đối thủ cạnh tranh
+    competitor_pattern = re.compile(
+        r"\b(facebook|zalo|shopee|lazada|tiki|momo|tiktok|fb\.com|zalo\.me|fb\.me|t\.me)\b", re.IGNORECASE
+    )
+    # Quét định dạng số điện thoại
+    phone_pattern = re.compile(
+        r"\b0[35789](\s*\.?\s*\d){8}\b"
+    )
+    # Danh sách từ tục tĩu thô cứng
+    bad_words = ["địt", "đm", "đkm", "đcm", "vcl", "vãi lồn", "cặc", "lồn", "đéo", "đĩ", "chó đẻ"]
+    
+    if competitor_pattern.search(lower_text) or phone_pattern.search(lower_text):
+        is_violation = True
+        reason = "REDIRECT_VIOLATION"
+    elif any(w in lower_text for w in bad_words) or "**" in lower_text:
+        is_violation = True
+        reason = "TOXIC_OR_OFFENSIVE"
+        
+    # 2. LỚP 2: Nếu Regex chưa bắt được, dùng PhoBERT để nhận diện ngữ nghĩa phức tạp hơn
+    if not is_violation:
+        if nlp_model is not None and nlp_tokenizer is not None:
+            try:
+                import torch
+                inputs = nlp_tokenizer(payload.text, return_tensors="pt", truncation=True, max_length=256)
+                with torch.no_grad():
+                    outputs = nlp_model(**inputs)
+                
+                # Tính xác suất bằng Softmax
+                probabilities = torch.softmax(outputs.logits, dim=1)
+                toxic_prob = probabilities[0][1].item()
+                
+                # In thông tin độ tin cậy của mọi câu nói để dễ theo dõi/debug
+                print(f">>> PhoBERT check: '{payload.text}' -> Toxic confidence: {toxic_prob * 100:.2f}%")
+                
+                # Hạ ngưỡng tin cậy (Confidence Threshold) xuống 0.50 (50%)
+                THRESHOLD = 0.50
+                if toxic_prob > THRESHOLD:
+                    is_violation = True
+                    reason = "TOXIC_OR_OFFENSIVE"
+            except Exception as e:
+                print(f">>> Text classification error: {e}")
+
+    # 3. Gửi Webhook báo cáo về Spring Boot
+    if is_violation:
+        print(f">>> AI Text Moderation Violation: {reason} - {payload.text}")
+        webhook_payload = {
+            "livestreamId": payload.livestreamId,
+            "alertType": "AUDIO_VIOLATION",
+            "evidenceUrl": f"Phát ngôn vi phạm: \"{payload.text}\" (AI nhận diện: {reason})"
+        }
+        try:
+            r = requests.post(SPRING_BOOT_URL, json=webhook_payload)
+            if r.status_code == 200:
+                print(f"    Alert successfully reported to Spring Boot.")
+            else:
+                print(f"    Failed to report alert to Spring Boot: {r.status_code} - {r.text}")
+        except Exception as e:
+            print(f"    Error connecting to Spring Boot webhook: {e}")
+
+    return {
+        "flagged": is_violation,
+        "reason": reason
+    }
+
+
 @app.get("/")
 def index():
-    return {"status": "running", "yolo_loaded": yolo_model is not None}
+    return {
+        "status": "running", 
+        "yolo_loaded": yolo_model is not None,
+        "phobert_loaded": nlp_model is not None
+    }
 
 
 if __name__ == "__main__":
