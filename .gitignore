@@ -9,3 +9,9 @@ uploads/
 node_modules/
 package-lock.json
 *.log
+
+# Python virtual environment and caches
+.venv/
+AI_Moderation_Worker/huggingface_cache/
+AI_Moderation_Worker/__pycache__/
+**/__pycache__/

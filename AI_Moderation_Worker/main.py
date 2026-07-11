@@ -25,6 +25,11 @@ SPRING_BOOT_URL = os.getenv(
     "https://agrimarket-cnpl.onrender.com/api/moderation/livestream-alert"
 )
 
+#SPRING_BOOT_URL = os.getenv(
+#    "SPRING_BOOT_URL",
+#    "http://localhost:8080/api/moderation/livestream-alert" # Gửi về Spring Boot local
+#)
+
 # Load pre-trained YOLOv8 model (automatically downloads coco weights on first run ~6MB)
 try:
     print(">>> Loading YOLOv8 model...")
@@ -40,7 +45,7 @@ nlp_model = None
 
 try:
     print(">>> Loading PhoBERT Toxic Comment Classifier...")
-    model_name = "nguyenvanhop/phobert-toxic-comment"
+    model_name = "vijjj1/toxic-comment-phobert"
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     import torch
     
@@ -188,38 +193,56 @@ class TextPayload(BaseModel):
 
 @app.post("/moderation/text")
 async def moderate_text(payload: TextPayload):
+    import re
     is_violation = False
     reason = None
     
-    if nlp_model is None or nlp_tokenizer is None:
-        # Fallback to local regex-based check if model is not loaded
-        lower = payload.text.lower()
-        bad_words = ["địt", "đm", "đkm", "đcm", "vcl", "vãi lồn", "cặc", "lồn", "đéo", "đĩ", "chó đẻ"]
-        is_bad = any(w in lower for w in bad_words) or any(p in lower for p in ["zalo", "facebook", "shopee", "sđt", "điện thoại"])
-        if is_bad:
-            is_violation = True
-            reason = "LOCAL_REGEX_FALLBACK"
-    else:
-        try:
-            import torch
-            inputs = nlp_tokenizer(payload.text, return_tensors="pt", truncation=True, max_length=256)
-            with torch.no_grad():
-                outputs = nlp_model(**inputs)
-            
-            prediction = torch.argmax(outputs.logits, dim=1).item()
-            if prediction == 1:
-                is_violation = True
-                reason = "TOXIC_OR_OFFENSIVE"
-        except Exception as e:
-            print(f">>> Text classification error: {e}")
-            # Fallback on exception
-            lower = payload.text.lower()
-            bad_words = ["địt", "đm", "đkm", "đcm", "vcl", "vãi lồn", "cặc", "lồn", "đéo", "đĩ", "chó đẻ"]
-            is_bad = any(w in lower for w in bad_words) or any(p in lower for p in ["zalo", "facebook", "shopee", "sđt", "điện thoại"])
-            if is_bad:
-                is_violation = True
-                reason = "LOCAL_REGEX_FALLBACK"
+    # 1. LỚP 1: Kiểm tra nhanh bằng Regex (Chặn tên đối thủ, SĐT, hoặc từ tục thô thiển)
+    lower_text = payload.text.lower()
+    
+    # Quét tên nền tảng đối thủ cạnh tranh
+    competitor_pattern = re.compile(
+        r"\b(facebook|zalo|shopee|lazada|tiki|momo|tiktok|fb\.com|zalo\.me|fb\.me|t\.me)\b", re.IGNORECASE
+    )
+    # Quét định dạng số điện thoại
+    phone_pattern = re.compile(
+        r"\b0[35789](\s*\.?\s*\d){8}\b"
+    )
+    # Danh sách từ tục tĩu thô cứng
+    bad_words = ["địt", "đm", "đkm", "đcm", "vcl", "vãi lồn", "cặc", "lồn", "đéo", "đĩ", "chó đẻ"]
+    
+    if competitor_pattern.search(lower_text) or phone_pattern.search(lower_text):
+        is_violation = True
+        reason = "REDIRECT_VIOLATION"
+    elif any(w in lower_text for w in bad_words) or "**" in lower_text:
+        is_violation = True
+        reason = "TOXIC_OR_OFFENSIVE"
+        
+    # 2. LỚP 2: Nếu Regex chưa bắt được, dùng PhoBERT để nhận diện ngữ nghĩa phức tạp hơn
+    if not is_violation:
+        if nlp_model is not None and nlp_tokenizer is not None:
+            try:
+                import torch
+                inputs = nlp_tokenizer(payload.text, return_tensors="pt", truncation=True, max_length=256)
+                with torch.no_grad():
+                    outputs = nlp_model(**inputs)
+                
+                # Tính xác suất bằng Softmax
+                probabilities = torch.softmax(outputs.logits, dim=1)
+                toxic_prob = probabilities[0][1].item()
+                
+                # In thông tin độ tin cậy của mọi câu nói để dễ theo dõi/debug
+                print(f">>> PhoBERT check: '{payload.text}' -> Toxic confidence: {toxic_prob * 100:.2f}%")
+                
+                # Hạ ngưỡng tin cậy (Confidence Threshold) xuống 0.50 (50%)
+                THRESHOLD = 0.50
+                if toxic_prob > THRESHOLD:
+                    is_violation = True
+                    reason = "TOXIC_OR_OFFENSIVE"
+            except Exception as e:
+                print(f">>> Text classification error: {e}")
 
+    # 3. Gửi Webhook báo cáo về Spring Boot
     if is_violation:
         print(f">>> AI Text Moderation Violation: {reason} - {payload.text}")
         webhook_payload = {
