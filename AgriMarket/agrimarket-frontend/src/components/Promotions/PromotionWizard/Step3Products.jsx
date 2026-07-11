@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../../services/apiClient';
+import { Search } from 'lucide-react';
 
 const Step3Products = ({ formData, updateFormData }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,7 +79,7 @@ const Step3Products = ({ formData, updateFormData }) => {
           <h3 className="spromo-card-title" style={{ border: 'none', padding: 0, marginBottom: '16px' }}>Sản phẩm áp dụng</h3>
 
           <div className="spromo-search-box" style={{ width: '100%', marginBottom: '16px' }}>
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <Search width={18} height={18} />
             <input 
               type="text" 
               placeholder="Tìm kiếm theo tên sản phẩm..." 

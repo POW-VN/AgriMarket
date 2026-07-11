@@ -10,221 +10,221 @@ import "../AdminStyles.css";
 import "./AdminNotifications.css";
 
 const PopoverDateTimePicker = ({ value, onChange, minDate }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef(null);
-  
-  const formatDisplay = (val) => {
-    if (!val) return "";
-    const parts = val.split("T");
-    if (parts.length !== 2) return val;
-    const [y, m, d] = parts[0].split("-");
-    const [h, min] = parts[1].split(":");
-    return `${h}:${min} - ${d}/${m}/${y}`;
-  };
-  
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+    const [isOpen, setIsOpen] = useState(false);
+    const wrapperRef = useRef(null);
+
+    const formatDisplay = (val) => {
+        if (!val) return "";
+        const parts = val.split("T");
+        if (parts.length !== 2) return val;
+        const [y, m, d] = parts[0].split("-");
+        const [h, min] = parts[1].split(":");
+        return `${h}:${min} - ${d}/${m}/${y}`;
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-  
-  const initialDate = value ? new Date(value.split("T")[0]) : new Date();
-  const initialTime = value ? value.split("T")[1] : "12:00";
-  const [selectedTime, setSelectedTime] = useState(initialTime);
-  
-  const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
-  const [viewYear, setViewYear] = useState(initialDate.getFullYear());
-  
-  useEffect(() => {
-    if (value) {
-      const datePart = value.split("T")[0];
-      const d = new Date(datePart);
-      if (!isNaN(d.getTime())) {
-        setViewMonth(d.getMonth());
-        setViewYear(d.getFullYear());
-      }
-      setSelectedTime(value.split("T")[1] || "12:00");
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const initialDate = value ? new Date(value.split("T")[0]) : new Date();
+    const initialTime = value ? value.split("T")[1] : "12:00";
+    const [selectedTime, setSelectedTime] = useState(initialTime);
+
+    const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
+    const [viewYear, setViewYear] = useState(initialDate.getFullYear());
+
+    useEffect(() => {
+        if (value) {
+            const datePart = value.split("T")[0];
+            const d = new Date(datePart);
+            if (!isNaN(d.getTime())) {
+                setViewMonth(d.getMonth());
+                setViewYear(d.getFullYear());
+            }
+            setSelectedTime(value.split("T")[1] || "12:00");
+        }
+    }, [value]);
+
+    const months = [
+        "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+        "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+    ];
+
+    const getDaysInMonth = (month, year) => {
+        return new Date(year, month + 1, 0).getDate();
+    };
+
+    const getFirstDayOfMonth = (month, year) => {
+        let day = new Date(year, month, 1).getDay();
+        return day === 0 ? 6 : day - 1;
+    };
+
+    const handlePrevMonth = (e) => {
+        e.stopPropagation();
+        if (viewMonth === 0) {
+            setViewMonth(11);
+            setViewYear(viewYear - 1);
+        } else {
+            setViewMonth(viewMonth - 1);
+        }
+    };
+
+    const handleNextMonth = (e) => {
+        e.stopPropagation();
+        if (viewMonth === 11) {
+            setViewMonth(0);
+            setViewYear(viewYear + 1);
+        } else {
+            setViewMonth(viewMonth + 1);
+        }
+    };
+
+    const daysInMonth = getDaysInMonth(viewMonth, viewYear);
+    const firstDay = getFirstDayOfMonth(viewMonth, viewYear);
+
+    const calendarCells = [];
+    for (let i = 0; i < firstDay; i++) {
+        calendarCells.push({ dayNum: null, dateObj: null, selectable: false });
     }
-  }, [value]);
-  
-  const months = [
-    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
-    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
-  ];
-  
-  const getDaysInMonth = (month, year) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-  
-  const getFirstDayOfMonth = (month, year) => {
-    let day = new Date(year, month, 1).getDay();
-    return day === 0 ? 6 : day - 1;
-  };
-  
-  const handlePrevMonth = (e) => {
-    e.stopPropagation();
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear(viewYear - 1);
-    } else {
-      setViewMonth(viewMonth - 1);
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(viewYear, viewMonth, d);
+
+        let selectable = true;
+        if (minDate) {
+            const minCopy = new Date(minDate);
+            minCopy.setHours(0, 0, 0, 0);
+            const dateCopy = new Date(dateObj);
+            dateCopy.setHours(0, 0, 0, 0);
+            if (dateCopy < minCopy) selectable = false;
+        }
+
+        calendarCells.push({ dayNum: d, dateObj, selectable });
     }
-  };
-  
-  const handleNextMonth = (e) => {
-    e.stopPropagation();
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear(viewYear + 1);
-    } else {
-      setViewMonth(viewMonth + 1);
-    }
-  };
-  
-  const daysInMonth = getDaysInMonth(viewMonth, viewYear);
-  const firstDay = getFirstDayOfMonth(viewMonth, viewYear);
-  
-  const calendarCells = [];
-  for (let i = 0; i < firstDay; i++) {
-    calendarCells.push({ dayNum: null, dateObj: null, selectable: false });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateObj = new Date(viewYear, viewMonth, d);
-    
-    let selectable = true;
-    if (minDate) {
-      const minCopy = new Date(minDate);
-      minCopy.setHours(0,0,0,0);
-      const dateCopy = new Date(dateObj);
-      dateCopy.setHours(0,0,0,0);
-      if (dateCopy < minCopy) selectable = false;
-    }
-    
-    calendarCells.push({ dayNum: d, dateObj, selectable });
-  }
-  
-  const handleSelectDay = (cell, e) => {
-    e.stopPropagation();
-    if (!cell.selectable) return;
-    const y = cell.dateObj.getFullYear();
-    const m = String(cell.dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(cell.dateObj.getDate()).padStart(2, '0');
-    onChange(`${y}-${m}-${d}T${selectedTime}`);
-  };
-  
-  const handleTimeChange = (e) => {
-    setSelectedTime(e.target.value);
-    if (value) {
-      const datePart = value.split("T")[0];
-      onChange(`${datePart}T${e.target.value}`);
-    } else {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      onChange(`${y}-${m}-${d}T${e.target.value}`);
-    }
-  };
-  
-  const isSelected = (cell) => {
-    if (!cell.dateObj || !value) return false;
-    const valDate = new Date(value.split("T")[0]);
-    return cell.dateObj.getFullYear() === valDate.getFullYear() &&
-           cell.dateObj.getMonth() === valDate.getMonth() &&
-           cell.dateObj.getDate() === valDate.getDate();
-  };
-  
-  return (
-    <div className="popover-datepicker-wrapper" ref={wrapperRef} style={{ position: "relative" }}>
-      <div 
-        className="popover-datepicker-input-container" 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "10px 12px",
-          border: "1px solid #cbd5e1",
-          borderRadius: "8px",
-          backgroundColor: "#fff",
-          cursor: "pointer",
-          fontSize: "14px"
-        }}
-      >
-        <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>
-          {formatDisplay(value) || "Chọn thời gian"}
-        </span>
-        <Calendar size={18} style={{ color: "#64748b" }} />
-      </div>
-      
-      {isOpen && (
-        <div 
-          className="custom-inline-calendar popover-calendar-dropdown" 
-          style={{ 
-            position: "absolute", 
-            top: "100%", 
-            left: 0, 
-            zIndex: 999, 
-            marginTop: "4px",
-            boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)"
-          }}
-        >
-          <div className="calendar-header">
-            <button type="button" onClick={handlePrevMonth} className="calendar-nav-btn">&lt;</button>
-            <span className="calendar-title">{months[viewMonth]} {viewYear}</span>
-            <button type="button" onClick={handleNextMonth} className="calendar-nav-btn">&gt;</button>
-          </div>
-          <div className="calendar-weekdays">
-            <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
-          </div>
-          <div className="calendar-grid">
-            {calendarCells.map((cell, idx) => {
-              if (cell.dayNum === null) {
-                return <div key={`empty-${idx}`} className="calendar-cell empty"></div>;
-              }
-              
-              let cellClass = "calendar-cell day";
-              if (!cell.selectable) {
-                cellClass += " disabled";
-              } else if (isSelected(cell)) {
-                cellClass += " selected";
-              }
-              
-              return (
-                <div 
-                  key={`day-${cell.dayNum}`} 
-                  className={cellClass}
-                  onClick={(e) => handleSelectDay(cell, e)}
+
+    const handleSelectDay = (cell, e) => {
+        e.stopPropagation();
+        if (!cell.selectable) return;
+        const y = cell.dateObj.getFullYear();
+        const m = String(cell.dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(cell.dateObj.getDate()).padStart(2, '0');
+        onChange(`${y}-${m}-${d}T${selectedTime}`);
+    };
+
+    const handleTimeChange = (e) => {
+        setSelectedTime(e.target.value);
+        if (value) {
+            const datePart = value.split("T")[0];
+            onChange(`${datePart}T${e.target.value}`);
+        } else {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            onChange(`${y}-${m}-${d}T${e.target.value}`);
+        }
+    };
+
+    const isSelected = (cell) => {
+        if (!cell.dateObj || !value) return false;
+        const valDate = new Date(value.split("T")[0]);
+        return cell.dateObj.getFullYear() === valDate.getFullYear() &&
+            cell.dateObj.getMonth() === valDate.getMonth() &&
+            cell.dateObj.getDate() === valDate.getDate();
+    };
+
+    return (
+        <div className="popover-datepicker-wrapper" ref={wrapperRef} style={{ position: "relative" }}>
+            <div
+                className="popover-datepicker-input-container"
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "8px",
+                    backgroundColor: "#fff",
+                    cursor: "pointer",
+                    fontSize: "14px"
+                }}
+            >
+                <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>
+                    {formatDisplay(value) || "Chọn thời gian"}
+                </span>
+                <Calendar size={18} style={{ color: "#64748b" }} />
+            </div>
+
+            {isOpen && (
+                <div
+                    className="custom-inline-calendar popover-calendar-dropdown"
+                    style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        zIndex: 999,
+                        marginTop: "4px",
+                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)"
+                    }}
                 >
-                  {cell.dayNum}
+                    <div className="calendar-header">
+                        <button type="button" onClick={handlePrevMonth} className="calendar-nav-btn">&lt;</button>
+                        <span className="calendar-title">{months[viewMonth]} {viewYear}</span>
+                        <button type="button" onClick={handleNextMonth} className="calendar-nav-btn">&gt;</button>
+                    </div>
+                    <div className="calendar-weekdays">
+                        <div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div><div>CN</div>
+                    </div>
+                    <div className="calendar-grid">
+                        {calendarCells.map((cell, idx) => {
+                            if (cell.dayNum === null) {
+                                return <div key={`empty-${idx}`} className="calendar-cell empty"></div>;
+                            }
+
+                            let cellClass = "calendar-cell day";
+                            if (!cell.selectable) {
+                                cellClass += " disabled";
+                            } else if (isSelected(cell)) {
+                                cellClass += " selected";
+                            }
+
+                            return (
+                                <div
+                                    key={`day-${cell.dayNum}`}
+                                    className={cellClass}
+                                    onClick={(e) => handleSelectDay(cell, e)}
+                                >
+                                    {cell.dayNum}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div style={{ marginTop: "12px", borderTop: "1px solid #e2e8f0", paddingTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: "600", color: "#475569" }}>Giờ gửi:</span>
+                        <input
+                            type="time"
+                            value={selectedTime}
+                            onChange={handleTimeChange}
+                            style={{
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                border: "1px solid #cbd5e1",
+                                fontSize: "13px",
+                                outline: "none"
+                            }}
+                        />
+                    </div>
                 </div>
-              );
-            })}
-          </div>
-          
-          <div style={{ marginTop: "12px", borderTop: "1px solid #e2e8f0", paddingTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "600", color: "#475569" }}>Giờ gửi:</span>
-            <input 
-              type="time" 
-              value={selectedTime}
-              onChange={handleTimeChange}
-              style={{
-                padding: "4px 8px",
-                borderRadius: "4px",
-                border: "1px solid #cbd5e1",
-                fontSize: "13px",
-                outline: "none"
-              }}
-            />
-          </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
 const notificationTypes = [
@@ -695,7 +695,7 @@ const AdminNotifications = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </div>
-                                    
+
                                     {showTypeDropdown && (
                                         <div className="searchable-dropdown-menu" style={{ width: "100%", zIndex: 110 }}>
                                             <div className="searchable-dropdown-list" style={{ maxHeight: "250px", overflowY: "auto" }}>
