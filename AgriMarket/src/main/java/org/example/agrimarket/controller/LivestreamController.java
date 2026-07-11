@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import org.example.agrimarket.service.ToxicityFilterService;
+import org.example.agrimarket.service.CartService;
 
 @RestController
 @RequestMapping("/api/livestreams")
@@ -55,6 +56,9 @@ public class LivestreamController {
 
     @Autowired
     private LivestreamAlertRepository livestreamAlertRepository;
+
+    @Autowired
+    private CartService cartService;
 
     private final RtcTokenBuilder2 tokenBuilder = new RtcTokenBuilder2();
 
@@ -487,6 +491,14 @@ public class LivestreamController {
 
         // Remove active viewer mapping
         activeViewersMap.remove(id);
+
+        // Reset giá về giá gốc cho tất cả CartItem từ livestream này
+        try {
+            cartService.resetLivestreamPrices(id);
+        } catch (Exception e) {
+            // Không để lỗi reset giá ảnh hưởng đến việc kết thúc livestream
+            e.printStackTrace();
+        }
 
         return ResponseEntity.ok(report);
     }

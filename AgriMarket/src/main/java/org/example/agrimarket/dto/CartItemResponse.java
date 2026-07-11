@@ -25,4 +25,9 @@ public class CartItemResponse {
     private Double maxDeliveryRange;
     private Boolean isWithinDeliveryRange;
     private String perishability;
+
+    /** Giá ưu đãi từ livestream. Null nếu không phải sản phẩm live. */
+    private Double livestreamPrice;
+    /** ID của livestream nguồn. Null nếu không phải sản phẩm live. */
+    private Long livestreamId;
 }

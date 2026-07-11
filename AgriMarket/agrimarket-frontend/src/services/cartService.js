@@ -7,8 +7,13 @@ const getCart = async () => {
   return response.data;
 };
 
-const addToCart = async (productId, quantity) => {
-  const response = await apiClient.post("/api/cart/add", { productId, quantity });
+const addToCart = async (productId, quantity, livestreamPrice = null, livestreamId = null) => {
+  const response = await apiClient.post("/api/cart/add", {
+    productId,
+    quantity,
+    ...(livestreamPrice !== null && { livestreamPrice }),
+    ...(livestreamId !== null && { livestreamId }),
+  });
   return response.data;
 };
 
