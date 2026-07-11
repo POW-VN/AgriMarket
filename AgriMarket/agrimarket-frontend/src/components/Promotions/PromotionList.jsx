@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { mockPromotions } from './PromotionsMockData';
 
-const PromotionList = ({ role, onCreateNew, onViewDetail }) => {
+const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loading }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [discountFilter, setDiscountFilter] = useState('all');
@@ -9,10 +8,10 @@ const PromotionList = ({ role, onCreateNew, onViewDetail }) => {
   const [filterDate, setFilterDate] = useState('');
 
   // Lấy danh sách nông dân duy nhất
-  const uniqueFarmers = [...new Set(mockPromotions.map(p => p.farmerName))];
+  const uniqueFarmers = [...new Set(promotions.map(p => p.farmerName).filter(Boolean))];
 
   // Filter & Sort logic
-  const filteredPromotions = mockPromotions.filter(promo => {
+  const filteredPromotions = promotions.filter(promo => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = promo.title.toLowerCase().includes(searchLower) || 
                           promo.code.toLowerCase().includes(searchLower) ||
@@ -165,7 +164,7 @@ const PromotionList = ({ role, onCreateNew, onViewDetail }) => {
               onChange={(e) => setFarmerFilter(e.target.value)}
               style={{ padding: '8px 12px', border: '1px solid var(--spromo-border)', background: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', outline: 'none', color: 'var(--spromo-text-main)', maxWidth: '150px' }}
             >
-              <option value="all">Nông dân</option>
+              <option value="all">Nhà vườn</option>
               {uniqueFarmers.map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
@@ -201,7 +200,7 @@ const PromotionList = ({ role, onCreateNew, onViewDetail }) => {
                 <input type="checkbox" />
               </th>
               <th>Chương trình</th>
-              {role === 'admin' && <th>Nông dân</th>}
+              {role === 'admin' && <th>Nhà vườn áp dụng</th>}
               <th>Loại giảm giá</th>
               <th>Giá trị giảm</th>
               <th>Thời gian</th>
@@ -223,7 +222,7 @@ const PromotionList = ({ role, onCreateNew, onViewDetail }) => {
                     <div className="spromo-name-info" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                       <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--spromo-primary)', fontWeight: 600 }}>{promo.title}</h4>
                       <span style={{ fontSize: '12px', color: 'var(--spromo-text-muted)', marginTop: '2px' }}>
-                        ID: KM-2024-{promo.id.toString().padStart(3, '0')}
+                        ID: {promo.code || `KM-2024-${promo.id.toString().padStart(3, '0')}`}
                       </span>
                     </div>
                   </div>
@@ -245,7 +244,7 @@ const PromotionList = ({ role, onCreateNew, onViewDetail }) => {
                     {promo.discountType === 'percent' ? promo.discountVal + '%' : promo.discountVal.toLocaleString() + 'đ'}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--spromo-text-muted)' }}>
-                    Tối đa {promo.discountType === 'percent' ? '50.000đ' : promo.discountVal.toLocaleString() + 'đ'}
+                    Tối đa {promo.maxDiscount ? promo.maxDiscount.toLocaleString() + 'đ' : 'Không giới hạn'}
                   </div>
                 </td>
                 <td>

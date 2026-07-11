@@ -10,7 +10,7 @@ const API_BASE_URL =
 ...
 */
 
-const getFullImageUrl = (url) => {
+export const getFullImageUrl = (url) => {
     if (!url) return "";
     if (url.startsWith("/uploads/")) {
         const host = API_BASE_URL.endsWith("/api") 

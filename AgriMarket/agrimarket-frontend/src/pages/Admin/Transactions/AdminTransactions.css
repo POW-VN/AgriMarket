@@ -163,9 +163,18 @@
 
 .date-row {
     margin-top: 14px;
-    grid-template-columns: 180px 40px 180px 90px;
+    grid-template-columns: 180px 40px 180px 80px 100px;
     justify-content: start;
     align-items: center;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
 }
 
 .admin-transactions-page .admin-transaction-search-box {

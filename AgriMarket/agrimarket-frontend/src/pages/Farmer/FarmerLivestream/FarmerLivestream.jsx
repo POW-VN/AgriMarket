@@ -476,6 +476,106 @@ export const FarmerLivestream = () => {
     }
   }, [isMicOn, streamState]);
 
+  // AI Moderation: Capture local stream frame every 10 seconds and post to Python worker
+  useEffect(() => {
+    if (streamState !== "live" || !liveSessionId) return;
+
+    const captureInterval = setInterval(() => {
+      let videoEl = null;
+      if (videoRef.current) {
+        if (videoRef.current.tagName === "VIDEO") {
+          videoEl = videoRef.current;
+        } else {
+          videoEl = videoRef.current.querySelector("video");
+        }
+      }
+      if (!videoEl) return;
+
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = videoEl.videoWidth || 640;
+        canvas.height = videoEl.videoHeight || 480;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+        
+        const frameData = canvas.toDataURL("image/jpeg", 0.7);
+        fetch("http://localhost:8000/moderation/frame", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            livestreamId: liveSessionId,
+            frame: frameData
+          })
+        }).catch(err => console.error("Lỗi gửi ảnh kiểm duyệt AI:", err));
+      } catch (err) {
+        console.error("Lỗi chụp ảnh kiểm duyệt:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(captureInterval);
+  }, [streamState, liveSessionId]);
+
+  // AI Moderation: Speech-to-Text via Web Speech API (free Vietnamese voice scan)
+  useEffect(() => {
+    if (streamState !== "live" || !liveSessionId) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("Trình duyệt không hỗ trợ Web Speech API.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "vi-VN";
+
+    recognition.onresult = (event) => {
+      const lastResultIndex = event.results.length - 1;
+      const transcript = event.results[lastResultIndex][0].transcript;
+      if (transcript && transcript.trim().length > 0) {
+        apiClient.post("/api/moderation/livestream-stt-check", {
+          livestreamId: liveSessionId,
+          transcript: transcript.trim()
+        }).catch(err => console.error("Lỗi gửi giọng nói kiểm duyệt:", err));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Lỗi nhận diện giọng nói:", event.error);
+    };
+
+    let restartTimeout = null;
+    recognition.onend = () => {
+      if (streamState === "live") {
+        restartTimeout = setTimeout(() => {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.error("Lỗi restart Speech Recognition:", e);
+          }
+        }, 5000);
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error("Lỗi bắt đầu Speech Recognition:", e);
+    }
+
+    return () => {
+      if (restartTimeout) clearTimeout(restartTimeout);
+      try {
+        recognition.stop();
+      } catch (e) {
+        console.error(e);
+      }
+    };
+  }, [streamState, liveSessionId]);
+
   // Recovery active session on mount
   useEffect(() => {
     if (window.agoraActiveHostSession && window.agoraActiveHostSession.streamState === "live") {
@@ -1090,9 +1190,15 @@ export const FarmerLivestream = () => {
       // Sync initial discounts to backend
       const initialDiscs = {};
       selectedProductIds.forEach((id) => {
-        initialDiscs[id] = productDiscounts[id] !== undefined ? parseInt(productDiscounts[id]) || 0 : (voucherPercent > 0 ? voucherPercent : 10);
+        if (voucherPercent === 0) {
+          // Farmer chọn "Không áp dụng" → không có discount
+          initialDiscs[id] = 0;
+        } else {
+          // Dùng discount riêng của sản phẩm (nếu đã set), fallback về voucherPercent
+          initialDiscs[id] = productDiscounts[id] !== undefined ? parseInt(productDiscounts[id]) || 0 : voucherPercent;
+        }
       });
-      apiClient.post(`/api/livestreams/${data.liveSessionId}/discounts`, {
+      apiClient.post(`/api/livestreams/${data.livestreamId}/discounts`, {
         voucherPercent: voucherPercent,
         productDiscounts: initialDiscs
       }).catch(err => console.error("Lỗi đồng bộ chiết khấu ban đầu:", err));

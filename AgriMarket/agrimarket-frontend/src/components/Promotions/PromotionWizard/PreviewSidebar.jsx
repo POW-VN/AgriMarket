@@ -29,8 +29,8 @@ const PreviewSidebar = ({ formData }) => {
           </span>
         </li>
         <li>
-          <span className="label">Tên nông dân</span>
-          <span style={{ fontWeight: 500 }}>{formData.farmerId ? 'Đã chọn' : 'Chưa chọn'}</span>
+          <span className="label">Tên nhà vườn</span>
+          <span style={{ fontWeight: 500 }}>{formData.farmerId ? 'Đã chọn' : 'Toàn hệ thống'}</span>
         </li>
         <li>
           <span className="label">Thời gian áp dụng</span>

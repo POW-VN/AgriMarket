@@ -14,4 +14,9 @@ public interface PreorderRepository extends JpaRepository<Preorder, Long> {
 
     @Query("SELECT DISTINCT pi.preorder FROM PreorderItem pi WHERE pi.product.farmer.id = :farmerId ORDER BY pi.preorder.createdAt DESC")
     List<Preorder> findPreordersByFarmerId(@Param("farmerId") Long farmerId);
+
+    long countByCustomerIdAndAppliedPromoCode(Long customerId, String appliedPromoCode);
+
+    @Query("SELECT p.appliedPromoCode FROM Preorder p WHERE p.customer.id = :customerId")
+    List<String> findAppliedPromoCodesByCustomerId(@Param("customerId") Long customerId);
 }

@@ -4,6 +4,7 @@ import Header from "../../components/common/Header/Header";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import apiClient from "../../services/apiClient";
 import wishlistService from "../../services/wishlistService";
+import cartService from "../../services/cartService";
 import "./LivestreamPage.css";
 
 
@@ -518,6 +519,10 @@ const LivestreamPage = () => {
         setChatInput("");
       } catch (err) {
         console.error("Lỗi gửi bình luận lên backend:", err);
+        const errorMsg = typeof err.response?.data === "string" 
+          ? err.response.data 
+          : "Không thể gửi bình luận. Vui lòng thử lại!";
+        showToast(errorMsg, "error");
       }
     } else {
       const currentUser = JSON.parse(localStorage.getItem("agrimarket_user")) || { fullName: "Bạn", avatarUrl: "" };
@@ -553,39 +558,72 @@ const LivestreamPage = () => {
     }
   };
 
-  // Functional add to cart logic (simulated purchase on live stream)
-  const handleBuyProduct = (product) => {
+  // Functional add to cart logic (with livestream price override for logged-in users)
+  const handleBuyProduct = async (product) => {
     if (streamData.status === "upcoming") {
       showToast(`Sản phẩm "${product.name}" sẽ chính thức mở bán khi phiên live lên sóng!`, "info");
       return;
     }
 
-    const localCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-    const existingItemIndex = localCart.findIndex((item) => item.id === product.id);
+    // Lấy giá livestream (đã giảm) hoặc giá gốc
+    const livePrice = product.price;
+    const currentLivestreamId = /^\d+$/.test(id) ? Number(id) : null;
 
-    if (existingItemIndex > -1) {
-      localCart[existingItemIndex].quantity += 1;
+    // Kiểm tra xem user đã đăng nhập chưa (dùng cùng key với apiClient.js)
+    const token = localStorage.getItem("farmconnect_token");
+    const isLoggedIn = !!token;
+
+    if (isLoggedIn && currentLivestreamId) {
+      // Người dùng đã đăng nhập → gọi API backend với giá live
+      try {
+        await cartService.addToCart(product.id, 1, livePrice, currentLivestreamId);
+        // Dispatch event để Header cập nhật badge giỏ hàng
+        window.dispatchEvent(new Event("cartUpdated"));
+        showToast(`Đã thêm "${product.name}" vào giỏ hàng với giá ưu đãi Live! 🛒`, "success");
+      } catch (err) {
+        console.error("Lỗi thêm vào giỏ hàng:", err);
+        const errorMsg = typeof err.response?.data === "string"
+          ? err.response.data
+          : "Không thể thêm vào giỏ hàng. Vui lòng thử lại!";
+        showToast(errorMsg, "error");
+      }
     } else {
-      localCart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        unit: product.unit,
-        imageUrl: product.imageUrl,
-        quantity: 1,
-        checked: true,
-        stockQuantity: product.stockQuantity,
-        farmerId: product.farmerId,
-        farmerName: product.farmerName
-      });
+      // Chưa đăng nhập hoặc không phải livestream thật → dùng localStorage (guest flow)
+      const localCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+      const existingItemIndex = localCart.findIndex((item) => item.id === product.id);
+
+      if (existingItemIndex > -1) {
+        localCart[existingItemIndex].quantity += 1;
+        // Cập nhật giá live nếu chưa có
+        if (!localCart[existingItemIndex].livestreamPrice && livePrice) {
+          localCart[existingItemIndex].price = livePrice;
+          localCart[existingItemIndex].livestreamPrice = livePrice;
+          localCart[existingItemIndex].livestreamId = currentLivestreamId;
+        }
+      } else {
+        localCart.push({
+          id: product.id,
+          name: product.name,
+          price: livePrice,
+          unit: product.unit,
+          imageUrl: product.imageUrl,
+          quantity: 1,
+          checked: true,
+          stockQuantity: product.stockQuantity,
+          farmerId: product.farmerId,
+          farmerName: product.farmerName,
+          livestreamPrice: currentLivestreamId ? livePrice : null,
+          livestreamId: currentLivestreamId,
+        });
+      }
+
+      localStorage.setItem("agrimarket_cart", JSON.stringify(localCart));
+
+      // Dispatch custom event để Header cập nhật badge giỏ hàng
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      showToast(`Đã thêm "${product.name}" vào giỏ hàng thành công! 🛒`, "success");
     }
-
-    localStorage.setItem("agrimarket_cart", JSON.stringify(localCart));
-    
-    // Dispatch custom event to trigger Header cart badge update
-    window.dispatchEvent(new Event("cartUpdated"));
-
-    showToast(`Đã thêm "${product.name}" vào giỏ hàng thành công! 🛒`, "success");
   };
 
   const pinnedProduct = streamData.pinnedProductId && streamData.products

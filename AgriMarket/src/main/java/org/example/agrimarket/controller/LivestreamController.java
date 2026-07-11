@@ -14,6 +14,8 @@ import java.security.Principal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import org.example.agrimarket.service.ToxicityFilterService;
+import org.example.agrimarket.service.CartService;
 
 @RestController
 @RequestMapping("/api/livestreams")
@@ -48,6 +50,15 @@ public class LivestreamController {
 
     @Autowired
     private NotificationRepository notificationRepository;
+
+    @Autowired
+    private ToxicityFilterService toxicityFilterService;
+
+    @Autowired
+    private LivestreamAlertRepository livestreamAlertRepository;
+
+    @Autowired
+    private CartService cartService;
 
     private final RtcTokenBuilder2 tokenBuilder = new RtcTokenBuilder2();
 
@@ -463,6 +474,12 @@ public class LivestreamController {
             livestreamRepository.save(stream);
         }
 
+        // Delete alerts associated with the livestream
+        List<LivestreamAlert> alerts = livestreamAlertRepository.findByLivestreamIdOrderByCreatedAtDesc(id);
+        if (alerts != null && !alerts.isEmpty()) {
+            livestreamAlertRepository.deleteAll(alerts);
+        }
+
         // Delete comments associated with the livestream
         List<LivestreamComment> comments = livestreamCommentRepository.findByLivestreamIdOrderByCreatedAtAsc(id);
         if (comments != null && !comments.isEmpty()) {
@@ -474,6 +491,14 @@ public class LivestreamController {
 
         // Remove active viewer mapping
         activeViewersMap.remove(id);
+
+        // Reset giá về giá gốc cho tất cả CartItem từ livestream này
+        try {
+            cartService.resetLivestreamPrices(id);
+        } catch (Exception e) {
+            // Không để lỗi reset giá ảnh hưởng đến việc kết thúc livestream
+            e.printStackTrace();
+        }
 
         return ResponseEntity.ok(report);
     }
@@ -561,7 +586,12 @@ public class LivestreamController {
         }
         User currentUser = userOpt.get();
 
-        // Check if current user is blocked from commenting in this livestream
+        // 1. Check if user is globally chat banned
+        if (currentUser.getIsChatBanned() != null && currentUser.getIsChatBanned()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Tài khoản của bạn đã bị cấm bình luận do vi phạm chính sách cộng đồng");
+        }
+
+        // 2. Check if current user is blocked from commenting in this livestream
         if (stream.getBlockedUsers() != null && stream.getBlockedUsers().contains(currentUser)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn đã bị chặn bình luận trong phiên livestream này");
         }
@@ -571,6 +601,13 @@ public class LivestreamController {
             return ResponseEntity.badRequest().body("Nội dung bình luận không được trống");
         }
 
+        // 3. Local toxicity/spam/redirect regex check (First layer - instant)
+        String localViolation = toxicityFilterService.checkLocalFilter(commentText);
+        if (localViolation != null) {
+            toxicityFilterService.recordViolation(currentUser, localViolation, commentText, id);
+            return ResponseEntity.badRequest().body("Bình luận của bạn chứa từ ngữ không phù hợp hoặc quảng bá kênh khác và đã bị lọc.");
+        }
+
         LivestreamComment comment = new LivestreamComment();
         comment.setLivestream(stream);
         comment.setSender(currentUser);
@@ -578,6 +615,9 @@ public class LivestreamController {
         comment.setCreatedAt(LocalDateTime.now());
 
         comment = livestreamCommentRepository.save(comment);
+
+        // 4. Async Gemini semantic check (Second layer - runs in background)
+        toxicityFilterService.checkGeminiFilterAsync(comment.getId(), commentText, currentUser.getId(), stream.getId());
 
         Map<String, Object> map = new HashMap<>();
         map.put("id", comment.getId());
@@ -971,6 +1011,12 @@ public class LivestreamController {
         if (stream.getProducts() != null) {
             stream.getProducts().clear();
             livestreamRepository.save(stream);
+        }
+
+        // Delete alerts associated with the livestream
+        List<LivestreamAlert> alerts = livestreamAlertRepository.findByLivestreamIdOrderByCreatedAtDesc(id);
+        if (alerts != null && !alerts.isEmpty()) {
+            livestreamAlertRepository.deleteAll(alerts);
         }
 
         // Delete comments associated with the livestream

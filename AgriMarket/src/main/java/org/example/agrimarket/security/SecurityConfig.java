@@ -57,7 +57,9 @@ public class SecurityConfig {
                                 "/api/products/**",
                                 "/api/payment/vnpay-callback",
                                 "/api/livestreams/*/join",
-                                "/api/livestreams/*/leave"
+                                "/api/livestreams/*/leave",
+                                "/api/moderation/livestream-alert",
+                                "/api/ai/chat"   // AgriBot – công khai, không cần đăng nhập
                         ).permitAll()
 
                         // Other APIs need login

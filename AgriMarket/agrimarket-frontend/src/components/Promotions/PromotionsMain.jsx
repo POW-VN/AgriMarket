@@ -1,15 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './PromotionsShared.css';
 import PromotionList from './PromotionList';
 import PromotionDetail from './PromotionDetail';
 import PromotionWizard from './PromotionWizard/WizardContainer';
 import PromotionEdit from './PromotionEdit';
+import apiClient from '../../services/apiClient';
+import { mockPromotions } from './PromotionsMockData';
 
 const PromotionsMain = ({ role }) => {
   // viewState can be: 'list', 'create', 'detail', 'success'
   const [viewState, setViewState] = useState('list');
   const [selectedPromoId, setSelectedPromoId] = useState(null);
   const [createdPromoData, setCreatedPromoData] = useState(null);
+  const [promotions, setPromotions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPromotions = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get('/api/admin/promotions');
+      const currentUserStr = localStorage.getItem("farmconnect_user");
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+      const currentUserId = currentUser?.id;
+
+      let filtered = response.data;
+      if (role === 'farmer') {
+        filtered = response.data.filter(p => p.farmerId && String(p.farmerId) === String(currentUserId));
+      } else if (role === 'admin') {
+        filtered = response.data.filter(p => !p.farmerId);
+      }
+      setPromotions(filtered);
+    } catch (e) {
+      console.warn("Promotions API không khả dụng, sử dụng dữ liệu giả lập.", e);
+      const currentUserStr = localStorage.getItem("farmconnect_user");
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+      const currentUserId = currentUser?.id;
+
+      let filtered = mockPromotions;
+      if (role === 'farmer') {
+        filtered = mockPromotions.filter(p => p.farmerId && String(p.farmerId) === String(currentUserId));
+      } else if (role === 'admin') {
+        filtered = mockPromotions.filter(p => !p.farmerId);
+      }
+      setPromotions(filtered);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPromotions();
+  }, []);
 
   const handleCreateNew = () => {
     setViewState('create');
@@ -53,6 +94,9 @@ const PromotionsMain = ({ role }) => {
       {viewState === 'list' && (
         <PromotionList 
           role={role} 
+          promotions={promotions}
+          loading={loading}
+          onRefresh={fetchPromotions}
           onCreateNew={handleCreateNew} 
           onViewDetail={handleViewDetail} 
         />
@@ -62,7 +106,10 @@ const PromotionsMain = ({ role }) => {
         <PromotionWizard 
           role={role} 
           onCancel={handleBackToList}
-          onSuccess={handleCreationSuccess}
+          onSuccess={(data) => {
+            fetchPromotions();
+            handleCreationSuccess(data);
+          }}
         />
       )}
 
@@ -70,6 +117,8 @@ const PromotionsMain = ({ role }) => {
         <PromotionDetail 
           role={role} 
           promoId={selectedPromoId} 
+          promotions={promotions}
+          onRefresh={fetchPromotions}
           onBack={handleBackToList} 
           onEdit={() => handleEdit(selectedPromoId)}
           showToast={showToast}
@@ -80,8 +129,12 @@ const PromotionsMain = ({ role }) => {
         <PromotionEdit 
           role={role}
           promoId={selectedPromoId}
+          promotions={promotions}
           onCancel={handleBackToList}
-          onSuccess={handleBackToList}
+          onSuccess={() => {
+            fetchPromotions();
+            handleBackToList();
+          }}
         />
       )}
 

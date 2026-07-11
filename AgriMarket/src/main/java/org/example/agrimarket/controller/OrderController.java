@@ -46,6 +46,19 @@ public class OrderController {
         }
     }
 
+    @GetMapping("/used-promotions")
+    public ResponseEntity<?> getUsedPromotions(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            List<String> codes = orderService.getUsedPromotions(principal.getName());
+            return ResponseEntity.ok(codes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
     @GetMapping("/{orderCode}")
     public ResponseEntity<?> getOrderDetails(Principal principal, @PathVariable String orderCode) {
         if (principal == null) {

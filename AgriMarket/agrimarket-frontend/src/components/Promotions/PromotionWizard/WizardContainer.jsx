@@ -1,12 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Step1BasicInfo from './Step1BasicInfo';
 import Step2Details from './Step2Details';
 import Step3Products from './Step3Products';
 import Step4Review from './Step4Review';
-import { mockPromotions } from '../PromotionsMockData';
+import apiClient from '../../../services/apiClient';
 
 const WizardContainer = ({ role, onCancel, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [farmersList, setFarmersList] = useState([]);
+
+  useEffect(() => {
+    const fetchFarmers = async () => {
+      try {
+        const response = await apiClient.get('/api/admin/users');
+        const farmers = response.data
+          .filter(u => u.role === 'farmer')
+          .map(u => ({
+            id: u.id,
+            name: u.farmName ? `${u.fullName} (${u.farmName})` : u.fullName
+          }));
+        setFarmersList([{ id: '', name: 'Toàn hệ thống' }, ...farmers]);
+      } catch (e) {
+        console.error("Lỗi khi tải danh sách nông dân:", e);
+        setFarmersList([
+          { id: '', name: 'Toàn hệ thống' },
+          { id: '2', name: 'Nguyễn Văn A (Farm Fresh)' },
+          { id: '3', name: 'Trần Thị B (Vườn Xanh)' },
+          { id: '4', name: 'Lê Văn C (Eco Farm)' }
+        ]);
+      }
+    };
+    if (role === 'admin') {
+      fetchFarmers();
+    }
+  }, [role]);
   
   // Shared state for the wizard
   const [formData, setFormData] = useState({
@@ -27,6 +54,15 @@ const WizardContainer = ({ role, onCancel, onSuccess }) => {
     selectedProducts: [] // array of objects
   });
 
+  useEffect(() => {
+    if (formData.farmerId) {
+      const filtered = formData.selectedProducts.filter(p => String(p.farmerId) === String(formData.farmerId));
+      if (filtered.length !== formData.selectedProducts.length) {
+        setFormData(prev => ({ ...prev, selectedProducts: filtered }));
+      }
+    }
+  }, [formData.farmerId]);
+
   const handleNext = () => {
     if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
@@ -39,51 +75,50 @@ const WizardContainer = ({ role, onCancel, onSuccess }) => {
     setFormData({ ...formData, ...newData });
   };
 
-  const handleCreate = () => {
-    // API call to create promotion would go here
-    console.log("Creating promotion:", formData);
-    
-    // MOCK DATA FIX: Add to mock array to show in list immediately
-    const newPromo = {
-      id: Math.random(),
-      title: formData.title,
-      description: formData.description,
-      discountType: formData.discountType,
-      discountVal: formData.discountVal || 0,
-      farmerName: formData.farmerId ? "Nông dân đã chọn" : "Toàn hệ thống",
-      startDate: formData.startDate || new Date().toISOString().split('T')[0],
-      endDate: formData.endDate || new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
-      status: "active",
-      productsCount: formData.selectedProducts?.length || 0,
-      maxUses: formData.maxUses || 0,
-      usedCount: 0,
-      budget: formData.budget || 0,
-      usedBudget: 0,
-      revenueGenerated: 0,
-      image: formData.image || "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&q=80&w=400",
-      code: "NEW_" + Math.floor(Math.random() * 10000)
-    };
-    mockPromotions.unshift(newPromo);
+  const handleCreate = async () => {
+    try {
+      const selectedProductIds = formData.selectedProducts.map(p => p.id);
+      
+      const currentUserStr = localStorage.getItem("farmconnect_user");
+      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+      const currentUserId = currentUser?.id;
 
-    // Persist to localStorage so Homepage reads new promo immediately
-    const existing = JSON.parse(localStorage.getItem('mockPromotions') || '[]');
-    // Avoid duplicates: remove any with same id if re-creating
-    const filtered = existing.filter(p => String(p.id) !== String(newPromo.id));
-    localStorage.setItem('mockPromotions', JSON.stringify([newPromo, ...filtered]));
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
+        farmerId: role === 'farmer' ? currentUserId : (formData.farmerId ? parseInt(formData.farmerId) : null),
+        visibility: formData.visibility,
+        discountType: formData.discountType,
+        discountVal: formData.discountVal ? parseFloat(formData.discountVal) : 0.0,
+        maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
+        minOrder: formData.minOrder ? parseFloat(formData.minOrder) : null,
+        usageLimitPerPerson: formData.usageLimitPerPerson ? parseInt(formData.usageLimitPerPerson) : 1,
+        budget: formData.budget ? parseFloat(formData.budget) : 0.0,
+        image: formData.image,
+        selectedProductIds: selectedProductIds
+      };
 
-    onSuccess(formData);
+      await apiClient.post('/api/admin/promotions', payload);
+      onSuccess(formData);
+    } catch (e) {
+      console.error("Lỗi khi tạo khuyến mãi:", e);
+      alert("Đã xảy ra lỗi khi tạo chương trình khuyến mãi.");
+    }
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} role={role} />;
+        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} role={role} farmersList={farmersList} />;
       case 2:
         return <Step2Details formData={formData} updateFormData={updateFormData} />;
       case 3:
         return <Step3Products formData={formData} updateFormData={updateFormData} />;
       case 4:
-        return <Step4Review formData={formData} onEditStep={(step) => setCurrentStep(step)} />;
+        return <Step4Review formData={formData} onEditStep={(step) => setCurrentStep(step)} farmersList={farmersList} />;
       default:
         return null;
     }

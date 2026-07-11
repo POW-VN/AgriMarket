@@ -20,11 +20,14 @@ import {
   MapPin,
   UserSquare2,
   Download,
-  MessageCircle
+  MessageCircle,
+  Bot,
+  Sparkles
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import chatService from "../../../services/chatService";
 import authService from "../../../services/authService";
+import aiService from "../../../services/aiService";
 import "./ChatPopup.css";
 
 // Danh sách ảnh gửi mẫu mặc định
@@ -89,6 +92,25 @@ export const ChatPopup = () => {
   // Refs cho input file ẩn
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // ── AgriBot AI Chat States ──────────────────────────────────────────────
+  const [aiMessages, setAiMessages] = useState([
+    {
+      id: "agribot-welcome",
+      role: "model",
+      text: "Xin chào! Tôi là AgriBot 🤖 - trợ lý AI của AgriMarket.\n\nTôi có thể giúp bạn:\n• Hỏi đáp về nông sản (bảo quản, dinh dưỡng, cách chọn) 🌿\n• Hướng dẫn đặt hàng và thanh toán 🛒\n• Tư vấn sản phẩm phù hợp 🍅\n• Giải đáp chính sách giao hàng, đổi trả 📦\n\nBạn cần giúp gì nào?"
+    }
+  ]);
+  const [aiInputText, setAiInputText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const aiMessagesEndRef = useRef(null);
+  const AGRIBOT_QUICK_REPLIES = [
+    "🛒 Cách đặt hàng?",
+    "🚚 Phí vận chuyển bao nhiêu?",
+    "🌿 Rau củ nên bảo quản thế nào?",
+    "💳 Có những hình thức thanh toán nào?",
+  ];
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Fetch conversations from backend
   const fetchConversations = async () => {
@@ -193,12 +215,19 @@ export const ChatPopup = () => {
     setTotalUnread(count);
   }, [chats]);
 
-  // Auto-scroll
+  // Auto-scroll cho chat thường
   useEffect(() => {
     if (activeView === "chat" && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [activeView, selectedFarm, chats]);
+
+  // Auto-scroll cho AgriBot
+  useEffect(() => {
+    if (activeView === "agribot" && aiMessagesEndRef.current) {
+      aiMessagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [activeView, aiMessages]);
 
   // Fetch suggested farmers when new-chat query changes
   useEffect(() => {
@@ -228,6 +257,44 @@ export const ChatPopup = () => {
       console.error("Failed to fetch messages for conversation:", err);
     }
   };
+
+  // ── AgriBot Handlers ───────────────────────────────────────────────────
+  const handleSelectAgriBot = () => {
+    setActiveView("agribot");
+    setSelectedFarm(null);
+    setShowOptionsMenu(false);
+  };
+
+  const handleSendAiMessage = async (text) => {
+    const messageText = (text || aiInputText).trim();
+    if (!messageText || aiLoading) return;
+
+    const userMsg = { id: `u-${Date.now()}`, role: "user", text: messageText };
+    setAiMessages(prev => [...prev, userMsg]);
+    setAiInputText("");
+    setAiLoading(true);
+
+    try {
+      // Build history for multi-turn (exclude welcome message)
+      const history = aiMessages
+        .filter(m => m.id !== "agribot-welcome")
+        .map(m => ({ role: m.role, text: m.text }));
+
+      const reply = await aiService.chat(messageText, history);
+      const botMsg = { id: `b-${Date.now()}`, role: "model", text: reply };
+      setAiMessages(prev => [...prev, botMsg]);
+    } catch (err) {
+      const errMsg = {
+        id: `err-${Date.now()}`,
+        role: "model",
+        text: "Xin lỗi, tôi gặp lỗi khi xử lý. Vui lòng thử lại! 🙏"
+      };
+      setAiMessages(prev => [...prev, errMsg]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const handleBackToList = () => {
     setActiveView("list");
@@ -622,7 +689,36 @@ export const ChatPopup = () => {
 
               {/* Chat list */}
               <div className="zalo-chat-list-content">
-                {filteredChats.length === 0 ? (
+
+                {/* AgriBot Entry – luôn ở đầu danh sách */}
+                <div
+                  className={`zalo-chat-item-row agribot-entry ${activeView === "agribot" ? "zalo-active-item" : ""}`}
+                  onClick={handleSelectAgriBot}
+                  style={{ borderBottom: "1px solid #f0fdf4" }}
+                >
+                  <div className="zalo-avatar-wrapper">
+                    <div className="agribot-avatar-circle">
+                      🤖
+                    </div>
+                    <span className="zalo-online-indicator" style={{ background: "#16a34a" }}></span>
+                  </div>
+                  <div className="zalo-chat-item-info">
+                    <div className="zalo-chat-item-header">
+                      <span className="zalo-farm-name-wrapper">
+                        <span className="zalo-farm-name" style={{ color: "#16a34a", fontWeight: 700 }}>AgriBot</span>
+                        <span style={{ fontSize: "0.65rem", background: "#dcfce7", color: "#15803d", padding: "1px 6px", borderRadius: "999px", fontWeight: 600, marginLeft: 4 }}>AI</span>
+                      </span>
+                      <span className="zalo-chat-time" style={{ color: "#16a34a", fontSize: "0.65rem" }}>24/7</span>
+                    </div>
+                    <div className="zalo-chat-item-preview">
+                      <span className="zalo-preview-text" style={{ fontStyle: "italic", color: "#4ade80" }}>
+                        Trợ lý AI hỗ trợ nông sản & AgriMarket ✨
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {filteredChats.length === 0 && searchQuery ? (
                   <div className="zalo-empty-chat-list">
                     <p>Không tìm thấy cuộc trò chuyện nào</p>
                   </div>
@@ -723,6 +819,142 @@ export const ChatPopup = () => {
                   })
                 )}
               </div>
+            </div>
+          )}
+
+          {/* VIEW: AGRIBOT AI CHAT */}
+          {activeView === "agribot" && (
+            <div className="zalo-chat-list-view zalo-animate-fade-in" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              {/* Header */}
+              <div className="zalo-chat-popup-header" style={{ background: "linear-gradient(135deg, #16a34a, #15803d)", color: "white" }}>
+                <div className="zalo-header-title-wrapper" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <button className="zalo-icon-btn zalo-back-btn" onClick={handleBackToList} title="Quay lại" style={{ padding: "4px", color: "white" }}>
+                    <ArrowLeft size={20} />
+                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "1.3rem" }}>🤖</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>AgriBot</div>
+                      <div style={{ fontSize: "0.65rem", opacity: 0.85 }}>Trợ lý AI · Luôn trực tuyến ✅</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="zalo-header-actions">
+                  <button
+                    className="zalo-icon-btn zalo-header-btn"
+                    onClick={() => setAiMessages([{
+                      id: "agribot-welcome",
+                      role: "model",
+                      text: "Xin chào! Tôi là AgriBot 🤖 - trợ lý AI của AgriMarket.\n\nTôi có thể giúp bạn:\n• Hỏi đáp về nông sản (bảo quản, dinh dưỡng, cách chọn) 🌿\n• Hướng dẫn đặt hàng và thanh toán 🛒\n• Tư vấn sản phẩm phù hợp 🍅\n• Giải đáp chính sách giao hàng, đổi trả 📦\n\nBạn cần giúp gì nào?"
+                    }])}
+                    title="Xóa lịch sử"
+                    style={{ color: "white", opacity: 0.8 }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <button className="zalo-icon-btn zalo-header-btn zalo-close-btn" onClick={() => setIsOpen(false)} title="Đóng chat" style={{ color: "white" }}>
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div
+                className="zalo-chat-messages-container"
+                style={{ flex: 1, overflowY: "auto", padding: "12px", background: "#f0fdf4", display: "flex", flexDirection: "column", gap: "10px" }}
+              >
+                {aiMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      display: "flex",
+                      flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                      alignItems: "flex-end",
+                      gap: "8px"
+                    }}
+                  >
+                    {msg.role === "model" && (
+                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #16a34a, #22c55e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", flexShrink: 0 }}>🤖</div>
+                    )}
+                    <div
+                      style={{
+                        maxWidth: "78%",
+                        padding: "9px 13px",
+                        borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                        background: msg.role === "user" ? "linear-gradient(135deg, #16a34a, #22c55e)" : "white",
+                        color: msg.role === "user" ? "white" : "#1a2e1a",
+                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                        fontSize: "0.82rem",
+                        lineHeight: 1.55,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word"
+                      }}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Typing indicator */}
+                {aiLoading && (
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: "8px" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #16a34a, #22c55e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem", flexShrink: 0 }}>🤖</div>
+                    <div style={{ padding: "9px 16px", borderRadius: "16px 16px 16px 4px", background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                      <div className="agribot-typing-dots">
+                        <span></span><span></span><span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={aiMessagesEndRef} />
+              </div>
+
+              {/* Quick replies – chỉ hiện khi chỉ có welcome message */}
+              {aiMessages.length <= 1 && (
+                <div style={{ padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: "6px", background: "#f0fdf4", borderTop: "1px solid #dcfce7" }}>
+                  {AGRIBOT_QUICK_REPLIES.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => handleSendAiMessage(q)}
+                      style={{ padding: "5px 10px", borderRadius: "999px", border: "1px solid #86efac", background: "white", color: "#16a34a", fontSize: "0.72rem", cursor: "pointer", fontWeight: 500, transition: "all 0.2s" }}
+                      onMouseEnter={e => { e.currentTarget.style.background = "#16a34a"; e.currentTarget.style.color = "white"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.color = "#16a34a"; }}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Input */}
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleSendAiMessage(); }}
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", background: "white", borderTop: "1px solid #dcfce7" }}
+              >
+                <input
+                  type="text"
+                  value={aiInputText}
+                  onChange={(e) => setAiInputText(e.target.value)}
+                  placeholder="Hỏi AgriBot về nông sản..."
+                  disabled={aiLoading}
+                  style={{ flex: 1, border: "1.5px solid #86efac", borderRadius: "999px", padding: "8px 14px", fontSize: "0.82rem", outline: "none", background: aiLoading ? "#f9fafb" : "white" }}
+                  onFocus={e => e.target.style.borderColor = "#16a34a"}
+                  onBlur={e => e.target.style.borderColor = "#86efac"}
+                />
+                <button
+                  type="submit"
+                  disabled={aiLoading || !aiInputText.trim()}
+                  style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    background: (aiLoading || !aiInputText.trim()) ? "#d1d5db" : "linear-gradient(135deg, #16a34a, #22c55e)",
+                    color: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: (aiLoading || !aiInputText.trim()) ? "not-allowed" : "pointer",
+                    transition: "all 0.2s", flexShrink: 0
+                  }}
+                >
+                  <SendHorizontal size={16} />
+                </button>
+              </form>
             </div>
           )}
 

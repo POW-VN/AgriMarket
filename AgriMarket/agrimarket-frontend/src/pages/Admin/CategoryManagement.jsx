@@ -351,30 +351,7 @@ const CategoryManagement = () => {
     return rows;
   }, [filteredCategories, categories, expandedIds, debouncedSearch, filterLevel, filterStatus]);
 
-  // Export CSV
-  const handleExport = () => {
-    const headers = ["ID", "Tên Danh Mục", "Mô Tả", "Số Sản Phẩm", "Phân Cấp", "Trạng Thái"];
-    const rows = categories.map(c => [
-      c.id,
-      c.name,
-      c.description,
-      c.productCount,
-      c.level === "root" ? "Danh mục gốc" : "Danh mục con",
-      c.status === "active" ? "Hoạt động" : "Tạm khóa"
-    ]);
 
-    const csvContent = "data:text/csv;charset=utf-8,"
-      + [headers.join(",")].concat(rows.map(e => e.map(val => `"${val}"`).join(","))).join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "AgriMarket_Danh_muc.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast("Đã xuất file báo cáo danh mục thành công!");
-  };
 
   // Inline Edit logic (Farmer's inventory style)
   const toggleEditForm = (cat) => {
@@ -390,22 +367,6 @@ const CategoryManagement = () => {
   const handleSaveEdit = async (cat) => {
     if (!editNameValue.trim() || !editDescriptionValue.trim()) return;
     setSubmittingEdit(true);
-    const updatedList = categories.map(c => {
-      if (c.id === cat.id) {
-        return {
-          ...c,
-          name: editNameValue,
-          description: editDescriptionValue
-        };
-      }
-      return c;
-    });
-
-    setCategories(updatedList);
-    localStorage.setItem("agri_categories", JSON.stringify(updatedList));
-    showToast(`Cập nhật danh mục "${editNameValue}" thành công.`);
-    setActiveEditCategoryId(null);
-    setSubmittingEdit(false);
 
     try {
       await apiClient.put(`/api/admin/categories/${cat.id}`, {
@@ -416,8 +377,14 @@ const CategoryManagement = () => {
         parentId: cat.parentId,
         status: cat.status
       });
+      showToast(`Cập nhật danh mục "${editNameValue}" thành công.`);
+      setActiveEditCategoryId(null);
+      await fetchCategories();
     } catch (e) {
-      console.warn("Offline: Đã lưu chỉnh sửa danh mục cục bộ.");
+      console.error("Lỗi khi chỉnh sửa danh mục:", e);
+      showToast("Lỗi kết nối máy chủ khi chỉnh sửa danh mục.");
+    } finally {
+      setSubmittingEdit(false);
     }
   };
 
@@ -461,48 +428,6 @@ const CategoryManagement = () => {
   const handleSaveCategory = async () => {
     if (!validateForm()) return;
 
-    let updatedList = [...categories];
-
-    if (modalMode === "create") {
-      const isSub = formParentId !== "";
-      const newCategory = {
-        id: Date.now(),
-        name: formName,
-        description: formDescription,
-        productCount: 0,
-        icon: formIcon,
-        level: isSub ? "sub" : "root",
-        parentId: isSub ? parseInt(formParentId) : null,
-        status: formStatus
-      };
-
-      updatedList.push(newCategory);
-      showToast(`Đã thêm danh mục mới "${formName}" thành công.`);
-    } else if (modalMode === "edit" && selectedCategory) {
-      const isSub = formParentId !== "";
-      updatedList = categories.map(c => {
-        if (c.id === selectedCategory.id) {
-          return {
-            ...c,
-            name: formName,
-            description: formDescription,
-            icon: formIcon,
-            level: isSub ? "sub" : "root",
-            parentId: isSub ? parseInt(formParentId) : null,
-            status: formStatus
-          };
-        }
-        return c;
-      });
-      showToast(`Đã cập nhật danh mục "${formName}" thành công.`);
-    }
-
-    // Persist
-    setCategories(updatedList);
-    localStorage.setItem("agri_categories", JSON.stringify(updatedList));
-    setIsModalOpen(false);
-
-    // Sync with server if possible
     try {
       if (modalMode === "create") {
         const isSub = formParentId !== "";
@@ -514,7 +439,8 @@ const CategoryManagement = () => {
           parentId: isSub ? parseInt(formParentId) : null,
           status: formStatus
         });
-      } else {
+        showToast(`Đã thêm danh mục mới "${formName}" thành công.`);
+      } else if (modalMode === "edit" && selectedCategory) {
         const isSub = formParentId !== "";
         await apiClient.put(`/api/admin/categories/${selectedCategory.id}`, {
           name: formName,
@@ -524,24 +450,26 @@ const CategoryManagement = () => {
           parentId: isSub ? parseInt(formParentId) : null,
           status: formStatus
         });
+        showToast(`Đã cập nhật danh mục "${formName}" thành công.`);
       }
+      setIsModalOpen(false);
+      await fetchCategories();
     } catch (e) {
-      console.warn("Đang chạy ở chế độ offline. Dữ liệu đã được lưu trữ cục bộ.");
+      console.error("Lỗi khi lưu danh mục:", e);
+      showToast("Lỗi kết nối máy chủ khi lưu danh mục.");
     }
   };
 
   // Toggle category status directly
   const handleToggleStatus = async (category) => {
     const newStatus = category.status === "active" ? "inactive" : "active";
-    const updated = categories.map(c => c.id === category.id ? { ...c, status: newStatus } : c);
-    setCategories(updated);
-    localStorage.setItem("agri_categories", JSON.stringify(updated));
-    showToast(`Đã cập nhật trạng thái danh mục "${category.name}" thành: ${newStatus === 'active' ? 'Hoạt động' : 'Tạm khóa'}.`);
-
     try {
       await apiClient.put(`/api/admin/categories/${category.id}/status`, { status: newStatus });
+      showToast(`Đã cập nhật trạng thái danh mục "${category.name}" thành: ${newStatus === 'active' ? 'Hoạt động' : 'Tạm khóa'}.`);
+      await fetchCategories();
     } catch (e) {
-      console.warn("Offline: Đã lưu trạng thái cục bộ.");
+      console.error("Lỗi khi cập nhật trạng thái:", e);
+      showToast("Lỗi kết nối máy chủ khi cập nhật trạng thái.");
     }
   };
 
@@ -567,16 +495,14 @@ const CategoryManagement = () => {
     const { category } = confirmModal;
     if (!category) return;
 
-    const updated = categories.filter(c => c.id !== category.id);
-    setCategories(updated);
-    localStorage.setItem("agri_categories", JSON.stringify(updated));
-    setConfirmModal({ isOpen: false, title: "", message: "", category: null });
-    showToast(`Đã xóa danh mục "${category.name}" khỏi hệ thống.`);
-
     try {
       await apiClient.delete(`/api/admin/categories/${category.id}`);
+      showToast(`Đã xóa danh mục "${category.name}" khỏi hệ thống.`);
+      setConfirmModal({ isOpen: false, title: "", message: "", category: null });
+      await fetchCategories();
     } catch (e) {
-      console.warn("Offline: Đã xóa dữ liệu cục bộ.");
+      console.error("Lỗi khi xóa danh mục:", e);
+      showToast("Lỗi kết nối máy chủ khi xóa danh mục.");
     }
   };
 
@@ -731,10 +657,7 @@ const CategoryManagement = () => {
                 )}
               </div>
 
-              <button className="btn-admin-outline" onClick={handleExport}>
-                <FileSpreadsheet size={15} />
-                Xuất báo cáo
-              </button>
+
             </div>
             <div className="category-filter-right">
               Hiển thị {tableRows.length} danh mục

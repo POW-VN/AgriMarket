@@ -1,5 +1,7 @@
 package org.example.agrimarket.controller;
 
+import org.example.agrimarket.dto.AiChatRequest;
+import org.example.agrimarket.dto.AiChatResponse;
 import org.example.agrimarket.dto.AiDescriptionRequest;
 import org.example.agrimarket.dto.AiDescriptionResponse;
 import org.example.agrimarket.dto.AiPriceRequest;
@@ -13,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -59,6 +64,25 @@ public class AiController {
             return ResponseEntity.ok(priceResponse);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Lỗi khi sinh gợi ý giá bán: " + e.getMessage());
+        }
+    }
+
+    /**
+     * AgriBot Chat – Endpoint công khai (không cần đăng nhập).
+     * Hỗ trợ multi-turn conversation thông qua history.
+     */
+    @PostMapping("/chat")
+    public ResponseEntity<?> chat(@RequestBody AiChatRequest request) {
+        try {
+            String message = request.getMessage();
+            List<Map<String, String>> history = request.getHistory() != null ? request.getHistory() : Collections.emptyList();
+
+            String reply = aiService.chat(message, history);
+            return ResponseEntity.ok(new AiChatResponse(reply));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                new AiChatResponse("Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu. Vui lòng thử lại! 🙏")
+            );
         }
     }
 }
