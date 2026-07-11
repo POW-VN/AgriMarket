@@ -20,7 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SPRING_BOOT_URL = "http://localhost:8080/api/moderation/livestream-alert"
+SPRING_BOOT_URL = os.getenv(
+    "SPRING_BOOT_URL",
+    "https://agrimarket-cnpl.onrender.com/api/moderation/livestream-alert"
+)
 
 # Load pre-trained YOLOv8 model (automatically downloads coco weights on first run ~6MB)
 try:
