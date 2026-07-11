@@ -6,6 +6,7 @@ import PromotionWizard from './PromotionWizard/WizardContainer';
 import PromotionEdit from './PromotionEdit';
 import apiClient from '../../services/apiClient';
 import { mockPromotions } from './PromotionsMockData';
+import { Check } from 'lucide-react';
 
 const PromotionsMain = ({ role }) => {
   // viewState can be: 'list', 'create', 'detail', 'success'
@@ -87,7 +88,7 @@ const PromotionsMain = ({ role }) => {
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{ position: 'fixed', top: '24px', right: '24px', background: 'var(--spromo-secondary)', color: 'white', padding: '16px 24px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '12px', zIndex: 9999 }}>
-          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          <Check width={24} height={24} />
           <span style={{ fontWeight: 500 }}>{toastMessage}</span>
         </div>
       )}
@@ -163,7 +164,7 @@ const PromotionsMain = ({ role }) => {
                 color: 'white',
                 boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)'
               }}>
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="36" height="36"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                <Check width={36} height={36} strokeWidth={3} />
               </div>
             </div>
             {/* Confetti decorations */}

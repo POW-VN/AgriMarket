@@ -62,6 +62,10 @@ public class SecurityConfig {
                                 "/api/ai/chat"   // AgriBot – công khai, không cần đăng nhập
                         ).permitAll()
 
+                        // Allow public GET requests on active livestreams and promotions
+                        .requestMatchers(HttpMethod.GET, "/api/livestreams/active").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/promotions/**").permitAll()
+
                         // Other APIs need login
                         .anyRequest().authenticated()
                 )

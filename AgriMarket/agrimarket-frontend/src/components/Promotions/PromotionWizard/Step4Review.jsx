@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check } from 'lucide-react';
 
 const Step4Review = ({ formData, onEditStep, farmersList = [] }) => {
   const farmerName = formData.farmerId 
@@ -11,7 +12,7 @@ const Step4Review = ({ formData, onEditStep, farmersList = [] }) => {
         <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#065f46' }}>Tóm tắt chương trình</h3>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ background: '#d1fae5', color: '#059669', padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <Check width={24} height={24} />
           </div>
           <div style={{ color: '#065f46', fontSize: '14px', lineHeight: '1.5', fontWeight: 500 }}>
             Khuyến mãi sẽ được tạo và áp dụng cho nông dân ngay sau khi bạn xác nhận.

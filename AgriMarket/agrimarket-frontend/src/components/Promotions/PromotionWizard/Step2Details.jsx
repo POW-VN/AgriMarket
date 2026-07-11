@@ -1,4 +1,5 @@
 import React from 'react';
+import { Info } from 'lucide-react';
 
 const Step2Details = ({ formData, updateFormData }) => {
   return (
@@ -97,7 +98,7 @@ const Step2Details = ({ formData, updateFormData }) => {
       <div>
         <div className="spromo-preview-sidebar" style={{ background: '#f8fafc', border: 'none', borderRadius: '12px', padding: '24px' }}>
           <h3 style={{ fontSize: '16px', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px', color: '#1e293b' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', background: '#3b82f6', color: 'white', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold' }}>i</span>
+            <Info size={20} style={{ color: '#3b82f6' }} />
             Giải thích
           </h3>
           
