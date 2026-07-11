@@ -1125,8 +1125,12 @@ function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab 
             ></video>
             <div className="monitor-badges">
               <span className="badge-live"><span className="dot"></span> LIVE MONITOR</span>
-              <span className="badge-stats">👁️ {viewersCount}</span>
-              <span className="badge-stats">❤️ {heartsCount}</span>
+              <span className="badge-stats" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <Users size={14} /> {viewersCount} người xem
+              </span>
+              <span className="badge-stats" style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                <Heart size={14} style={{ fill: "#ef4444", color: "#ef4444" }} /> {heartsCount} Thích
+              </span>
             </div>
           </div>
 
