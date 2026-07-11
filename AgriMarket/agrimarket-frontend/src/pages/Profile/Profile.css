@@ -48,8 +48,10 @@
   width: 74px;
   min-width: 74px;
   height: 100vh;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
+  bottom: 0;
   overflow: hidden;
   background: #ffffff;
   border-right: 1px solid var(--profile-border);
@@ -222,6 +224,7 @@
   min-width: 0;
   padding: 0;
   overflow-x: hidden;
+  margin-left: 74px;
 }
 
 .profile-content {
@@ -673,6 +676,7 @@
   }
 
   .profile-sidebar {
+    position: static;
     width: 100%;
     min-height: auto;
     padding: 20px;
@@ -688,6 +692,7 @@
   }
 
   .profile-main-content {
+    margin-left: 0;
     padding: 28px 18px;
   }
 

@@ -1,4 +1,6 @@
+
 package org.example.agrimarket.scheduler;
+
 import org.example.agrimarket.model.Notification;
 import org.example.agrimarket.repository.NotificationRepository;
 import java.time.LocalDateTime;
@@ -29,7 +31,8 @@ public class GhnSimulationScheduler {
 
             for (Order order : shippingOrders) {
                 String address = order.getOrderGroup() != null ? order.getOrderGroup().getDeliveryAddress() : "";
-                boolean isPickup = address != null && (address.toLowerCase().contains("tự nhận") || address.toLowerCase().contains("nông trại"));
+                boolean isPickup = address != null
+                        && (address.toLowerCase().contains("tự nhận") || address.toLowerCase().contains("nông trại"));
                 if (isPickup) {
                     continue; // Skip pickup orders
                 }
@@ -48,10 +51,13 @@ public class GhnSimulationScheduler {
                     order.setDetailedStatus("delivered");
                     order.setStatus("delivered");
                     order.setPaymentStatus("paid");
-                    order.setShipperNotes("GiaoHangNhanh: Giao hàng thành công. Người mua đã nhận hàng và hoàn tất thanh toán COD.");
-                    order.setPodPhoto("https://images.unsplash.com/photo-1551829142-d9b812de399c?w=400"); // Mock POD photo
+                    order.setShipperNotes(
+                            "GiaoHangNhanh: Giao hàng thành công. Người mua đã nhận hàng và hoàn tất thanh toán COD.");
+                    order.setPodPhoto("https://images.unsplash.com/photo-1551829142-d9b812de399c?w=400"); // Mock POD
+                                                                                                          // photo
                     orderRepository.save(order);
-                    System.out.println("GHN Simulator: Order " + order.getOrderCode() + " transitioned to delivered (completed).");
+                    System.out.println(
+                            "GHN Simulator: Order " + order.getOrderCode() + " transitioned to delivered (completed).");
 
                     // Create notification for customer
                     try {
@@ -60,7 +66,8 @@ public class GhnSimulationScheduler {
                                     .receiverType("customer")
                                     .receiverId(order.getCustomer().getId())
                                     .title("Đơn hàng giao thành công!")
-                                    .content("Đơn hàng " + order.getOrderCode() + " của bạn đã được giao thành công. Nhấn vào đây để xem chi tiết đơn hàng!")
+                                    .content("Đơn hàng " + order.getOrderCode()
+                                            + " của bạn đã được giao thành công. Nhấn vào đây để xem chi tiết đơn hàng!")
                                     .link("/profile/orders?code=" + order.getOrderCode())
                                     .createdAt(LocalDateTime.now())
                                     .isRead(false)
