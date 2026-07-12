@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Check, Star } from "lucide-react";
+import { Check, Star, Sprout, UserCheck } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
 import { getApprovedProductsPaged } from "../../services/productService";
 import authService from "../../services/authService";
 import cartService from "../../services/cartService";
 import wishlistService from "../../services/wishlistService";
+import apiClient from "../../services/apiClient";
 import "../Home/Home.css";
 import "./ProductListing.css";
 
@@ -128,6 +129,42 @@ export default function ProductListing() {
     const locationFilterRef = useRef(null);
 
     const itemsPerPage = 6;
+
+    const [activePromotions, setActivePromotions] = useState([]);
+
+    useEffect(() => {
+        const fetchActivePromotions = async () => {
+            try {
+                const response = await apiClient.get('/api/admin/promotions');
+                const now = new Date();
+                const active = response.data.filter(p => {
+                    const start = new Date(p.startDate);
+                    const end = new Date(p.endDate);
+                    return p.status === 'active' || (now >= start && now <= end);
+                });
+                setActivePromotions(active);
+            } catch (err) {
+                console.error("Lỗi khi tải danh sách khuyến mãi:", err);
+            }
+        };
+        fetchActivePromotions();
+    }, []);
+
+    const getProductPromo = (product) => {
+        return activePromotions.find(promo => {
+            if (promo.status !== 'active') return false;
+            const selected = promo.selectedProducts;
+            if (!selected || selected.length === 0) return false;
+            return selected.some(sp => String(sp.id) === String(product.id) || String(sp) === String(product.id));
+        }) || null;
+    };
+
+    const calcDiscountedPrice = (price, promo) => {
+        if (!promo) return price;
+        if (promo.discountType === 'percent') return Math.round(price * (1 - promo.discountVal / 100));
+        if (promo.discountType === 'amount') return Math.max(0, price - promo.discountVal);
+        return price;
+    };
 
     const triggerToast = (msg, type = "success") => {
         setToastMessage(msg);
@@ -682,61 +719,94 @@ export default function ProductListing() {
                     <div className="product-grid">
                         {paginatedProducts.length > 0 ? (
                             paginatedProducts.map((product) => {
-                                const resolvedBadges = [];
-                                if (product.farmerOrganicUrl || product.organicUrl) resolvedBadges.push("HỮU CƠ");
-                                if (product.farmerVietgapUrl || product.vietgapUrl) resolvedBadges.push("VIETGAP");
-                                if (product.farmerGlobalgapUrl || product.globalgapUrl) resolvedBadges.push("GLOBALGAP");
-                                if (resolvedBadges.length === 0) resolvedBadges.push("NÔNG SẢN");
+                                const promo = getProductPromo(product);
+                                const discountedPrice = promo ? calcDiscountedPrice(product.price, promo) : product.price;
+                                const discountLabel = promo
+                                    ? (promo.discountType === 'percent' ? `-${promo.discountVal}%` : `-${(promo.discountVal / 1000).toFixed(0)}K`)
+                                    : (product.saleTag || null);
 
                                 return (
                                     <div
-                                        className="product-card"
+                                        className="new-product-card"
                                         key={product.id}
                                         onClick={() => navigate(`/products/${product.id}`)}
                                         style={{ cursor: "pointer" }}
                                     >
-                                        <div className="product-image-wrap">
-                                            <img src={product.imageUrl || product.image} alt={product.name} className="product-image" />
+                                        <div className="new-card-img-wrapper">
+                                            {product.imageUrl || product.image ? (
+                                                <img src={product.imageUrl || product.image} alt={product.name} className="new-card-img" />
+                                            ) : (
+                                                <div className="new-card-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={32} /></div>
+                                            )}
+                                            {discountLabel && (
+                                                <span className={`new-card-sale-tag ${promo ? 'promo-badge' : ''}`}>{discountLabel}</span>
+                                            )}
+                                            {promo && (
+                                                <span className="new-card-promo-name">
+                                                    🏷️ Khuyến mãi
+                                                </span>
+                                            )}
+
                                             <button
-                                                className={`wishlist-btn ${wishlistIds.has(String(product.id)) ? "active" : ""}`}
+                                                className={`new-card-favorite-btn ${wishlistIds.has(String(product.id)) ? "active" : ""}`}
+                                                aria-label="Yêu thích"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleToggleWishlist(product.id);
                                                 }}
                                             >
-                                                {wishlistIds.has(String(product.id)) ? "♥" : "♡"}
+                                                <svg
+                                                    width="15"
+                                                    height="15"
+                                                    viewBox="0 0 24 24"
+                                                    fill={wishlistIds.has(String(product.id)) ? "#DC2626" : "none"}
+                                                    stroke={wishlistIds.has(String(product.id)) ? "#DC2626" : "currentColor"}
+                                                    strokeWidth="2.2"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                >
+                                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                                </svg>
                                             </button>
-
-                                            <div className="badge-row">
-                                                {resolvedBadges.map((badge, index) => (
-                                                    <span className="badge" key={index}>
-                                                        {badge}
-                                                    </span>
-                                                ))}
-                                            </div>
                                         </div>
 
-                                        <div className="product-body">
-                                            <div className="product-top-row">
-                                                <span className="product-category">{product.category}</span>
-                                                <span className="product-rating" style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
-                                                    <Star size={14} style={{ fill: "#f59e0b", stroke: "#f59e0b" }} />
-                                                    {product.rating ? Number(product.rating).toFixed(1) : "0.0"}
-                                                </span>
+                                        <div className="new-card-body">
+                                            <div className="new-card-body-top">
+                                                <span className="new-card-category">{(product.category || "").toUpperCase()}</span>
+                                                <h3 className="new-card-title" title={product.name}>{product.name}</h3>
+
+                                                <div className="new-card-farm-row">
+                                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><UserCheck size={14} /> {product.farmerName || product.shopName || "Nhà vườn Agri"}</span>
+                                                </div>
+
+                                                <div className="new-card-rating-sold-row">
+                                                    <div className="new-card-rating">
+                                                        <span className="star-gold">★</span>
+                                                        <span className="rating-value">{product.rating ? Number(product.rating).toFixed(1) : "0.0"}</span>
+                                                        <span className="reviews-count">({product.reviewsCount || 0})</span>
+                                                    </div>
+                                                    <span className="new-card-sold">Đã bán {formatSold(product.sold)}</span>
+                                                </div>
                                             </div>
 
-                                            <h4 className="product-name">{product.name}</h4>
-                                            <p className="product-shop">
-                                                {product.farmerName || product.shopName} • {product.farmLocation || product.location}
-                                            </p>
-
-                                            <div className="price-row">
-                                                <div>
-                                                    <span className="product-price">{formatPrice(product.price)}đ</span>
-                                                    <span className="product-unit"> / {product.unit}</span>
+                                            <div className="new-card-price-cart-row">
+                                                <div className="new-card-price-col">
+                                                    <span className="new-card-price" style={promo ? { color: '#dc2626' } : {}}>
+                                                        {discountedPrice.toLocaleString("vi-VN")}đ <span style={{ fontSize: "12px", fontWeight: "normal", color: "#666" }}>/ {product.unit}</span>
+                                                    </span>
+                                                    {promo ? (
+                                                        <span className="new-card-old-price">
+                                                            {product.price.toLocaleString("vi-VN")}đ
+                                                        </span>
+                                                    ) : product.oldPrice ? (
+                                                        <span className="new-card-old-price">
+                                                            {product.oldPrice.toLocaleString("vi-VN")}đ
+                                                        </span>
+                                                    ) : null}
                                                 </div>
+
                                                 <button
-                                                    className="add-cart-btn"
+                                                    className="new-card-add-cart-btn"
                                                     aria-label="Thêm vào giỏ hàng"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -751,11 +821,6 @@ export default function ProductListing() {
                                                         <line x1="14" y1="8" x2="14" y2="12"></line>
                                                     </svg>
                                                 </button>
-                                            </div>
-
-                                            <div className="product-footer">
-                                                <span>Đã bán {formatSold(product.sold)}</span>
-                                                <span className="stock">{product.stock > 0 ? "Còn hàng" : "Hết hàng"}</span>
                                             </div>
                                         </div>
                                     </div>
