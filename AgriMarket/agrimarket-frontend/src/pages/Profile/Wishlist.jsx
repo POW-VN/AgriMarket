@@ -197,8 +197,7 @@ export default function Wishlist() {
 
   return (
     <ProfileLayout profile={profile}>
-      <section className="profile-content wishlist-page-container">
-        
+      <div className="wishlist-sidebar-content wishlist-page-container">
         {/* Header & Search */}
         <div className="wishlist-top-header">
           <ProfileHeader
@@ -488,7 +487,7 @@ export default function Wishlist() {
             )
           )}
         </div>
-      </section>
+      </div>
 
       <ProfileFooter />
 

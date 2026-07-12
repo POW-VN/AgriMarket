@@ -306,20 +306,93 @@
 }
 
 .volume-slider-bar {
+  -webkit-appearance: none;
+  appearance: none;
   width: 70px;
-  height: 4px;
-  border-radius: 2px;
-  outline: none;
+  height: 24px;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  outline: none !important;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.3);
-  accent-color: #ffffff;
-  transition: width 0.2s ease;
+  box-sizing: border-box !important;
+  overflow: visible !important;
 }
 
 @media (min-width: 576px) {
   .volume-slider-bar {
     width: 90px;
   }
+}
+
+/* Chrome, Safari, Opera, Edge - Track */
+.volume-slider-bar::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #ffffff var(--volume-percent, 80%),
+    rgba(255, 255, 255, 0.3) var(--volume-percent, 80%),
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  border-radius: 2px;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Chrome, Safari, Opera, Edge - Thumb */
+.volume-slider-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none !important;
+  cursor: pointer;
+  margin-top: -4px; /* (4px / 2) - (12px / 2) = -4px */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.volume-slider-bar:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+}
+
+/* Firefox - Track */
+.volume-slider-bar::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #ffffff var(--volume-percent, 80%),
+    rgba(255, 255, 255, 0.3) var(--volume-percent, 80%),
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  border-radius: 2px;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Firefox - Thumb */
+.volume-slider-bar::-moz-range-thumb {
+  height: 12px;
+  width: 12px;
+  border: none !important;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.volume-slider-bar:hover::-moz-range-thumb {
+  transform: scale(1.25);
 }
 
 .live-timer-duration {

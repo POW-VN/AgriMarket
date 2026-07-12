@@ -1,4 +1,16 @@
-/* src/pages/Profile/Wishlist.css */
+.wishlist-sidebar-content {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  padding: 40px 40px 40px;
+}
+
+@media (max-width: 768px) {
+  .wishlist-sidebar-content {
+    padding: 28px 18px;
+  }
+}
 
 .wishlist-page-container {
   display: flex;
@@ -687,5 +699,18 @@
   color: #ffffff;
   border-color: var(--profile-green);
   transform: translateY(-1px);
+}
+
+/* Footer layout override for Wishlist page */
+.wishlist-sidebar-content + .profile-footer {
+  max-width: 100% !important;
+  margin: 34px 40px 0 !important;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .wishlist-sidebar-content + .profile-footer {
+    margin: 34px 18px 0 !important;
+  }
 }
 
