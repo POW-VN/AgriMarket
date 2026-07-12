@@ -523,7 +523,8 @@ export const FarmerLivestream = () => {
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
         
         const frameData = canvas.toDataURL("image/jpeg", 0.7);
-        fetch("http://localhost:8000/moderation/frame", {
+        const aiModerationUrl = import.meta.env.VITE_AI_MODERATION_URL || "http://localhost:8000";
+        fetch(`${aiModerationUrl}/moderation/frame`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -560,7 +561,8 @@ export const FarmerLivestream = () => {
       const lastResultIndex = event.results.length - 1;
       const transcript = event.results[lastResultIndex][0].transcript;
       if (transcript && transcript.trim().length > 0) {
-        fetch("http://localhost:8000/moderation/text", {
+        const aiModerationUrl = import.meta.env.VITE_AI_MODERATION_URL || "http://localhost:8000";
+        fetch(`${aiModerationUrl}/moderation/text`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
