@@ -17,6 +17,7 @@ const LivestreamPage = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
+  const [prevVolume, setPrevVolume] = useState(80);
   const [currentTime, setCurrentTime] = useState(5085); // 01:24:45
   const [showPlayOverlay, setShowPlayOverlay] = useState(false);
 
@@ -412,7 +413,14 @@ const LivestreamPage = () => {
 
   // Mute volume toggle
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    if (isMuted) {
+      setVolume(prevVolume > 0 ? prevVolume : 80);
+      setIsMuted(false);
+    } else {
+      setPrevVolume(volume);
+      setVolume(0);
+      setIsMuted(true);
+    }
   };
 
   const handleFullscreen = () => {
@@ -874,10 +882,19 @@ const LivestreamPage = () => {
                               max="100" 
                               value={isMuted ? 0 : volume} 
                               onChange={(e) => {
-                                setVolume(Number(e.target.value));
-                                if (isMuted) setIsMuted(false);
+                                const val = Number(e.target.value);
+                                setVolume(val);
+                                if (val === 0) {
+                                  setIsMuted(true);
+                                } else {
+                                  setIsMuted(false);
+                                  setPrevVolume(val);
+                                }
                               }}
                               className="volume-slider-bar" 
+                              style={{
+                                "--volume-percent": `${isMuted ? 0 : volume}%`
+                              }}
                             />
                           </div>
                         </div>
