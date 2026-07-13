@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
@@ -22,7 +23,7 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Single shared filter states
   const [filterStatus, setFilterStatus] = useState("All");
   const [activeTab, setActiveTab] = useState("Tất cả đơn hàng");
@@ -36,7 +37,7 @@ const OrderManagement = () => {
 
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  
+
   // Selected Order for details view
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderAuditLogs, setOrderAuditLogs] = useState([]);
@@ -104,7 +105,7 @@ const OrderManagement = () => {
   const [productsList, setProductsList] = useState([]);
   const [customerInputMode, setCustomerInputMode] = useState("select"); // "select" | "manual"
   const [customerSearchText, setCustomerSearchText] = useState("");
-  
+
   const [selectedProductToAdd, setSelectedProductToAdd] = useState("");
   const [productQuantityToAdd, setProductQuantityToAdd] = useState(1);
 
@@ -126,17 +127,17 @@ const OrderManagement = () => {
   const loadCreateModalDependencies = async () => {
     try {
       const usersRes = await apiClient.get("/api/admin/users");
-      const customers = Array.isArray(usersRes?.data) 
-        ? usersRes.data.filter(u => u.role && u.role.toLowerCase() === "customer") 
+      const customers = Array.isArray(usersRes?.data)
+        ? usersRes.data.filter(u => u.role && u.role.toLowerCase() === "customer")
         : [];
       setCustomersList(customers);
 
       const productsRes = await apiClient.get("/api/admin/products");
-      const approvedProducts = Array.isArray(productsRes?.data) 
-        ? productsRes.data.filter(p => p.status && p.status.toLowerCase() === "approved" && p.stockQuantity > 0) 
+      const approvedProducts = Array.isArray(productsRes?.data)
+        ? productsRes.data.filter(p => p.status && p.status.toLowerCase() === "approved" && p.stockQuantity > 0)
         : [];
       setProductsList(approvedProducts);
-      
+
       // If either list is empty, inject mock items to ensure the modal is always functional
       if (customers.length === 0) {
         setCustomersList([
@@ -193,9 +194,9 @@ const OrderManagement = () => {
     if (!selectedProductToAdd) return;
     const product = productsList.find(p => p.id === parseInt(selectedProductToAdd));
     if (!product) return;
-    
+
     const existingIndex = createFormData.items.findIndex(item => item.product.id === product.id);
-    
+
     let updatedItems = [...createFormData.items];
     if (existingIndex > -1) {
       const newQty = updatedItems[existingIndex].quantity + parseInt(productQuantityToAdd);
@@ -214,17 +215,17 @@ const OrderManagement = () => {
         quantity: parseInt(productQuantityToAdd)
       });
     }
-    
+
     const subtotal = updatedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const amount = subtotal + createFormData.shippingFee + createFormData.serviceFee - createFormData.discount;
-    
+
     setCreateFormData(prev => ({
       ...prev,
       items: updatedItems,
       subtotal,
       amount
     }));
-    
+
     setSelectedProductToAdd("");
     setProductQuantityToAdd(1);
   };
@@ -232,7 +233,7 @@ const OrderManagement = () => {
   const handleUpdateItemQuantity = (productId, newQty) => {
     const quantity = parseInt(newQty);
     if (isNaN(quantity) || quantity <= 0) return;
-    
+
     const updatedItems = createFormData.items.map(item => {
       if (item.product.id === productId) {
         if (quantity > item.product.stockQuantity) {
@@ -243,10 +244,10 @@ const OrderManagement = () => {
       }
       return item;
     });
-    
+
     const subtotal = updatedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const amount = subtotal + createFormData.shippingFee + createFormData.serviceFee - createFormData.discount;
-    
+
     setCreateFormData(prev => ({
       ...prev,
       items: updatedItems,
@@ -259,7 +260,7 @@ const OrderManagement = () => {
     const updatedItems = createFormData.items.filter(item => item.product.id !== productId);
     const subtotal = updatedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const amount = subtotal + createFormData.shippingFee + createFormData.serviceFee - createFormData.discount;
-    
+
     setCreateFormData(prev => ({
       ...prev,
       items: updatedItems,
@@ -271,7 +272,7 @@ const OrderManagement = () => {
   const handleFeeChange = (field, val) => {
     const parsed = parseFloat(val);
     const numVal = isNaN(parsed) ? 0 : parsed;
-    
+
     setCreateFormData(prev => {
       const updated = { ...prev, [field]: numVal };
       updated.amount = updated.subtotal + updated.shippingFee + updated.serviceFee - updated.discount;
@@ -302,7 +303,7 @@ const OrderManagement = () => {
       showToast("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số và bắt đầu bằng số 0.");
       return;
     }
-    
+
     const payload = {
       customerEmail: createFormData.customerEmail,
       recipient: createFormData.recipient,
@@ -320,7 +321,7 @@ const OrderManagement = () => {
         quantity: item.quantity
       }))
     };
-    
+
     try {
       await apiClient.post("/api/admin/orders", payload);
       showToast("Tạo đơn hàng mới thành công!");
@@ -433,7 +434,7 @@ const OrderManagement = () => {
   // Sync Tabs & Cards Filter Selection
   const selectStatusFilter = (statusVal) => {
     setFilterStatus(statusVal);
-    
+
     // Map status value back to Active Tab text
     if (statusVal === "All") setActiveTab("Tất cả đơn hàng");
     else if (statusVal === "pending") setActiveTab("Chờ xử lý");
@@ -443,7 +444,7 @@ const OrderManagement = () => {
     else if (statusVal === "cancelled") setActiveTab("Đã hủy");
     else if (statusVal === "rejected") setActiveTab("Đã từ chối");
     else if (statusVal === "refunded") setActiveTab("Hoàn tiền");
-    
+
     setCurrentPage(1);
   };
 
@@ -456,9 +457,9 @@ const OrderManagement = () => {
         cancelled: "Đã hủy",
         completed: "Đã hoàn thành"
       };
-      
+
       const firstItem = po.items && po.items[0] ? po.items[0] : {};
-      
+
       return {
         id: `PO-${po.id}`,
         dbId: po.id,
@@ -485,7 +486,7 @@ const OrderManagement = () => {
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
     setCurrentPage(1);
-    
+
     // Map Tab text to filter status values
     if (tabName === "Tất cả đơn hàng") setFilterStatus("All");
     else if (tabName === "Đơn đặt trước") setFilterStatus("Preorder");
@@ -540,7 +541,7 @@ const OrderManagement = () => {
       const matchesSearch = searchQuery.trim() === "" ||
         o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (o.recipient && o.recipient.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (filterStatus === "Preorder" 
+        (filterStatus === "Preorder"
           ? (o.farmer && o.farmer.toLowerCase().includes(searchQuery.toLowerCase()))
           : (o.items && o.items.some(item => item.farmer && item.farmer.toLowerCase().includes(searchQuery.toLowerCase())))
         );
@@ -566,8 +567,8 @@ const OrderManagement = () => {
 
       // 4. Farmer Filter
       if (filterFarmer !== "All") {
-        const hasFarmer = filterStatus === "Preorder" 
-          ? o.farmer === filterFarmer 
+        const hasFarmer = filterStatus === "Preorder"
+          ? o.farmer === filterFarmer
           : (o.items && o.items.some(item => item.farmer === filterFarmer));
         if (!hasFarmer) return false;
       }
@@ -668,7 +669,7 @@ const OrderManagement = () => {
         remarks: remarksInput
       });
       showToast(`Đã cập nhật đơn hàng sang trạng thái: ${targetStatus.toUpperCase()}.`);
-      
+
       // Update selected order in state and reload list
       setSelectedOrder(res.data);
       setProviderAvatarError(false);
@@ -676,7 +677,7 @@ const OrderManagement = () => {
       fetchOrderAuditLogs(res.data.id);
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái đơn hàng:", err);
-      
+
       // Fallback local update simulation
       const updatedStatus = targetStatus;
       let updatedPaymentStatus = selectedOrder.paymentStatus;
@@ -700,7 +701,7 @@ const OrderManagement = () => {
         id: Date.now(),
         actionType: "ORDER_STATUS_CHANGED",
         actorName: currentUser?.fullName || "Quản trị viên",
-        createdAt: new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", {hour: '2-digit', minute:'2-digit'}),
+        createdAt: new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }),
         remarks: remarksInput || `Cập nhật trạng thái sang: ${getStatusLabel(updatedStatus)}`
       };
       setOrderAuditLogs([mockLog, ...orderAuditLogs]);
@@ -931,39 +932,12 @@ const OrderManagement = () => {
 
       {/* Main Content */}
       <div className="admin-main-container">
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm đơn hàng, khách hàng, nhà vườn..."
-              className="admin-search-input"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-          <div className="admin-header-actions" style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <button className="admin-notification-btn" onClick={() => showToast("Không có thông báo mới.")} style={{ position: "relative", padding: "8px", borderRadius: "50%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#374151" }}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span className="admin-notification-dot" style={{ top: "6px", right: "6px", width: "8px", height: "8px" }}></span>
-            </button>
-            <button className="admin-notification-btn" onClick={() => showToast("Tùy chọn tài khoản quản trị.")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#374151" }}><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            </button>
-            <img 
-              src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150"} 
-              alt="Ảnh quản trị viên" 
-              style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }} 
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150";
-              }}
-            />
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+          searchPlaceholder="Tìm kiếm đơn hàng..."
+          showToast={showToast}
+        />
 
         <main className="admin-page-body">
           {error && (
@@ -1008,10 +982,10 @@ const OrderManagement = () => {
 
               {/* Grid Dashboard - consistent with other pages (320px 1fr) */}
               <div className="details-dashboard-grid" style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "24px", alignItems: "start" }}>
-                
+
                 {/* Left Column (320px): Metadata Overview Cards */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                  
+
                   {/* General Status Card */}
                   <div className="details-left-card" style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid var(--admin-border)", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", textAlign: "left", alignItems: "stretch" }}>
                     <h4 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700", color: "var(--admin-primary)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid var(--admin-border)", paddingBottom: "12px" }}>
@@ -1063,9 +1037,9 @@ const OrderManagement = () => {
                       Khách hàng đặt mua
                     </h4>
                     <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
-                      <img 
-                        src={getFullImageUrl(selectedOrder.customerAvatarUrl) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
-                        alt="Khách hàng" 
+                      <img
+                        src={getFullImageUrl(selectedOrder.customerAvatarUrl) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
+                        alt="Khách hàng"
                         style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }}
                         onError={(e) => {
                           e.target.onerror = null;
@@ -1095,9 +1069,9 @@ const OrderManagement = () => {
                     </h4>
                     <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                       {selectedOrder.provider?.avatarUrl && !providerAvatarError ? (
-                        <img 
-                          src={getFullImageUrl(selectedOrder.provider.avatarUrl)} 
-                          alt="Avatar nhà vườn" 
+                        <img
+                          src={getFullImageUrl(selectedOrder.provider.avatarUrl)}
+                          alt="Avatar nhà vườn"
                           style={{ width: "48px", height: "48px", borderRadius: "12px", objectFit: "cover" }}
                           onError={() => setProviderAvatarError(true)}
                         />
@@ -1121,7 +1095,7 @@ const OrderManagement = () => {
 
                 {/* Right Column (1fr): Product details, breaks, note inputs and timeline logs */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                  
+
                   {/* Product List Card */}
                   <div className="details-right-card" style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid var(--admin-border)", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", margin: 0 }}>
                     <h4 style={{ margin: "0 0 16px 0", fontSize: "14px", fontWeight: "700", color: "var(--admin-primary)", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid var(--admin-border)", paddingBottom: "12px" }}>
@@ -1130,9 +1104,9 @@ const OrderManagement = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                       {selectedOrder.items && selectedOrder.items.map((item, idx) => (
                         <div key={idx} style={{ display: "flex", gap: "16px", alignItems: "center", borderBottom: idx < selectedOrder.items.length - 1 ? "1px solid #f3f4f6" : "none", paddingBottom: idx < selectedOrder.items.length - 1 ? "16px" : 0 }}>
-                          <img 
-                            src={getFullImageUrl(item.img) || "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=100"} 
-                            alt={item.name} 
+                          <img
+                            src={getFullImageUrl(item.img) || "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=100"}
+                            alt={item.name}
                             style={{ width: "52px", height: "52px", objectFit: "cover", borderRadius: "8px", border: "1px solid #e5e7eb" }}
                             onError={(e) => {
                               e.target.onerror = null;
@@ -1188,7 +1162,7 @@ const OrderManagement = () => {
                           -{formatVND(selectedOrder.discount)}
                         </strong>
                       </div>
-                      
+
                       <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "800", fontSize: "16px", borderTop: "1px solid var(--admin-border)", paddingTop: "14px", marginTop: "6px" }}>
                         <span style={{ color: "var(--admin-text-main)" }}>Tổng số tiền thanh toán:</span>
                         <span style={{ color: "var(--admin-primary)", fontSize: "20px", fontWeight: "800" }}>
@@ -1226,9 +1200,9 @@ const OrderManagement = () => {
                           {t.label}
                         </button>
                       ))}
-                      <button 
-                        className="btn-admin-outline" 
-                        onClick={() => setSelectedOrder(null)} 
+                      <button
+                        className="btn-admin-outline"
+                        onClick={() => setSelectedOrder(null)}
                         style={{ flexGrow: 1, justifyContent: "center", borderRadius: "10px", padding: "10px 18px", fontWeight: "600", fontSize: "14.5px" }}
                       >
                         Đóng chi tiết
@@ -1273,12 +1247,12 @@ const OrderManagement = () => {
                   <h2>Quản lý đơn hàng</h2>
                   <p>Giám sát và quản lý tất cả đơn hàng trên nền tảng.</p>
                 </div>
-                
+
                 <div className="admin-page-actions" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                   {/* Export Dropdown */}
                   <div style={{ position: "relative" }}>
-                    <button 
-                      className="btn-admin-outline" 
+                    <button
+                      className="btn-admin-outline"
                       onClick={() => setShowExportMenu(!showExportMenu)}
                       style={{ display: "flex", alignItems: "center", gap: "8px", borderRadius: "10px", padding: "10px 18px", fontWeight: "600", fontSize: "14.5px" }}
                     >
@@ -1301,20 +1275,20 @@ const OrderManagement = () => {
                   </div>
 
                   {/* Create Order button */}
-                  <button 
-                    className="btn-admin-primary" 
+                  <button
+                    className="btn-admin-primary"
                     onClick={handleOpenCreateModal}
                     style={{ backgroundColor: "#064e3b", color: "#ffffff", padding: "10px 18px", borderRadius: "10px", fontWeight: "600", fontSize: "14.5px", display: "flex", alignItems: "center", gap: "8px" }}
                   >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="16" 
-                      height="16" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2.5" 
-                      strokeLinecap="round" 
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                     >
                       <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1539,9 +1513,9 @@ const OrderManagement = () => {
 
                     {/* Reset Filters button */}
                     <div style={{ display: "flex", alignItems: "flex-end" }}>
-                      <button 
-                        className="btn-admin-danger" 
-                        onClick={handleResetAllFilters} 
+                      <button
+                        className="btn-admin-danger"
+                        onClick={handleResetAllFilters}
                         style={{ width: "100%", height: "48px", justifyContent: "center", padding: "10px" }}
                       >
                         Xóa tất cả bộ lọc
@@ -1586,14 +1560,14 @@ const OrderManagement = () => {
                     </thead>
                     <tbody>
                       {currentItems.map((order) => {
-                        const statusClass = order.isPreorder 
+                        const statusClass = order.isPreorder
                           ? (order.status === 'completed' ? 'delivered' : order.status === 'paid' ? 'confirmed' : order.status === 'cancelled' ? 'cancelled' : 'pending')
                           : getStatusBadgeClass(order.status);
                         return (
                           <tr key={order.id}>
                             <td>
-                              <span 
-                                onClick={() => handleSelectOrder(order)} 
+                              <span
+                                onClick={() => handleSelectOrder(order)}
                                 style={{ color: "#064e3b", fontWeight: "700", cursor: "pointer", textDecoration: "none" }}
                                 title={order.isPreorder ? "Xem chi tiết preorder" : "Xem chi tiết đơn hàng"}
                               >
@@ -1602,10 +1576,10 @@ const OrderManagement = () => {
                             </td>
                             <td>
                               <div className="user-cell-info">
-                                <img 
-                                  src={getFullImageUrl(order.customerAvatarUrl) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"} 
-                                  alt={order.recipient} 
-                                  className="user-cell-avatar" 
+                                <img
+                                  src={getFullImageUrl(order.customerAvatarUrl) || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"}
+                                  alt={order.recipient}
+                                  className="user-cell-avatar"
                                   style={{ borderRadius: "50%", width: "40px", height: "40px" }}
                                   onError={(e) => {
                                     e.target.onerror = null;
@@ -1632,7 +1606,7 @@ const OrderManagement = () => {
                             </td>
                             <td>
                               <span className={`payment-badge ${order.paymentStatus === 'paid' ? 'paid' : order.paymentStatus === 'refunded' ? 'refunded' : 'unpaid'}`}>
-                                {order.isPreorder 
+                                {order.isPreorder
                                   ? (order.paymentStatus === 'paid' ? 'Đã cọc 20%' : order.paymentStatus === 'refunded' ? 'Đã hoàn tiền' : 'Chưa đặt cọc')
                                   : (order.paymentStatus === 'paid' ? 'Đã thanh toán' : order.paymentStatus === 'refunded' ? 'Đã hoàn tiền' : 'Chưa thanh toán')}
                               </span>
@@ -1782,7 +1756,7 @@ const OrderManagement = () => {
               <button className="btn-modal-cancel" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>
                 Hủy bỏ
               </button>
-              <button 
+              <button
                 className={`btn-modal-confirm ${confirmModal.targetStatus === 'cancelled' || confirmModal.targetStatus === 'rejected' ? 'delete' : 'toggle'}`}
                 onClick={executeAction}
               >
@@ -1801,14 +1775,14 @@ const OrderManagement = () => {
               <h3>Tạo đơn hàng mới</h3>
               <button className="close-x-btn" onClick={() => setIsCreateModalOpen(false)}>✕</button>
             </div>
-            
+
             <form onSubmit={handleSubmitCreateOrder} className="create-order-form">
               <div className="create-order-modal-body-columns">
-                
+
                 {/* Left Column: Customer & Shipping */}
                 <div className="modal-body-column left">
                   <h4>Thông tin khách hàng & Vận chuyển</h4>
-                  
+
                   <div className="form-group-admin">
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                       <label style={{ margin: 0 }}>Khách hàng <span className="req">*</span></label>
@@ -1868,7 +1842,7 @@ const OrderManagement = () => {
                           className="form-input-admin"
                           style={{ marginBottom: "6px" }}
                         />
-                        <select 
+                        <select
                           value={createFormData.customerEmail}
                           onChange={(e) => {
                             const email = e.target.value;
@@ -1931,36 +1905,36 @@ const OrderManagement = () => {
                       </>
                     )}
                   </div>
-                  
+
                   <div className="form-group-admin">
                     <label>Người nhận hàng <span className="req">*</span></label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={createFormData.recipient}
                       onChange={(e) => setCreateFormData(prev => ({ ...prev, recipient: e.target.value }))}
-                      className="form-input-admin" 
+                      className="form-input-admin"
                       placeholder="Nhập tên người nhận"
                       required
                     />
                   </div>
-                  
+
                   <div className="form-row-admin-2col">
                     <div className="form-group-admin">
                       <label>Số điện thoại <span className="req">*</span></label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={createFormData.phone}
                         onChange={(e) => setCreateFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
                         maxLength={10}
-                        className="form-input-admin" 
+                        className="form-input-admin"
                         placeholder="Nhập số điện thoại"
                         required
                       />
                     </div>
-                    
+
                     <div className="form-group-admin">
                       <label>Phương thức thanh toán</label>
-                      <select 
+                      <select
                         value={createFormData.paymentMethod}
                         onChange={(e) => setCreateFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
                         className="form-input-admin"
@@ -1971,41 +1945,41 @@ const OrderManagement = () => {
                       </select>
                     </div>
                   </div>
-                  
+
                   <div className="form-group-admin">
                     <label>Địa chỉ giao hàng <span className="req">*</span></label>
-                    <textarea 
+                    <textarea
                       value={createFormData.address}
                       onChange={(e) => setCreateFormData(prev => ({ ...prev, address: e.target.value }))}
-                      className="form-input-admin textarea" 
+                      className="form-input-admin textarea"
                       placeholder="Nhập địa chỉ nhận hàng chi tiết"
                       rows={2}
                       required
                     />
                   </div>
-                  
+
                   <div className="form-group-admin">
                     <label>Ghi chú giao hàng</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={createFormData.shippingNote}
                       onChange={(e) => setCreateFormData(prev => ({ ...prev, shippingNote: e.target.value }))}
-                      className="form-input-admin" 
+                      className="form-input-admin"
                       placeholder="Ghi chú cho shipper (ví dụ: giao giờ hành chính)"
                     />
                   </div>
                 </div>
-                
+
                 {/* Right Column: Products & Calculation */}
                 <div className="modal-body-column right">
                   <h4>Sản phẩm & Chi phí</h4>
-                  
+
                   {/* Product Selection area */}
                   <div className="product-picker-section">
                     <div className="form-row-admin-3col">
                       <div className="form-group-admin select-product-col">
                         <label>Chọn nông sản</label>
-                        <select 
+                        <select
                           value={selectedProductToAdd}
                           onChange={(e) => setSelectedProductToAdd(e.target.value)}
                           className="form-input-admin"
@@ -2018,22 +1992,22 @@ const OrderManagement = () => {
                           ))}
                         </select>
                       </div>
-                      
+
                       <div className="form-group-admin qty-col">
                         <label>Số lượng</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min={1}
                           value={productQuantityToAdd}
                           onChange={(e) => setProductQuantityToAdd(Math.max(1, parseInt(e.target.value) || 1))}
                           className="form-input-admin"
                         />
                       </div>
-                      
+
                       <div className="form-group-admin add-btn-col">
                         <label>&nbsp;</label>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           className="btn-admin-add-product"
                           onClick={handleAddProductToOrder}
                           disabled={!selectedProductToAdd}
@@ -2043,7 +2017,7 @@ const OrderManagement = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Selected Products List */}
                   <div className="selected-products-container">
                     <label className="section-sub-label">Sản phẩm đã chọn ({createFormData.items.length})</label>
@@ -2072,9 +2046,9 @@ const OrderManagement = () => {
                                 </td>
                                 <td>{formatVND(item.product.price)}</td>
                                 <td>
-                                  <input 
-                                    type="number" 
-                                    min={1} 
+                                  <input
+                                    type="number"
+                                    min={1}
                                     max={item.product.stockQuantity}
                                     value={item.quantity}
                                     onChange={(e) => handleUpdateItemQuantity(item.product.id, e.target.value)}
@@ -2084,8 +2058,8 @@ const OrderManagement = () => {
                                 </td>
                                 <td>{formatVND(item.product.price * item.quantity)}</td>
                                 <td>
-                                  <button 
-                                    type="button" 
+                                  <button
+                                    type="button"
                                     className="btn-remove-item-icon"
                                     onClick={() => handleRemoveProductFromOrder(item.product.id)}
                                   >
@@ -2099,19 +2073,19 @@ const OrderManagement = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Calculation summary */}
                   <div className="order-calculation-summary">
                     <div className="calc-row">
                       <span>Tạm tính (Tiền hàng):</span>
                       <strong>{formatVND(createFormData.subtotal)}</strong>
                     </div>
-                    
+
                     <div className="form-row-admin-3col calc-inputs-row">
                       <div className="form-group-admin text-group">
                         <label>Phí vận chuyển (VNĐ)</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min={0}
                           step={1000}
                           value={createFormData.shippingFee}
@@ -2121,8 +2095,8 @@ const OrderManagement = () => {
                       </div>
                       <div className="form-group-admin text-group">
                         <label>Phí dịch vụ (VNĐ)</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min={0}
                           step={1000}
                           value={createFormData.serviceFee}
@@ -2132,8 +2106,8 @@ const OrderManagement = () => {
                       </div>
                       <div className="form-group-admin text-group">
                         <label>Chiết khấu (VNĐ)</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           min={0}
                           step={1000}
                           value={createFormData.discount}
@@ -2142,27 +2116,27 @@ const OrderManagement = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="calc-row total">
                       <span>Tổng thanh toán:</span>
                       <span className="total-amount-val">{formatVND(createFormData.amount)}</span>
                     </div>
                   </div>
-                  
+
                 </div>
               </div>
-              
+
               {/* Footer buttons */}
               <div className="modal-footer-row">
-                <button 
-                  type="button" 
-                  className="btn-modal-cancel" 
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
                   onClick={() => setIsCreateModalOpen(false)}
                 >
                   Hủy bỏ
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn-modal-submit"
                   disabled={createFormData.items.length === 0 || !createFormData.customerEmail}
                 >

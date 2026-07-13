@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Search, Bell, Lightbulb } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
@@ -1075,31 +1076,12 @@ const UserAccounts = () => {
       {/* Main Content Container */}
       <div className="admin-main-container">
         {/* Header - Matching Image 1 */}
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm tài khoản..."
-              className="admin-search-input"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-
-          <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <button className="btn-quick-action" onClick={() => navigate("/admin/users/create")}>
-              + Thao tác nhanh
-            </button>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchPlaceholder="Tìm kiếm tài khoản..."
+          showToast={showToast}
+        />
 
         {/* Page Body */}
         <main className="admin-page-body">

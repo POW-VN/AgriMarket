@@ -4,6 +4,7 @@ import { Search, Bell, Package, FolderOpen, Clock, Settings, CheckCircle2, XCirc
 import supportRequestService from "../../services/supportRequestService";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import "./AdminComplaints.css";
 import "./AdminStyles.css";
 
@@ -114,7 +115,7 @@ export default function AdminComplaints() {
         updatingStatus,
         adminNotes
       );
-      
+
       // Update local state
       setRequests(prev => prev.map(r => r.id === updated.id ? updated : r));
       setSelectedRequest(null);
@@ -177,7 +178,7 @@ export default function AdminComplaints() {
           <div className="admin-page-actions">
             <button className="btn-admin-outline" onClick={loadRequests} disabled={loading}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
               Tải lại
             </button>
@@ -300,8 +301,8 @@ export default function AdminComplaints() {
                       <span style={{ fontWeight: "700", color: "#475569" }}>REQ-{req.id}</span>
                     </td>
                     <td>
-                      <div 
-                        style={{ fontWeight: "600", color: "#1e293b", cursor: "pointer", textDecoration: "underline" }} 
+                      <div
+                        style={{ fontWeight: "600", color: "#1e293b", cursor: "pointer", textDecoration: "underline" }}
                         onClick={() => handleSelectRequest(req)}
                         title="Xem chi tiết"
                       >
@@ -334,8 +335,8 @@ export default function AdminComplaints() {
                         onClick={() => handleSelectRequest(req)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--admin-primary)" }}>
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                          <circle cx="12" cy="12" r="3"/>
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
                         </svg>
                       </button>
                     </td>
@@ -377,14 +378,14 @@ export default function AdminComplaints() {
   // ─── DETAIL VIEW ─────────────────────────────────────────────────────────────
   const renderDetailView = () => {
     const req = selectedRequest;
-    
+
     // Status color mapping for the details banner
     const statusColors = {
-      pending:    { bg: "#fff7ed", text: "#92400e", border: "#fcd34d" },
-      assigned:   { bg: "#eff6ff", text: "#1e40af", border: "#bfdbfe" },
+      pending: { bg: "#fff7ed", text: "#92400e", border: "#fcd34d" },
+      assigned: { bg: "#eff6ff", text: "#1e40af", border: "#bfdbfe" },
       processing: { bg: "#e0f2fe", text: "#0369a1", border: "#7dd3fc" },
-      resolved:   { bg: "#ecfdf5", text: "#065f46", border: "#6ee7b7" },
-      rejected:   { bg: "#fef2f2", text: "#991b1b", border: "#fca5a5" },
+      resolved: { bg: "#ecfdf5", text: "#065f46", border: "#6ee7b7" },
+      rejected: { bg: "#fef2f2", text: "#991b1b", border: "#fca5a5" },
     };
     const sc = statusColors[req.status] ?? { bg: "#f3f4f6", text: "#374151", border: "#e5e7eb" };
 
@@ -407,8 +408,8 @@ export default function AdminComplaints() {
               Gửi bởi: <strong style={{ color: "#374151" }}>{req.senderName}</strong> &bull; {req.senderEmail}
             </p>
           </div>
-          <button 
-            onClick={() => setSelectedRequest(null)} 
+          <button
+            onClick={() => setSelectedRequest(null)}
             style={{ padding: "10px 18px", borderRadius: "10px", border: "1.5px solid #e5e7eb", backgroundColor: "#fff", color: "#374151", fontWeight: "600", fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
           >
             ← Quay lại danh sách
@@ -481,18 +482,18 @@ export default function AdminComplaints() {
                   📎 Tài liệu / Hình ảnh minh chứng
                 </h4>
                 <div style={{ marginTop: "12px" }}>
-                  <a href={req.attachmentUrl} target="_blank" rel="noopener noreferrer" 
-                     style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 18px", backgroundColor: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: "8px", color: "#16a34a", textDecoration: "none", fontWeight: "700", fontSize: "13.5px", transition: "all 0.15s" }}>
+                  <a href={req.attachmentUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 18px", backgroundColor: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: "8px", color: "#16a34a", textDecoration: "none", fontWeight: "700", fontSize: "13.5px", transition: "all 0.15s" }}>
                     <span>🔗</span> Xem ảnh minh chứng đính kèm
                   </a>
                 </div>
                 {/* Preview image directly if it is an image */}
                 {(req.attachmentUrl.match(/\.(jpeg|jpg|gif|png|webp)/i)) && (
                   <div style={{ marginTop: "14px", borderRadius: "8px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                    <img 
-                      src={req.attachmentUrl} 
-                      alt="Attachment Minh Chứng" 
-                      style={{ maxWidth: "100%", maxHeight: "360px", display: "block" }} 
+                    <img
+                      src={req.attachmentUrl}
+                      alt="Attachment Minh Chứng"
+                      style={{ maxWidth: "100%", maxHeight: "360px", display: "block" }}
                     />
                   </div>
                 )}
@@ -510,7 +511,7 @@ export default function AdminComplaints() {
               <button
                 type="button"
                 onClick={() => navigate(`/admin/chat/${req.id}`)}
-                style={{ 
+                style={{
                   width: "100%",
                   padding: "12px 20px",
                   borderRadius: "8px",
@@ -613,31 +614,12 @@ export default function AdminComplaints() {
       {/* Main Container */}
       <div className="admin-main-container">
         {/* Header */}
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-            <input
-              type="text"
-              className="admin-search-input"
-              placeholder="Tìm theo Mã, Tiêu đề, Người gửi..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            />
-          </div>
-
-          <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <div className="admin-profile-pill" style={{ display: "flex", alignItems: "center", gap: "8px", borderLeft: "1px solid var(--admin-border)", paddingLeft: "12px" }}>
-              <span className="admin-avatar" style={{ width: "32px", height: "32px", backgroundColor: "var(--admin-primary)", color: "#fff", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                {currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "A"}
-              </span>
-              <span style={{ fontSize: "14px", fontWeight: "600" }}>Admin Panel</span>
-            </div>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+          searchPlaceholder="Tìm kiếm khiếu nại..."
+          showToast={showToast}
+        />
 
         {/* Page Body */}
         <main className="admin-page-body">

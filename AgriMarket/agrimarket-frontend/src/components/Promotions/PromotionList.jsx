@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Download, Plus, Search, ChevronDown, X, Eye } from 'lucide-react';
 
-const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loading }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loading, searchTerm: externalSearchTerm, setSearchTerm: externalSetSearchTerm }) => {
+  const [localSearchTerm, setLocalSearchTerm] = useState('');
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : localSearchTerm;
+  const setSearchTerm = externalSetSearchTerm !== undefined ? externalSetSearchTerm : setLocalSearchTerm;
   const [statusFilter, setStatusFilter] = useState('all');
   const [discountFilter, setDiscountFilter] = useState('all');
   const [farmerFilter, setFarmerFilter] = useState('all');
@@ -121,15 +123,17 @@ const PromotionList = ({ role, onCreateNew, onViewDetail, promotions = [], loadi
       </div>
 
       <div className="spromo-list-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div className="spromo-search-box" style={{ flex: '1', minWidth: '300px' }}>
-          <Search size={18} />
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm khuyến mãi, nông dân, sản phẩm..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+        {externalSearchTerm === undefined && (
+          <div className="spromo-search-box" style={{ flex: '1', minWidth: '300px' }}>
+            <Search size={18} />
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm khuyến mãi, nông dân, sản phẩm..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        )}
         
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button style={{ padding: '8px 16px', border: '1px solid #10b981', color: '#10b981', background: '#f0fdf4', borderRadius: '6px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>

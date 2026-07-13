@@ -4,6 +4,7 @@ import authService from "../../services/authService";
 import apiClient from "../../services/apiClient";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import {
   LayoutDashboard,
   Users,
@@ -41,10 +42,10 @@ export default function LiveManagement() {
   const toastTimerRef = useRef(null);
   const toastCountdownRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Products modal view state
   const [viewingProductsList, setViewingProductsList] = useState(null); // array of products or null
-  
+
   // Custom terminate confirm modal state
   const [terminatingSession, setTerminatingSession] = useState(null); // { id, brand } or null
   const [monitoringSession, setMonitoringSession] = useState(null); // session object or null
@@ -438,29 +439,12 @@ export default function LiveManagement() {
 
       {/* Main Content Container */}
       <div className="admin-main-container">
-        {/* Header - Matching Image 1 */}
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm phiên live, nhà vườn..."
-              className="admin-search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => navigate("/admin/notifications")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <div className="admin-profile-dropdown-trigger">
-              <span className="admin-username">AgriLive Management</span>
-            </div>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchPlaceholder="Tìm kiếm livestream..."
+          showToast={showToast}
+        />
 
         {/* Page Body */}
         <main className="admin-page-body">
@@ -477,9 +461,9 @@ export default function LiveManagement() {
                   onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
                 >
                   <SlidersHorizontal size={16} />
-                  Bộ lọc { (statusFilter !== "all" || sortBy !== "default") && "•" }
+                  Bộ lọc {(statusFilter !== "all" || sortBy !== "default") && "•"}
                 </button>
-                
+
                 {isFilterDropdownOpen && (
                   <div className="filter-dropdown-menu">
                     <div className="filter-group">
@@ -622,8 +606,8 @@ export default function LiveManagement() {
                             <p className="live-stream-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                               {session.title}
                               {alerts.filter(a => Number(a.livestreamId) === Number(session.id)).length > 0 && (
-                                <span 
-                                  className="ai-alert-badge" 
+                                <span
+                                  className="ai-alert-badge"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setMonitorInitialTab("alerts");
@@ -641,7 +625,7 @@ export default function LiveManagement() {
                                     borderRadius: "4px",
                                     border: "1px solid #fca5a5",
                                     cursor: "pointer"
-                                  }} 
+                                  }}
                                   title="AI phát hiện dấu hiệu vi phạm. Click để xem chi tiết."
                                 >
                                   <AlertTriangle size={12} style={{ color: "#ef4444" }} /> AI ALERT
@@ -749,14 +733,14 @@ export default function LiveManagement() {
                   {Math.min(indexOfLastItem, filteredSessions.length)} trên tổng số {sessions.length} phiên live
                 </span>
                 <div className="live-page-buttons">
-                  <button 
-                    className="page-btn" 
+                  <button
+                    className="page-btn"
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                   >
                     &lt;
                   </button>
-                  
+
                   {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
                     <button
                       key={pageNumber}
@@ -766,9 +750,9 @@ export default function LiveManagement() {
                       {pageNumber}
                     </button>
                   ))}
-                  
-                  <button 
-                    className="page-btn" 
+
+                  <button
+                    className="page-btn"
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages || totalPages === 0}
                   >
@@ -926,10 +910,10 @@ export default function LiveManagement() {
       )}
 
       {monitoringSession && (
-        <AdminMonitorModal 
-          session={monitoringSession} 
+        <AdminMonitorModal
+          session={monitoringSession}
           initialTab={monitorInitialTab}
-          onClose={() => setMonitoringSession(null)} 
+          onClose={() => setMonitoringSession(null)}
           onOpenTerminateModal={(sessionInfo) => {
             setMonitoringSession(null);
             setTerminatingSession(sessionInfo);
@@ -1052,10 +1036,10 @@ function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab 
     return () => {
       active = false;
       if (rtcRef.current.videoTrack) {
-        try { rtcRef.current.videoTrack.stop(); } catch(e){}
+        try { rtcRef.current.videoTrack.stop(); } catch (e) { }
       }
       if (rtcRef.current.audioTrack) {
-        try { rtcRef.current.audioTrack.stop(); } catch(e){}
+        try { rtcRef.current.audioTrack.stop(); } catch (e) { }
       }
       if (client) {
         client.leave().catch((e) => console.error(e));
@@ -1088,7 +1072,7 @@ function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab 
             </div>
           </div>
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <button 
+            <button
               className="btn-terminate-stream"
               style={{
                 backgroundColor: "#ef4444",
@@ -1141,7 +1125,7 @@ function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab 
               backgroundColor: "#f1f5f9",
               flexShrink: 0
             }}>
-              <button 
+              <button
                 onClick={() => setActiveTab("comments")}
                 style={{
                   flex: 1,
@@ -1157,7 +1141,7 @@ function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab 
               >
                 💬 Bình luận ({comments.length})
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("alerts")}
                 style={{
                   flex: 1,
@@ -1274,7 +1258,7 @@ function AdminMonitorModal({ session, onClose, onOpenTerminateModal, initialTab 
                       )}
                       <div style={{ display: "flex", justifyContent: "flex-end" }}>
                         {alert.status === "PENDING" && (
-                          <button 
+                          <button
                             onClick={async () => {
                               try {
                                 await apiClient.post(`/api/moderation/alerts/${alert.id}/resolve`);

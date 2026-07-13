@@ -42,9 +42,6 @@ public class ReviewController {
     @Autowired
     private ProductReviewRepository productReviewRepository;
 
-    @Autowired
-    private FarmerReviewRepository farmerReviewRepository;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static class ReviewSubmitRequest {
@@ -160,23 +157,10 @@ public class ReviewController {
             }
             productReviewRepository.save(review);
 
-            // Save/Update FarmerReview
+            // Recalculate average rating for farmer
             Farmer farmer = product.getFarmer();
             if (farmer != null) {
-                FarmerReview farmerReview = farmerReviewRepository.findByFarmerIdAndCustomerIdAndOrderId(
-                        farmer.getId(), customer.getId(), order.getId()).orElse(new FarmerReview());
-                farmerReview.setFarmer(farmer);
-                farmerReview.setCustomer(customer);
-                farmerReview.setOrder(order);
-                farmerReview.setRating(request.getRating());
-                farmerReview.setComment(commentString);
-                if (existingReview.isPresent()) {
-                    farmerReview.setCreatedAt(LocalDateTime.now());
-                }
-                farmerReviewRepository.save(farmerReview);
-
-                // Recalculate average rating for farmer
-                Double farmerAvg = farmerReviewRepository.getAverageRatingByFarmerId(farmer.getId());
+                Double farmerAvg = productReviewRepository.getAverageRatingByFarmerId(farmer.getId());
                 if (farmerAvg != null) {
                     farmer.setRatingAverage(Math.round(farmerAvg * 10.0) / 10.0);
                     farmerRepository.save(farmer);

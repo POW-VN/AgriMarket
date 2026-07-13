@@ -267,7 +267,7 @@ public class PromotionServiceImpl implements PromotionService {
             if (imageUrl.isEmpty()) {
                 List<ProductImage> productImages = productImageRepository.findByProductId(prod.getId());
                 if (!productImages.isEmpty()) {
-                    imageUrl = productImages.getFirst().getImgUrl();
+                    imageUrl = productImages.get(0).getImgUrl();
                 }
             }
 
