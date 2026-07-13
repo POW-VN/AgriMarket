@@ -378,22 +378,6 @@ CREATE TABLE product_review (
 );
 GO
 
--- ==========================================================
--- 18. FARMER REVIEW
--- ==========================================================
-CREATE TABLE farmer_review (
-    id BIGINT IDENTITY(1,1) PRIMARY KEY,
-    farmer_id BIGINT NOT NULL,
-    customer_id BIGINT NOT NULL,
-    order_id BIGINT NOT NULL,
-    rating INT CHECK(rating BETWEEN 1 AND 5),
-    comment NVARCHAR(MAX),
-    created_at DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (farmer_id) REFERENCES farmer(id) ON DELETE CASCADE,
-    FOREIGN KEY (customer_id) REFERENCES customer(id),
-    FOREIGN KEY (order_id) REFERENCES orders(id)
-);
-GO
 
 -- ==========================================================
 -- 19. PREORDER
