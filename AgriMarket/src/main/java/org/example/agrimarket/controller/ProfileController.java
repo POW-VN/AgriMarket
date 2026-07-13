@@ -399,7 +399,6 @@ public class ProfileController {
             String idsCsv = orderIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
             jdbcTemplate.update("DELETE FROM payment WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM product_review WHERE order_id IN (" + idsCsv + ")");
-            jdbcTemplate.update("DELETE FROM farmer_review WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM order_item WHERE order_id IN (" + idsCsv + ")");
             jdbcTemplate.update("DELETE FROM orders WHERE id IN (" + idsCsv + ")");
         }
@@ -407,11 +406,9 @@ public class ProfileController {
         // Cleanup reviews not linked to orders
         if (customerId != null) {
             jdbcTemplate.update("DELETE FROM product_review WHERE customer_id = ?", customerId);
-            jdbcTemplate.update("DELETE FROM farmer_review WHERE customer_id = ?", customerId);
         }
         if (farmerId != null) {
             jdbcTemplate.update("DELETE FROM product_review WHERE product_id IN (SELECT id FROM product WHERE farmer_id = ?)", farmerId);
-            jdbcTemplate.update("DELETE FROM farmer_review WHERE farmer_id = ?", farmerId);
         }
 
         // 26. product_discount, product_image, AI_content_moderation, AI_product_description_history, AI_price_suggestion, livestream_product, livestream, product

@@ -24,5 +24,8 @@ public interface ProductReviewRepository extends JpaRepository<ProductReview, Lo
     @Query("SELECT pr.order.id, pr.product.id FROM ProductReview pr WHERE pr.order.id IN :orderIds")
     List<Object[]> findReviewedProductsForOrders(@Param("orderIds") List<Long> orderIds);
 
+    @Query("SELECT AVG(pr.rating) FROM ProductReview pr WHERE pr.product.farmer.id = :farmerId")
+    Double getAverageRatingByFarmerId(@Param("farmerId") Long farmerId);
+
     Long countByProductId(Long productId);
 }
