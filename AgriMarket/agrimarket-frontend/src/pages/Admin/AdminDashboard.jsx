@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 import "./AdminDashboard.css";
@@ -207,53 +208,12 @@ const AdminDashboard = () => {
 
       {/* Main content grid */}
       <div className="admin-main-container">
-        {/* Header - Image matching styling */}
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}>
-              <Search size={16} />
-            </span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm giao dịch..."
-              className="admin-search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "28px", alignItems: "center" }}>
-            <span style={{ fontSize: "14px", fontWeight: "700", color: "#475569", cursor: "pointer" }} onClick={() => showToast("Chức năng Báo cáo")}>Báo cáo</span>
-            <span style={{ fontSize: "14px", fontWeight: "700", color: "#475569", cursor: "pointer" }} onClick={() => showToast("Chức năng Đối soát")}>Đối soát</span>
-            <span style={{ fontSize: "14px", fontWeight: "700", color: "#475569", cursor: "pointer" }} onClick={() => navigate("/admin/complaints")}>Hỗ trợ</span>
-          </div>
-
-          <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <button className="admin-notification-btn" aria-label="Help" onClick={() => showToast("Hệ thống trợ giúp admin.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginLeft: "4px" }}>
-              <HelpCircle size={18} />
-            </button>
-            <button 
-              className="admin-notification-btn" 
-              aria-label="Profile" 
-              onClick={() => navigate("/profile")}
-              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginLeft: "4px", borderRadius: "50%", overflow: "hidden" }}
-            >
-              <img
-                src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-                alt="Profile"
-                style={{ width: "32px", height: "32px", objectFit: "cover" }}
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-                }}
-              />
-            </button>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchPlaceholder="Tìm kiếm tổng quan..."
+          showToast={showToast}
+        />
 
         {/* Dashboard contents */}
         <div className="admin-dashboard-wrapper" style={{ position: "relative" }}>
@@ -274,7 +234,7 @@ const AdminDashboard = () => {
               <span style={{ color: "#0f766e", fontWeight: "700", fontSize: "15px" }}>Đang tải dữ liệu...</span>
             </div>
           )}
-          
+
           {/* Header Row */}
           <div className="dashboard-header-section">
             <div>
@@ -288,25 +248,25 @@ const AdminDashboard = () => {
 
             {/* Date Filters Selector */}
             <div className="date-filters-container">
-              <button 
+              <button
                 className={`date-filter-btn ${selectedRange === "today" ? "active" : ""}`}
                 onClick={() => setSelectedRange("today")}
               >
                 Hôm nay
               </button>
-              <button 
+              <button
                 className={`date-filter-btn ${selectedRange === "7days" ? "active" : ""}`}
                 onClick={() => setSelectedRange("7days")}
               >
                 7 ngày qua
               </button>
-              <button 
+              <button
                 className={`date-filter-btn ${selectedRange === "30days" ? "active" : ""}`}
                 onClick={() => setSelectedRange("30days")}
               >
                 30 ngày qua
               </button>
-              <button 
+              <button
                 className={`date-filter-btn ${selectedRange === "year" ? "active" : ""}`}
                 onClick={() => setSelectedRange("year")}
               >
@@ -331,7 +291,7 @@ const AdminDashboard = () => {
 
           {/* Metric Cards Grid */}
           <div className="dashboard-metrics-grid">
-            
+
             {/* CARD 1: TỔNG DOANH THU */}
             <div className="metric-card" style={{ minHeight: "220px", display: "flex", flexDirection: "column", padding: "16px 22px", boxSizing: "border-box" }}>
               <div className="metric-card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", height: "40px" }}>
@@ -345,7 +305,7 @@ const AdminDashboard = () => {
               </div>
               <p className="metric-card-label" style={{ margin: "0 0 4px 0" }}>Tổng doanh thu</p>
               <h3 className="metric-card-value" style={{ margin: "0", fontSize: "24px", fontWeight: "800", color: "#0f172a" }}>{data.revenue.toLocaleString("en-US")} VND</h3>
-              
+
               {/* Sparkline mini chart */}
               <div className="sparkline-container" style={{ height: "40px", width: "100%", marginTop: "12px", marginBottom: "0" }}>
                 <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
@@ -355,16 +315,16 @@ const AdminDashboard = () => {
                       <stop offset="100%" stopColor="#0f766e" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-                  <path 
-                    d="M 0 35 Q 20 15 40 25 T 80 10 T 100 20" 
-                    fill="none" 
-                    stroke="#0f766e" 
-                    strokeWidth="2.5" 
+                  <path
+                    d="M 0 35 Q 20 15 40 25 T 80 10 T 100 20"
+                    fill="none"
+                    stroke="#0f766e"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                   />
-                  <path 
-                    d="M 0 35 Q 20 15 40 25 T 80 10 T 100 20 L 100 40 L 0 40 Z" 
-                    fill="url(#spark-grad)" 
+                  <path
+                    d="M 0 35 Q 20 15 40 25 T 80 10 T 100 20 L 100 40 L 0 40 Z"
+                    fill="url(#spark-grad)"
                   />
                 </svg>
               </div>
@@ -380,7 +340,7 @@ const AdminDashboard = () => {
               </div>
               <p className="metric-card-label" style={{ margin: "0 0 4px 0" }}>Đơn hàng</p>
               <h3 className="metric-card-value" style={{ margin: "0", fontSize: "24px", fontWeight: "800", color: "#0f172a" }}>{data.ordersCount.toLocaleString("en-US")}</h3>
-              
+
               {/* Progress bar info */}
               <div className="admin-orders-progress-container" style={{ marginTop: "8px", marginBottom: "0", width: "100%" }}>
                 <div className="progress-info-row" style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", color: "#475569", marginBottom: "6px", fontWeight: "600" }}>
@@ -402,7 +362,7 @@ const AdminDashboard = () => {
               </div>
               <p className="metric-card-label" style={{ margin: "0 0 4px 0" }}>Tổng người dùng</p>
               <h3 className="metric-card-value" style={{ margin: "0", fontSize: "24px", fontWeight: "800", color: "#0f172a" }}>{data.usersTotal.toLocaleString("en-US")}</h3>
-              
+
               {/* Group Users breakdown with stack avatars */}
               <div className="users-details-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", marginBottom: "0", borderTop: "1px solid #f1f5f9", paddingTop: "8px" }}>
                 <div className="user-type-stat">
@@ -443,7 +403,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               <p className="metric-card-label" style={{ color: "#991b1b", margin: "0 0 4px 0" }}>Cần phê duyệt</p>
-              
+
               <div className="pending-action-list" style={{ marginTop: "12px", marginBottom: "0" }}>
                 <div className="pending-action-item" onClick={() => navigate("/admin/products")}>
                   <span>{data.pendingProducts} sản phẩm cần duyệt</span>
@@ -460,7 +420,7 @@ const AdminDashboard = () => {
 
           {/* Secondary Grid (SVG Line Chart and Donut Category Allocation) */}
           <div className="dashboard-grid-2cols">
-            
+
             {/* Chart: Revenue Trend */}
             <div className="dashboard-panel">
               <div className="panel-header-row">
@@ -477,14 +437,14 @@ const AdminDashboard = () => {
               {/* Dynamic SVG line graph */}
               <div className="revenue-chart-wrapper">
                 {hoveredPoint && (
-                  <div 
+                  <div
                     className="chart-tooltip-bubble"
                     style={{ left: `${hoveredPoint.x}px`, top: `${hoveredPoint.y}px` }}
                   >
                     {hoveredPoint.label}: {hoveredPoint.value.toLocaleString("vi-VN")} lượt mua
                   </div>
                 )}
-                
+
                 <svg className="chart-svg-elem" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
                   <defs>
                     <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
@@ -548,39 +508,39 @@ const AdminDashboard = () => {
                   <svg width="100%" height="100%" viewBox="0 0 100 100">
                     {/* Circle slices: Rau củ 45% (0-45), Trái cây 25% (45-70), Hoa 20% (70-90), Gạo 10% (90-100) */}
                     {/* Stroke offset values configured dynamically */}
-                    <circle 
-                      cx="50" cy="50" r="38" 
-                      fill="transparent" stroke="#e2e8f0" strokeWidth="10" 
+                    <circle
+                      cx="50" cy="50" r="38"
+                      fill="transparent" stroke="#e2e8f0" strokeWidth="10"
                     />
-                    
+
                     {/* Rau củ 45%: dasharray=45, spacing=55. offset=100-0 = 100 (in circumference coordinates: 2 * pi * r = 2 * 3.14 * 38 = 238.6) */}
-                    <circle 
-                      cx="50" cy="50" r="38" 
-                      fill="transparent" stroke="#0f766e" strokeWidth="10" 
+                    <circle
+                      cx="50" cy="50" r="38"
+                      fill="transparent" stroke="#0f766e" strokeWidth="10"
                       strokeDasharray="107.4 131.2"
                       strokeDashoffset="59.6"
                     />
 
                     {/* Trái cây 25%: dasharray=25, spacing=75 */}
-                    <circle 
-                      cx="50" cy="50" r="38" 
-                      fill="transparent" stroke="#475569" strokeWidth="10" 
+                    <circle
+                      cx="50" cy="50" r="38"
+                      fill="transparent" stroke="#475569" strokeWidth="10"
                       strokeDasharray="59.6 179"
                       strokeDashoffset="-47.8"
                     />
 
                     {/* Hoa tươi 20%: dasharray=20 */}
-                    <circle 
-                      cx="50" cy="50" r="38" 
-                      fill="transparent" stroke="#854d0e" strokeWidth="10" 
+                    <circle
+                      cx="50" cy="50" r="38"
+                      fill="transparent" stroke="#854d0e" strokeWidth="10"
                       strokeDasharray="47.7 190.9"
                       strokeDashoffset="-107.4"
                     />
 
                     {/* Gạo 10%: dasharray=10 */}
-                    <circle 
-                      cx="50" cy="50" r="38" 
-                      fill="transparent" stroke="#94a3b8" strokeWidth="10" 
+                    <circle
+                      cx="50" cy="50" r="38"
+                      fill="transparent" stroke="#94a3b8" strokeWidth="10"
                       strokeDasharray="23.9 214.7"
                       strokeDashoffset="-155.1"
                     />
@@ -611,7 +571,7 @@ const AdminDashboard = () => {
 
           {/* Bottom Grid (Top Suppliers & Operations Logs timeline) */}
           <div className="dashboard-grid-2cols">
-            
+
             {/* Top Suppliers List */}
             <div className="dashboard-panel" style={{ padding: "16px 0 24px 0" }}>
               <div className="panel-header-row" style={{ padding: "0 24px 8px 24px" }}>
@@ -681,7 +641,7 @@ const AdminDashboard = () => {
                     <div className={`timeline-bubble-anchor ${getLogColorClass(log.type)}`}>
                       {getLogIcon(log.type)}
                     </div>
-                    
+
                     <div className="timeline-log-header">
                       <h5 className="log-title-bold">{log.title}</h5>
                       <span className="log-time-lbl">{log.time}</span>

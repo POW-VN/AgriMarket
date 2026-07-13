@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import reportService from "../../services/reportService";
 import apiClient from "../../services/apiClient";
 import {
@@ -273,30 +274,12 @@ export default function ViolationReports() {
             <AdminSidebar activeItem="reports" showToast={showToast} />
 
             <div className="admin-main-container">
-                <header className="admin-header">
-                    <div className="admin-search-wrapper">
-                        <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm báo cáo..."
-                            className="admin-search-input"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="admin-header-actions">
-                        <button
-                            className="admin-notification-btn"
-                            onClick={() => showToast("Không có thông báo mới.")}
-                            aria-label="Thông báo"
-                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                        >
-                            <Bell size={18} />
-                            <span className="admin-notification-dot"></span>
-                        </button>
-                    </div>
-                </header>
+                <AdminHeader
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    searchPlaceholder="Tìm kiếm báo cáo..."
+                    showToast={showToast}
+                />
 
                 <main className="admin-page-body violation-page-body">
                     <div className="violation-title-row">

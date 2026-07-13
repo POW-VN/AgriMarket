@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Search, Bell, User, Lightbulb, DollarSign } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 
@@ -531,10 +532,10 @@ const ProductApproval = () => {
                 label="Bán kính giới hạn"
                 value={prod.limitDistance !== undefined && prod.limitDistance !== null ? `${prod.limitDistance} km` : "Không giới hạn"}
               />
-              <InfoCard 
-                label="Hình thức bán" 
-                value={isPreorder ? "Đặt trước (Preorder)" : "Bán ngay (Thông thường)"} 
-                highlight={isPreorder} 
+              <InfoCard
+                label="Hình thức bán"
+                value={isPreorder ? "Đặt trước (Preorder)" : "Bán ngay (Thông thường)"}
+                highlight={isPreorder}
               />
             </div>
 
@@ -698,12 +699,12 @@ const ProductApproval = () => {
           </div>
           <div className="admin-page-actions">
             {selectedProductIds.length >= 2 && (
-              <button 
-                className="btn-admin-primary" 
-                onClick={handleBulkApprove} 
+              <button
+                className="btn-admin-primary"
+                onClick={handleBulkApprove}
                 disabled={hasApprovedSelected}
-                style={{ 
-                  marginRight: "10px", 
+                style={{
+                  marginRight: "10px",
                   padding: "10px 20px",
                   opacity: hasApprovedSelected ? 0.4 : 1,
                   backgroundColor: hasApprovedSelected ? "#374151" : undefined,
@@ -717,185 +718,185 @@ const ProductApproval = () => {
                 Duyệt nhanh ({selectedProductIds.length})
               </button>
             )}
-          <button className="btn-admin-outline" onClick={handleExport}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Xuất dữ liệu
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="admin-tabs-row">
-        {["Tất cả", "Chờ duyệt", "Đã duyệt", "Từ chối", "Yêu cầu sửa đổi", "Đã ẩn"].map((tab) => (
-          <button key={tab} className={`admin-tab ${activeTab === tab ? "active" : ""}`} onClick={() => handleTabClick(tab)}>
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="admin-filters-bar">
-        <div className="filter-search-wrapper">
-          <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-          <input type="text" placeholder="Tìm theo tên sản phẩm, nông dân..." className="filter-search-input"
-            value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
-        </div>
-        <div className="filter-selects">
-          <div className="filter-select-wrapper">
-            <label>Danh mục</label>
-            <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="filter-select">
-              <option value="All">Tất cả danh mục</option>
-              {categoriesList.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
+            <button className="btn-admin-outline" onClick={handleExport}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "6px" }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Xuất dữ liệu
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="admin-table-card">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th style={{ width: "40px" }}>
-                <input type="checkbox" className="admin-table-checkbox" onChange={handleSelectAll}
-                  checked={currentItems.length > 0 && currentItems.every((i) => selectedProductIds.includes(i.id))} />
-              </th>
-              <th>Tên sản phẩm</th>
-              <th>Nhà vườn / Nông hộ</th>
-              <th>Giá bán / Đơn vị</th>
-              <th>Danh mục</th>
-              <th>Trạng thái</th>
-              <th style={{ textAlign: "right" }}>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>Đang tải danh sách kiểm duyệt nông sản...</td></tr>
-            ) : currentItems.length === 0 ? (
-              <tr><td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>Không có sản phẩm nào phù hợp.</td></tr>
-            ) : (
-              currentItems.map((prod) => {
-                const isSelected = selectedProductIds.includes(prod.id);
-                return (
-                  <tr key={prod.id} style={{ backgroundColor: isSelected ? "#f0fdf4" : "transparent" }}>
-                    <td>
-                      <input type="checkbox" className="admin-table-checkbox" checked={isSelected} onChange={() => handleSelectRow(prod.id)} />
-                    </td>
-                    <td>
-                      <div className="user-cell-info clickable-avatar" style={{ cursor: "pointer" }} onClick={() => handleSelectProduct(prod)} title="Xem chi tiết kiểm duyệt">
-                        <img src={prod.thumbnailUrl || "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150"} alt={prod.name}
-                          className="user-cell-avatar" style={{ borderRadius: "6px" }}
-                          onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150"; }} />
-                        <div>
-                          <p className="user-cell-name" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", margin: 0 }}>
-                            {prod.name}
-                            {(prod.isPreorder || prod.preorder) && (
-                              <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "10px", backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", fontWeight: "700" }}>
-                                Đặt trước
-                              </span>
-                            )}
-                          </p>
-                          <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>#{prod.id} • {prod.categoryName}</span>
+        {/* Tabs */}
+        <div className="admin-tabs-row">
+          {["Tất cả", "Chờ duyệt", "Đã duyệt", "Từ chối", "Yêu cầu sửa đổi", "Đã ẩn"].map((tab) => (
+            <button key={tab} className={`admin-tab ${activeTab === tab ? "active" : ""}`} onClick={() => handleTabClick(tab)}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="admin-filters-bar">
+          <div className="filter-search-wrapper">
+            <span className="filter-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
+            <input type="text" placeholder="Tìm theo tên sản phẩm, nông dân..." className="filter-search-input"
+              value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
+          </div>
+          <div className="filter-selects">
+            <div className="filter-select-wrapper">
+              <label>Danh mục</label>
+              <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }} className="filter-select">
+                <option value="All">Tất cả danh mục</option>
+                {categoriesList.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="admin-table-card">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th style={{ width: "40px" }}>
+                  <input type="checkbox" className="admin-table-checkbox" onChange={handleSelectAll}
+                    checked={currentItems.length > 0 && currentItems.every((i) => selectedProductIds.includes(i.id))} />
+                </th>
+                <th>Tên sản phẩm</th>
+                <th>Nhà vườn / Nông hộ</th>
+                <th>Giá bán / Đơn vị</th>
+                <th>Danh mục</th>
+                <th>Trạng thái</th>
+                <th style={{ textAlign: "right" }}>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>Đang tải danh sách kiểm duyệt nông sản...</td></tr>
+              ) : currentItems.length === 0 ? (
+                <tr><td colSpan="7" style={{ textAlign: "center", padding: "30px", color: "var(--admin-text-muted)" }}>Không có sản phẩm nào phù hợp.</td></tr>
+              ) : (
+                currentItems.map((prod) => {
+                  const isSelected = selectedProductIds.includes(prod.id);
+                  return (
+                    <tr key={prod.id} style={{ backgroundColor: isSelected ? "#f0fdf4" : "transparent" }}>
+                      <td>
+                        <input type="checkbox" className="admin-table-checkbox" checked={isSelected} onChange={() => handleSelectRow(prod.id)} />
+                      </td>
+                      <td>
+                        <div className="user-cell-info clickable-avatar" style={{ cursor: "pointer" }} onClick={() => handleSelectProduct(prod)} title="Xem chi tiết kiểm duyệt">
+                          <img src={prod.thumbnailUrl || "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150"} alt={prod.name}
+                            className="user-cell-avatar" style={{ borderRadius: "6px" }}
+                            onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1543573852-1a78a39f8841?w=150"; }} />
+                          <div>
+                            <p className="user-cell-name" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", margin: 0 }}>
+                              {prod.name}
+                              {(prod.isPreorder || prod.preorder) && (
+                                <span style={{ fontSize: "10px", padding: "1px 6px", borderRadius: "10px", backgroundColor: "#e8f5e9", color: "#1b5e20", border: "1px solid #a7f3d0", fontWeight: "700" }}>
+                                  Đặt trước
+                                </span>
+                              )}
+                            </p>
+                            <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>#{prod.id} • {prod.categoryName}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <p className="user-cell-email" style={{ fontSize: "14px", color: "var(--admin-text-main)", fontWeight: "600" }}>{prod.farmerName}</p>
-                      <span style={{ fontSize: "12px", color: "var(--admin-text-muted)" }}>{prod.farmLocation}</span>
-                    </td>
-                    <td>
-                      <p style={{ margin: 0, fontSize: "14px", fontWeight: "700", color: "var(--admin-primary)" }}>{prod.price?.toLocaleString("vi-VN")} đ</p>
-                      <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>mỗi {prod.unit}</span>
-                    </td>
-                    <td>
-                      <span style={{
-                        display: "inline-block",
-                        padding: "4px 10px",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        backgroundColor: "#f3f4f6",
-                        color: "#4b5563",
-                        border: "1px solid #e5e7eb"
-                      }}>
-                        {prod.categoryName || "Nông sản"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge-status ${getStatusClass(prod.status)}`}>{getStatusLabel(prod.status)}</span>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                        <button title="Xem chi tiết & Kiểm duyệt" className="btn-action-direct unlock" onClick={() => handleSelectProduct(prod)}>
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--admin-primary)" }}>
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
-                          </svg>
-                        </button>
-                        {prod.status === "pending" && (
-                          <>
-                            <button title="Phê duyệt nhanh" className="btn-action-direct unlock"
-                              style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
-                              onClick={() => { handleSelectProduct(prod); setTimeout(triggerApprove, 100); }}>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                            </button>
-                            <button title="Từ chối nhanh" className="btn-action-direct"
-                              style={{ backgroundColor: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
-                              onClick={() => { handleSelectProduct(prod); setTimeout(triggerReject, 100); }}>
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </button>
-                          </>
-                        )}
-                        {prod.status === "approved" && (
-                          <button title="Ẩn sản phẩm" className="btn-action-direct"
-                            style={{ backgroundColor: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
-                            onClick={() => { handleSelectProduct(prod); setTimeout(triggerHide, 100); }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5">
-                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                              <line x1="1" y1="1" x2="23" y2="23"></line>
-                            </svg>
-                          </button>
-                        )}
-                        {prod.status === "hidden" && (
-                          <button title="Hiện sản phẩm" className="btn-action-direct"
-                            style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
-                            onClick={() => { handleSelectProduct(prod); setTimeout(triggerUnhide, 100); }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
+                      </td>
+                      <td>
+                        <p className="user-cell-email" style={{ fontSize: "14px", color: "var(--admin-text-main)", fontWeight: "600" }}>{prod.farmerName}</p>
+                        <span style={{ fontSize: "12px", color: "var(--admin-text-muted)" }}>{prod.farmLocation}</span>
+                      </td>
+                      <td>
+                        <p style={{ margin: 0, fontSize: "14px", fontWeight: "700", color: "var(--admin-primary)" }}>{prod.price?.toLocaleString("vi-VN")} đ</p>
+                        <span style={{ fontSize: "11px", color: "var(--admin-text-muted)" }}>mỗi {prod.unit}</span>
+                      </td>
+                      <td>
+                        <span style={{
+                          display: "inline-block",
+                          padding: "4px 10px",
+                          borderRadius: "20px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          backgroundColor: "#f3f4f6",
+                          color: "#4b5563",
+                          border: "1px solid #e5e7eb"
+                        }}>
+                          {prod.categoryName || "Nông sản"}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge-status ${getStatusClass(prod.status)}`}>{getStatusLabel(prod.status)}</span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                          <button title="Xem chi tiết & Kiểm duyệt" className="btn-action-direct unlock" onClick={() => handleSelectProduct(prod)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--admin-primary)" }}>
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                             </svg>
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                          {prod.status === "pending" && (
+                            <>
+                              <button title="Phê duyệt nhanh" className="btn-action-direct unlock"
+                                style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
+                                onClick={() => { handleSelectProduct(prod); setTimeout(triggerApprove, 100); }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                              </button>
+                              <button title="Từ chối nhanh" className="btn-action-direct"
+                                style={{ backgroundColor: "#fef2f2", border: "1px solid #fca5a5", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
+                                onClick={() => { handleSelectProduct(prod); setTimeout(triggerReject, 100); }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                              </button>
+                            </>
+                          )}
+                          {prod.status === "approved" && (
+                            <button title="Ẩn sản phẩm" className="btn-action-direct"
+                              style={{ backgroundColor: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
+                              onClick={() => { handleSelectProduct(prod); setTimeout(triggerHide, 100); }}>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                              </svg>
+                            </button>
+                          )}
+                          {prod.status === "hidden" && (
+                            <button title="Hiện sản phẩm" className="btn-action-direct"
+                              style={{ backgroundColor: "#ecfdf5", border: "1px solid #6ee7b7", borderRadius: "8px", padding: "6px", cursor: "pointer" }}
+                              onClick={() => { handleSelectProduct(prod); setTimeout(triggerUnhide, 100); }}>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
 
-        {/* Pagination */}
-        <div className="admin-pagination-row">
-          <div className="admin-pagination-info">
-            Hiển thị {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredProducts.length)} trong {filteredProducts.length} sản phẩm
-          </div>
-          <div className="admin-pagination-controls">
-            <button className="btn-pagination-nav" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
-            </button>
-            {[...Array(totalPages).keys()].map((p) => (
-              <button key={p + 1} className={`btn-pagination-page ${currentPage === p + 1 ? "active" : ""}`} onClick={() => setCurrentPage(p + 1)}>
-                {p + 1}
+          {/* Pagination */}
+          <div className="admin-pagination-row">
+            <div className="admin-pagination-info">
+              Hiển thị {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredProducts.length)} trong {filteredProducts.length} sản phẩm
+            </div>
+            <div className="admin-pagination-controls">
+              <button className="btn-pagination-nav" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
               </button>
-            ))}
-            <button className="btn-pagination-nav" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-            </button>
+              {[...Array(totalPages).keys()].map((p) => (
+                <button key={p + 1} className={`btn-pagination-page ${currentPage === p + 1 ? "active" : ""}`} onClick={() => setCurrentPage(p + 1)}>
+                  {p + 1}
+                </button>
+              ))}
+              <button className="btn-pagination-nav" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </>
+      </>
     );
   };
 
@@ -905,22 +906,12 @@ const ProductApproval = () => {
       <AdminSidebar activeItem="products" showToast={showToast} onProductsClick={() => { setSelectedProduct(null); setAiInsights(null); }} />
 
       <div className="admin-main-container">
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-            <input type="text" placeholder="Tìm kiếm sản phẩm, nông dân..." className="admin-search-input"
-              value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} />
-          </div>
-          <div className="admin-header-actions">
-            <button className="admin-notification-btn" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <button className="btn-quick-action" onClick={() => showToast("Tính năng thao tác nhanh đang chuẩn bị.")}>
-              + Thao tác nhanh
-            </button>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+          searchPlaceholder="Tìm kiếm sản phẩm..."
+          showToast={showToast}
+        />
 
         <main className="admin-page-body">
           {error && (

@@ -285,10 +285,10 @@
   border: 1px solid #bae6fd;
 }
 
-.wishlist-tag.local {
-  background: #f3f4f6;
-  color: #4b5563;
-  border: 1px solid #e5e7eb;
+.wishlist-tag.globalgap {
+  background: #fff0eb;
+  color: #eb5757;
+  border: 1px solid #ffe1d5;
 }
 
 /* Short Description */

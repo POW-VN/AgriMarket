@@ -8,6 +8,7 @@ import ProfileHeader from "../../components/profile/ProfileHeader";
 import ProfileFooter from "../../components/profile/ProfileFooter";
 import wishlistService from "../../services/wishlistService";
 import cartService from "../../services/cartService";
+import ProductCard from "../../components/common/ProductCard/ProductCard";
 import "./Wishlist.css";
 import "./Profile.css";
 
@@ -294,109 +295,18 @@ export default function Wishlist() {
               <div className="wishlist-products-grid">
                 {filteredProducts.map((p) => {
                   const status = getProductWishlistStatus(p);
-                  const isRemoving = removingIds.has(p.id);
 
                   return (
-                    <div
+                    <ProductCard 
                       key={p.id}
-                      className={`wishlist-prod-card ${isRemoving ? "removing-anim" : ""}`}
-                    >
-                      <div 
-                        className="wishlist-img-container"
-                        onClick={() => navigate(`/products/${p.id}`)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="wishlist-prod-img" />
-                        ) : (
-                          <div className="wishlist-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={28} /></div>
-                        )}
-
-                        {status === "IN_STOCK" && (
-                          <span className="wishlist-status-badge in-stock">Còn hàng</span>
-                        )}
-                        {status === "OUT_OF_STOCK" && (
-                          <span className="wishlist-status-badge out-of-stock">Hết hàng</span>
-                        )}
-
-                        <button
-                          className="wishlist-heart-btn"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleRemoveProduct(p.id, p.name);
-                          }}
-                          title="Xóa khỏi mục yêu thích"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            className="heart-icon-svg"
-                          >
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                          </svg>
-                        </button>
-                      </div>
-
-                      <div className="wishlist-card-body">
-                        <span className="wishlist-farm-name">{p.farmerName}</span>
-                        <h3 className="wishlist-title-name">
-                          <Link to={`/products/${p.id}`}>{p.name}</Link>
-                        </h3>
-                        
-                        <div className="wishlist-tags-row">
-                          {p.farmerOrganicUrl && <span className="wishlist-tag organic">Hữu cơ</span>}
-                          {p.farmerVietgapUrl && <span className="wishlist-tag vietgap">VietGAP</span>}
-                          {p.isLocal && <span className="wishlist-tag local">Địa phương</span>}
-                        </div>
-
-                        <p className="wishlist-desc-short">{p.description}</p>
-
-                        <div className="wishlist-card-footer">
-                          <div className="wishlist-price-box">
-                            <span className="wishlist-price-amount">{formatPrice(p.price)}</span>
-                            <span className="wishlist-price-unit">/ {p.unit}</span>
-                          </div>
-
-                          {status === "IN_STOCK" && (
-                            <button
-                              className="wishlist-action-btn add-to-cart"
-                              onClick={() => handleAddToCart(p)}
-                              title="Thêm vào giỏ"
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <circle cx="9" cy="21" r="1"></circle>
-                                <circle cx="20" cy="21" r="1"></circle>
-                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                <line x1="12" y1="10" x2="16" y2="10"></line>
-                                <line x1="14" y1="8" x2="14" y2="12"></line>
-                              </svg>
-                            </button>
-                          )}
-
-                          {status === "OUT_OF_STOCK" && (
-                            <button
-                              className="wishlist-action-btn notify-btn"
-                              onClick={() => handleNotifyMe(p)}
-                            >
-                              Báo tôi
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      product={p}
+                      promo={null}
+                      isFavorite={!removingIds.has(p.id)}
+                      onFavoriteClick={(product, e) => handleRemoveProduct(product.id, product.name)}
+                      onAddToCart={(product, e) => handleAddToCart(product)}
+                      statusBadge={status}
+                      removeMode={true}
+                    />
                   );
                 })}
               </div>

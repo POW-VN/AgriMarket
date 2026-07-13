@@ -527,9 +527,7 @@ export default function FarmerProfile() {
                   >
                     <div className="new-card-img-wrapper">
                       <img src={p.imageUrl || p.thumbnailUrl} alt={p.name} className="new-card-img" />
-                      {p.farmerOrganicUrl ? (
-                        <span className="new-card-cert-tag">Hữu cơ</span>
-                      ) : p.farmerVietgapUrl ? (
+                      {p.farmerVietgapUrl ? (
                         <span className="new-card-cert-tag vietgap-tag">VietGAP</span>
                       ) : p.farmerGlobalgapUrl ? (
                         <span className="new-card-cert-tag globalgap-tag">GlobalGAP</span>

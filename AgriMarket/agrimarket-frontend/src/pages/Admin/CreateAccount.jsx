@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { User } from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
 import * as addressService from "../../services/addressService";
 import SearchableSelect from "../../components/common/SearchableSelect/SearchableSelect";
@@ -688,9 +689,9 @@ const CreateAccount = () => {
 
       {/* Main Content */}
       <div className="admin-main-container">
-
-
-        {/* Page Body */}
+        <AdminHeader
+          searchPlaceholder="Tìm kiếm..."
+        />
         <main className="admin-page-body">
           {/* Title */}
           <div style={{ marginBottom: "24px" }}>

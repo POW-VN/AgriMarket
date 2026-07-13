@@ -13,6 +13,7 @@ import {
     X,
 } from "lucide-react";
 import AdminSidebar from "../../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../../components/common/Header/AdminHeader";
 import {
     getAdminTransactions,
     exportTransactionsCsv,
@@ -253,31 +254,11 @@ const AdminTransactions = () => {
             <AdminSidebar activeItem="transactions" />
 
             <div className="admin-main-container">
-                {/* Header */}
-                <header className="admin-header">
-                    <div className="admin-search-wrapper">
-                        <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}>
-                            <Search size={16} />
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Tìm mã giao dịch, mã đơn, tên khách hàng..."
-                            className="admin-search-input"
-                            value={keyword}
-                            onChange={(e) => setKeyword(e.target.value)}
-                        />
-                    </div>
-                    <div className="admin-header-actions">
-                        <button
-                            className="admin-notification-btn"
-                            aria-label="Notifications"
-                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                        >
-                            <Bell size={18} />
-                            <span className="admin-notification-dot"></span>
-                        </button>
-                    </div>
-                </header>
+                <AdminHeader
+                    searchQuery={keyword}
+                    setSearchQuery={setKeyword}
+                    searchPlaceholder="Tìm kiếm giao dịch..."
+                />
 
                 {/* Page Body */}
                 <main className="admin-page-body">
