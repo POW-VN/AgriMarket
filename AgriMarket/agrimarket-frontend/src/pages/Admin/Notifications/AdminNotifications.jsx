@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import adminNotificationService from "../../../services/adminNotificationService";
 import authService from "../../../services/authService";
 import AdminSidebar from "../../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../../components/common/Header/AdminHeader";
 import "../AdminStyles.css";
 import "./AdminNotifications.css";
 
@@ -571,31 +572,12 @@ const AdminNotifications = () => {
             {/* Main Content Area */}
             <div className="admin-main-container">
                 {/* Header */}
-                <header className="admin-header">
-                    <div className="admin-search-wrapper">
-                        <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm thông báo..."
-                            className="admin-search-input"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="admin-header-actions">
-                        <button className="admin-notification-btn" aria-label="Notifications" onClick={() => alert("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                            <Bell size={18} />
-                            <span className="admin-notification-dot"></span>
-                        </button>
-                        <div className="admin-profile-pill" style={{ display: "flex", alignItems: "center", gap: "8px", borderLeft: "1px solid var(--admin-border)", paddingLeft: "12px" }}>
-                            <span className="admin-avatar" style={{ width: "32px", height: "32px", backgroundColor: "var(--admin-primary)", color: "#fff", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                                {currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "A"}
-                            </span>
-                            <span style={{ fontSize: "14px", fontWeight: "600" }}>Admin Panel</span>
-                        </div>
-                    </div>
-                </header>
+                <AdminHeader
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    searchPlaceholder="Tìm kiếm thông báo..."
+                    showToast={showToast}
+                />
 
                 {/* Page Body */}
                 <main className="admin-page-body">

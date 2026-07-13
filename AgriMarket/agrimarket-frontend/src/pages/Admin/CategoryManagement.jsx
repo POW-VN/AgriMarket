@@ -4,6 +4,7 @@ import { Search, Bell, ChevronRight, Edit2, Trash2, Plus, Filter, FileSpreadshee
 import * as LucideIcons from "lucide-react";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
 import "./AdminStyles.css";
 import "./CategoryManagement.css";
@@ -312,7 +313,7 @@ const CategoryManagement = () => {
       const matchQuery =
         cat.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         cat.description.toLowerCase().includes(debouncedSearch.toLowerCase());
-      
+
       if (!matchQuery) return false;
       if (filterLevel !== "All" && cat.level !== filterLevel) return false;
       if (filterStatus !== "All" && cat.status !== filterStatus) return false;
@@ -328,7 +329,7 @@ const CategoryManagement = () => {
     roots.forEach(root => {
       rows.push(root);
       const isExpanded = expandedIds.includes(root.id);
-      
+
       if (isExpanded) {
         const subs = categories.filter(c => c.parentId === root.id && c.level === "sub");
         subs.forEach(sub => {
@@ -336,7 +337,7 @@ const CategoryManagement = () => {
             sub.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
             sub.description.toLowerCase().includes(debouncedSearch.toLowerCase());
           const matchStatus = filterStatus === "All" || sub.status === filterStatus;
-          
+
           if (matchQuery && matchStatus && filterLevel !== "root") {
             rows.push(sub);
           }
@@ -518,46 +519,12 @@ const CategoryManagement = () => {
 
       {/* Main Panel */}
       <div className="admin-main-container">
-        {/* Header - Synchronized */}
-        <header className="admin-header">
-          <div className="admin-search-wrapper">
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm danh mục..."
-              className="admin-search-input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="admin-header-actions">
-            <div style={{ display: "flex", gap: "20px", fontSize: "14px", color: "var(--admin-text-muted)", fontWeight: "500" }}>
-              <span style={{ cursor: "pointer" }} onClick={() => showToast("Đang chuyển tới Báo cáo...")}>Báo cáo</span>
-              <span style={{ cursor: "pointer" }} onClick={() => showToast("Đang chuyển tới Đối soát...")}>Đối soát</span>
-              <span style={{ cursor: "pointer" }} onClick={() => showToast("Đang chuyển tới Hỗ trợ...")}>Hỗ trợ</span>
-            </div>
-            <div style={{ width: "1px", height: "20px", backgroundColor: "var(--admin-border)" }}></div>
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }} onClick={() => navigate("/profile")}>
-              <div className="admin-footer-avatar-wrap" style={{ width: "auto", minWidth: "auto" }}>
-                <img
-                  src={getFullImageUrl(currentUser?.avatarUrl) || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150"}
-                  alt="Admin profile"
-                  className="admin-footer-avatar"
-                  style={{ width: "32px", height: "32px" }}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150";
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchPlaceholder="Tìm kiếm danh mục..."
+          showToast={showToast}
+        />
 
         {/* Page Body */}
         <main className="admin-page-body">
@@ -795,7 +762,7 @@ const CategoryManagement = () => {
               <h3>{modalMode === "create" ? "Thêm danh mục mới" : "Chỉnh sửa danh mục"}</h3>
               <button className="btn-modal-close" onClick={() => setIsModalOpen(false)}>×</button>
             </div>
-            
+
             <div className="category-modal-body">
               <div className="form-group">
                 <label>Tên danh mục <span style={{ color: "#ef4444" }}>*</span></label>
@@ -884,7 +851,7 @@ const CategoryManagement = () => {
               </h3>
               <button className="btn-modal-close" onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}>×</button>
             </div>
-            
+
             <div className="category-modal-body" style={{ padding: "20px 24px" }}>
               <p style={{ margin: 0, fontSize: "14px", color: "var(--admin-text-muted)", lineHeight: "1.6" }}>
                 {confirmModal.message}

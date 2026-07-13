@@ -4,6 +4,7 @@ import { Bell, Search } from "lucide-react";
 import supportRequestService from "../../services/supportRequestService";
 import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
+import AdminHeader from "../../components/common/Header/AdminHeader";
 import "./AdminComplaints.css";
 import "./AdminStyles.css";
 import "./AdminChat.css";
@@ -18,7 +19,7 @@ export default function AdminChat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Status form fields
   const [updatingStatus, setUpdatingStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
@@ -30,7 +31,7 @@ export default function AdminChat() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
-  
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -61,7 +62,7 @@ export default function AdminChat() {
       setLoading(true);
       const data = await supportRequestService.getAdminRequests();
       setRequests(data);
-      
+
       if (data.length > 0) {
         if (requestId) {
           const req = data.find(r => r.id === parseInt(requestId));
@@ -180,7 +181,7 @@ export default function AdminChat() {
         updatingStatus,
         adminNotes
       );
-      
+
       setSelectedRequest(updated);
       setRequests(prev => prev.map(r => r.id === updated.id ? updated : r));
       showToast("✅ Đã cập nhật trạng thái phiếu hỗ trợ!");
@@ -220,7 +221,7 @@ export default function AdminChat() {
   };
 
   // Filter requests
-  const filteredRequests = requests.filter(req => 
+  const filteredRequests = requests.filter(req =>
     req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     req.senderName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     req.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -246,48 +247,26 @@ export default function AdminChat() {
       {/* Main Container */}
       <div className="admin-main-container">
         {/* Hidden File Input */}
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
-          onChange={handleFileChange} 
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
         />
 
-        {/* Header */}
-        <header className="admin-header">
-          <div className="admin-search-wrapper" style={{ visibility: "hidden" }}>
-            <span className="admin-search-icon" style={{ display: "inline-flex", alignItems: "center" }}><Search size={16} /></span>
-            <input type="text" className="admin-search-input" placeholder="Search..." disabled />
-          </div>
-
-          <div className="admin-header-actions">
-            <button className="admin-notification-btn" aria-label="Notifications" onClick={() => showToast("Không có thông báo mới.")} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <Bell size={18} />
-              <span className="admin-notification-dot"></span>
-            </button>
-            <div className="admin-profile-pill" style={{ display: "flex", alignItems: "center", gap: "8px", borderLeft: "1px solid var(--admin-border)", paddingLeft: "12px" }}>
-              <span className="admin-avatar" style={{ width: "32px", height: "32px", backgroundColor: "var(--admin-primary)", color: "#fff", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                {currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "A"}
-              </span>
-              <span style={{ fontSize: "14px", fontWeight: "600" }}>Admin Panel</span>
-            </div>
-          </div>
-        </header>
+        <AdminHeader
+          searchQuery={searchTerm}
+          setSearchQuery={setSearchTerm}
+          searchPlaceholder="Tìm kiếm tin nhắn..."
+          showToast={showToast}
+        />
 
         {/* Page Body: 3 Column Workspace */}
         <main className="admin-page-body admin-chat-page-body">
           <div className="admin-chat-workspace">
             {/* Column 1: Sidebar List */}
             <div className="admin-chat-sidebar">
-              <div className="admin-sidebar-search">
-                <input
-                  type="text"
-                  placeholder="Tìm theo Tên, Tiêu đề..."
-                  className="admin-sidebar-search-input"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+              {/* Sidebar Search hidden to use unified header search */}
 
               <div className="admin-chat-list">
                 {loading ? (
@@ -425,7 +404,7 @@ export default function AdminChat() {
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                       />
-                      
+
                       <button type="submit" className="admin-chat-send-btn" disabled={(!inputText.trim() && !attachedFileName) || sending}>
                         <span>Gửi</span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -488,8 +467,8 @@ export default function AdminChat() {
                   <form className="admin-chat-action-form" onSubmit={handleUpdateTicketStatus}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                       <label>Trạng thái:</label>
-                      <select 
-                        value={updatingStatus} 
+                      <select
+                        value={updatingStatus}
                         onChange={(e) => setUpdatingStatus(e.target.value)}
                         disabled={selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
                       >
@@ -529,9 +508,9 @@ export default function AdminChat() {
                       />
                     </div>
 
-                    <button 
-                      type="submit" 
-                      className="admin-chat-action-btn" 
+                    <button
+                      type="submit"
+                      className="admin-chat-action-btn"
                       disabled={isSubmitting || selectedRequest.status === "resolved" || selectedRequest.status === "rejected"}
                       style={{ backgroundColor: (selectedRequest.status === "resolved" || selectedRequest.status === "rejected") ? "#cbd5e1" : undefined }}
                     >

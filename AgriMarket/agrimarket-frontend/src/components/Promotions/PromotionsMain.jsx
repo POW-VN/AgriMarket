@@ -8,7 +8,7 @@ import apiClient from '../../services/apiClient';
 import { mockPromotions } from './PromotionsMockData';
 import { Check } from 'lucide-react';
 
-const PromotionsMain = ({ role }) => {
+const PromotionsMain = ({ role, searchTerm, setSearchTerm }) => {
   // viewState can be: 'list', 'create', 'detail', 'success'
   const [viewState, setViewState] = useState('list');
   const [selectedPromoId, setSelectedPromoId] = useState(null);
@@ -99,7 +99,9 @@ const PromotionsMain = ({ role }) => {
           loading={loading}
           onRefresh={fetchPromotions}
           onCreateNew={handleCreateNew} 
-          onViewDetail={handleViewDetail} 
+          onViewDetail={handleViewDetail}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
         />
       )}
       

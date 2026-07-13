@@ -578,6 +578,39 @@
   /* Normal line-height resolves text rendering cutoff */
 }
 
+.new-card-tags-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.new-card-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2.5px 6px;
+  border-radius: 4px;
+}
+
+.new-card-tag.organic {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.new-card-tag.vietgap {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.new-card-tag.globalgap {
+  background: #fff0eb;
+  color: #eb5757;
+  border: 1px solid #ffe1d5;
+}
+
 /* Products grid (5 Columns) */
 .new-products-grid {
   display: grid;
