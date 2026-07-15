@@ -35,6 +35,9 @@ const WizardContainer = ({ role, onCancel, onSuccess }) => {
     }
   }, [role]);
   
+  const currentUserStr = localStorage.getItem("farmconnect_user");
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+
   // Shared state for the wizard
   const [formData, setFormData] = useState({
     title: '',
@@ -42,7 +45,7 @@ const WizardContainer = ({ role, onCancel, onSuccess }) => {
     endDate: '',
     description: '',
     maxUses: '',
-    farmerId: '', // For admin
+    farmerId: role === 'farmer' ? (currentUser?.id || '') : '', // For admin
     visibility: 'show', // show, hide
     discountType: 'percent', // percent, amount, order, code
     discountVal: '',

@@ -243,6 +243,7 @@ export default function ProductReviewsView() {
         if (!product) return;
 
         try {
+            triggerToast("Đã thêm sản phẩm vào giỏ hàng!");
             if (user) {
                 const cart = await cartService.addToCart(product.id, 1);
                 setCartItemsCount(cart.length);
@@ -282,8 +283,6 @@ export default function ProductReviewsView() {
                 localStorage.setItem(cartKey, JSON.stringify(currentCart));
                 setCartItemsCount(currentCart.length);
             }
-
-            triggerToast("Đã thêm sản phẩm vào giỏ hàng!");
         } catch (err) {
             console.error("Lỗi khi thêm vào giỏ hàng:", err);
             triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");

@@ -620,9 +620,9 @@ export default function ProductDetail() {
 
     if (user) {
       try {
+        triggerToast(`Đã thêm ${qtyToUse} ${product.unit} "${product.name}" vào giỏ hàng!`);
         const data = await cartService.addToCart(product.id, qtyToUse);
         setCartItemsCount(data.length);
-        triggerToast(`Đã thêm ${qtyToUse} ${product.unit} "${product.name}" vào giỏ hàng!`);
       } catch (err) {
         console.error("Lỗi khi thêm vào giỏ hàng:", err);
         triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!");

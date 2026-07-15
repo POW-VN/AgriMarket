@@ -584,10 +584,9 @@ const LivestreamPage = () => {
     if (isLoggedIn && currentLivestreamId) {
       // Người dùng đã đăng nhập → gọi API backend với giá live
       try {
-        await cartService.addToCart(product.id, 1, livePrice, currentLivestreamId);
-        // Dispatch event để Header cập nhật badge giỏ hàng
-        window.dispatchEvent(new Event("cartUpdated"));
         showToast(`Đã thêm "${product.name}" vào giỏ hàng với giá ưu đãi Live! 🛒`, "success");
+        window.dispatchEvent(new Event("cartUpdated"));
+        await cartService.addToCart(product.id, 1, livePrice, currentLivestreamId);
       } catch (err) {
         console.error("Lỗi thêm vào giỏ hàng:", err);
         const errorMsg = typeof err.response?.data === "string"

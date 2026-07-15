@@ -40,6 +40,9 @@ export const FarmerChat = () => {
 
   // Refs cho scroll, file upload & options dropdown click outside
   const chatEndRef = useRef(null);
+  const chatBodyRef = useRef(null);
+  const lastChatIdRef = useRef(null);
+  const lastMessageIdRef = useRef(null);
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const optionsMenuRef = useRef(null);
@@ -72,7 +75,7 @@ export const FarmerChat = () => {
     const token = localStorage.getItem("farmconnect_token");
     if (!token) return;
     try {
-      const data = await chatService.getConversations();
+      const data = await chatService.getConversations("farmer");
       
       const pinnedIds = getPinnedIds();
       const clearedTimes = getClearedHistoryTimes();
@@ -136,12 +139,37 @@ export const FarmerChat = () => {
     return () => document.removeEventListener("mousedown", handleCloseRowMenu);
   }, [rowActionMenuId]);
 
-  // Cuộn xuống tin nhắn mới nhất
+  // Cuộn xuống tin nhắn thông minh (tránh tự động cuộn khi người dùng đang lướt lên xem tin nhắn cũ)
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (!activeChat) return;
+
+    const body = chatBodyRef.current;
+    const messages = activeChat.messages || [];
+    const lastMsg = messages[messages.length - 1];
+    const lastMsgId = lastMsg ? lastMsg.id : null;
+
+    const chatChanged = lastChatIdRef.current !== activeChat.id;
+    const newMsgReceived = lastMessageIdRef.current !== lastMsgId && !chatChanged;
+
+    if (chatChanged) {
+      // Khi đổi cuộc trò chuyện: Cuộn xuống dưới cùng ngay lập tức
+      if (chatEndRef.current) {
+        chatEndRef.current.scrollIntoView({ behavior: "auto" });
+      }
+    } else if (newMsgReceived) {
+      // Khi có tin nhắn mới thực sự: Chỉ cuộn xuống nếu người dùng đang ở sát dưới đáy (khoảng cách < 250px)
+      if (body && chatEndRef.current) {
+        const isNearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 250;
+        if (isNearBottom) {
+          chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }
     }
-  }, [activeChat?.messages]);
+
+    // Cập nhật lại cache ID để so sánh cho lần render kế tiếp
+    lastChatIdRef.current = activeChat.id;
+    lastMessageIdRef.current = lastMsgId;
+  }, [activeChat?.id, activeChat?.messages]);
 
   // 2. Các hàm Options Menu đồng bộ
   const handleTogglePin = (chatId) => {
@@ -235,6 +263,9 @@ export const FarmerChat = () => {
         type: "text"
       });
       fetchConversations();
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } catch (err) {
       console.error("Failed to send message:", err);
     }
@@ -254,6 +285,9 @@ export const FarmerChat = () => {
           type: "image"
         });
         fetchConversations();
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       } catch (err) {
         console.error("Failed to send image:", err);
       }
@@ -262,7 +296,7 @@ export const FarmerChat = () => {
     e.target.value = "";
   };
 
-  // Gửi file tài liệu thực tế
+  // Gửi tệp đính kèm thực tế
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file || !activeChat) return;
@@ -279,6 +313,9 @@ export const FarmerChat = () => {
           fileSize: `${fileSizeMB} MB`
         });
         fetchConversations();
+        setTimeout(() => {
+          chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       } catch (err) {
         console.error("Failed to send file:", err);
       }
@@ -541,11 +578,9 @@ export const FarmerChat = () => {
               </header>
 
               {/* Thân Khung Chat - Bong bóng tin nhắn */}
-              <div className="fc-detail-body">
+              <div className="fc-detail-body" ref={chatBodyRef}>
                 {(activeChat.messages || []).map((msg) => {
-                  const role = currentUser?.role || "farmer";
-                  const isMe = (role === "farmer" && msg.sender === "farmer") ||
-                               (role !== "farmer" && msg.sender === "user");
+                  const isMe = String(msg.senderId) === String(currentUser?.id);
                   
                   return (
                     <div key={msg.id} className={`fc-msg-row ${isMe ? "right" : "left"}`}>

@@ -199,3 +199,112 @@ input::-ms-reveal,
 input::-ms-clear {
   display: none !important;
 }
+
+/* ── LOCKED USER OVERLAY ── */
+.locked-user-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999; /* Make sure it covers absolutely everything */
+  animation: fadeInLockedOverlay 0.4s ease-out;
+}
+
+.locked-user-card {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  border: 1px solid rgba(220, 38, 38, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: scaleInLockedCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.locked-user-icon {
+  background-color: #fef2f2;
+  color: #dc2626;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 16px rgba(220, 38, 38, 0.1);
+}
+
+.lock-icon-svg {
+  width: 36px;
+  height: 36px;
+}
+
+.locked-user-card h2 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  font-size: 24px;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.locked-desc {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0 0 12px 0;
+}
+
+.locked-support-hint {
+  font-size: 13.5px;
+  color: #9ca3af;
+  margin: 0 0 32px 0;
+}
+
+.locked-logout-btn {
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 36px;
+  border-radius: 30px;
+  transition: all 0.25s ease;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.2);
+  width: 100%;
+}
+
+.locked-logout-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);
+}
+
+.locked-logout-btn:active {
+  transform: translateY(0);
+}
+
+.app-locked-blur {
+  filter: blur(8px);
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+@keyframes fadeInLockedOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleInLockedCard {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

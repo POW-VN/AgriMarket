@@ -80,9 +80,9 @@ const PromotionLandingPage = () => {
     e.stopPropagation();
     if (user) {
       try {
-        await cartService.addToCart(p.id, 1);
-        window.dispatchEvent(new Event('cartUpdated'));
         showToast(`Đã thêm "${p.name}" vào giỏ hàng!`);
+        window.dispatchEvent(new Event('cartUpdated'));
+        await cartService.addToCart(p.id, 1);
       } catch {
         showToast('Không thể thêm vào giỏ hàng.');
       }

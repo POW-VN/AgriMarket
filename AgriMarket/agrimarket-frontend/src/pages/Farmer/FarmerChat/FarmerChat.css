@@ -2,14 +2,14 @@
 
 .farmer-chat-container {
   width: 100%;
-  height: calc(100vh - 180px) !important; /* Trả về chiều cao an toàn để không bị chìm header dưới layout dashboard */
+  height: 100% !important;
   min-height: 520px;
   background-color: #ffffff;
   border-radius: 8px !important; /* Phẳng dẹt sang trọng chuẩn Zalo Web */
   box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05) !important;
   border: 1px solid #b8c2cc !important;
   overflow: hidden;
-  margin-top: 10px !important; /* Đẩy xuống một chút tránh xa mép trên */
+  margin-top: 0 !important;
 }
 
 .farmer-chat-workspace {
@@ -26,6 +26,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 }
 
 .fc-sidebar-search {
@@ -48,6 +49,7 @@
 .fc-chat-list {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .fc-chat-item {
@@ -147,6 +149,7 @@
   flex-direction: column;
   height: 100%;
   background-color: #eef2f6;
+  min-height: 0;
 }
 
 .fc-detail-header {
@@ -219,6 +222,7 @@
   gap: 16px;
   scroll-behavior: smooth;
   background-color: #eef2f6 !important; /* Màu nền xám nhạt dịu mắt chuẩn Zalo Web */
+  min-height: 0;
 }
 
 .fc-msg-row {
@@ -486,6 +490,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .fc-footer-toolbar {
