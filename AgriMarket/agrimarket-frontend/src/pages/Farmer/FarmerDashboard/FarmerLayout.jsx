@@ -389,7 +389,7 @@ export const FarmerLayout = () => {
       </aside>
 
       {/* MAIN CONTENT AREA */}
-      <main className="fd-main-viewport">
+      <main className={`fd-main-viewport ${location.pathname === "/farmer/chat" ? "has-chat-active" : ""}`}>
         {!isOrderDetailPath && (
           <header className="fd-topbar-header">
             <div className="topbar-left">
@@ -416,7 +416,7 @@ export const FarmerLayout = () => {
           </header>
         )}
 
-        <div className={isOrderDetailPath ? "" : "fd-viewport-content"}>
+        <div className={isOrderDetailPath ? "" : location.pathname === "/farmer/chat" ? "fd-viewport-content fd-viewport-chat" : "fd-viewport-content"}>
           <Outlet context={{ farmerProfile, currentUser }} />
           {showPiP && <FarmerPiPOverlay onClose={() => setShowPiP(false)} />}
         </div>

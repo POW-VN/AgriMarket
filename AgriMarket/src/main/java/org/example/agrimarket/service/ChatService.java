@@ -38,14 +38,24 @@ public class ChatService {
     @Autowired
     private OrderRepository orderRepository;
 
-    public List<ConversationResponseDTO> getConversations(String email) {
+    public List<ConversationResponseDTO> getConversations(String email, String role) {
         // Resolve user role
         Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
         if (farmerOpt.isPresent()) {
             Farmer farmer = farmerOpt.get();
-            List<Conversation> conversations = conversationRepository.findAllByFarmerId(farmer.getId());
+            List<Conversation> conversations;
+            String resolvedRole = "farmer";
+            
+            if ("customer".equalsIgnoreCase(role)) {
+                conversations = conversationRepository.findAllByCustomerId(farmer.getId());
+                resolvedRole = "customer";
+            } else {
+                conversations = conversationRepository.findAllByFarmerId(farmer.getId());
+            }
+            
+            final String finalRole = resolvedRole;
             return conversations.stream()
-                    .map(conv -> mapToConversationDTO(conv, farmer.getId(), "farmer"))
+                    .map(conv -> mapToConversationDTO(conv, farmer.getId(), finalRole))
                     .collect(Collectors.toList());
         }
 
@@ -67,48 +77,55 @@ public class ChatService {
         throw new RuntimeException("Tài khoản không tìm thấy");
     }
 
+    public List<ConversationResponseDTO> getConversations(String email) {
+        return getConversations(email, null);
+    }
+
     @Transactional
     public ConversationResponseDTO startConversation(String email, Long partnerId) {
-        Optional<Farmer> farmerOpt = farmerRepository.findByEmail(email);
-        
-        // Case 1: Logged in user is a Farmer, starting conversation with a Customer
-        if (farmerOpt.isPresent()) {
-            Farmer farmer = farmerOpt.get();
-            Customer customer = customerRepository.findById(partnerId)
+        User sender = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Tài khoản không tìm thấy"));
+
+        // Check if the partner is a Farmer
+        Optional<Farmer> partnerFarmerOpt = farmerRepository.findById(partnerId);
+
+        if (partnerFarmerOpt.isPresent()) {
+            // Partner is a Farmer, so they act as the farmer in the conversation.
+            // The sender acts as the customer in the conversation.
+            Farmer partnerFarmer = partnerFarmerOpt.get();
+            Customer senderCustomer = customerRepository.findById(sender.getId())
+                    .orElseThrow(() -> new RuntimeException("Tài khoản khách hàng của bạn không tồn tại"));
+
+            Conversation conv = conversationRepository.findByCustomerIdAndFarmerId(senderCustomer.getId(), partnerFarmer.getId())
+                    .orElseGet(() -> {
+                        Conversation newConv = Conversation.builder()
+                                .customer(senderCustomer)
+                                .farmer(partnerFarmer)
+                                .build();
+                        return conversationRepository.save(newConv);
+                    });
+
+            return mapToConversationDTO(conv, senderCustomer.getId(), "customer");
+        } else {
+            // Partner is NOT a Farmer, so they must be a Customer.
+            // The sender must be a Farmer.
+            Customer partnerCustomer = customerRepository.findById(partnerId)
                     .orElseThrow(() -> new RuntimeException("Khách hàng không tồn tại"));
             
-            Conversation conv = conversationRepository.findByCustomerIdAndFarmerId(customer.getId(), farmer.getId())
+            Farmer senderFarmer = farmerRepository.findById(sender.getId())
+                    .orElseThrow(() -> new RuntimeException("Tài khoản nhà vườn của bạn không tồn tại"));
+
+            Conversation conv = conversationRepository.findByCustomerIdAndFarmerId(partnerCustomer.getId(), senderFarmer.getId())
                     .orElseGet(() -> {
                         Conversation newConv = Conversation.builder()
-                                .customer(customer)
-                                .farmer(farmer)
+                                .customer(partnerCustomer)
+                                .farmer(senderFarmer)
                                 .build();
                         return conversationRepository.save(newConv);
                     });
-            
-            return mapToConversationDTO(conv, farmer.getId(), "farmer");
-        }
 
-        // Case 2: Logged in user is a Customer, starting conversation with a Farmer
-        Optional<Customer> customerOpt = customerRepository.findByEmail(email);
-        if (customerOpt.isPresent()) {
-            Customer customer = customerOpt.get();
-            Farmer farmer = farmerRepository.findById(partnerId)
-                    .orElseThrow(() -> new RuntimeException("Nông trại không tồn tại"));
-            
-            Conversation conv = conversationRepository.findByCustomerIdAndFarmerId(customer.getId(), farmer.getId())
-                    .orElseGet(() -> {
-                        Conversation newConv = Conversation.builder()
-                                .customer(customer)
-                                .farmer(farmer)
-                                .build();
-                        return conversationRepository.save(newConv);
-                    });
-            
-            return mapToConversationDTO(conv, customer.getId(), "customer");
+            return mapToConversationDTO(conv, senderFarmer.getId(), "farmer");
         }
-
-        throw new RuntimeException("Tài khoản không tìm thấy");
     }
 
     public List<ChatMessageResponseDTO> getMessages(Long conversationId, String email) {
@@ -289,6 +306,7 @@ public class ChatService {
 
         return ChatMessageResponseDTO.builder()
                 .id(String.valueOf(msg.getId()))
+                .senderId(msg.getSender() != null ? msg.getSender().getId() : null)
                 .sender(mappedSender)
                 .type(msg.getType())
                 .text(textVal)

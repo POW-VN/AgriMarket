@@ -1,8 +1,10 @@
 import apiClient from "./apiClient";
 
 const chatService = {
-  getConversations: async () => {
-    const response = await apiClient.get("/api/chat/conversations");
+  getConversations: async (role) => {
+    const response = await apiClient.get("/api/chat/conversations", {
+      params: { role }
+    });
     return response.data;
   },
 

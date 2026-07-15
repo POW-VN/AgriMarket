@@ -1043,8 +1043,8 @@ public class OrderService {
             order.setFarmer(farmer);
             order.setCustomer(customer);
             order.setPaymentStatus("paid");
-            order.setStatus("confirmed"); // Chờ lấy hàng - đã chuẩn bị xong
-            order.setDetailedStatus("ready_for_ghn");
+            order.setStatus("preparing"); // Đang chuẩn bị
+            order.setDetailedStatus("pending");
             order.setSubtotal(farmerSubtotal);
             order.setShippingFee(farmerShippingFee);
             order.setServiceFee(farmerServiceFee);
@@ -1082,13 +1082,6 @@ public class OrderService {
             order.setItems(orderItems);
             Order savedOrder = orderRepository.save(order);
             savedSubOrders.add(savedOrder);
-
-            // Tự động gọi API tạo vận chuyển giao hàng nhanh (GHN)
-            try {
-                ghnService.createShipment(savedOrder);
-            } catch (Exception e) {
-                System.err.println("Lỗi tạo vận chuyển GHN cho đơn preorder: " + e.getMessage());
-            }
 
             // Gửi thông báo đến cho Farmer
             try {

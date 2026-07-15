@@ -58,6 +58,7 @@ const QUICK_REPLIES = [
 export const ChatPopup = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const loggedInUser = authService.getCurrentUser();
 
   const isFarmerDashboard = location.pathname === "/farmer" || location.pathname.startsWith("/farmer/");
   const shouldHideChat = isFarmerDashboard || 
@@ -117,7 +118,7 @@ export const ChatPopup = () => {
     const token = localStorage.getItem("farmconnect_token");
     if (!token) return;
     try {
-      const data = await chatService.getConversations();
+      const data = await chatService.getConversations("customer");
       const pinnedIds = getPinnedIds();
       const clearedTimes = getClearedHistoryTimes();
 
@@ -560,7 +561,7 @@ export const ChatPopup = () => {
     return true;
   });
 
-  const currentChatDetail = selectedFarm ? chats.find(c => String(c.id) === String(selectedFarm.id)) : null;
+  const currentChatDetail = selectedFarm ? (chats.find(c => String(c.id) === String(selectedFarm.id)) || selectedFarm) : null;
 
   if (shouldHideChat) {
     return null;
@@ -727,7 +728,7 @@ export const ChatPopup = () => {
                     const lastMsg = chat.messages && chat.messages.length > 0 
                       ? chat.messages[chat.messages.length - 1] 
                       : null;
-                    const isLastMsgUser = lastMsg?.sender === "user";
+                    const isLastMsgUser = lastMsg && String(lastMsg.senderId) === String(loggedInUser?.id);
                     
                     let formattedLastMsg = "Lịch sử trò chuyện trống";
                     if (lastMsg) {
@@ -1119,8 +1120,7 @@ export const ChatPopup = () => {
                 ) : (
                   currentChatDetail.messages && currentChatDetail.messages.map((msg, index) => {
                     const loggedInUser = authService.getCurrentUser();
-                    const isUser = (loggedInUser?.role === "farmer" && msg.sender === "farmer") ||
-                                   (loggedInUser?.role !== "farmer" && msg.sender === "user");
+                    const isUser = String(msg.senderId) === String(loggedInUser?.id);
                     const isImg = msg.type === "image";
                     const isFile = msg.type === "file";
                     const isLoc = msg.type === "location";

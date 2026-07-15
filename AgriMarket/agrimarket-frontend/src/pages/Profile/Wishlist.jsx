@@ -118,9 +118,9 @@ export default function Wishlist() {
   // Add to cart functionality
   const handleAddToCart = async (product) => {
     try {
+      showToast(`Đã thêm 1 ${product.unit} "${product.name}" vào giỏ hàng!`, "success");
       const data = await cartService.addToCart(product.id, 1);
       window.dispatchEvent(new Event("cartUpdated"));
-      showToast(`Đã thêm 1 ${product.unit} "${product.name}" vào giỏ hàng!`, "success");
     } catch (err) {
       console.error("Lỗi thêm vào giỏ hàng:", err);
       showToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!", "error");

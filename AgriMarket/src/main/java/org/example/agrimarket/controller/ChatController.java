@@ -20,12 +20,12 @@ public class ChatController {
     private ChatService chatService;
 
     @GetMapping("/conversations")
-    public ResponseEntity<?> getConversations(Principal principal) {
+    public ResponseEntity<?> getConversations(@RequestParam(required = false) String role, Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Vui lòng đăng nhập");
         }
         try {
-            List<ConversationResponseDTO> conversations = chatService.getConversations(principal.getName());
+            List<ConversationResponseDTO> conversations = chatService.getConversations(principal.getName(), role);
             return ResponseEntity.ok(conversations);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

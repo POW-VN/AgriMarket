@@ -313,11 +313,27 @@ public class PreorderController {
         }).collect(Collectors.toList());
 
         String customerName = preorder.getCustomer() != null ? preorder.getCustomer().getFullName() : "Khách hàng";
+        String customerPhone = preorder.getCustomer() != null ? preorder.getCustomer().getPhone() : "";
+        String customerAddress = "";
+        if (preorder.getCustomer() != null && preorder.getCustomer().getAddresses() != null) {
+            CustomerAddress defAddr = preorder.getCustomer().getAddresses().stream()
+                    .filter(a -> a.getIsDefault() != null && a.getIsDefault())
+                    .findFirst()
+                    .orElse(preorder.getCustomer().getAddresses().isEmpty() ? null : preorder.getCustomer().getAddresses().get(0));
+            if (defAddr != null) {
+                customerAddress = defAddr.getAddress();
+                if ((customerPhone == null || customerPhone.isEmpty()) && defAddr.getPhone() != null) {
+                    customerPhone = defAddr.getPhone();
+                }
+            }
+        }
 
         return PreorderResponse.builder()
                 .id(preorder.getId())
                 .customerId(preorder.getCustomer() != null ? preorder.getCustomer().getId() : null)
                 .customerName(customerName)
+                .customerPhone(customerPhone)
+                .customerAddress(customerAddress)
                 .status(preorder.getStatus())
                 .createdAt(preorder.getCreatedAt())
                 .discount(preorder.getDiscount() != null ? preorder.getDiscount() : 0.0)

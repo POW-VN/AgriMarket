@@ -17,6 +17,8 @@ public class PreorderResponse {
     private Long id;
     private Long customerId;
     private String customerName;
+    private String customerPhone;
+    private String customerAddress;
     private String status;
     private LocalDateTime createdAt;
     private Double discount;

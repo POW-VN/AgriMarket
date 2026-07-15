@@ -766,3 +766,19 @@
 .pip-btn-stop:hover {
   background: #dc2626;
 }
+
+/* ── CHAT LAYOUT UTILITY ── */
+.fd-main-viewport.has-chat-active {
+  overflow: hidden !important;
+}
+
+.fd-viewport-content.fd-viewport-chat {
+  padding: 16px 24px 16px !important;
+  height: calc(100vh - 100px) !important;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  max-width: none !important;
+  width: 100% !important;
+}
+

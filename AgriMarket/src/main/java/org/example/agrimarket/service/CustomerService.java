@@ -123,6 +123,10 @@ public class CustomerService {
                 }
                 resolvedPhone = resolvedPhone.trim();
 
+                for (CustomerAddress addr : customerExisting.getAddresses()) {
+                    addr.setIsDefault(false);
+                }
+
                 if (!customerExisting.getAddresses().isEmpty()) {
                     CustomerAddress existingAddr = customerExisting.getAddresses().get(0);
                     existingAddr.setAddress(newAddrInput.getAddress());

@@ -371,10 +371,10 @@ const Home = () => {
 
     if (user) {
       try {
+        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
         const data = await cartService.addToCart(p.id, 1);
         setCartItemsCount(data.length);
         window.dispatchEvent(new Event("cartUpdated"));
-        triggerToast(`Đã thêm 1 ${p.unit} "${p.name}" vào giỏ hàng!`, "success");
       } catch (err) {
         console.error("Lỗi khi thêm vào giỏ hàng:", err);
         triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại!", "error");

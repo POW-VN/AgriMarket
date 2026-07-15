@@ -87,6 +87,9 @@ export default function FarmerProfile() {
 
   const handleAddToCart = async (product) => {
     try {
+      triggerToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+
       const currentUser = authService.getCurrentUser();
       if (currentUser) {
         // Logged in user: save to DB
@@ -127,13 +130,9 @@ export default function FarmerProfile() {
 
         localStorage.setItem(cartKey, JSON.stringify(currentCart));
       }
-
-      // Dispatch event to update Header cart count
-      window.dispatchEvent(new CustomEvent("cartUpdated"));
-      triggerToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
     } catch (err) {
       console.error("Lỗi khi thêm vào giỏ hàng:", err);
-      triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");
+      triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại.", "error");
     }
   };
 

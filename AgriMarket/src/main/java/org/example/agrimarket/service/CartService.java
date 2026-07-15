@@ -71,8 +71,8 @@ public class CartService {
 
         List<Long> productIds = cart.getItems().stream().map(CartItem::getProductId).collect(Collectors.toList());
 
-        // Bulk load all Products
-        List<Product> products = productRepository.findAllById(productIds);
+        // Bulk load all Products with their Farmer eager loaded
+        List<Product> products = productRepository.findAllByIdInWithFarmer(productIds);
         Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, p -> p));
 
         // Bulk load all ProductImages

@@ -113,7 +113,10 @@ const ChangePassword = () => {
 
       setShowSuccessModal(true);
     } catch (err) {
-      const errMsg = typeof err === 'string' ? err : err.message || "Đổi mật khẩu thất bại.";
+      const errMsg = (err.response?.data && typeof err.response.data === 'string')
+        ? err.response.data
+        : (err.response?.data?.message || err.message || "Đổi mật khẩu thất bại.");
+        
       if (errMsg.includes("Mật khẩu hiện tại")) {
         setCurrentError(errMsg);
       } else {
