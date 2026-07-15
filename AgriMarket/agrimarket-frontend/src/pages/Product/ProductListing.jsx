@@ -176,6 +176,9 @@ export default function ProductListing() {
 
     const handleAddToCart = async (product) => {
         try {
+            triggerToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
+            window.dispatchEvent(new CustomEvent("cartUpdated"));
+
             const currentUser = authService.getCurrentUser();
             if (currentUser) {
                 await cartService.addToCart(product.id, 1);
@@ -214,9 +217,6 @@ export default function ProductListing() {
 
                 localStorage.setItem(cartKey, JSON.stringify(currentCart));
             }
-
-            window.dispatchEvent(new CustomEvent("cartUpdated"));
-            triggerToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
         } catch (err) {
             console.error("Lỗi khi thêm vào giỏ hàng:", err);
             triggerToast("Không thể thêm vào giỏ hàng. Vui lòng thử lại.");
@@ -340,25 +340,27 @@ export default function ProductListing() {
         };
     }, []);
 
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            const minVal = parseCurrencyInput(priceMinInput);
-            const maxVal = parseCurrencyInput(priceMaxInput);
+    const applyPriceFilter = () => {
+        const minVal = parseCurrencyInput(priceMinInput);
+        const maxVal = parseCurrencyInput(priceMaxInput);
 
-            if (minVal !== null && maxVal !== null && minVal > maxVal) {
-                setPriceError("Giá kết thúc phải lớn hơn hoặc bằng giá bắt đầu");
-                setDebouncedPriceMin(null);
-                setDebouncedPriceMax(null);
-            } else {
-                setPriceError("");
-                setDebouncedPriceMin(minVal);
-                setDebouncedPriceMax(maxVal);
-            }
-            setCurrentPage(1);
-        }, 400);
+        if (minVal !== null && maxVal !== null && minVal > maxVal) {
+            setPriceError("Giá kết thúc phải lớn hơn hoặc bằng giá bắt đầu");
+            setDebouncedPriceMin(null);
+            setDebouncedPriceMax(null);
+        } else {
+            setPriceError("");
+            setDebouncedPriceMin(minVal);
+            setDebouncedPriceMax(maxVal);
+        }
+        setCurrentPage(1);
+    };
 
-        return () => clearTimeout(timeoutId);
-    }, [priceMinInput, priceMaxInput]);
+    const handlePriceKeyDown = (e) => {
+        if (e.key === "Enter") {
+            applyPriceFilter();
+        }
+    };
 
     // Sản phẩm hiển thị = đã nhận từ server (không cần slice thêm)
     const paginatedProducts = products;
@@ -396,17 +398,7 @@ export default function ProductListing() {
         setCurrentPage(1);
     };
 
-    if (loading) {
-        return (
-            <div className="product-page">
-                <Header />
-                <div className="pl-loading-container">
-                    <div className="pl-spinner" />
-                    <p>Đang tải danh sách sản phẩm...</p>
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="product-page">
@@ -622,8 +614,8 @@ export default function ProductListing() {
                                         onChange={(e) => {
                                             const formatted = formatCurrencyInput(e.target.value);
                                             setPriceMinInput(formatted);
-                                            setCurrentPage(1);
                                         }}
+                                        onKeyDown={handlePriceKeyDown}
                                     />
                                     <span className="price-range-currency">đ</span>
                                 </div>
@@ -638,8 +630,8 @@ export default function ProductListing() {
                                         onChange={(e) => {
                                             const formatted = formatCurrencyInput(e.target.value);
                                             setPriceMaxInput(formatted);
-                                            setCurrentPage(1);
                                         }}
+                                        onKeyDown={handlePriceKeyDown}
                                     />
                                     <span className="price-range-currency">đ</span>
                                 </div>
@@ -716,164 +708,173 @@ export default function ProductListing() {
                         </div>
                     </div>
 
-                    <div className="product-grid">
-                        {paginatedProducts.length > 0 ? (
-                            paginatedProducts.map((product) => {
-                                const promo = getProductPromo(product);
-                                const discountedPrice = promo ? calcDiscountedPrice(product.price, promo) : product.price;
-                                const discountLabel = promo
-                                    ? (promo.discountType === 'percent' ? `-${promo.discountVal}%` : `-${(promo.discountVal / 1000).toFixed(0)}K`)
-                                    : (product.saleTag || null);
-
-                                return (
-                                    <div
-                                        className="new-product-card"
-                                        key={product.id}
-                                        onClick={() => navigate(`/products/${product.id}`)}
-                                        style={{ cursor: "pointer" }}
-                                    >
-                                        <div className="new-card-img-wrapper">
-                                            {product.imageUrl || product.image ? (
-                                                <img src={product.imageUrl || product.image} alt={product.name} className="new-card-img" />
-                                            ) : (
-                                                <div className="new-card-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={32} /></div>
-                                            )}
-                                            {discountLabel && (
-                                                <span className={`new-card-sale-tag ${promo ? 'promo-badge' : ''}`}>{discountLabel}</span>
-                                            )}
-                                            {promo && (
-                                                <span className="new-card-promo-name">
-                                                    🏷️ Khuyến mãi
-                                                </span>
-                                            )}
-
-                                            <button
-                                                className={`new-card-favorite-btn ${wishlistIds.has(String(product.id)) ? "active" : ""}`}
-                                                aria-label="Yêu thích"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleToggleWishlist(product.id);
-                                                }}
-                                            >
-                                                <svg
-                                                    width="15"
-                                                    height="15"
-                                                    viewBox="0 0 24 24"
-                                                    fill={wishlistIds.has(String(product.id)) ? "#DC2626" : "none"}
-                                                    stroke={wishlistIds.has(String(product.id)) ? "#DC2626" : "currentColor"}
-                                                    strokeWidth="2.2"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                >
-                                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <div className="new-card-body">
-                                            <div className="new-card-body-top">
-                                                <span className="new-card-category">{(product.category || "").toUpperCase()}</span>
-                                                <h3 className="new-card-title" title={product.name}>{product.name}</h3>
-
-                                                <div className="new-card-farm-row">
-                                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><UserCheck size={14} /> {product.farmerName || product.shopName || "Nhà vườn Agri"}</span>
-                                                </div>
-
-                                                <div className="new-card-rating-sold-row">
-                                                    <div className="new-card-rating">
-                                                        <span className="star-gold">★</span>
-                                                        <span className="rating-value">{product.rating ? Number(product.rating).toFixed(1) : "0.0"}</span>
-                                                        <span className="reviews-count">({product.reviewsCount || 0})</span>
-                                                    </div>
-                                                    <span className="new-card-sold">Đã bán {formatSold(product.sold)}</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="new-card-price-cart-row">
-                                                <div className="new-card-price-col">
-                                                    <span className="new-card-price" style={promo ? { color: '#dc2626' } : {}}>
-                                                        {discountedPrice.toLocaleString("vi-VN")}đ <span style={{ fontSize: "12px", fontWeight: "normal", color: "#666" }}>/ {product.unit}</span>
-                                                    </span>
-                                                    {promo ? (
-                                                        <span className="new-card-old-price">
-                                                            {product.price.toLocaleString("vi-VN")}đ
-                                                        </span>
-                                                    ) : product.oldPrice ? (
-                                                        <span className="new-card-old-price">
-                                                            {product.oldPrice.toLocaleString("vi-VN")}đ
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-
-                                                <button
-                                                    className="new-card-add-cart-btn"
-                                                    aria-label="Thêm vào giỏ hàng"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleAddToCart(product);
-                                                    }}
-                                                >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <circle cx="9" cy="21" r="1"></circle>
-                                                        <circle cx="20" cy="21" r="1"></circle>
-                                                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                                                        <line x1="12" y1="10" x2="16" y2="10"></line>
-                                                        <line x1="14" y1="8" x2="14" y2="12"></line>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className="empty-state">
-                                Không tìm thấy sản phẩm phù hợp.
-                            </div>
-                        )}
-
-                        <div className="promo-card">
-                            <div className="promo-content">
-                                <h3>Miễn phí vận chuyển cho đơn từ 200k!</h3>
-                                <p>
-                                    Áp dụng cho tất cả các sản phẩm rau củ quả trong tuần lễ nông sản sạch.
-                                </p>
-                                <button>Xem chi tiết →</button>
-                            </div>
+                    {loading ? (
+                        <div className="pl-loading-container" style={{ minHeight: "350px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", padding: "40px" }}>
+                            <div className="pl-spinner" />
+                            <p style={{ marginTop: "12px", color: "var(--primary-color, #317a55)", fontWeight: "500" }}>Đang tải danh sách sản phẩm...</p>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="product-grid">
+                                {paginatedProducts.length > 0 ? (
+                                    paginatedProducts.map((product) => {
+                                        const promo = getProductPromo(product);
+                                        const discountedPrice = promo ? calcDiscountedPrice(product.price, promo) : product.price;
+                                        const discountLabel = promo
+                                            ? (promo.discountType === 'percent' ? `-${promo.discountVal}%` : `-${(promo.discountVal / 1000).toFixed(0)}K`)
+                                            : (product.saleTag || null);
 
-                    {/* Pagination */}
-                    <div className="pagination">
-                        <button
-                            className="page-btn"
-                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                        >
-                            ‹
-                        </button>
+                                        return (
+                                            <div
+                                                className="new-product-card"
+                                                key={product.id}
+                                                onClick={() => navigate(`/products/${product.id}`)}
+                                                style={{ cursor: "pointer" }}
+                                            >
+                                                <div className="new-card-img-wrapper">
+                                                    {product.imageUrl || product.image ? (
+                                                        <img src={product.imageUrl || product.image} alt={product.name} className="new-card-img" />
+                                                    ) : (
+                                                        <div className="new-card-img-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "#81c784" }}><Sprout size={32} /></div>
+                                                    )}
+                                                    {discountLabel && (
+                                                        <span className={`new-card-sale-tag ${promo ? 'promo-badge' : ''}`}>{discountLabel}</span>
+                                                    )}
+                                                    {promo && (
+                                                        <span className="new-card-promo-name">
+                                                            🏷️ Khuyến mãi
+                                                        </span>
+                                                    )}
 
-                        {Array.from({ length: totalPages || 1 }).map((_, index) => {
-                            const page = index + 1;
-                            return (
+                                                    <button
+                                                        className={`new-card-favorite-btn ${wishlistIds.has(String(product.id)) ? "active" : ""}`}
+                                                        aria-label="Yêu thích"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleToggleWishlist(product.id);
+                                                        }}
+                                                    >
+                                                        <svg
+                                                            width="15"
+                                                            height="15"
+                                                            viewBox="0 0 24 24"
+                                                            fill={wishlistIds.has(String(product.id)) ? "#DC2626" : "none"}
+                                                            stroke={wishlistIds.has(String(product.id)) ? "#DC2626" : "currentColor"}
+                                                            strokeWidth="2.2"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        >
+                                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+
+                                                <div className="new-card-body">
+                                                    <div className="new-card-body-top">
+                                                        <span className="new-card-category">{(product.category || "").toUpperCase()}</span>
+                                                        <h3 className="new-card-title" title={product.name}>{product.name}</h3>
+
+                                                        <div className="new-card-farm-row">
+                                                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><UserCheck size={14} /> {product.farmerName || product.shopName || "Nhà vườn Agri"}</span>
+                                                        </div>
+
+                                                        <div className="new-card-rating-sold-row">
+                                                            <div className="new-card-rating">
+                                                                <span className="star-gold">★</span>
+                                                                <span className="rating-value">{product.rating ? Number(product.rating).toFixed(1) : "0.0"}</span>
+                                                                <span className="reviews-count">({product.reviewsCount || 0})</span>
+                                                            </div>
+                                                            <span className="new-card-sold">Đã bán {formatSold(product.sold)}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="new-card-price-cart-row">
+                                                        <div className="new-card-price-col">
+                                                            <span className="new-card-price" style={promo ? { color: '#dc2626' } : {}}>
+                                                                {discountedPrice.toLocaleString("vi-VN")}đ <span style={{ fontSize: "12px", fontWeight: "normal", color: "#666" }}>/ {product.unit}</span>
+                                                            </span>
+                                                            {promo ? (
+                                                                <span className="new-card-old-price">
+                                                                    {product.price.toLocaleString("vi-VN")}đ
+                                                                </span>
+                                                            ) : product.oldPrice ? (
+                                                                <span className="new-card-old-price">
+                                                                    {product.oldPrice.toLocaleString("vi-VN")}đ
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+
+                                                        <button
+                                                            className="new-card-add-cart-btn"
+                                                            aria-label="Thêm vào giỏ hàng"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleAddToCart(product);
+                                                            }}
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <circle cx="9" cy="21" r="1"></circle>
+                                                                <circle cx="20" cy="21" r="1"></circle>
+                                                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                                                                <line x1="12" y1="10" x2="16" y2="10"></line>
+                                                                <line x1="14" y1="8" x2="14" y2="12"></line>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="empty-state">
+                                        Không tìm thấy sản phẩm phù hợp.
+                                    </div>
+                                )}
+
+                                <div className="promo-card">
+                                    <div className="promo-content">
+                                        <h3>Miễn phí vận chuyển cho đơn từ 200k!</h3>
+                                        <p>
+                                            Áp dụng cho tất cả các sản phẩm rau củ quả trong tuần lễ nông sản sạch.
+                                        </p>
+                                        <button>Xem chi tiết →</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Pagination */}
+                            <div className="pagination">
                                 <button
-                                    key={page}
-                                    className={`page-btn ${currentPage === page ? "active" : ""}`}
-                                    onClick={() => setCurrentPage(page)}
+                                    className="page-btn"
+                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                                 >
-                                    {page}
+                                    ‹
                                 </button>
-                            );
-                        })}
 
-                        <button
-                            className="page-btn"
-                            onClick={() =>
-                                setCurrentPage((prev) => Math.min(prev + 1, totalPages || 1))
-                            }
-                        >
-                            ›
-                        </button>
-                    </div>
+                                {Array.from({ length: totalPages || 1 }).map((_, index) => {
+                                    const page = index + 1;
+                                    return (
+                                        <button
+                                            key={page}
+                                            className={`page-btn ${currentPage === page ? "active" : ""}`}
+                                            onClick={() => setCurrentPage(page)}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                })}
+
+                                <button
+                                    className="page-btn"
+                                    onClick={() =>
+                                        setCurrentPage((prev) => Math.min(prev + 1, totalPages || 1))
+                                    }
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </section>
             </main>
 

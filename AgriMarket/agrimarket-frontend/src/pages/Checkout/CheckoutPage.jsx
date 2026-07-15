@@ -122,6 +122,7 @@ export default function CheckoutPage() {
 
     // Page-level loading state
     const [isPageLoading, setIsPageLoading] = useState(true);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Form inputs
     const [recipientName, setRecipientName] = useState("");
@@ -1007,6 +1008,8 @@ export default function CheckoutPage() {
     const handlePlaceOrder = async (e) => {
         e.preventDefault();
 
+        if (isProcessing) return;
+
         const formErrors = {};
         if (!validateForm(formErrors)) {
             // Check if there is a distance invalidation error
@@ -1027,195 +1030,57 @@ export default function CheckoutPage() {
             return;
         }
 
-        const formattedAddress = addressService.formatAddress({
-            street: addrStreet.trim(),
-            ward: addrWard.name,
-            district: addrDistrict.name,
-            province: addrProvince.name,
-        });
+        setIsProcessing(true);
 
-        // Auto-save address to customer_address if not already existing
-        if (profileData && profileData.role === "customer") {
-            try {
-                const isExisting = savedAddresses.some(
-                    (a) => a.address.trim().toLowerCase() === formattedAddress.trim().toLowerCase()
-                );
-                if (!isExisting) {
-                    await apiClient.post("/api/customers/addresses", {
-                        receiverName: recipientName,
-                        phone: recipientPhone,
-                        address: formattedAddress,
-                        latitude: latitude ? parseFloat(latitude) : null,
-                        longitude: longitude ? parseFloat(longitude) : null,
-                        isDefault: false
-                    });
-                    console.log("Saved new delivery address to customer_address.");
-                }
-            } catch (err) {
-                console.error("Lỗi khi tự động lưu địa chỉ giao hàng mới:", err);
-            }
-        }
-
-        // Auto-save phone to user profile if updated
-        if (profileData && recipientPhone !== profileData.phone) {
-            try {
-                const updatedFormData = {
-                    fullName: profileData.fullName || recipientName,
-                    phone: recipientPhone,
-                    avatarUrl: profileData.avatarUrl,
-                    address: profileData.addresses?.[0]?.address || "",
-                    farmAddress: "",
-                    farmName: "",
-                    description: ""
-                };
-                const payload = buildProfileUpdatePayload("customer", updatedFormData);
-                await profileService.updateProfile(payload, "customer");
-            } catch (err) {
-                console.error("Lỗi khi cập nhật số điện thoại hồ sơ:", err);
-            }
-        }
-
-        const now = new Date();
-        const formattedDate = `${now.getDate()} thg ${now.getMonth() + 1}, ${now.getFullYear()}`;
-        const hours = now.getHours();
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'CH' : 'SA';
-        const displayHours = hours % 12 || 12;
-        const formattedTime = `${displayHours}:${minutes} ${ampm}`;
-
-        if (checkoutData.isPreorder) {
-            const randomCode = "PO-2026-" + Math.floor(1000 + Math.random() * 9000);
-            const depositAmount = checkoutData.totalAmount * 0.20;
-            const newPreorder = {
-              id: randomCode,
-              orderCode: randomCode,
-              status: "paid",
-              statusLabel: "Đã đặt cọc (20%)",
-              date: formattedDate,
-              time: formattedTime,
-              amount: checkoutData.totalAmount,
-              depositPaid: depositAmount,
-              isUSD: false,
-              itemCount: checkoutData.selectedItems.reduce((sum, item) => sum + item.quantity, 0),
-              expectedHarvestDate: checkoutData.selectedItems[0]?.expectedHarvest || "Cuối tháng 08, 2026",
-              provider: {
-                name: checkoutData.selectedItems[0]?.farmerName || "Nông trại Green Valley",
-                avatarText: checkoutData.selectedItems[0]?.farmerName ? checkoutData.selectedItems[0].farmerName.substring(0, 2).toUpperCase() : "GV",
-                avatarBg: "#1b5e20",
-              },
-              thumbnails: [checkoutData.selectedItems[0]?.imageUrl || ""],
-              hasMoreItems: 0,
-              recipient: recipientName,
-              phone: recipientPhone,
-              address: formattedAddress,
-              paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
-              specialInstructions: shippingNote
-            };
-
-            const existing = JSON.parse(localStorage.getItem("agrimarket_preorders")) || [];
-            localStorage.setItem("agrimarket_preorders", JSON.stringify([newPreorder, ...existing]));
-
-            window.dispatchEvent(new Event("preordersUpdated"));
-
-            setPlacedOrder({
-                id: randomCode,
-                date: formattedDate,
-                time: formattedTime,
-                recipient: recipientName,
-                phone: recipientPhone,
-                address: formattedAddress,
-                paymentMethod: paymentMethod === "cod" ? "COD (Đặt cọc 20%)" : "VNPAY (Đặt cọc 20%)",
-                trackingNumber: `PO-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
-                items: checkoutData.selectedItems.map(item => ({
-                    name: item.name + " (Đặt trước - Preorder)",
-                    qty: item.quantity,
-                    price: item.price
-                })),
-                amount: depositAmount,
-                isPreorder: true
+        try {
+            const formattedAddress = addressService.formatAddress({
+                street: addrStreet.trim(),
+                ward: addrWard.name,
+                district: addrDistrict.name,
+                province: addrProvince.name,
             });
 
-            setIsSuccess(true);
-            localStorage.removeItem("agrimarket_checkout");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            return;
-        }
-
-        const subtotal = checkoutData.subtotal;
-        const shippingFee = checkoutData.shippingFee;
-        const serviceFee = checkoutData.serviceFee;
-        const discountAmount = checkoutData.discountAmount;
-        const totalAmount = checkoutData.totalAmount;
-        const selectedItems = checkoutData.selectedItems;
-
-        const orderPayload = {
-            recipient: recipientName,
-            phone: recipientPhone,
-            address: formattedAddress,
-            shippingNote: shippingNote,
-            paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
-            subtotal: subtotal,
-            shippingFee: shippingFee,
-            serviceFee: serviceFee,
-            discount: discountAmount,
-            amount: totalAmount,
-            latitude: latitude ? parseFloat(latitude) : null,
-            longitude: longitude ? parseFloat(longitude) : null,
-            appliedPromoCode: selectedPromo ? selectedPromo.code : null,
-            items: selectedItems.map(item => ({
-                productId: item.id,
-                quantity: item.quantity
-            }))
-        };
-
-        if (user) {
-            try {
-                const backendOrder = await orderService.createOrder(orderPayload);
-                
-                // Clear checked items from local cart
-                const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
-                const remainingCart = savedCart.filter(item => !selectedItems.some(sel => sel.id === item.id));
-                localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
-
-                // Clear checkout data
-                localStorage.removeItem("agrimarket_checkout");
-
-                if (paymentMethod === "cod") {
-                    setPlacedOrder(backendOrder);
-                    setIsSuccess(true);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                } else {
-                    // For online VNPAY, redirect directly
-                    try {
-                        const res = await orderService.createVNPayPaymentUrl(backendOrder.id);
-                        if (res && res.paymentUrl) {
-                            window.location.href = res.paymentUrl;
-                        } else {
-                            throw new Error("Không thể tạo liên kết thanh toán VNPay.");
-                        }
-                    } catch (payErr) {
-                        console.error("Lỗi khi kết nối VNPay:", payErr);
-                        setErrorModal({
-                            show: true,
-                            title: "Lỗi kết nối VNPay",
-                            message: "Không thể khởi tạo cổng thanh toán trực tuyến VNPay.",
-                            detail: "Vui lòng thử lại sau hoặc lựa chọn phương thức thanh toán khi nhận hàng (COD)."
+            // Auto-save address to customer_address if not already existing
+            if (profileData && profileData.role === "customer") {
+                try {
+                    const isExisting = savedAddresses.some(
+                        (a) => a.address.trim().toLowerCase() === formattedAddress.trim().toLowerCase()
+                    );
+                    if (!isExisting) {
+                        await apiClient.post("/api/customers/addresses", {
+                            receiverName: recipientName,
+                            phone: recipientPhone,
+                            address: formattedAddress,
+                            latitude: latitude ? parseFloat(latitude) : null,
+                            longitude: longitude ? parseFloat(longitude) : null,
+                            isDefault: false
                         });
+                        console.log("Saved new delivery address to customer_address.");
                     }
+                } catch (err) {
+                    console.error("Lỗi khi tự động lưu địa chỉ giao hàng mới:", err);
                 }
-            } catch (err) {
-                console.error("Lỗi khi đặt hàng:", err);
-                const errMsg = err.response?.data
-                    ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
-                    : "Có lỗi xảy ra khi xử lý đặt hàng. Vui lòng thử lại.";
-                setErrorModal({
-                    show: true,
-                    title: "Đặt hàng không thành công",
-                    message: "Đã xảy ra lỗi trong quá trình xử lý đặt hàng từ máy chủ.",
-                    detail: errMsg
-                });
             }
-        } else {
+
+            // Auto-save phone to user profile if updated
+            if (profileData && recipientPhone !== profileData.phone) {
+                try {
+                    const updatedFormData = {
+                        fullName: profileData.fullName || recipientName,
+                        phone: recipientPhone,
+                        avatarUrl: profileData.avatarUrl,
+                        address: profileData.addresses?.[0]?.address || "",
+                        farmAddress: "",
+                        farmName: "",
+                        description: ""
+                    };
+                    const payload = buildProfileUpdatePayload("customer", updatedFormData);
+                    await profileService.updateProfile(payload, "customer");
+                } catch (err) {
+                    console.error("Lỗi khi cập nhật số điện thoại hồ sơ:", err);
+                }
+            }
+
             const now = new Date();
             const formattedDate = `${now.getDate()} thg ${now.getMonth() + 1}, ${now.getFullYear()}`;
             const hours = now.getHours();
@@ -1224,60 +1089,217 @@ export default function CheckoutPage() {
             const displayHours = hours % 12 || 12;
             const formattedTime = `${displayHours}:${minutes} ${ampm}`;
 
-            const newOrder = {
-                id: orderId,
-                status: "pending",
-                statusLabel: "Chờ xác nhận",
-                date: formattedDate,
-                time: formattedTime,
+            if (checkoutData.isPreorder) {
+                const randomCode = "PO-2026-" + Math.floor(1000 + Math.random() * 9000);
+                const depositAmount = checkoutData.totalAmount * 0.20;
+                const newPreorder = {
+                  id: randomCode,
+                  orderCode: randomCode,
+                  status: "paid",
+                  statusLabel: "Đã đặt cọc (20%)",
+                  date: formattedDate,
+                  time: formattedTime,
+                  amount: checkoutData.totalAmount,
+                  depositPaid: depositAmount,
+                  isUSD: false,
+                  itemCount: checkoutData.selectedItems.reduce((sum, item) => sum + item.quantity, 0),
+                  expectedHarvestDate: checkoutData.selectedItems[0]?.expectedHarvest || "Cuối tháng 08, 2026",
+                  provider: {
+                    name: checkoutData.selectedItems[0]?.farmerName || "Nông trại Green Valley",
+                    avatarText: checkoutData.selectedItems[0]?.farmerName ? checkoutData.selectedItems[0].farmerName.substring(0, 2).toUpperCase() : "GV",
+                    avatarBg: "#1b5e20",
+                  },
+                  thumbnails: [checkoutData.selectedItems[0]?.imageUrl || ""],
+                  hasMoreItems: 0,
+                  recipient: recipientName,
+                  phone: recipientPhone,
+                  address: formattedAddress,
+                  paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
+                  specialInstructions: shippingNote
+                };
+
+                const existing = JSON.parse(localStorage.getItem("agrimarket_preorders")) || [];
+                localStorage.setItem("agrimarket_preorders", JSON.stringify([newPreorder, ...existing]));
+
+                window.dispatchEvent(new Event("preordersUpdated"));
+
+                setPlacedOrder({
+                    id: randomCode,
+                    date: formattedDate,
+                    time: formattedTime,
+                    recipient: recipientName,
+                    phone: recipientPhone,
+                    address: formattedAddress,
+                    paymentMethod: paymentMethod === "cod" ? "COD (Đặt cọc 20%)" : "VNPAY (Đặt cọc 20%)",
+                    trackingNumber: `PO-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
+                    items: checkoutData.selectedItems.map(item => ({
+                        name: item.name + " (Đặt trước - Preorder)",
+                        qty: item.quantity,
+                        price: item.price
+                    })),
+                    amount: depositAmount,
+                    isPreorder: true
+                });
+
+                setIsSuccess(true);
+                localStorage.removeItem("agrimarket_checkout");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                setIsProcessing(false);
+                return;
+            }
+
+            const subtotal = checkoutData.subtotal;
+            const shippingFee = checkoutData.shippingFee;
+            const serviceFee = checkoutData.serviceFee;
+            const discountAmount = checkoutData.discountAmount;
+            const totalAmount = checkoutData.totalAmount;
+            const selectedItems = checkoutData.selectedItems;
+
+            const orderPayload = {
+                recipient: recipientName,
+                phone: recipientPhone,
+                address: formattedAddress,
+                shippingNote: shippingNote,
+                paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
                 subtotal: subtotal,
                 shippingFee: shippingFee,
                 serviceFee: serviceFee,
                 discount: discountAmount,
                 amount: totalAmount,
-                recipient: recipientName,
-                address: formattedAddress,
-                phone: recipientPhone,
-                trackingNumber: `FH-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
-            paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
-                provider: {
-                    name: selectedItems[0]?.farmer || "Hợp tác xã Nông nghiệp số",
-                    location: "Cái Bè, Tiền Giang",
-                    estYear: 2018,
-                    avatarText: selectedItems[0]?.name ? selectedItems[0].name.charAt(0).toUpperCase() : "AG",
-                    avatarBg: "#1b5e20",
-                },
+                latitude: latitude ? parseFloat(latitude) : null,
+                longitude: longitude ? parseFloat(longitude) : null,
+                appliedPromoCode: selectedPromo ? selectedPromo.code : null,
                 items: selectedItems.map(item => ({
-                    name: item.name,
-                    farmer: item.farmer || "Nhà vườn địa phương",
-                    price: item.price,
-                    qty: item.quantity,
-                    img: item.imageUrl
-                })),
-                thumbnails: selectedItems.slice(0, 3).map(item => item.imageUrl),
-                itemCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
-                hasMoreItems: selectedItems.length > 3 ? selectedItems.length - 3 : 0
+                    productId: item.id,
+                    quantity: item.quantity
+                }))
             };
 
-            if (paymentMethod === "cod") {
-                // Write to local storage under orders database
-                const stored = localStorage.getItem("agrimarket_orders");
-                const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
-                const updatedOrders = [newOrder, ...existingOrders];
-                localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+            if (user) {
+                try {
+                    const backendOrder = await orderService.createOrder(orderPayload);
+                    
+                    // Clear checked items from local cart
+                    const savedCart = JSON.parse(localStorage.getItem("agrimarket_cart")) || [];
+                    const remainingCart = savedCart.filter(item => !selectedItems.some(sel => sel.id === item.id));
+                    localStorage.setItem("agrimarket_cart", JSON.stringify(remainingCart));
 
-                // Clear checkout data
-                localStorage.removeItem("agrimarket_checkout");
+                    // Clear checkout data
+                    localStorage.removeItem("agrimarket_checkout");
 
-                // Keep order reference for confirmation screen
-                setPlacedOrder(newOrder);
-                setIsSuccess(true);
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                    if (paymentMethod === "cod") {
+                        setPlacedOrder(backendOrder);
+                        setIsSuccess(true);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        setIsProcessing(false);
+                    } else {
+                        // For online VNPAY, redirect directly
+                        try {
+                            const res = await orderService.createVNPayPaymentUrl(backendOrder.id);
+                            if (res && res.paymentUrl) {
+                                window.location.href = res.paymentUrl;
+                            } else {
+                                throw new Error("Không thể tạo liên kết thanh toán VNPay.");
+                            }
+                        } catch (payErr) {
+                            console.error("Lỗi khi kết nối VNPay:", payErr);
+                            setErrorModal({
+                                show: true,
+                                title: "Lỗi kết nối VNPay",
+                                message: "Không thể khởi tạo cổng thanh toán trực tuyến VNPay.",
+                                detail: "Vui lòng thử lại sau hoặc lựa chọn phương thức thanh toán khi nhận hàng (COD)."
+                            });
+                            setIsProcessing(false);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi đặt hàng:", err);
+                    const errMsg = err.response?.data
+                        ? (typeof err.response.data === "object" ? (err.response.data.message || JSON.stringify(err.response.data)) : err.response.data)
+                        : "Có lỗi xảy ra khi xử lý đặt hàng. Vui lòng thử lại.";
+                    setErrorModal({
+                        show: true,
+                        title: "Đặt hàng không thành công",
+                        message: "Đã xảy ra lỗi trong quá trình xử lý đặt hàng từ máy chủ.",
+                        detail: errMsg
+                    });
+                    setIsProcessing(false);
+                }
             } else {
-                // Store pending order details and redirect to new payment page
-                localStorage.setItem("agrimarket_pending_order", JSON.stringify(newOrder));
-                navigate("/payment", { state: { pendingOrder: newOrder, paymentMethod } });
+                const now = new Date();
+                const formattedDate = `${now.getDate()} thg ${now.getMonth() + 1}, ${now.getFullYear()}`;
+                const hours = now.getHours();
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                const ampm = hours >= 12 ? 'CH' : 'SA';
+                const displayHours = hours % 12 || 12;
+                const formattedTime = `${displayHours}:${minutes} ${ampm}`;
+
+                const newOrder = {
+                    id: orderId,
+                    status: "pending",
+                    statusLabel: "Chờ xác nhận",
+                    date: formattedDate,
+                    time: formattedTime,
+                    subtotal: subtotal,
+                    shippingFee: shippingFee,
+                    serviceFee: serviceFee,
+                    discount: discountAmount,
+                    amount: totalAmount,
+                    recipient: recipientName,
+                    address: formattedAddress,
+                    phone: recipientPhone,
+                    trackingNumber: `FH-TRACK-${Math.floor(100000 + Math.random() * 900000)}`,
+                    paymentMethod: paymentMethod === "cod" ? "COD" : "VNPAY",
+                    provider: {
+                        name: selectedItems[0]?.farmer || "Hợp tác xã Nông nghiệp số",
+                        location: "Cái Bè, Tiền Giang",
+                        estYear: 2018,
+                        avatarText: selectedItems[0]?.name ? selectedItems[0].name.charAt(0).toUpperCase() : "AG",
+                        avatarBg: "#1b5e20",
+                    },
+                    items: selectedItems.map(item => ({
+                        name: item.name,
+                        farmer: item.farmer || "Nhà vườn địa phương",
+                        price: item.price,
+                        qty: item.quantity,
+                        img: item.imageUrl
+                    })),
+                    thumbnails: selectedItems.slice(0, 3).map(item => item.imageUrl),
+                    itemCount: selectedItems.reduce((sum, item) => sum + item.quantity, 0),
+                    hasMoreItems: selectedItems.length > 3 ? selectedItems.length - 3 : 0
+                };
+
+                if (paymentMethod === "cod") {
+                    // Write to local storage under orders database
+                    const stored = localStorage.getItem("agrimarket_orders");
+                    const existingOrders = stored ? JSON.parse(stored) : INITIAL_ORDERS;
+                    const updatedOrders = [newOrder, ...existingOrders];
+                    localStorage.setItem("agrimarket_orders", JSON.stringify(updatedOrders));
+
+                    // Clear checkout data
+                    localStorage.removeItem("agrimarket_checkout");
+
+                    // Keep order reference for confirmation screen
+                    setPlacedOrder(newOrder);
+                    setIsSuccess(true);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    setIsProcessing(false);
+                } else {
+                    // Store pending order details and redirect to new payment page
+                    localStorage.setItem("agrimarket_pending_order", JSON.stringify(newOrder));
+                    navigate("/payment", { state: { pendingOrder: newOrder, paymentMethod } });
+                    setIsProcessing(false);
+                }
             }
+        } catch (err) {
+            console.error("Lỗi đặt hàng chung:", err);
+            setErrorModal({
+                show: true,
+                title: "Đặt hàng không thành công",
+                message: "Đã xảy ra lỗi không xác định.",
+                detail: err.message
+            });
+            setIsProcessing(false);
         }
     };
 
@@ -2067,14 +2089,31 @@ export default function CheckoutPage() {
                                     )}
                                 </div>
 
-                                <button type="submit" className="btn-confirm-order" style={checkoutData.isPreorder ? { backgroundColor: "#15803d" } : {}}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16" style={{ marginRight: "8px" }}>
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                    </svg>
-                                    {checkoutData.isPreorder 
-                                      ? (paymentMethod === "cod" ? "Xác nhận đặt trước (Cọc 20%)" : "Thanh toán cọc 20%") 
-                                      : (paymentMethod === "cod" ? "Xác nhận đặt hàng" : "Tiến hành thanh toán")}
+                                <button 
+                                    type="submit" 
+                                    className="btn-confirm-order" 
+                                    disabled={isProcessing}
+                                    style={{
+                                        ...(checkoutData.isPreorder ? { backgroundColor: "#15803d" } : {}),
+                                        ...(isProcessing ? { backgroundColor: "#78909c", cursor: "not-allowed", opacity: 0.8 } : {})
+                                    }}
+                                >
+                                    {isProcessing ? (
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                                            <span className="spinner-mini"></span>
+                                            Đang chuyển hướng người dùng...
+                                        </span>
+                                    ) : (
+                                        <>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16" style={{ marginRight: "8px" }}>
+                                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                            </svg>
+                                            {checkoutData.isPreorder 
+                                              ? (paymentMethod === "cod" ? "Xác nhận đặt trước (Cọc 20%)" : "Thanh toán cọc 20%") 
+                                              : (paymentMethod === "cod" ? "Xác nhận đặt hàng" : "Tiến hành thanh toán")}
+                                        </>
+                                    )}
                                 </button>
 
                                 <button type="button" className="btn-return-to-cart" onClick={() => navigate("/cart")}>

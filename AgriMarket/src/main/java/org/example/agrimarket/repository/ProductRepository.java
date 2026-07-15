@@ -19,5 +19,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     long countByCategoryId(Long categoryId);
     long countByCategoryIdIn(List<Long> categoryIds);
+
+    @Query("SELECT p FROM Product p JOIN FETCH p.farmer WHERE p.id IN :ids")
+    List<Product> findAllByIdInWithFarmer(@org.springframework.data.repository.query.Param("ids") List<Long> ids);
 }
 

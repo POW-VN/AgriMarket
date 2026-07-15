@@ -31,13 +31,16 @@ const PromotionEdit = ({ promoId, onCancel, onSuccess, role, promotions = [] }) 
     }
   }, [role]);
   
+  const currentUserStr = localStorage.getItem("farmconnect_user");
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+
   const [formData, setFormData] = useState({
     title: existingPromo.title || '',
     startDate: existingPromo.startDate || '',
     endDate: existingPromo.endDate || '',
     description: existingPromo.description || '',
     maxUses: existingPromo.maxUses || '',
-    farmerId: existingPromo.farmerId || '', 
+    farmerId: role === 'farmer' ? (currentUser?.id || existingPromo.farmerId || '') : (existingPromo.farmerId || ''), 
     visibility: existingPromo.visibility || 'show', 
     discountType: existingPromo.discountType || 'percent', 
     discountVal: existingPromo.discountVal || '',

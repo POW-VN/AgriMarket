@@ -81,6 +81,10 @@ export const OrderHistory = () => {
     }, 3500);
   };
 
+  const handleViewPreorderDetail = (dbId) => {
+    navigate(`/farmer/orders/preorderdetail/${dbId}`);
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -188,7 +192,8 @@ export const OrderHistory = () => {
         isPreorder: true,
         date: po.createdAt ? new Date(po.createdAt).toLocaleDateString("vi-VN") : "Đang cập nhật",
         recipient: po.customerName || "Khách hàng",
-        phone: "",
+        phone: po.customerPhone || "Chưa cập nhật",
+        address: po.customerAddress || "Chưa cập nhật",
         amount: totalAmount,
         rating: null,
         status: po.status,
@@ -444,7 +449,14 @@ export const OrderHistory = () => {
                           Xem
                         </button>
                       ) : (
-                        <div style={{ display: "flex", gap: "6px" }}>
+                        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                          <button 
+                            className="oh-btn-view" 
+                            onClick={() => handleViewPreorderDetail(o.dbId)}
+                            style={{ fontSize: "12px", padding: "4px 8px" }}
+                          >
+                            Xem chi tiết
+                          </button>
                           {o.status === "paid" && (
                             <button 
                               className="oh-btn-view" 

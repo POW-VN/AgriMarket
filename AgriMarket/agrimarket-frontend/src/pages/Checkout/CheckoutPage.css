@@ -1443,3 +1443,19 @@
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(27, 94, 32, 0.25);
 }
+
+/* Spinner & Spin animation */
+.spinner-mini {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin-animation 1s linear infinite;
+}
+
+@keyframes spin-animation {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

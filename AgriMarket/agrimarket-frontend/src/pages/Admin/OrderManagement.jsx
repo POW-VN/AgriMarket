@@ -579,19 +579,42 @@ const OrderManagement = () => {
       }
 
       // 6. Date Range Filter
-      if (filterDateStart) {
-        const dateStr = o.date.includes("/") ? o.date.split("/").reverse().join("-") : o.date;
-        const orderDate = new Date(dateStr);
-        const startDate = new Date(filterDateStart);
-        startDate.setHours(0, 0, 0, 0);
-        if (orderDate < startDate) return false;
-      }
-      if (filterDateEnd) {
-        const dateStr = o.date.includes("/") ? o.date.split("/").reverse().join("-") : o.date;
-        const orderDate = new Date(dateStr);
-        const endDate = new Date(filterDateEnd);
-        endDate.setHours(23, 59, 59, 999);
-        if (orderDate > endDate) return false;
+      if (filterDateStart || filterDateEnd) {
+        const parseOrderDate = (dStr) => {
+          if (!dStr) return null;
+          const match = dStr.match(/(\d+)\s+thg\s+(\d+),\s+(\d+)/);
+          if (match) {
+            return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+          }
+          if (dStr.includes("/")) {
+            const parts = dStr.split("/");
+            if (parts.length === 3) {
+              if (parts[2].length === 4) {
+                return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+              } else if (parts[0].length === 4) {
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+              }
+            }
+          }
+          const parsed = new Date(dStr);
+          return isNaN(parsed.getTime()) ? null : parsed;
+        };
+
+        const orderDate = parseOrderDate(o.date);
+        if (!orderDate) {
+          return false;
+        } else {
+          if (filterDateStart) {
+            const startDate = new Date(filterDateStart);
+            startDate.setHours(0, 0, 0, 0);
+            if (orderDate < startDate) return false;
+          }
+          if (filterDateEnd) {
+            const endDate = new Date(filterDateEnd);
+            endDate.setHours(23, 59, 59, 999);
+            if (orderDate > endDate) return false;
+          }
+        }
       }
 
       // 7. Amount Range Filter (in VND)

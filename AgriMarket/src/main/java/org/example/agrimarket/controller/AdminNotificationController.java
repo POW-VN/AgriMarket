@@ -70,7 +70,9 @@ public class AdminNotificationController {
         AdminNotification saved = adminNotificationRepository.save(broadcast);
 
         if ("sent".equals(status)) {
-            distributeNotification(saved);
+            if (saved.getChannels() != null && saved.getChannels().contains("in_app")) {
+                distributeNotification(saved);
+            }
             if (saved.getChannels() != null && saved.getChannels().contains("email")) {
                 sendEmailNotification(saved);
             }

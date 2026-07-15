@@ -44,7 +44,9 @@ public class NotificationScheduler {
 
         for (AdminNotification broadcast : scheduledList) {
             try {
-                distributeNotification(broadcast);
+                if (broadcast.getChannels() != null && broadcast.getChannels().contains("in_app")) {
+                    distributeNotification(broadcast);
+                }
                 if (broadcast.getChannels() != null && broadcast.getChannels().contains("email")) {
                     sendEmailNotification(broadcast);
                 }
