@@ -1196,41 +1196,14 @@ const OrderManagement = () => {
                   </div>
 
                   {/* Admin notes & Actions */}
-                  <div className="details-right-card" style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid var(--admin-border)", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", margin: 0 }}>
-                    <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "700", color: "var(--admin-primary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      Thao tác xử lý & Ghi chú quản trị viên
-                    </h4>
-                    <p style={{ margin: "0 0 12px 0", fontSize: "13px", color: "var(--admin-text-muted)" }}>
-                      Nhập ghi chú nghiệp vụ trước khi cập nhật trạng thái đơn hàng (ví dụ: lý do hủy đơn, lý do hoàn tiền...)
-                    </p>
-                    <textarea
-                      className="form-control"
-                      rows="3"
-                      placeholder="Nhập ghi chú hoặc lý do hủy đơn/hoàn tiền tại đây..."
-                      value={remarksInput}
-                      onChange={(e) => setRemarksInput(e.target.value)}
-                      style={{ fontSize: "14px", padding: "12px", borderRadius: "8px", resize: "none", width: "100%", border: "1px solid var(--admin-border)", marginBottom: "16px" }}
-                    ></textarea>
-
-                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                      {getValidNextStatuses(selectedOrder.status).map((t) => (
-                        <button
-                          key={t.status}
-                          className={`btn-detail-action ${t.color}`}
-                          onClick={() => triggerStatusUpdate(selectedOrder, t.status)}
-                          style={{ flexGrow: 1, justifyContent: "center" }}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                      <button
-                        className="btn-admin-outline"
-                        onClick={() => setSelectedOrder(null)}
-                        style={{ flexGrow: 1, justifyContent: "center", borderRadius: "10px", padding: "10px 18px", fontWeight: "600", fontSize: "14.5px" }}
-                      >
-                        Đóng chi tiết
-                      </button>
-                    </div>
+                  <div style={{ display: "flex", gap: "12px", margin: "0 0 24px 0" }}>
+                    <button
+                      className="btn-admin-outline"
+                      onClick={() => setSelectedOrder(null)}
+                      style={{ flexGrow: 1, justifyContent: "center", borderRadius: "10px", padding: "12px 18px", fontWeight: "600", fontSize: "14.5px" }}
+                    >
+                      Đóng chi tiết
+                    </button>
                   </div>
 
                   {/* Timeline Logs */}
