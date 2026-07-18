@@ -36,6 +36,8 @@ const EditProfile = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState("");
   const [formMessage, setFormMessage] = useState("");
 
   // Address States
@@ -355,6 +357,8 @@ const EditProfile = () => {
       description: profile.description || "",
       address: profile.addresses?.[0]?.address || "",
     });
+    setAvatarPreview("");
+    setIsUploadingAvatar(false);
   }, [profile, navigate]);
 
   const handleChange = (event) => {
@@ -378,13 +382,11 @@ const EditProfile = () => {
     // Instant local preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData((prev) => ({
-        ...prev,
-        avatarUrl: reader.result,
-      }));
+      setAvatarPreview(reader.result);
     };
     reader.readAsDataURL(file);
 
+    setIsUploadingAvatar(true);
     // Upload to live backend
     try {
       const uploadData = new FormData();
@@ -401,9 +403,14 @@ const EditProfile = () => {
           ...prev,
           avatarUrl: response.data.avatarUrl,
         }));
+        setAvatarPreview("");
       }
     } catch (error) {
       console.error("Error uploading avatar image:", error);
+      setAvatarPreview("");
+      alert("Tải lên ảnh thất bại. Vui lòng thử lại!");
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -412,6 +419,7 @@ const EditProfile = () => {
       ...prev,
       avatarUrl: "",
     }));
+    setAvatarPreview("");
   };
 
   const handleSubmit = async (event) => {
@@ -512,7 +520,7 @@ const EditProfile = () => {
           <div className="edit-avatar-section">
             <div className="edit-avatar-box">
               <ProfileAvatar
-                src={formData.avatarUrl}
+                src={avatarPreview || formData.avatarUrl}
                 name={formData.fullName}
                 email={formData.email}
                 size="large"
@@ -668,9 +676,9 @@ const EditProfile = () => {
             <button
               type="submit"
               className="profile-primary-button"
-              disabled={isSaving}
+              disabled={isSaving || isUploadingAvatar}
             >
-              {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+              {isSaving ? "Đang lưu..." : (isUploadingAvatar ? "Đang tải ảnh..." : "Lưu thay đổi")}
             </button>
           </div>
         </form>
