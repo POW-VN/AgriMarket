@@ -14,21 +14,21 @@ app = FastAPI(title="AgriMarket AI Moderation Worker")
 # Enable CORS for local client posts
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# SPRING_BOOT_URL = os.getenv(
+#     "SPRING_BOOT_URL",
+#     "https://agrimarket-cnpl.onrender.com/api/moderation/livestream-alert"
+# )
+
 SPRING_BOOT_URL = os.getenv(
     "SPRING_BOOT_URL",
-    "https://agrimarket-cnpl.onrender.com/api/moderation/livestream-alert"
+    "http://localhost:8080/api/moderation/livestream-alert" # Gửi về Spring Boot local
 )
-
-#SPRING_BOOT_URL = os.getenv(
-#    "SPRING_BOOT_URL",
-#    "http://localhost:8080/api/moderation/livestream-alert" # Gửi về Spring Boot local
-#)
 
 # Load pre-trained YOLOv8 model (automatically downloads coco weights on first run ~6MB)
 try:
