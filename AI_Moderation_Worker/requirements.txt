@@ -8,3 +8,4 @@ torch
 transformers
 sentencepiece
 protobuf
+python-dotenv
