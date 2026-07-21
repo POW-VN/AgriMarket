@@ -63,6 +63,7 @@ import ProductListing from "../pages/Product/ProductListing";
 import LiveManagement from "../pages/Admin/LiveManagement";
 import CategoryManagement from "../pages/Admin/CategoryManagement";
 import FarmerPromotions from "../pages/Farmer/FarmerPromotions/FarmerPromotions";
+import { FarmerReviews } from "../pages/Farmer/FarmerReviews/FarmerReviews";
 import AdminPromotions from "../pages/Admin/Promotions/AdminPromotions";
 import AdminTransactions from "../pages/Admin/Transactions/AdminTransactions";
 import PromotionLandingPage from "../pages/Promotion/PromotionLandingPage";
@@ -171,6 +172,7 @@ const AppRoutes = () => {
               <Route path="orders" element={<OrderHistory />} />
               <Route path="orders/orderdetail/:id" element={<OrderDetail />} />
               <Route path="orders/preorderdetail/:id" element={<PreorderDetail />} />
+              <Route path="reviews" element={<FarmerReviews />} />
               <Route path="farm-profile" element={<FarmDetails />} />
               <Route path="chat" element={<FarmerChat />} />
               <Route path="livestream" element={<FarmerLivestream />} />
