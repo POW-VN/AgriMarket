@@ -15,3 +15,8 @@ package-lock.json
 AI_Moderation_Worker/huggingface_cache/
 AI_Moderation_Worker/__pycache__/
 **/__pycache__/
+
+# Environment variables (never commit real .env files)
+**/.env
+**/.env.local
+**/.env.production
