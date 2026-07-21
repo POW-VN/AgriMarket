@@ -56,13 +56,29 @@ const confirmOrderReceived = async (orderCode) => {
   return response.data;
 };
 
+const getCustomerOrdersPaged = async ({ page = 0, size = 10, status = "" } = {}) => {
+  const params = new URLSearchParams({ page, size });
+  if (status) params.set("status", status);
+  const response = await apiClient.get(`/api/orders/paged?${params.toString()}`);
+  return response.data;
+};
+
+const getFarmerOrdersPaged = async ({ page = 0, size = 10, status = "" } = {}) => {
+  const params = new URLSearchParams({ page, size });
+  if (status) params.set("status", status);
+  const response = await apiClient.get(`/api/orders/farmer/paged?${params.toString()}`);
+  return response.data;
+};
+
 const orderService = {
   createOrder,
   getCustomerOrders,
+  getCustomerOrdersPaged,
   getOrderById,
   cancelOrder,
   confirmPayment,
   getFarmerOrders,
+  getFarmerOrdersPaged,
   updateFarmerOrderStatus,
   createVNPayPaymentUrl,
   verifyVNPayCallback,

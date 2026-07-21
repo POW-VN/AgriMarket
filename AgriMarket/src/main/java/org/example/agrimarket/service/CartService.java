@@ -54,9 +54,54 @@ public class CartService {
         });
     }
 
-    @Transactional(readOnly = true)
+    private void consolidateCartItems(Cart cart) {
+        if (cart == null || cart.getItems() == null || cart.getItems().isEmpty()) {
+            return;
+        }
+
+        Map<Long, List<CartItem>> itemsByProduct = cart.getItems().stream()
+                .collect(Collectors.groupingBy(CartItem::getProductId));
+
+        List<CartItem> toRemove = new ArrayList<>();
+        boolean changed = false;
+
+        for (Map.Entry<Long, List<CartItem>> entry : itemsByProduct.entrySet()) {
+            List<CartItem> itemList = entry.getValue();
+            if (itemList.size() > 1) {
+                CartItem keep = itemList.get(0);
+                int totalQty = keep.getQuantity();
+                for (int i = 1; i < itemList.size(); i++) {
+                    CartItem duplicate = itemList.get(i);
+                    totalQty += duplicate.getQuantity();
+                    toRemove.add(duplicate);
+                }
+
+                Product product = productRepository.findById(entry.getKey()).orElse(null);
+                if (product != null && totalQty > product.getStockQuantity()) {
+                    totalQty = product.getStockQuantity();
+                }
+
+                keep.setQuantity(totalQty);
+                cartItemRepository.save(keep);
+                changed = true;
+            }
+        }
+
+        if (!toRemove.isEmpty()) {
+            cart.getItems().removeAll(toRemove);
+            cartItemRepository.deleteAll(toRemove);
+            changed = true;
+        }
+
+        if (changed) {
+            cartRepository.save(cart);
+        }
+    }
+
+    @Transactional
     public List<CartItemResponse> getCart(String email) {
         Cart cart = getOrCreateCart(email);
+        consolidateCartItems(cart);
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
             return Collections.emptyList();
         }
@@ -175,6 +220,7 @@ public class CartService {
     @Transactional
     public List<CartItemResponse> addToCart(String email, Long productId, int quantity, Double livestreamPrice, Long livestreamId) {
         Cart cart = getOrCreateCart(email);
+        consolidateCartItems(cart);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm."));
 
@@ -286,16 +332,16 @@ public class CartService {
 
             if (existingItemOpt.isPresent()) {
                 CartItem existingItem = existingItemOpt.get();
-                int newQty = existingItem.getQuantity() + guestItem.getQuantity();
-                if (newQty > product.getStockQuantity()) {
-                    newQty = product.getStockQuantity();
+                int targetQty = Math.max(existingItem.getQuantity(), guestItem.getQuantity());
+                if (targetQty > product.getStockQuantity()) {
+                    targetQty = Math.min(product.getStockQuantity(), 50);
                 }
-                existingItem.setQuantity(newQty);
+                existingItem.setQuantity(targetQty);
                 cartItemRepository.save(existingItem);
             } else {
                 int qty = guestItem.getQuantity();
                 if (qty > product.getStockQuantity()) {
-                    qty = product.getStockQuantity();
+                    qty = Math.min(product.getStockQuantity(), 50);
                 }
                 CartItem newItem = new CartItem();
                 newItem.setCart(cart);

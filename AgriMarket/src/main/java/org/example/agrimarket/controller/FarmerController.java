@@ -4,6 +4,7 @@ import org.example.agrimarket.dto.FarmerRegistrationRequest;
 import org.example.agrimarket.dto.UpdateFarmerProfileRequest;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.service.FarmerService;
+import org.example.agrimarket.service.PromotionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,25 @@ public class FarmerController {
         return farmerRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Autowired
+    private PromotionService promotionService;
+
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<?> getDashboardStats(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        return ResponseEntity.ok(farmerService.getDashboardStats(principal.getName()));
+    }
+
+    @GetMapping("/promotions")
+    public ResponseEntity<?> getFarmerPromotions(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        return ResponseEntity.ok(promotionService.getFarmerPromotions(principal.getName()));
     }
 
     @PutMapping("/{id}")

@@ -1,6 +1,7 @@
 package org.example.agrimarket.controller;
 
 import org.example.agrimarket.dto.PagedProductResponse;
+import org.example.agrimarket.dto.PageResponse;
 import org.example.agrimarket.dto.ProductRequest;
 import org.example.agrimarket.dto.ProductResponse;
 import org.example.agrimarket.service.ProductService;
@@ -35,6 +36,25 @@ public class ProductController {
 
         try {
             List<ProductResponse> products = productService.getProductsByFarmerEmail(principal.getName());
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Đã xảy ra lỗi khi lấy danh sách sản phẩm: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/farmer/products/paged")
+    public ResponseEntity<?> getFarmerProductsPaged(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Vui lòng đăng nhập.");
+        }
+        try {
+            PageResponse<ProductResponse> products = productService.getFarmerProductsPaged(principal.getName(), page, size, search);
             return ResponseEntity.ok(products);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -153,7 +173,8 @@ public class ProductController {
             @RequestParam(required = false)      String location,
             @RequestParam(required = false)      String shopKeyword,
             @RequestParam(required = false)      Double minRating,
-            @RequestParam(required = false)      Long farmerId
+            @RequestParam(required = false)      Long farmerId,
+            @RequestParam(required = false)      Boolean isPreorder
     ) {
         try {
             // Giới hạn size tối đa 50 để tránh abuse
@@ -163,7 +184,8 @@ public class ProductController {
                     category, search,
                     minPrice, maxPrice,
                     location, shopKeyword,
-                    minRating, farmerId
+                    minRating, farmerId,
+                    isPreorder
             );
             return ResponseEntity.ok(result);
         } catch (Exception e) {

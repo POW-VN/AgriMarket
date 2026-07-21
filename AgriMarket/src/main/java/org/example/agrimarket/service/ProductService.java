@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface ProductService {
     List<ProductResponse> getProductsByFarmerEmail(String email);
+    org.example.agrimarket.dto.PageResponse<ProductResponse> getFarmerProductsPaged(String email, int page, int size, String search);
     List<Category> getAllCategories();
     void deleteProduct(Long id, String farmerEmail);
     ProductResponse createProduct(ProductRequest request, String farmerEmail) throws Exception;
@@ -16,6 +17,7 @@ public interface ProductService {
     ProductResponse updateProductStock(Long id, Integer newStock, String farmerEmail) throws Exception;
     List<ProductResponse> getAllApprovedProducts();
     List<ProductResponse> getAllProducts();
+    org.example.agrimarket.dto.PageResponse<ProductResponse> getAllProductsPaged(int page, int size, String status, String search);
     ProductResponse getProductById(Long id);
 
     /**
@@ -38,7 +40,8 @@ public interface ProductService {
             String category, String search,
             Double minPrice, Double maxPrice,
             String location, String shopKeyword,
-            Double minRating, Long farmerId
+            Double minRating, Long farmerId,
+            Boolean isPreorder
     );
     void earlyHarvest(Long productId, String farmerEmail);
 }

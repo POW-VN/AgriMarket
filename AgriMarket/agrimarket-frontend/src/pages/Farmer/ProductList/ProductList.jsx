@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sprout, AlertTriangle, XCircle, CheckCircle2, Trash2, Pencil, Ban, Package, Leaf } from "lucide-react";
 import * as productService from "../../../services/productService";
+import useDebounce from "../../../hooks/useDebounce";
 import "./ProductList.css";
 
 const PRODUCT_STATUS_CONFIG = {
@@ -19,6 +20,7 @@ export const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productSearch, setProductSearch] = useState("");
+  const debouncedProductSearch = useDebounce(productSearch, 350);
   const [productActiveTab, setProductActiveTab] = useState("all");
   const [productCurrentPage, setProductCurrentPage] = useState(1);
   const PRODUCTS_PER_PAGE = 8;
@@ -104,16 +106,19 @@ export const ProductList = () => {
       showToast(successMsg, "success");
       sessionStorage.removeItem("product_success_message");
     }
-    fetchProducts();
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [productCurrentPage, debouncedProductSearch]);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const data = await productService.getFarmerProducts();
-      setProducts(data);
+      const res = await productService.getFarmerProductsPaged({ page: productCurrentPage - 1, size: PRODUCTS_PER_PAGE, search: debouncedProductSearch });
+      setProducts(res.content || res);
     } catch (err) {
-      console.error("Lỗi khi tải sản phẩm:", err);
+      console.error("Lỗi khi tải danh sách sản phẩm nông dân:", err);
       showToast("Không thể tải danh sách sản phẩm.", "error");
     } finally {
       setLoading(false);

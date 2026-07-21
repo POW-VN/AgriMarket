@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Pencil, Copy, Trash2, Image, AlertTriangle, CheckCircle2, XCircle, Leaf } from "lucide-react";
 import "./ProductPage.css";
-import { getFarmerProducts, deleteFarmerProduct, earlyHarvestProduct } from "../../services/productService";
+import { getFarmerProducts, getFarmerProductsPaged, deleteFarmerProduct, earlyHarvestProduct } from "../../services/productService";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 import useProfile from "../../hooks/useProfile";
 import Footer from "../../components/common/Footer/Footer";
@@ -38,12 +38,14 @@ export default function ProductPage() {
             showToast(successMsg, "success");
             sessionStorage.removeItem("product_success_message");
         }
+    }, []);
 
+    useEffect(() => {
         const loadProducts = async () => {
             setLoading(true);
             try {
-                const data = await getFarmerProducts();
-                setProducts(data);
+                const res = await getFarmerProductsPaged({ page: currentPage - 1, size: ITEMS_PER_PAGE, search: keyword });
+                setProducts(res.content || []);
             } catch (error) {
                 console.error("Lỗi load products:", error);
             } finally {
@@ -52,7 +54,7 @@ export default function ProductPage() {
         };
 
         if (isFarmer) loadProducts();
-    }, [isFarmer]);
+    }, [isFarmer, currentPage, keyword]);
 
     const getEffectiveStatus = (product) => {
         if (product.status === "sold_out" || product.status === "out_of_stock") {

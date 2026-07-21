@@ -1,6 +1,7 @@
 package org.example.agrimarket.controller;
 
 import org.example.agrimarket.dto.ProductResponse;
+import org.example.agrimarket.dto.PageResponse;
 import org.example.agrimarket.model.FollowedFarmer;
 import org.example.agrimarket.model.Notification;
 import org.example.agrimarket.model.Product;
@@ -35,6 +36,16 @@ public class AdminProductController {
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         return ResponseEntity.ok(productService.getAllProducts());
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<?> getAllProductsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search
+    ) {
+        return ResponseEntity.ok(productService.getAllProductsPaged(page, size, status, search));
     }
 
     @GetMapping("/{id}/ai-insights")

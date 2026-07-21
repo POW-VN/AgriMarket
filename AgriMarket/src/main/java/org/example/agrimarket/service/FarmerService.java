@@ -7,6 +7,8 @@ import org.example.agrimarket.model.Customer;
 import org.example.agrimarket.model.Farmer;
 import org.example.agrimarket.repository.CustomerRepository;
 import org.example.agrimarket.repository.FarmerRepository;
+import org.example.agrimarket.repository.ProductRepository;
+import org.example.agrimarket.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,27 @@ public class FarmerService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Transactional(readOnly = true)
+    public org.example.agrimarket.dto.FarmerDashboardStatsResponse getDashboardStats(String email) {
+        long totalProducts = productRepository.countByFarmerEmail(email);
+        long lowStockCount = productRepository.countByFarmerEmailAndStockQuantityLessThanEqual(email, 5);
+        long pendingOrdersCount = orderRepository.countByFarmerEmailAndStatusIn(email, java.util.List.of("pending", "confirmed"));
+        Double totalSales = orderRepository.sumAmountByFarmerEmailAndStatus(email, "delivered");
+
+        return org.example.agrimarket.dto.FarmerDashboardStatsResponse.builder()
+                .totalProducts(totalProducts)
+                .lowStockCount(lowStockCount)
+                .pendingOrdersCount(pendingOrdersCount)
+                .totalSales(totalSales != null ? totalSales : 0.0)
+                .build();
+    }
 
     @Autowired
     private SupabaseStorageService supabaseStorageService;

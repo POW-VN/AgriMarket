@@ -91,7 +91,7 @@ export const FarmerReviews = () => {
   const positiveRatio = useMemo(() => {
     const counts = reviewsData.summary.ratingCounts || {};
     const total = reviewsData.summary.totalReviews || 0;
-    if (total === 0) return 100;
+    if (total === 0) return 0;
     const positive = (counts[4] || 0) + (counts[5] || 0);
     return Math.round((positive / total) * 100);
   }, [reviewsData.summary]);
@@ -159,13 +159,13 @@ export const FarmerReviews = () => {
             <span className="fr-big-number">
               {reviewsData.summary.averageRating > 0
                 ? reviewsData.summary.averageRating.toFixed(1)
-                : "5.0"}
+                : "0.0"}
             </span>
             <span className="fr-rating-max">/ 5.0</span>
           </div>
           <div className="fr-stars-row">
             <StarRating
-              rating={Math.round(reviewsData.summary.averageRating || 5)}
+              rating={Math.round(reviewsData.summary.averageRating || 0)}
               size={22}
             />
           </div>
@@ -180,31 +180,25 @@ export const FarmerReviews = () => {
             <TrendingUp size={18} color="#0f172a" />
             <span>Phân bố mức sao</span>
           </div>
-          {[5, 4, 3, 2, 1].map((star) => {
-            const count = reviewsData.summary.ratingCounts?.[star] || 0;
-            const total = reviewsData.summary.totalReviews || 1;
-            const pct = Math.round((count / total) * 100);
-            return (
-              <div
-                key={star}
-                className="fr-breakdown-item"
-                onClick={() => setRatingFilter(String(star))}
-                title={`Lọc đánh giá ${star} sao`}
-              >
-                <div className="fr-star-label">
-                  <span>{star}</span>
-                  <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
+          <div className="fr-breakdown-bars">
+            {[5, 4, 3, 2, 1].map((star) => {
+              const count = (reviewsData.summary.ratingCounts || {})[star] || 0;
+              const total = reviewsData.summary.totalReviews || 0;
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              return (
+                <div key={star} className="fr-bar-row">
+                  <span className="fr-star-label">{star} ★</span>
+                  <div className="fr-bar-bg">
+                    <div
+                      className="fr-bar-fill"
+                      style={{ width: `${pct}%` }}
+                    ></div>
+                  </div>
+                  <span className="fr-count-num">{count}</span>
                 </div>
-                <div className="fr-bar-bg">
-                  <div
-                    className="fr-bar-fill"
-                    style={{ width: `${pct}%` }}
-                  ></div>
-                </div>
-                <span className="fr-count-num">{count}</span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Aspect Ratings Breakdown Card */}
@@ -223,10 +217,10 @@ export const FarmerReviews = () => {
                 <span className="fr-aspect-score">
                   {reviewsData.summary.avgFreshness > 0
                     ? reviewsData.summary.avgFreshness.toFixed(1)
-                    : "5.0"}
+                    : "0.0"}
                 </span>
                 <StarRating
-                  rating={Math.round(reviewsData.summary.avgFreshness || 5)}
+                  rating={Math.round(reviewsData.summary.avgFreshness || 0)}
                   size={12}
                 />
               </div>
@@ -241,10 +235,10 @@ export const FarmerReviews = () => {
                 <span className="fr-aspect-score">
                   {reviewsData.summary.avgQuality > 0
                     ? reviewsData.summary.avgQuality.toFixed(1)
-                    : "5.0"}
+                    : "0.0"}
                 </span>
                 <StarRating
-                  rating={Math.round(reviewsData.summary.avgQuality || 5)}
+                  rating={Math.round(reviewsData.summary.avgQuality || 0)}
                   size={12}
                 />
               </div>
@@ -259,10 +253,10 @@ export const FarmerReviews = () => {
                 <span className="fr-aspect-score">
                   {reviewsData.summary.avgPackaging > 0
                     ? reviewsData.summary.avgPackaging.toFixed(1)
-                    : "5.0"}
+                    : "0.0"}
                 </span>
                 <StarRating
-                  rating={Math.round(reviewsData.summary.avgPackaging || 5)}
+                  rating={Math.round(reviewsData.summary.avgPackaging || 0)}
                   size={12}
                 />
               </div>
@@ -277,10 +271,10 @@ export const FarmerReviews = () => {
                 <span className="fr-aspect-score">
                   {reviewsData.summary.avgDelivery > 0
                     ? reviewsData.summary.avgDelivery.toFixed(1)
-                    : "5.0"}
+                    : "0.0"}
                 </span>
                 <StarRating
-                  rating={Math.round(reviewsData.summary.avgDelivery || 5)}
+                  rating={Math.round(reviewsData.summary.avgDelivery || 0)}
                   size={12}
                 />
               </div>

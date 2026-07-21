@@ -285,8 +285,8 @@ export const MyOrders = () => {
       setLoading(true);
       if (currentUser) {
         try {
-          const fetched = await orderService.getCustomerOrders();
-          setOrders(fetched);
+          const res = await orderService.getCustomerOrdersPaged({ page: currentPage - 1, size: itemsPerPage, status: activeTab });
+          setOrders(res.content || res);
         } catch (err) {
           console.error("Lỗi khi load đơn hàng từ API:", err);
           const stored = localStorage.getItem("agrimarket_orders");
@@ -302,7 +302,7 @@ export const MyOrders = () => {
     };
 
     loadOrders();
-  }, []);
+  }, [currentPage, activeTab]);
 
   // Sync orders with localStorage only when not logged in
   useEffect(() => {

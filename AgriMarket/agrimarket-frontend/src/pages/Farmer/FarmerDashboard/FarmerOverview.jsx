@@ -4,6 +4,8 @@ import { AlertTriangle, Package, Clock, Lightbulb, Zap } from "lucide-react";
 import * as productService from "../../../services/productService";
 import orderService from "../../../services/orderService";
 
+import apiClient from "../../../services/apiClient";
+
 export const FarmerOverview = () => {
   const navigate = useNavigate();
   const { farmerProfile, currentUser } = useOutletContext();
@@ -20,19 +22,15 @@ export const FarmerOverview = () => {
     const fetchOverviewData = async () => {
       try {
         setLoading(true);
-        const prods = await productService.getFarmerProducts();
-        const ords = await orderService.getFarmerOrders();
-
-        const lowStock = prods.filter(p => p.stock <= 5).length;
-        const pendingOrds = ords.filter(o => o.status === "pending" || o.status === "confirmed").length;
-        const totalRev = ords.filter(o => o.status === "delivered").reduce((sum, o) => sum + (o.amount || 0), 0);
-
-        setOverviewStats({
-          totalProducts: prods.length,
-          lowStockCount: lowStock,
-          pendingOrdersCount: pendingOrds,
-          totalSales: totalRev,
-        });
+        const res = await apiClient.get('/api/farmers/dashboard-stats');
+        if (res && res.data) {
+          setOverviewStats({
+            totalProducts: res.data.totalProducts || 0,
+            lowStockCount: res.data.lowStockCount || 0,
+            pendingOrdersCount: res.data.pendingOrdersCount || 0,
+            totalSales: res.data.totalSales || 0,
+          });
+        }
       } catch (err) {
         console.error("Lỗi khi lấy dữ liệu tổng quan:", err);
       } finally {
