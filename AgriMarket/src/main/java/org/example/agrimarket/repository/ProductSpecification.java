@@ -36,6 +36,20 @@ public class ProductSpecification {
             Double minRating,
             Long farmerId
     ) {
+        return buildFilter(category, search, minPrice, maxPrice, location, shopKeyword, minRating, farmerId, null);
+    }
+
+    public static Specification<Product> buildFilter(
+            String category,
+            String search,
+            Double minPrice,
+            Double maxPrice,
+            String location,
+            String shopKeyword,
+            Double minRating,
+            Long farmerId,
+            Boolean isPreorder
+    ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -45,6 +59,11 @@ public class ProductSpecification {
             Join<Product, Farmer> farmerJoin = root.join("farmer", JoinType.INNER);
             predicates.add(cb.equal(farmerJoin.get("verificationStatus"), "verified"));
             predicates.add(cb.equal(farmerJoin.get("status"), "active"));
+
+            // --- Lọc theo isPreorder ---
+            if (isPreorder != null) {
+                predicates.add(cb.equal(root.get("isPreorder"), isPreorder));
+            }
 
             // --- Lọc theo farmerId ---
             if (farmerId != null) {

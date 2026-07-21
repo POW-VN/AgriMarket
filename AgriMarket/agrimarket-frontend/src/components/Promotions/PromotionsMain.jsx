@@ -19,18 +19,17 @@ const PromotionsMain = ({ role, searchTerm, setSearchTerm }) => {
   const fetchPromotions = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/api/admin/promotions');
-      const currentUserStr = localStorage.getItem("farmconnect_user");
-      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-      const currentUserId = currentUser?.id;
-
-      let filtered = response.data;
       if (role === 'farmer') {
-        filtered = response.data.filter(p => p.farmerId && String(p.farmerId) === String(currentUserId));
-      } else if (role === 'admin') {
-        filtered = response.data.filter(p => !p.farmerId);
+        const response = await apiClient.get('/api/farmers/promotions');
+        setPromotions(response.data || []);
+      } else {
+        const response = await apiClient.get('/api/admin/promotions');
+        let filtered = response.data || [];
+        if (role === 'admin') {
+          filtered = filtered.filter(p => !p.farmerId);
+        }
+        setPromotions(filtered);
       }
-      setPromotions(filtered);
     } catch (e) {
       console.warn("Promotions API không khả dụng, sử dụng dữ liệu giả lập.", e);
       const currentUserStr = localStorage.getItem("farmconnect_user");

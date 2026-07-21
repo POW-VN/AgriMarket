@@ -58,6 +58,8 @@ const getAvatarColor = (name) => {
   return colors[index];
 };
 
+import useDebounce from "../../../hooks/useDebounce";
+
 export const OrderHistory = () => {
   const navigate = useNavigate();
   const { farmerProfile } = useOutletContext();
@@ -66,6 +68,7 @@ export const OrderHistory = () => {
   const [orderType, setOrderType] = useState("regular"); // "regular" | "preorder"
   const [loading, setLoading] = useState(true);
   const [orderSearch, setOrderSearch] = useState("");
+  const debouncedOrderSearch = useDebounce(orderSearch, 350);
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [orderCurrentPage, setOrderCurrentPage] = useState(1);
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false);
@@ -99,14 +102,19 @@ export const OrderHistory = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    fetchOrders();
+  }, [orderCurrentPage, orderStatusFilter]);
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const [regularData, preorderData] = await Promise.all([
-        orderService.getFarmerOrders(),
+      const statusToUse = orderStatusFilter === "all" ? null : orderStatusFilter;
+      const [regularRes, preorderData] = await Promise.all([
+        orderService.getFarmerOrdersPaged({ page: orderCurrentPage - 1, size: ORDERS_PER_PAGE, status: statusToUse }),
         preorderService.getFarmerPreorders()
       ]);
-      setOrders(regularData);
+      setOrders(regularRes.content || regularRes);
       setPreorders(preorderData);
     } catch (err) {
       console.error("Lỗi khi tải đơn hàng:", err);
@@ -170,8 +178,8 @@ export const OrderHistory = () => {
   const ratedOrders = safeOrders.filter(o => o && o.rating !== undefined && o.rating !== null);
   const avgRating = ratedOrders.length > 0
     ? (ratedOrders.reduce((sum, o) => sum + o.rating, 0) / ratedOrders.length).toFixed(1)
-    : (farmerProfile?.ratingAverage || 4.8);
-  const ratingsCount = ratedOrders.length > 0 ? ratedOrders.length : 0;
+    : (farmerProfile?.ratingAverage ? Number(farmerProfile.ratingAverage).toFixed(1) : "0.0");
+  const ratingsCount = ratedOrders.length;
 
   // Normalize preorders
   const normalizedPreorders = useMemo(() => {
@@ -222,11 +230,11 @@ export const OrderHistory = () => {
       if (!o) return false;
       const orderIdStr = o.id ? String(o.id) : "";
       const recipientStr = o.recipient ? String(o.recipient) : "";
-      const matchSearch = orderIdStr.toLowerCase().includes(orderSearch.toLowerCase()) || recipientStr.toLowerCase().includes(orderSearch.toLowerCase());
+      const matchSearch = orderIdStr.toLowerCase().includes(debouncedOrderSearch.toLowerCase()) || recipientStr.toLowerCase().includes(debouncedOrderSearch.toLowerCase());
       const matchFilter = orderStatusFilter === "all" ? true : o.status === orderStatusFilter;
       return matchSearch && matchFilter;
     });
-  }, [activeOrdersList, orderSearch, orderStatusFilter]);
+  }, [activeOrdersList, debouncedOrderSearch, orderStatusFilter]);
 
   const totalOrderPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
   const paginatedOrders = useMemo(() => {

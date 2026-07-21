@@ -37,7 +37,7 @@ public class AdminDashboardService {
 
         // 1. Revenue (Real DB, no mock)
         Double revenue = entityManager.createQuery(
-                "SELECT SUM(og.grandTotal) FROM OrderGroup og WHERE og.paymentStatus = 'paid' AND og.createdAt >= :startDate AND og.createdAt <= :endDate", Double.class)
+                "SELECT SUM(og.grandTotal) FROM OrderGroup og WHERE (og.paymentStatus IS NULL OR (og.paymentStatus <> 'cancelled' AND og.paymentStatus <> 'failed')) AND og.createdAt >= :startDate AND og.createdAt <= :endDate", Double.class)
                 .setParameter("startDate", startDate)
                 .setParameter("endDate", endDate)
                 .getSingleResult();
@@ -50,7 +50,7 @@ public class AdminDashboardService {
         LocalDateTime previousEndDate = startDate;
 
         Double prevRevenue = entityManager.createQuery(
-                "SELECT SUM(og.grandTotal) FROM OrderGroup og WHERE og.paymentStatus = 'paid' AND og.createdAt >= :startDate AND og.createdAt <= :endDate", Double.class)
+                "SELECT SUM(og.grandTotal) FROM OrderGroup og WHERE (og.paymentStatus IS NULL OR (og.paymentStatus <> 'cancelled' AND og.paymentStatus <> 'failed')) AND og.createdAt >= :startDate AND og.createdAt <= :endDate", Double.class)
                 .setParameter("startDate", previousStartDate)
                 .setParameter("endDate", previousEndDate)
                 .getSingleResult();
@@ -131,7 +131,7 @@ public class AdminDashboardService {
                 LocalDateTime slotStart = startDate.plusHours(i * 4 - 2);
                 LocalDateTime slotEnd = startDate.plusHours(i * 4 + 2);
                 Long val = entityManager.createQuery(
-                        "SELECT COUNT(og) FROM OrderGroup og WHERE og.paymentStatus = 'paid' AND og.createdAt >= :start AND og.createdAt < :end", Long.class)
+                        "SELECT COUNT(og) FROM OrderGroup og WHERE (og.paymentStatus IS NULL OR og.paymentStatus <> 'cancelled') AND og.createdAt >= :start AND og.createdAt < :end", Long.class)
                         .setParameter("start", slotStart)
                         .setParameter("end", slotEnd)
                         .getSingleResult();
@@ -143,7 +143,7 @@ public class AdminDashboardService {
                 LocalDateTime dayStart = endDate.minusDays(i).with(LocalTime.MIN);
                 LocalDateTime dayEnd = endDate.minusDays(i).with(LocalTime.MAX);
                 Long val = entityManager.createQuery(
-                        "SELECT COUNT(og) FROM OrderGroup og WHERE og.paymentStatus = 'paid' AND og.createdAt >= :start AND og.createdAt <= :end", Long.class)
+                        "SELECT COUNT(og) FROM OrderGroup og WHERE (og.paymentStatus IS NULL OR og.paymentStatus <> 'cancelled') AND og.createdAt >= :start AND og.createdAt <= :end", Long.class)
                         .setParameter("start", dayStart)
                         .setParameter("end", dayEnd)
                         .getSingleResult();
@@ -155,7 +155,7 @@ public class AdminDashboardService {
                 LocalDateTime weekStart = endDate.minusWeeks(i + 1);
                 LocalDateTime weekEnd = endDate.minusWeeks(i);
                 Long val = entityManager.createQuery(
-                        "SELECT COUNT(og) FROM OrderGroup og WHERE og.paymentStatus = 'paid' AND og.createdAt >= :start AND og.createdAt < :end", Long.class)
+                        "SELECT COUNT(og) FROM OrderGroup og WHERE (og.paymentStatus IS NULL OR og.paymentStatus <> 'cancelled') AND og.createdAt >= :start AND og.createdAt < :end", Long.class)
                         .setParameter("start", weekStart)
                         .setParameter("end", weekEnd)
                         .getSingleResult();
@@ -166,7 +166,7 @@ public class AdminDashboardService {
                 LocalDateTime quarterStart = endDate.minusMonths((i + 1) * 3);
                 LocalDateTime quarterEnd = endDate.minusMonths(i * 3);
                 Long val = entityManager.createQuery(
-                        "SELECT COUNT(og) FROM OrderGroup og WHERE og.paymentStatus = 'paid' AND og.createdAt >= :start AND og.createdAt < :end", Long.class)
+                        "SELECT COUNT(og) FROM OrderGroup og WHERE (og.paymentStatus IS NULL OR og.paymentStatus <> 'cancelled') AND og.createdAt >= :start AND og.createdAt < :end", Long.class)
                         .setParameter("start", quarterStart)
                         .setParameter("end", quarterEnd)
                         .getSingleResult();
@@ -183,7 +183,7 @@ public class AdminDashboardService {
                     "JOIN product p ON p.id = oi.product_id " +
                     "JOIN category c ON c.id = p.category_id " +
                     "JOIN orders o ON o.id = oi.order_id " +
-                    "WHERE o.payment_status = 'paid' AND o.created_at >= :startDate " +
+                    "WHERE (o.status IS NULL OR (o.status <> 'cancelled' AND o.status <> 'rejected')) AND o.created_at >= :startDate " +
                     "GROUP BY c.name " +
                     "ORDER BY sold_qty DESC")
                     .setParameter("startDate", startDate)
@@ -223,7 +223,7 @@ public class AdminDashboardService {
                     "JOIN orders o ON o.id = oi.order_id " +
                     "JOIN farmer f ON f.id = oi.farmer_id " +
                     "JOIN users u ON u.id = f.id " +
-                    "WHERE o.payment_status = 'paid' AND o.created_at >= :startDate " +
+                    "WHERE (o.status IS NULL OR (o.status <> 'cancelled' AND o.status <> 'rejected')) AND o.created_at >= :startDate " +
                     "GROUP BY f.farm_name, f.farm_address, f.rating_average, u.full_name, f.id " +
                     "ORDER BY sold DESC")
                     .setParameter("startDate", startDate)

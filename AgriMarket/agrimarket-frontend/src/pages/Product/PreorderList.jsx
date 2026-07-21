@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
-import { getAllApprovedProducts } from "../../services/productService";
+import { getApprovedProductsPaged } from "../../services/productService";
 import "./PreorderList.css";
 
 // Sync categories with homepage
@@ -75,9 +75,8 @@ export default function PreorderList() {
     const fetchPreorders = async () => {
       setLoading(true);
       try {
-        const approved = await getAllApprovedProducts();
-        // Keep approved preorder products
-        const dbPreorders = approved.filter((p) => p.isPreorder === true);
+        const res = await getApprovedProductsPaged({ isPreorder: true, size: 50, sort: "newest" });
+        const dbPreorders = res.content || [];
 
         const normalizedDb = dbPreorders.map((p) => {
           const remaining = p.stock || 0;

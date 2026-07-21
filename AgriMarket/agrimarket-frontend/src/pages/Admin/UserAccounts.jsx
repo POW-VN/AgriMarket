@@ -7,6 +7,7 @@ import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
+import useDebounce from "../../hooks/useDebounce";
 import "./AdminStyles.css";
 
 const UserAccounts = () => {
@@ -25,6 +26,9 @@ const UserAccounts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [selectedUserIds, setSelectedUserIds] = useState([]);
 
@@ -103,9 +107,11 @@ const UserAccounts = () => {
     // Get logged-in user
     const user = authService.getCurrentUser();
     setCurrentUser(user);
-
-    fetchUsers();
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [currentPage, filterRole, debouncedSearchQuery]);
 
   // Handle outside click to close three-dots dropdowns
   useEffect(() => {
@@ -750,13 +756,25 @@ const UserAccounts = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/api/admin/users");
-      setUsers(response.data);
-      localStorage.setItem("agri_users", JSON.stringify(response.data));
+      const response = await apiClient.get("/api/admin/users/paged", {
+        params: {
+          page: currentPage - 1,
+          size: itemsPerPage,
+          role: filterRole === "All" ? "all" : filterRole.toLowerCase(),
+          search: debouncedSearchQuery
+        }
+      });
+      if (response.data && response.data.content) {
+        setUsers(response.data.content);
+        setTotalPages(response.data.totalPages || 1);
+        setTotalElements(response.data.totalElements || response.data.content.length);
+      } else {
+        setUsers(response.data || []);
+        setTotalElements(response.data?.length || 0);
+      }
     } catch (err) {
       console.error("Lỗi khi tải danh sách user:", err);
       setError("Không thể kết nối đến máy chủ. Đang hiển thị dữ liệu mô phỏng.");
-
       const localUsers = getInitialMockUsers();
       setUsers(localUsers);
     } finally {
@@ -859,13 +877,10 @@ const UserAccounts = () => {
     });
   };
 
-  const filteredUsers = getFilteredUsers();
-
-  // Pagination calculation
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
+  // Server-side pagination items
+  const currentItems = users;
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfLastItem = indexOfFirstItem + users.length;
 
   // Checkbox functions
   const handleSelectAll = (e) => {
@@ -1370,7 +1385,7 @@ const UserAccounts = () => {
                 {/* Pagination Controls */}
                 <div className="admin-pagination-row">
                   <div className="admin-pagination-info">
-                    Hiển thị từ {indexOfFirstItem + 1} đến {Math.min(indexOfLastItem, filteredUsers.length)} trong tổng số {filteredUsers.length} tài khoản
+                    Hiển thị từ {users.length > 0 ? indexOfFirstItem + 1 : 0} đến {indexOfLastItem} trong tổng số {totalElements || users.length} tài khoản
                   </div>
 
                   <div className="admin-pagination-controls">

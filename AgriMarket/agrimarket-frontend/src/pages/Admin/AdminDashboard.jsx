@@ -130,7 +130,7 @@ const AdminDashboard = () => {
   const chartPadding = 20;
 
   const points = data.revenueChart || [];
-  const maxVal = Math.max(...points.map(p => p.value), 1000000);
+  const maxVal = Math.max(...points.map(p => p.value), 5);
 
   const getSvgCoordinates = () => {
     if (points.length === 0) return [];
@@ -506,44 +506,32 @@ const AdminDashboard = () => {
               <div className="donut-chart-container">
                 <div className="donut-svg-wrapper">
                   <svg width="100%" height="100%" viewBox="0 0 100 100">
-                    {/* Circle slices: Rau củ 45% (0-45), Trái cây 25% (45-70), Hoa 20% (70-90), Gạo 10% (90-100) */}
-                    {/* Stroke offset values configured dynamically */}
                     <circle
                       cx="50" cy="50" r="38"
                       fill="transparent" stroke="#e2e8f0" strokeWidth="10"
                     />
 
-                    {/* Rau củ 45%: dasharray=45, spacing=55. offset=100-0 = 100 (in circumference coordinates: 2 * pi * r = 2 * 3.14 * 38 = 238.6) */}
-                    <circle
-                      cx="50" cy="50" r="38"
-                      fill="transparent" stroke="#0f766e" strokeWidth="10"
-                      strokeDasharray="107.4 131.2"
-                      strokeDashoffset="59.6"
-                    />
-
-                    {/* Trái cây 25%: dasharray=25, spacing=75 */}
-                    <circle
-                      cx="50" cy="50" r="38"
-                      fill="transparent" stroke="#475569" strokeWidth="10"
-                      strokeDasharray="59.6 179"
-                      strokeDashoffset="-47.8"
-                    />
-
-                    {/* Hoa tươi 20%: dasharray=20 */}
-                    <circle
-                      cx="50" cy="50" r="38"
-                      fill="transparent" stroke="#854d0e" strokeWidth="10"
-                      strokeDasharray="47.7 190.9"
-                      strokeDashoffset="-107.4"
-                    />
-
-                    {/* Gạo 10%: dasharray=10 */}
-                    <circle
-                      cx="50" cy="50" r="38"
-                      fill="transparent" stroke="#94a3b8" strokeWidth="10"
-                      strokeDasharray="23.9 214.7"
-                      strokeDashoffset="-155.1"
-                    />
+                    {data.popularCategories && data.popularCategories.length > 0 && (() => {
+                      const C = 238.761;
+                      let accOffset = 0;
+                      return data.popularCategories.map((cat, idx) => {
+                        const sliceLen = (cat.percentage / 100) * C;
+                        const dasharray = `${sliceLen} ${C - sliceLen}`;
+                        const dashoffset = (C * 0.25) - accOffset;
+                        accOffset += sliceLen;
+                        return (
+                          <circle
+                            key={idx}
+                            cx="50" cy="50" r="38"
+                            fill="transparent"
+                            stroke={cat.color || "#0f766e"}
+                            strokeWidth="10"
+                            strokeDasharray={dasharray}
+                            strokeDashoffset={dashoffset}
+                          />
+                        );
+                      });
+                    })()}
                   </svg>
 
                   <div className="donut-label-center">

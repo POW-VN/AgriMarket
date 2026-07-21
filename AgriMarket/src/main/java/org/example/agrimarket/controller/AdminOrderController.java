@@ -24,6 +24,16 @@ public class AdminOrderController {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
 
+    @GetMapping("/paged")
+    public ResponseEntity<?> getAllOrdersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search
+    ) {
+        return ResponseEntity.ok(orderService.getAllOrdersPaged(page, size, status, search));
+    }
+
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody Map<String, Object> payload) {
         try {

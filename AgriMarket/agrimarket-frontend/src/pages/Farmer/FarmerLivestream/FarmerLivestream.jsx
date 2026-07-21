@@ -688,15 +688,14 @@ export const FarmerLivestream = () => {
     };
   }, [cameraStream]);
 
-  // Fetch Farmer Products on mount
+  // Fetch Farmer Products on mount (Server-side paged)
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
-        const products = await productService.getFarmerProducts();
-        // Only keep approved products
-        const approved = products.filter(p => p.status === "approved" || p.status === "active");
-        setFarmerProducts(approved.length > 0 ? approved : products);
+        const res = await productService.getFarmerProductsPaged({ page: 0, size: 50, status: "approved" });
+        const list = res.content || res || [];
+        setFarmerProducts(list);
       } catch (err) {
         console.error("Lỗi lấy danh sách sản phẩm nông dân:", err);
       } finally {

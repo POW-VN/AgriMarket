@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface PromotionService {
     List<PromotionResponseDTO> getAllPromotions();
+    List<PromotionResponseDTO> getFarmerPromotions(String farmerEmail);
     PromotionResponseDTO getPromotionById(Long id);
     PromotionResponseDTO createPromotion(PromotionRequestDTO request);
     PromotionResponseDTO updatePromotion(Long id, PromotionRequestDTO request);

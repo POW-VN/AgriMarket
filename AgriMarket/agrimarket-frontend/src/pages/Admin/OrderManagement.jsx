@@ -4,6 +4,7 @@ import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
+import useDebounce from "../../hooks/useDebounce";
 import "./AdminStyles.css";
 
 const OrderManagement = () => {
@@ -23,6 +24,9 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
 
   // Single shared filter states
   const [filterStatus, setFilterStatus] = useState("All");
@@ -62,22 +66,34 @@ const OrderManagement = () => {
   useEffect(() => {
     const user = authService.getCurrentUser();
     setCurrentUser(user);
-    fetchOrders();
   }, []);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [currentPage, filterStatus, debouncedSearchQuery]);
 
   const fetchOrders = async () => {
     setLoading(true);
     setError("");
     try {
-      const [ordersRes, preordersRes] = await Promise.all([
-        apiClient.get("/api/admin/orders"),
-        apiClient.get("/api/preorders/admin")
-      ]);
-      setOrders(ordersRes.data || []);
-      setPreorders(preordersRes.data || []);
+      const ordersRes = await apiClient.get("/api/admin/orders/paged", {
+        params: {
+          page: currentPage - 1,
+          size: itemsPerPage,
+          status: filterStatus === "All" ? null : filterStatus,
+          search: debouncedSearchQuery
+        }
+      });
+      if (ordersRes.data && ordersRes.data.content) {
+        setOrders(ordersRes.data.content);
+        setTotalPages(ordersRes.data.totalPages || 1);
+        setTotalElements(ordersRes.data.totalElements || ordersRes.data.content.length);
+      } else {
+        setOrders(ordersRes.data || []);
+        setTotalElements(ordersRes.data?.length || 0);
+      }
     } catch (err) {
       console.error("Lỗi khi tải đơn hàng:", err);
-      // Try local fallback to mock data
       const mock = getMockOrders();
       setOrders(mock);
       if (mock.length === 0) {
@@ -629,11 +645,10 @@ const OrderManagement = () => {
   const filteredOrders = getFilteredOrders();
 
 
-  // Pagination calculation
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
+  // Server-side pagination items
+  const currentItems = orders;
+  const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
+  const indexOfLastItem = indexOfFirstItem + orders.length;
 
   const handleSelectOrder = (order) => {
     setSelectedOrder(order);
@@ -1696,10 +1711,10 @@ const OrderManagement = () => {
                 )}
 
                 {/* Pagination Controls calculated based on filtered orders list */}
-                {!loading && filteredOrders.length > 0 && (
+                {!loading && orders.length > 0 && (
                   <div className="admin-pagination-row">
                     <div className="admin-pagination-info">
-                      Hiển thị {indexOfFirstItem + 1} đến {Math.min(indexOfLastItem, filteredOrders.length)} trong tổng số {filteredOrders.length} đơn hàng
+                      Hiển thị từ {orders.length > 0 ? indexOfFirstItem + 1 : 0} đến {indexOfLastItem} trong tổng số {totalElements || orders.length} đơn hàng
                     </div>
 
                     <div className="admin-pagination-controls">

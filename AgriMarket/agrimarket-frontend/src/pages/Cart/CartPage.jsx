@@ -52,24 +52,7 @@ export default function CartPage() {
             if (currentUser) {
                 try {
                     const data = await cartService.getCart();
-                    // Enrich items with farmer details if they are missing
-                    const enrichedData = await Promise.all(data.map(async (item) => {
-                        if (!item.farmerId || !item.farmerName) {
-                            try {
-                                const prodDetails = await getProductById(item.id);
-                                return {
-                                    ...item,
-                                    farmerId: item.farmerId || prodDetails.farmerId,
-                                    farmerName: item.farmerName || prodDetails.farmerName,
-                                    stockQuantity: item.stockQuantity !== undefined ? item.stockQuantity : prodDetails.stock
-                                };
-                            } catch (e) {
-                                console.error("Error enriching product details:", e);
-                            }
-                        }
-                        return item;
-                    }));
-                    setCartItems(enrichedData);
+                    setCartItems(data || []);
                 } catch (err) {
                     console.error("Lỗi khi load giỏ hàng từ DB:", err);
                     await loadLocalCart();

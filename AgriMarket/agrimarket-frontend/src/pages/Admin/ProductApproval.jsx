@@ -5,6 +5,7 @@ import authService from "../../services/authService";
 import AdminSidebar from "../../components/common/Sidebar/AdminSidebar";
 import AdminHeader from "../../components/common/Header/AdminHeader";
 import apiClient from "../../services/apiClient";
+import useDebounce from "../../hooks/useDebounce";
 import "./AdminStyles.css";
 
 const InfoCard = ({ label, value, highlight }) => (
@@ -21,10 +22,12 @@ const ProductApproval = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 350);
   const [activeTab, setActiveTab] = useState("Chờ duyệt");
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterStatus, setFilterStatus] = useState("pending");
+  const [totalPages, setTotalPages] = useState(1);
 
   // Detail view
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -66,15 +69,30 @@ const ProductApproval = () => {
   useEffect(() => {
     const user = authService.getCurrentUser();
     setCurrentUser(user);
-    fetchProducts();
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, filterStatus, debouncedSearchQuery]);
 
   // ─── API Calls ───────────────────────────────────────────────────────────────
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get("/api/admin/products");
-      setProducts(response.data);
+      const response = await apiClient.get("/api/admin/products/paged", {
+        params: {
+          page: currentPage - 1,
+          size: itemsPerPage,
+          status: filterStatus === "All" ? null : filterStatus,
+          search: debouncedSearchQuery
+        }
+      });
+      if (response.data && response.data.content) {
+        setProducts(response.data.content);
+        setTotalPages(response.data.totalPages || 1);
+      } else {
+        setProducts(response.data || []);
+      }
     } catch (err) {
       console.error("Lỗi khi tải sản phẩm:", err);
       setError("Không thể kết nối máy chủ. Đang dùng dữ liệu mô phỏng.");
@@ -168,8 +186,7 @@ const ProductApproval = () => {
   const categoriesList = [...new Set(products.map((p) => p.categoryName).filter(Boolean))];
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
+  const currentItems = products;
 
   const handleSelectAll = (e) =>
     setSelectedProductIds(e.target.checked ? currentItems.map((p) => p.id) : []);

@@ -9,7 +9,8 @@ import {
   Tv, 
   LogOut, 
   ArrowRight,
-  Tag
+  Tag,
+  Star
 } from "lucide-react";
 import profileService from "../../../services/profileService";
 import authService from "../../../services/authService";
@@ -20,6 +21,7 @@ const TABS = [
   { id: "overview",     label: "Tổng quan",          icon: <LayoutDashboard size={18} />, path: "/farmer/dashboard" },
   { id: "products",     label: "Quản lý sản phẩm",    icon: <Package size={18} />, path: "/farmer/products" },
   { id: "orders",       label: "Đơn hàng của tôi",   icon: <Tractor size={18} />, path: "/farmer/orders" },
+  { id: "reviews",      label: "Đánh giá đơn hàng",   icon: <Star size={18} />, path: "/farmer/reviews" },
   { id: "farm-profile", label: "Thông tin trang trại", icon: <Store size={18} />, path: "/farmer/farm-profile" },
   { id: "chat",         label: "Tin nhắn khách hàng", icon: <MessageSquare size={18} />, path: "/farmer/chat" },
   { id: "livestream",   label: "Quản lý Livestream", icon: <Tv size={18} />, path: "/farmer/livestream" },
@@ -288,6 +290,7 @@ export const FarmerLayout = () => {
     const path = location.pathname;
     if (path.startsWith("/farmer/products")) return "products";
     if (path.startsWith("/farmer/orders")) return "orders";
+    if (path.startsWith("/farmer/reviews")) return "reviews";
     if (path.startsWith("/farmer/farm-profile")) return "farm-profile";
     if (path.startsWith("/farmer/chat")) return "chat";
     if (path.startsWith("/farmer/livestream")) return "livestream";
@@ -400,6 +403,7 @@ export const FarmerLayout = () => {
                 {currentTab === "overview" && "Chỉ số hoạt động nông trại và doanh số bán hàng."}
                 {currentTab === "products" && "Đăng bán sản phẩm, theo dõi phê duyệt và điều chỉnh giá."}
                 {currentTab === "orders" && "Nhận đơn hàng mới từ người tiêu dùng và cập nhật giao vận."}
+                {currentTab === "reviews" && "Xem nhận xét, đánh giá chất lượng sản phẩm và trải nghiệm từ người tiêu dùng."}
                 {currentTab === "farm-profile" && "Hoàn thiện hồ sơ trang trại giúp tăng độ tin cậy."}
                 {currentTab === "chat" && "Xem và trả lời các tin nhắn tư vấn từ người tiêu dùng."}
                 {currentTab === "livestream" && "Thiết lập, chuẩn bị thiết bị phát sóng và tương tác trực tiếp với khách hàng."}

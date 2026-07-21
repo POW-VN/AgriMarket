@@ -4,9 +4,13 @@ import org.example.agrimarket.dto.OrderCreateRequest;
 import org.example.agrimarket.dto.OrderItemRequest;
 import org.example.agrimarket.dto.OrderItemResponseDTO;
 import org.example.agrimarket.dto.OrderResponse;
+import org.example.agrimarket.dto.PageResponse;
 import org.example.agrimarket.model.*;
 import org.example.agrimarket.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -357,6 +361,19 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getCustomerOrdersPaged(String email, int page, int size, String status) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage;
+        if (status != null && !status.isBlank() && !"all".equalsIgnoreCase(status)) {
+            orderPage = orderRepository.findByCustomerEmailAndStatusOrderByCreatedAtDesc(email, status.toLowerCase(), pageable);
+        } else {
+            orderPage = orderRepository.findByCustomerEmailOrderByCreatedAtDesc(email, pageable);
+        }
+        List<OrderResponse> content = mapToResponseList(orderPage.getContent());
+        return PageResponse.of(content, orderPage);
+    }
+
+    @Transactional(readOnly = true)
     public List<String> getUsedPromotions(String email) {
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin khách hàng."));
@@ -484,6 +501,21 @@ public class OrderService {
                 .filter(order -> !"awaiting_payment".equalsIgnoreCase(order.getStatus()))
                 .map(order -> mapToFarmerResponse(order, farmerEmail))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getFarmerOrdersPaged(String farmerEmail, int page, int size, String status) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage;
+        if (status != null && !status.isBlank() && !"all".equalsIgnoreCase(status)) {
+            orderPage = orderRepository.findByFarmerEmailAndStatusPaged(farmerEmail, status.toLowerCase(), "awaiting_payment", pageable);
+        } else {
+            orderPage = orderRepository.findByFarmerEmailAndStatusNotPaged(farmerEmail, "awaiting_payment", pageable);
+        }
+        List<OrderResponse> content = orderPage.getContent().stream()
+                .map(order -> mapToFarmerResponse(order, farmerEmail))
+                .collect(Collectors.toList());
+        return PageResponse.of(content, orderPage);
     }
 
     @Transactional
@@ -774,6 +806,18 @@ public class OrderService {
             return o2.getCreatedAt().compareTo(o1.getCreatedAt());
         });
         return mapToResponseList(orders);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderResponse> getAllOrdersPaged(int page, int size, String status, String search) {
+        PageRequest pageable = PageRequest.of(page, size);
+        String cleanStatus = (status != null && !status.isBlank() && !"all".equalsIgnoreCase(status)) ? status.trim() : null;
+        String cleanSearch = (search != null && !search.isBlank()) ? search.trim() : null;
+
+        Page<Order> orderPage = orderRepository.findAllPagedAdmin(cleanStatus, cleanSearch, pageable);
+        List<OrderResponse> content = mapToResponseList(orderPage.getContent());
+
+        return PageResponse.of(content, orderPage);
     }
 
     @Transactional

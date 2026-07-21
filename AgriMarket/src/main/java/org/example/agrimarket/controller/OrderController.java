@@ -2,6 +2,7 @@ package org.example.agrimarket.controller;
 
 import org.example.agrimarket.dto.OrderCreateRequest;
 import org.example.agrimarket.dto.OrderResponse;
+import org.example.agrimarket.dto.PageResponse;
 import org.example.agrimarket.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,24 @@ public class OrderController {
         }
         try {
             List<OrderResponse> orders = orderService.getCustomerOrders(principal.getName());
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<?> getCustomerOrdersPaged(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            PageResponse<OrderResponse> orders = orderService.getCustomerOrdersPaged(principal.getName(), page, size, status);
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
@@ -113,6 +132,24 @@ public class OrderController {
         }
         try {
             List<OrderResponse> orders = orderService.getFarmerOrders(principal.getName());
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/farmer/paged")
+    public ResponseEntity<?> getFarmerOrdersPaged(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        }
+        try {
+            PageResponse<OrderResponse> orders = orderService.getFarmerOrdersPaged(principal.getName(), page, size, status);
             return ResponseEntity.ok(orders);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());

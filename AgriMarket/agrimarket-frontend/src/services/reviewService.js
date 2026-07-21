@@ -19,10 +19,16 @@ const getReviewDetail = async (orderCode, productId) => {
   return response.data;
 };
 
+const getFarmerReviews = async () => {
+  const response = await apiClient.get("/api/farmer/reviews");
+  return response.data;
+};
+
 const reviewService = {
   submitProductReview,
   getReviewsByProductId,
   getReviewDetail,
+  getFarmerReviews,
 };
 
 export default reviewService;

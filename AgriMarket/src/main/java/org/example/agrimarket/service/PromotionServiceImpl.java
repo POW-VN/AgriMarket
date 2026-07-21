@@ -61,6 +61,18 @@ public class PromotionServiceImpl implements PromotionService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PromotionResponseDTO> getFarmerPromotions(String farmerEmail) {
+        Farmer farmer = farmerRepository.findByEmail(farmerEmail).orElse(null);
+        if (farmer == null) {
+            return Collections.emptyList();
+        }
+        return promotionRepository.findByFarmerId(farmer.getId()).stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PromotionResponseDTO getPromotionById(Long id) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy chương trình khuyến mãi với ID: " + id));

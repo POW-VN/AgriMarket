@@ -1,6 +1,7 @@
 package org.example.agrimarket.service;
 
 import org.example.agrimarket.dto.PagedProductResponse;
+import org.example.agrimarket.dto.PageResponse;
 import org.example.agrimarket.dto.ProductRequest;
 import org.example.agrimarket.dto.ProductResponse;
 import org.example.agrimarket.model.Category;
@@ -84,6 +85,19 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> getProductsByFarmerEmail(String email) {
         List<Product> products = productRepository.findByFarmerEmailOrderByCreatedAtDesc(email);
         return convertProductsToResponseList(products);
+    }
+
+    @Override
+    public PageResponse<ProductResponse> getFarmerProductsPaged(String email, int page, int size, String search) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Product> productPage;
+        if (search != null && !search.isBlank()) {
+            productPage = productRepository.findByFarmerEmailAndNameContainingIgnoreCaseOrderByCreatedAtDesc(email, search.trim(), pageable);
+        } else {
+            productPage = productRepository.findByFarmerEmailOrderByCreatedAtDesc(email, pageable);
+        }
+        List<ProductResponse> responses = convertProductsToResponseList(productPage.getContent());
+        return PageResponse.of(responses, productPage);
     }
 
     private List<ProductResponse> convertProductsToResponseList(List<Product> products) {
@@ -566,12 +580,26 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public PageResponse<ProductResponse> getAllProductsPaged(int page, int size, String status, String search) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Product> productPage;
+        if (status != null && !status.isBlank()) {
+            productPage = productRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else {
+            productPage = productRepository.findAll(pageable);
+        }
+        List<ProductResponse> responses = convertProductsToResponseList(productPage.getContent());
+        return PageResponse.of(responses, productPage);
+    }
+
+    @Override
     public PagedProductResponse getApprovedProductsPaged(
             int page, int size, String sort,
             String category, String search,
             Double minPrice, Double maxPrice,
             String location, String shopKeyword,
-            Double minRating, Long farmerId
+            Double minRating, Long farmerId,
+            Boolean isPreorder
     ) {
         // 1. Xác định Sort
         Sort sortObj;
@@ -597,7 +625,7 @@ public class ProductServiceImpl implements ProductService {
 
         // 3. Xây dựng Specification filter
         Specification<Product> spec = ProductSpecification.buildFilter(
-                category, search, minPrice, maxPrice, location, shopKeyword, minRating, farmerId
+                category, search, minPrice, maxPrice, location, shopKeyword, minRating, farmerId, isPreorder
         );
 
         // 4. Truy vấn DB

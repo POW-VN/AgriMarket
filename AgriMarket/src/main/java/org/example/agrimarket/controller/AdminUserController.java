@@ -19,11 +19,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import org.example.agrimarket.dto.PageResponse;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.example.agrimarket.service.SupabaseStorageService;
 
@@ -157,6 +159,52 @@ public class AdminUserController {
 
 
         return ResponseEntity.ok(userList);
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<?> getAllUsersPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String search
+    ) {
+        List<Map<String, Object>> userList = getAllUsers().getBody();
+        if (userList == null) userList = new ArrayList<>();
+
+        if (role != null && !role.isBlank() && !"all".equalsIgnoreCase(role)) {
+            userList = userList.stream()
+                    .filter(u -> role.equalsIgnoreCase((String) u.get("role")))
+                    .collect(Collectors.toList());
+        }
+
+        if (search != null && !search.isBlank()) {
+            String q = search.toLowerCase();
+            userList = userList.stream()
+                    .filter(u -> {
+                        String name = u.get("fullName") != null ? ((String) u.get("fullName")).toLowerCase() : "";
+                        String email = u.get("email") != null ? ((String) u.get("email")).toLowerCase() : "";
+                        String phone = u.get("phone") != null ? ((String) u.get("phone")).toLowerCase() : "";
+                        return name.contains(q) || email.contains(q) || phone.contains(q);
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        int totalElements = userList.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int fromIndex = Math.min(page * size, totalElements);
+        int toIndex = Math.min(fromIndex + size, totalElements);
+
+        List<Map<String, Object>> pagedContent = userList.subList(fromIndex, toIndex);
+
+        PageResponse<Map<String, Object>> response = PageResponse.<Map<String, Object>>builder()
+                .content(pagedContent)
+                .totalElements(totalElements)
+                .totalPages(totalPages == 0 ? 1 : totalPages)
+                .currentPage(page)
+                .pageSize(size)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
