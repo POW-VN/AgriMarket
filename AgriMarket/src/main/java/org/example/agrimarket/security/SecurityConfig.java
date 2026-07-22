@@ -59,7 +59,8 @@ public class SecurityConfig {
                                 "/api/livestreams/*/join",
                                 "/api/livestreams/*/leave",
                                 "/api/moderation/livestream-alert",
-                                "/api/ai/chat"   // AgriBot – công khai, không cần đăng nhập
+                                "/api/ai/chat",          // AgriBot – công khai, không cần đăng nhập
+                                "/api/ai/voice-search"   // AI Voice Search – công khai
                         ).permitAll()
 
                         // Allow public GET requests on active livestreams and promotions

@@ -18,6 +18,18 @@ const aiService = {
     });
     return response.data.reply;
   },
+
+  /**
+   * Phân tích câu nói giọng nói bằng Gemini AI trên backend
+   * @param {string} transcript
+   * @returns {Promise<Object>}
+   */
+  parseVoiceSearch: async (transcript) => {
+    const response = await apiClient.post("/api/ai/voice-search", {
+      transcript,
+    });
+    return response.data;
+  },
 };
 
 export default aiService;
