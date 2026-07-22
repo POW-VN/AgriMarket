@@ -85,4 +85,17 @@ public class AiController {
             );
         }
     }
+
+    /**
+     * AI Voice Search – Endpoint công khai phân tích giọng nói người dùng.
+     */
+    @PostMapping("/voice-search")
+    public ResponseEntity<?> voiceSearch(@RequestBody org.example.agrimarket.dto.VoiceSearchDTO.Request request) {
+        try {
+            org.example.agrimarket.dto.VoiceSearchDTO.Response response = aiService.parseVoiceSearch(request.getTranscript());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Lỗi khi bóc tách tìm kiếm giọng nói: " + e.getMessage());
+        }
+    }
 }

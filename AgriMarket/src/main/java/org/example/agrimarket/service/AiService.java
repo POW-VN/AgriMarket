@@ -475,5 +475,250 @@ public class AiService {
             return "Xin lỗi, dịch vụ AI đang tạm thời gián đoạn. Bạn có thể liên hệ qua mục **Hỗ trợ** trên AgriMarket nhé! 🌿";
         }
     }
+
+    public static String sanitizeVoiceTranscript(String text) {
+        if (text == null) return null;
+        String cleaned = text.trim();
+        if (cleaned.isEmpty()) return null;
+
+        // Iteratively strip lead-in command & filler phrases from start of transcript
+        boolean changed = true;
+        while (changed) {
+            String prev = cleaned;
+            cleaned = cleaned.replaceAll("(?i)^(hãy|cho|tôi|mình|em|bạn|ơi|vui lòng|làm ơn|giúp|giúp tôi|giúp mình|xin|có thể)\\s+", "").trim();
+            cleaned = cleaned.replaceAll("(?i)^(muốn|cần|thích|đang|định)\\s+", "").trim();
+            cleaned = cleaned.replaceAll("(?i)^(tìm|mua|xem|kiếm|tra|lọc|cho xem|cho tìm|tìm kiếm|tìm mua|muốn mua|muốn tìm)\\s+", "").trim();
+            cleaned = cleaned.replaceAll("(?i)^(sản phẩm|nông sản|mặt hàng|món|loại|danh mục|trái|quả|củ|rau)\\s+", "").trim();
+            if (prev.equalsIgnoreCase(cleaned)) {
+                changed = false;
+            }
+        }
+
+        // Remove trailing filler words and modal particles
+        cleaned = cleaned.replaceAll("(?i)\\s+(gì đó|nè|à|nhỉ|với|ạ|với ạ|nha|nhé|dùm|dùm tôi|giúp tôi|giúp mình|không|với nào|đó)$", "").trim();
+
+        return cleaned.isEmpty() ? null : cleaned;
+    }
+
+    public static Map<String, Object> extractFiltersFromTranscript(String transcript) {
+        Map<String, Object> res = new HashMap<>();
+        if (transcript == null || transcript.trim().isEmpty()) return res;
+
+        String lower = transcript.toLowerCase().trim();
+
+        // Max Price regex (e.g. "dưới 200k", "dưới 200 nghìn", "tối đa 200k")
+        java.util.regex.Matcher maxPriceMatcher = java.util.regex.Pattern.compile("(?i)(dưới|nhỏ hơn|tối đa|dưới mức|ít hơn|dưới giá)\\s*([0-9\\.,]+)\\s*(k|nghìn|ngàn|tr|triệu|đ|đồng)?").matcher(lower);
+        if (maxPriceMatcher.find()) {
+            Double val = parsePriceUnit(maxPriceMatcher.group(2), maxPriceMatcher.group(3));
+            if (val != null && val > 0) {
+                res.put("maxPrice", val);
+            }
+        }
+
+        // Min Price regex (e.g. "trên 50k", "từ 50k", "tối thiểu 50k")
+        java.util.regex.Matcher minPriceMatcher = java.util.regex.Pattern.compile("(?i)(trên|từ|lớn hơn|tối thiểu|cao hơn|hơn)\\s*([0-9\\.,]+)\\s*(k|nghìn|ngàn|tr|triệu|đ|đồng)?").matcher(lower);
+        if (minPriceMatcher.find()) {
+            Double val = parsePriceUnit(minPriceMatcher.group(2), minPriceMatcher.group(3));
+            if (val != null && val > 0) {
+                res.put("minPrice", val);
+            }
+        }
+
+        // Category matching
+        if (lower.contains("trái cây") || lower.contains("hoa quả")) {
+            res.put("category", "Trái cây");
+        } else if (lower.contains("rau củ") || lower.contains("rau củ quả") || lower.contains("rau")) {
+            res.put("category", "Rau củ quả");
+        } else if (lower.contains("lương thực") || lower.contains("gạo")) {
+            res.put("category", "Cây lương thực");
+        } else if (lower.contains("công nghiệp") || lower.contains("cà phê") || lower.contains("tiêu")) {
+            res.put("category", "Cây công nghiệp");
+        } else if (lower.contains("chăn nuôi") || lower.contains("thịt") || lower.contains("trứng")) {
+            res.put("category", "Chăn nuôi");
+        } else if (lower.contains("giống cây") || lower.contains("cây giống")) {
+            res.put("category", "Giống cây trồng");
+        } else if (lower.contains("chế biến") || lower.contains("nông sản chế biến")) {
+            res.put("category", "Nông sản chế biến");
+        }
+
+        return res;
+    }
+
+    private static Double parsePriceUnit(String numStr, String unitStr) {
+        if (numStr == null) return null;
+        try {
+            double num = Double.parseDouble(numStr.replace(".", "").replace(",", "."));
+            if (unitStr == null) unitStr = "";
+            unitStr = unitStr.toLowerCase();
+            if (unitStr.contains("k") || unitStr.contains("nghìn") || unitStr.contains("ngàn")) {
+                return num * 1000;
+            } else if (unitStr.contains("tr") || unitStr.contains("triệu")) {
+                return num * 1000000;
+            } else {
+                if (num < 1000) {
+                    return num * 1000;
+                }
+                return num;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Bóc tách câu thoại giọng nói từ người dùng bằng Gemini API thành các tham số tìm kiếm sản phẩm.
+     */
+    public VoiceSearchDTO.Response parseVoiceSearch(String transcript) {
+        if (transcript == null || transcript.trim().isEmpty()) {
+            return VoiceSearchDTO.Response.builder()
+                    .search("")
+                    .originalTranscript(transcript)
+                    .aiSummary("Vui lòng nhập hoặc nói câu tìm kiếm sản phẩm 🌿")
+                    .build();
+        }
+
+        String cleanTranscript = transcript.trim();
+        Map<String, Object> extractedFilters = extractFiltersFromTranscript(cleanTranscript);
+
+        String fallbackSearch = sanitizeVoiceTranscript(cleanTranscript);
+        String fallbackCategory = (String) extractedFilters.get("category");
+        Double fallbackMinPrice = (Double) extractedFilters.get("minPrice");
+        Double fallbackMaxPrice = (Double) extractedFilters.get("maxPrice");
+
+        if (fallbackSearch != null) {
+            String searchLower = fallbackSearch.toLowerCase();
+            if (searchLower.equals("trái cây") || searchLower.equals("hoa quả")) {
+                fallbackCategory = "Trái cây";
+                fallbackSearch = null;
+            } else if (searchLower.equals("rau củ quả") || searchLower.equals("rau củ") || searchLower.equals("nông sản")) {
+                fallbackCategory = "Rau củ quả";
+                fallbackSearch = null;
+            } else if (searchLower.equals("cây lương thực") || searchLower.equals("lương thực")) {
+                fallbackCategory = "Cây lương thực";
+                fallbackSearch = null;
+            } else if (searchLower.equals("cây công nghiệp")) {
+                fallbackCategory = "Cây công nghiệp";
+                fallbackSearch = null;
+            } else if (searchLower.equals("chăn nuôi")) {
+                fallbackCategory = "Chăn nuôi";
+                fallbackSearch = null;
+            } else if (searchLower.equals("giống cây trồng") || searchLower.equals("giống cây")) {
+                fallbackCategory = "Giống cây trồng";
+                fallbackSearch = null;
+            } else if (searchLower.equals("nông sản chế biến") || searchLower.equals("chế biến")) {
+                fallbackCategory = "Nông sản chế biến";
+                fallbackSearch = null;
+            }
+        }
+
+        // Fallback mặc định khi API key chưa được cấu hình
+        if (geminiApiKey == null || geminiApiKey.trim().isEmpty() || geminiApiKey.equals("${GEMINI_API_KEY}")) {
+            return VoiceSearchDTO.Response.builder()
+                    .search(fallbackSearch)
+                    .category(fallbackCategory)
+                    .minPrice(fallbackMinPrice)
+                    .maxPrice(fallbackMaxPrice)
+                    .originalTranscript(cleanTranscript)
+                    .aiSummary("Đã bóc tách bộ lọc tìm kiếm 🌿")
+                    .build();
+        }
+
+        try {
+            String prompt = "Bạn là trợ lý AI tìm kiếm sản phẩm nông sản cho hệ thống thương mại điện tử AgriMarket tại Việt Nam.\n" +
+                    "Danh mục sản phẩm hiện có trên hệ thống AgriMarket gồm: 'Trái cây', 'Rau củ quả', 'Cây lương thực', 'Cây công nghiệp', 'Chăn nuôi', 'Giống cây trồng', 'Nông sản chế biến'.\n\n" +
+                    "Hãy phân tích câu thoại thu âm giọng nói của người dùng bên dưới và bóc tách thành một đối tượng JSON thuần túy (không dùng định dạng markdown, không bọc trong thẻ ```json) chứa các trường sau:\n" +
+                    "- \"search\": CHỈ CHỨA TÊN NÔNG SẢN / TỪ KHÓA SẢN PHẨM CỤ THỂ (ví dụ: 'cà chua', 'rau má', 'sầu riêng Ri6', 'bơ sáp', 'thịt heo', 'cà phê', 'gạo ST25'). TUYỆT ĐỐI BỎ TẤT CẢ CÂU DẪN DẮT HOẶC TỪ LỆNH NHƯ 'hãy tìm', 'tôi muốn tìm', 'tìm sản phẩm', 'cho tôi', 'cần mua', 'gì đó'. Nếu người dùng chỉ tìm tên danh mục chung chung (ví dụ nói 'tìm trái cây', 'tìm rau củ') thì để search là null.\n" +
+                    "- \"category\": Tên danh mục nông sản tương ứng chính xác nếu nhận diện được (chỉ chọn 1 trong các giá trị: 'Trái cây', 'Rau củ quả', 'Cây lương thực', 'Cây công nghiệp', 'Chăn nuôi', 'Giống cây trồng', 'Nông sản chế biến'). Nếu người dùng tìm cà chua/rau củ thì chọn 'Rau củ quả', nếu tìm sầu riêng/cam/xoài chọn 'Trái cây', nếu tìm trái cây chung chung chọn 'Trái cây', nếu không chắc chắn thì để null.\n" +
+                    "- \"location\": Tên địa danh/vùng miền sản xuất (ví dụ: 'Đà Lạt', 'Đắk Lắk', 'Miền Tây', 'Tiền Giang', 'Bến Tre', 'Hà Nội', 'Hồ Chí Minh'). Nếu không nói thì để null.\n" +
+                    "- \"minPrice\": Giá tối thiểu bằng VNĐ (kiểu số nguyên). Nếu nói 'từ 50k' hoặc 'trên 50k' thì minPrice = 50000. Nếu không có thì để null.\n" +
+                    "- \"maxPrice\": Giá tối đa bằng VNĐ (kiểu số nguyên). Nếu nói 'dưới 200k' hoặc 'giá dưới 200k' thì maxPrice = 200000. Nếu không có thì để null.\n" +
+                    "- \"sort\": Sắp xếp ('price_asc', 'price_desc', 'newest', 'popular'). Nếu không có thì để null.\n" +
+                    "- \"aiSummary\": 1 câu tóm tắt thật ngắn gọn (dưới 15 từ bằng tiếng Việt kèm emoji) về bộ lọc vừa tìm được (ví dụ: 'Đã tìm sản phẩm: Trái cây giá dưới 200.000đ 🌿').\n\n" +
+                    "Câu thoại thu âm của người dùng: \"" + cleanTranscript + "\"";
+
+            String url = "https://generativelanguage.googleapis.com/v1/models/" + getGeminiModel() + ":generateContent?key=" + geminiApiKey;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, Object> textPart = new HashMap<>();
+            textPart.put("text", prompt);
+
+            Map<String, Object> partsObj = new HashMap<>();
+            partsObj.put("parts", List.of(textPart));
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("contents", List.of(partsObj));
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<?, ?> body = response.getBody();
+                List<?> candidates = (List<?>) body.get("candidates");
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<?, ?> firstCandidate = (Map<?, ?>) candidates.get(0);
+                    Map<?, ?> content = (Map<?, ?>) firstCandidate.get("content");
+                    if (content != null) {
+                        List<?> parts = (List<?>) content.get("parts");
+                        if (parts != null && !parts.isEmpty()) {
+                            Map<?, ?> firstPart = (Map<?, ?>) parts.get(0);
+                            String text = (String) firstPart.get("text");
+                            if (text != null && !text.trim().isEmpty()) {
+                                String cleanJson = cleanJsonText(text);
+                                ObjectMapper mapper = new ObjectMapper();
+                                JsonNode root = mapper.readTree(cleanJson);
+
+                                String rawSearch = root.hasNonNull("search") ? root.get("search").asText() : null;
+                                String searchVal = sanitizeVoiceTranscript(rawSearch);
+
+                                String categoryVal = root.hasNonNull("category") ? root.get("category").asText() : fallbackCategory;
+                                String locationVal = root.hasNonNull("location") ? root.get("location").asText() : null;
+                                Double minPriceVal = root.hasNonNull("minPrice") ? root.get("minPrice").asDouble() : fallbackMinPrice;
+                                Double maxPriceVal = root.hasNonNull("maxPrice") ? root.get("maxPrice").asDouble() : fallbackMaxPrice;
+                                String sortVal = root.hasNonNull("sort") ? root.get("sort").asText() : null;
+                                String summaryVal = root.hasNonNull("aiSummary") ? root.get("aiSummary").asText() : "Đã bóc tách thành công bộ lọc tìm kiếm 🌿";
+
+                                // If search term matches category, reset searchVal to null
+                                if (searchVal != null) {
+                                    String sLower = searchVal.toLowerCase();
+                                    if (sLower.equals("trái cây") || sLower.equals("hoa quả")) {
+                                        categoryVal = "Trái cây";
+                                        searchVal = null;
+                                    } else if (sLower.equals("rau củ quả") || sLower.equals("rau củ") || sLower.equals("nông sản")) {
+                                        categoryVal = "Rau củ quả";
+                                        searchVal = null;
+                                    }
+                                }
+
+                                return VoiceSearchDTO.Response.builder()
+                                        .search(searchVal)
+                                        .category(categoryVal)
+                                        .location(locationVal)
+                                        .minPrice(minPriceVal)
+                                        .maxPrice(maxPriceVal)
+                                        .sort(sortVal)
+                                        .originalTranscript(cleanTranscript)
+                                        .aiSummary(summaryVal)
+                                        .build();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println(">>> AiService (VoiceSearch): Error calling Gemini API: " + e.getMessage());
+        }
+
+        // Fallback khi xảy ra lỗi parse hoặc timeout
+        return VoiceSearchDTO.Response.builder()
+                .search(fallbackSearch)
+                .category(fallbackCategory)
+                .minPrice(fallbackMinPrice)
+                .maxPrice(fallbackMaxPrice)
+                .originalTranscript(cleanTranscript)
+                .aiSummary("Đã lọc sản phẩm theo nhu cầu 🌿")
+                .build();
+    }
 }
 

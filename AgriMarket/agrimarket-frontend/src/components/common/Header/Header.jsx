@@ -3,7 +3,9 @@ import { Link, useNavigate, useSearchParams, useLocation } from "react-router-do
 import authService from "../../../services/authService";
 import cartService from "../../../services/cartService";
 import { getAllApprovedProducts } from "../../../services/productService";
+import aiService from "../../../services/aiService";
 import NotificationBell from "../NotificationBell/NotificationBell";
+import VoiceSearchModal from "./VoiceSearchModal";
 import "./Header.css";
 
 const Header = ({ activeTab }) => {
@@ -15,6 +17,9 @@ const Header = ({ activeTab }) => {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [allProducts, setAllProducts] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+
+  // Voice Search Modal State
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   // State 2 UI Dropdown visibility
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -229,6 +234,138 @@ const Header = ({ activeTab }) => {
     navigate(`/products/listing?${currentParams.toString()}`);
   };
 
+  const handleVoiceSearchResult = (aiResult) => {
+    if (!aiResult) return;
+
+    const currentParams = new URLSearchParams(searchParams);
+
+    if (aiResult.search) {
+      let cleanedSearch = aiResult.search.trim();
+      let changed = true;
+      while (changed) {
+        let prev = cleanedSearch;
+        cleanedSearch = cleanedSearch.replace(/^(hãy|cho|tôi|mình|em|bạn|ơi|vui lòng|làm ơn|giúp|giúp tôi|giúp mình|xin|có thể)\s+/i, "").trim();
+        cleanedSearch = cleanedSearch.replace(/^(muốn|cần|thích|đang|định)\s+/i, "").trim();
+        cleanedSearch = cleanedSearch.replace(/^(tìm|mua|xem|kiếm|tra|lọc|cho xem|cho tìm|tìm kiếm|tìm mua|muốn mua|muốn tìm)\s+/i, "").trim();
+        cleanedSearch = cleanedSearch.replace(/^(sản phẩm|nông sản|mặt hàng|món|loại|danh mục|trái|quả|củ|rau)\s+/i, "").trim();
+        if (prev.toLowerCase() === cleanedSearch.toLowerCase()) {
+          changed = false;
+        }
+      }
+      cleanedSearch = cleanedSearch.replace(/\s+(gì đó|nè|à|nhỉ|với|ạ|với ạ|nha|nhé|dùm|dùm tôi|giúp tôi|giúp mình|không|với nào|đó)$/i, "").trim();
+      
+      const finalSearch = cleanedSearch || aiResult.search;
+      setSearchQuery(finalSearch);
+      currentParams.set("search", finalSearch);
+    } else {
+      setSearchQuery("");
+      currentParams.delete("search");
+    }
+
+    if (aiResult.category) {
+      currentParams.set("category", aiResult.category);
+    } else {
+      currentParams.delete("category");
+    }
+
+    if (aiResult.location) {
+      currentParams.set("locations", aiResult.location);
+    } else {
+      currentParams.delete("locations");
+    }
+
+    if (aiResult.minPrice) {
+      currentParams.set("priceMin", aiResult.minPrice);
+    } else {
+      currentParams.delete("priceMin");
+    }
+
+    if (aiResult.maxPrice) {
+      currentParams.set("priceMax", aiResult.maxPrice);
+    } else {
+      currentParams.delete("priceMax");
+    }
+
+    if (aiResult.sort) {
+      currentParams.set("sort", aiResult.sort);
+    }
+
+    setSearchParams(currentParams);
+    navigate(`/products/listing?${currentParams.toString()}`);
+  };
+
+  const processVoiceText = async (text) => {
+    if (!text || !text.trim()) return;
+    setIsVoiceAnalyzing(true);
+    try {
+      const result = await aiService.parseVoiceSearch(text);
+      setIsVoiceAnalyzing(false);
+      handleVoiceSearchResult(result);
+    } catch (err) {
+      console.error("Lỗi AI voice search:", err);
+      setIsVoiceAnalyzing(false);
+      executeSearch(text);
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isVoiceListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      setIsVoiceListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Trình duyệt của bạn không hỗ trợ tìm kiếm bằng giọng nói. Vui lòng dùng Chrome hoặc Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "vi-VN";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsVoiceListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      let currentTranscript = "";
+      let isFinal = false;
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          isFinal = true;
+        }
+      }
+      if (currentTranscript) {
+        setSearchQuery(currentTranscript);
+      }
+      if (isFinal && currentTranscript.trim()) {
+        processVoiceText(currentTranscript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsVoiceListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsVoiceListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch (e) {
+      console.warn("Speech start error:", e);
+    }
+  };
+
   const handleLogout = () => {
     authService.logout();
     setUser(null);
@@ -420,6 +557,17 @@ const Header = ({ activeTab }) => {
                   </svg>
                 </button>
               )}
+              <button
+                type="button"
+                className="search-voice-trigger-btn"
+                onClick={() => setIsVoiceModalOpen(true)}
+                title="Tìm kiếm bằng giọng nói AI"
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+                </svg>
+              </button>
             </div>
 
             {/* State 2: Dropdown 2-Column Card Overlay */}
@@ -559,6 +707,11 @@ const Header = ({ activeTab }) => {
 
 
 
+      <VoiceSearchModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        onSearchParsed={handleVoiceSearchResult}
+      />
     </header>
   );
 };
