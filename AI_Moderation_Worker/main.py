@@ -8,6 +8,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from ultralytics import YOLO
+from dotenv import load_dotenv
+
+# Tự động load file .env trong cùng thư mục
+load_dotenv()
 
 app = FastAPI(title="AgriMarket AI Moderation Worker")
 
@@ -20,15 +24,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# SPRING_BOOT_URL = os.getenv(
-#     "SPRING_BOOT_URL",
-#     "https://agrimarket-cnpl.onrender.com/api/moderation/livestream-alert"
-# )
-
+# Đọc URL từ file .env (ưu tiên) hoặc fallback về localhost
 SPRING_BOOT_URL = os.getenv(
     "SPRING_BOOT_URL",
-    "http://localhost:8080/api/moderation/livestream-alert" # Gửi về Spring Boot local
+    "http://localhost:8080/api/moderation/livestream-alert"
 )
+print(f">>> SPRING_BOOT_URL = {SPRING_BOOT_URL}")
+
 
 # Load pre-trained YOLOv8 model (automatically downloads coco weights on first run ~6MB)
 try:
@@ -277,3 +279,5 @@ def index():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
