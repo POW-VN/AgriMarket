@@ -30,6 +30,20 @@ const aiService = {
     });
     return response.data;
   },
+
+  /**
+   * Phân tích hình ảnh nông sản bằng Gemini AI Multimodal trên backend
+   * @param {string} imageBase64 - Dữ liệu ảnh chuỗi Base64
+   * @param {string} mimeType - image/jpeg, image/png, image/webp
+   * @returns {Promise<Object>}
+   */
+  parseImageSearch: async (imageBase64, mimeType = "image/jpeg") => {
+    const response = await apiClient.post("/api/ai/image-search", {
+      imageBase64,
+      mimeType,
+    });
+    return response.data;
+  },
 };
 
 export default aiService;

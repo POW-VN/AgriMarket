@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Check, Star, Sprout, UserCheck } from "lucide-react";
+import { Check, Star, Sprout, UserCheck, Sparkles, Tag, ArrowDown, ArrowUp, Flame, Leaf, X } from "lucide-react";
 import Header from "../../components/common/Header/Header";
 import Footer from "../../components/common/Footer/Footer";
 import { getApprovedProductsPaged } from "../../services/productService";
@@ -116,6 +116,7 @@ export default function ProductListing() {
         return searchParams.get("category") || "";
     });
     const [selectedSort, setSelectedSort] = useState("Phổ biến");
+    const [isVietgapOnly, setIsVietgapOnly] = useState(false);
     const [selectedLocations, setSelectedLocations] = useState([]);
     const [locationQuery, setLocationQuery] = useState("");
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
@@ -362,8 +363,16 @@ export default function ProductListing() {
         }
     };
 
-    // Sản phẩm hiển thị = đã nhận từ server (không cần slice thêm)
-    const paginatedProducts = products;
+    // Lọc nông sản VietGAP / Organic nếu bật bộ lọc AI VietGAP
+    const filteredProducts = isVietgapOnly
+        ? products.filter((p) => {
+            const text = `${p.name || ""} ${p.description || ""} ${p.category || ""}`.toLowerCase();
+            return text.includes("vietgap") || text.includes("organic") || text.includes("hữu cơ") || text.includes("sạch") || text.includes("chuẩn") || text.includes("loại 1");
+        })
+        : products;
+
+    // Sản phẩm hiển thị (Nếu bật lọc VietGAP mà 0 kết quả thì fallback an toàn hiển thị toàn bộ sản phẩm)
+    const paginatedProducts = isVietgapOnly && filteredProducts.length === 0 ? products : filteredProducts;
 
     // locationsList dùng cho dropdown (dùng mockLocations vì đây là UI helper)
     const locationsList = mockLocations;
@@ -663,6 +672,70 @@ export default function ProductListing() {
 
                 {/* Product area */}
                 <section className="product-section">
+                    {searchParams.get("isImageSearch") === "true" && (
+                        <div className="image-search-active-banner-wrap">
+                            <div className="image-search-active-banner">
+                                <div className="banner-left">
+                                    <Sparkles className="banner-icon" style={{ width: 18, height: 18 }} />
+                                    <span className="banner-text">
+                                        Bạn đang tìm bằng hình ảnh &bull; AI nhận diện: <strong>{searchParams.get("search") || "Nông sản"}</strong>
+                                        {searchParams.get("category") && ` (${searchParams.get("category")})`}
+                                    </span>
+                                </div>
+                                <button
+                                    className="banner-clear-btn"
+                                    onClick={() => {
+                                        navigate("/");
+                                    }}
+                                >
+                                    <X style={{ width: 14, height: 14 }} /> Xóa tìm kiếm ảnh
+                                </button>
+                            </div>
+
+                            {/* Item 6: Post-Search AI Filters */}
+                            <div className="post-search-filter-chips">
+                                <span className="chips-label">Bộ lọc AI:</span>
+                                <button
+                                    className={`post-chip ${selectedSort === "Phổ biến" && !isVietgapOnly ? "active" : ""}`}
+                                    onClick={() => {
+                                        setSelectedSort("Phổ biến");
+                                        setIsVietgapOnly(false);
+                                    }}
+                                >
+                                    <Tag style={{ width: 14, height: 14 }} /> Tất cả
+                                </button>
+                                <button
+                                    className={`post-chip ${selectedSort === "Giá tăng dần" ? "active" : ""}`}
+                                    onClick={() => setSelectedSort("Giá tăng dần")}
+                                >
+                                    <ArrowDown style={{ width: 14, height: 14 }} /> Giá thấp nhất
+                                </button>
+                                <button
+                                    className={`post-chip ${selectedSort === "Giá giảm dần" ? "active" : ""}`}
+                                    onClick={() => setSelectedSort("Giá giảm dần")}
+                                >
+                                    <ArrowUp style={{ width: 14, height: 14 }} /> Giá cao nhất
+                                </button>
+                                <button
+                                    className={`post-chip ${selectedSort === "Bán chạy" ? "active" : ""}`}
+                                    onClick={() => setSelectedSort("Bán chạy")}
+                                >
+                                    <Flame style={{ width: 14, height: 14 }} /> Bán chạy
+                                </button>
+                                <button
+                                    className={`post-chip ${isVietgapOnly ? "active" : ""}`}
+                                    onClick={() => {
+                                        const nextState = !isVietgapOnly;
+                                        setIsVietgapOnly(nextState);
+                                        triggerToast(nextState ? "Đã bật bộ lọc VietGAP / Organic!" : "Đã tắt bộ lọc VietGAP / Organic");
+                                    }}
+                                >
+                                    <Leaf style={{ width: 14, height: 14 }} /> VietGAP / Organic
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="toolbar">
                         <div className="sort-group">
                             <span className="toolbar-label">Sắp xếp theo:</span>

@@ -3,6 +3,8 @@ package org.example.agrimarket.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.agrimarket.dto.AiPriceResponse;
+import org.example.agrimarket.dto.VoiceSearchDTO;
+import org.example.agrimarket.dto.ImageSearchDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -718,6 +720,223 @@ public class AiService {
                 .maxPrice(fallbackMaxPrice)
                 .originalTranscript(cleanTranscript)
                 .aiSummary("Đã lọc sản phẩm theo nhu cầu 🌿")
+                .build();
+    }
+
+    /**
+     * Phân tích hình ảnh nông sản bằng Gemini Multimodal API.
+     */
+    public ImageSearchDTO.Response parseImageSearch(String imageBase64, String mimeType) {
+        if (imageBase64 == null || imageBase64.trim().isEmpty()) {
+            return ImageSearchDTO.Response.builder()
+                    .isAgriculturalProduct(false)
+                    .aiSummary("Vui lòng tải lên hoặc chụp ảnh sản phẩm nông sản 🌿")
+                    .build();
+        }
+
+        // Clean Base64 prefix (e.g. data:image/jpeg;base64,...)
+        String cleanBase64 = imageBase64.trim();
+        if (cleanBase64.contains(",")) {
+            cleanBase64 = cleanBase64.substring(cleanBase64.indexOf(",") + 1);
+        }
+
+        if (mimeType == null || mimeType.trim().isEmpty()) {
+            mimeType = "image/jpeg";
+        }
+
+        // Fallback default response when API key is missing
+        if (geminiApiKey == null || geminiApiKey.trim().isEmpty() || geminiApiKey.equals("${GEMINI_API_KEY}")) {
+            return ImageSearchDTO.Response.builder()
+                    .recognizedProduct("Nông sản tươi")
+                    .search("Nông sản")
+                    .category("Rau củ quả")
+                    .confidence(85)
+                    .isAgriculturalProduct(true)
+                    .aiSummary("Đã nhận diện sản phẩm nông sản (Chế độ thử nghiệm) 🌿")
+                    .box2d(List.of(150, 200, 850, 800))
+                    .build();
+        }
+
+        try {
+            String prompt = "Bạn là hệ thống AI phân tích hình ảnh nông sản đa mục tiêu (Multi-object detection & Attribute extraction) cho sàn thương mại điện tử AgriMarket Việt Nam.\n" +
+                    "Danh mục sản phẩm chuẩn: 'Trái cây', 'Rau củ quả', 'Cây lương thực', 'Cây công nghiệp', 'Chăn nuôi', 'Giống cây trồng', 'Nông sản chế biến'.\n\n" +
+                    "Hãy phân tích bức ảnh và trả về JSON thuần túy (không dùng tag markdown) đúng cấu trúc sau:\n" +
+                    "{\n" +
+                    "  \"isAgriculturalProduct\": true,\n" +
+                    "  \"recognizedProduct\": \"<Tên nông sản chính tiếng Việt, VD: 'Xoài Cát'>\",\n" +
+                    "  \"search\": \"<Từ khóa tìm kiếm chính>\",\n" +
+                    "  \"category\": \"<Tên 1 danh mục chuẩn khớp nhất>\",\n" +
+                    "  \"confidence\": 96,\n" +
+                    "  \"aiSummary\": \"<Tóm tắt ngắn gọn dưới 15 từ kèm emoji>\",\n" +
+                    "  \"box2d\": [<ymin>, <xmin>, <ymax>, <xmax>],\n" +
+                    "  \"detectedObjects\": [\n" +
+                    "    { \"name\": \"Xoài\", \"category\": \"Trái cây\", \"confidence\": 96, \"box2d\": [180, 220, 820, 780] }\n" +
+                    "  ],\n" +
+                    "  \"predictions\": [\n" +
+                    "    { \"name\": \"Xoài Cát Hòa Lộc\", \"confidence\": 96 },\n" +
+                    "    { \"name\": \"Xoài Úc\", \"confidence\": 18 },\n" +
+                    "    { \"name\": \"Xoài Keo\", \"confidence": 12 }\n" +
+                    "  ],\n" +
+                    "  \"attributes\": {\n" +
+                    "    \"color\": \"Xanh tươi / Vàng ươm\",\n" +
+                    "    \"ripeness\": 85,\n" +
+                    "    \"condition\": \"Tươi mới, quả căng bóng\"\n" +
+                    "  },\n" +
+                    "  \"agriKnowledge\": {\n" +
+                    "    \"seasonality\": \"Tháng 3 - Tháng 7\",\n" +
+                    "    \"origin\": \"Việt Nam\",\n" +
+                    "    \"storage\": \"5-7 ngày ở nhiệt độ phòng\",\n" +
+                    "    \"avgPrice\": \"35.000đ - 55.000đ/kg\"\n" +
+                    "  }\n" +
+                    "}\n" +
+                    "Lưu ý: Nếu trong ảnh có NỀN (bàn, xe, người, đồ đạc), hãy đặt box2d ôm sát nông sản (Auto crop). Nếu có NHIỀU NÔNG SẢN trong ảnh, hãy liệt kê đầy đủ trong mảng detectedObjects. Nếu bức ảnh KHÔNG PHẢI NÔNG SẢN, đặt isAgriculturalProduct: false.";
+
+            String url = "https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-lite:generateContent?key=" + geminiApiKey;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // Text part
+            Map<String, Object> textPart = new HashMap<>();
+            textPart.put("text", prompt);
+
+            // Image part (inline_data)
+            Map<String, Object> inlineData = new HashMap<>();
+            inlineData.put("mime_type", mimeType);
+            inlineData.put("data", cleanBase64);
+
+            Map<String, Object> imagePart = new HashMap<>();
+            imagePart.put("inline_data", inlineData);
+
+            Map<String, Object> partsObj = new HashMap<>();
+            partsObj.put("parts", List.of(textPart, imagePart));
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("contents", List.of(partsObj));
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<?, ?> body = response.getBody();
+                List<?> candidates = (List<?>) body.get("candidates");
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<?, ?> firstCandidate = (Map<?, ?>) candidates.get(0);
+                    Map<?, ?> content = (Map<?, ?>) firstCandidate.get("content");
+                    if (content != null) {
+                        List<?> parts = (List<?>) content.get("parts");
+                        if (parts != null && !parts.isEmpty()) {
+                            Map<?, ?> firstPart = (Map<?, ?>) parts.get(0);
+                            String text = (String) firstPart.get("text");
+                            if (text != null && !text.trim().isEmpty()) {
+                                String cleanJson = cleanJsonText(text);
+                                ObjectMapper mapper = new ObjectMapper();
+                                JsonNode root = mapper.readTree(cleanJson);
+
+                                boolean isAgri = root.hasNonNull("isAgriculturalProduct") ? root.get("isAgriculturalProduct").asBoolean(true) : true;
+                                String recognized = root.hasNonNull("recognizedProduct") ? root.get("recognizedProduct").asText() : "Nông sản";
+                                String searchVal = root.hasNonNull("search") ? root.get("search").asText() : recognized;
+                                String categoryVal = root.hasNonNull("category") ? root.get("category").asText() : "Trái cây";
+                                int confidenceVal = root.hasNonNull("confidence") ? root.get("confidence").asInt(95) : 95;
+                                String summaryVal = root.hasNonNull("aiSummary") ? root.get("aiSummary").asText() : "Đã nhận diện sản phẩm 🌿";
+
+                                List<Integer> box2dVal = new java.util.ArrayList<>();
+                                if (root.has("box2d") && root.get("box2d").isArray()) {
+                                    for (JsonNode elem : root.get("box2d")) {
+                                        box2dVal.add(elem.asInt());
+                                    }
+                                }
+                                if (box2dVal.size() != 4) {
+                                    box2dVal = List.of(150, 200, 850, 800);
+                                }
+
+                                // Parse detectedObjects
+                                List<ImageSearchDTO.DetectedObject> detectedObjectsList = new java.util.ArrayList<>();
+                                if (root.has("detectedObjects") && root.get("detectedObjects").isArray()) {
+                                    for (JsonNode item : root.get("detectedObjects")) {
+                                        List<Integer> bBox = new java.util.ArrayList<>();
+                                        if (item.has("box2d") && item.get("box2d").isArray()) {
+                                            for (JsonNode b : item.get("box2d")) bBox.add(b.asInt());
+                                        }
+                                        if (bBox.size() != 4) bBox = List.of(150, 200, 850, 800);
+
+                                        detectedObjectsList.add(ImageSearchDTO.DetectedObject.builder()
+                                                .name(item.hasNonNull("name") ? item.get("name").asText() : recognized)
+                                                .category(item.hasNonNull("category") ? item.get("category").asText() : categoryVal)
+                                                .confidence(item.hasNonNull("confidence") ? item.get("confidence").asInt(95) : 95)
+                                                .box2d(bBox)
+                                                .build());
+                                    }
+                                }
+                                if (detectedObjectsList.isEmpty()) {
+                                    detectedObjectsList.add(ImageSearchDTO.DetectedObject.builder()
+                                            .name(recognized)
+                                            .category(categoryVal)
+                                            .confidence(confidenceVal)
+                                            .box2d(box2dVal)
+                                            .build());
+                                }
+
+                                // Parse predictions
+                                List<ImageSearchDTO.Prediction> predictionsList = new java.util.ArrayList<>();
+                                if (root.has("predictions") && root.get("predictions").isArray()) {
+                                    for (JsonNode item : root.get("predictions")) {
+                                        predictionsList.add(ImageSearchDTO.Prediction.builder()
+                                                .name(item.hasNonNull("name") ? item.get("name").asText() : recognized)
+                                                .confidence(item.hasNonNull("confidence") ? item.get("confidence").asInt(90) : 90)
+                                                .build());
+                                    }
+                                }
+
+                                // Parse attributes
+                                ImageSearchDTO.Attributes attributesObj = null;
+                                if (root.has("attributes") && root.get("attributes").isObject()) {
+                                    JsonNode attrNode = root.get("attributes");
+                                    attributesObj = ImageSearchDTO.Attributes.builder()
+                                            .color(attrNode.hasNonNull("color") ? attrNode.get("color").asText() : "Tự nhiên")
+                                            .ripeness(attrNode.hasNonNull("ripeness") ? attrNode.get("ripeness").asInt(85) : 85)
+                                            .condition(attrNode.hasNonNull("condition") ? attrNode.get("condition").asText() : "Tươi mới")
+                                            .build();
+                                }
+
+                                // Parse agriKnowledge
+                                ImageSearchDTO.AgriKnowledge knowledgeObj = null;
+                                if (root.has("agriKnowledge") && root.get("agriKnowledge").isObject()) {
+                                    JsonNode knNode = root.get("agriKnowledge");
+                                    knowledgeObj = ImageSearchDTO.AgriKnowledge.builder()
+                                            .seasonality(knNode.hasNonNull("seasonality") ? knNode.get("seasonality").asText() : "Quanh năm")
+                                            .origin(knNode.hasNonNull("origin") ? knNode.get("origin").asText() : "Việt Nam")
+                                            .storage(knNode.hasNonNull("storage") ? knNode.get("storage").asText() : "Nơi khô ráo thoáng mát")
+                                            .avgPrice(knNode.hasNonNull("avgPrice") ? knNode.get("avgPrice").asText() : "Theo thị trường")
+                                            .build();
+                                }
+
+                                return ImageSearchDTO.Response.builder()
+                                        .isAgriculturalProduct(isAgri)
+                                        .recognizedProduct(recognized)
+                                        .search(searchVal)
+                                        .category(categoryVal)
+                                        .confidence(confidenceVal)
+                                        .aiSummary(summaryVal)
+                                        .box2d(box2dVal)
+                                        .detectedObjects(detectedObjectsList)
+                                        .predictions(predictionsList)
+                                        .attributes(attributesObj)
+                                        .agriKnowledge(knowledgeObj)
+                                        .build();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println(">>> AiService (ImageSearch): Error calling Gemini API: " + e.getMessage());
+        }
+
+        // Fallback error
+        return ImageSearchDTO.Response.builder()
+                .isAgriculturalProduct(false)
+                .aiSummary("Không thể nhận diện hình ảnh nông sản. Vui lòng thử lại với ảnh rõ hơn! 🌿")
                 .build();
     }
 }

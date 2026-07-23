@@ -6,6 +6,7 @@ import { getAllApprovedProducts } from "../../../services/productService";
 import aiService from "../../../services/aiService";
 import NotificationBell from "../NotificationBell/NotificationBell";
 import VoiceSearchModal from "./VoiceSearchModal";
+import ImageSearchModal from "./ImageSearchModal";
 import "./Header.css";
 
 const Header = ({ activeTab }) => {
@@ -18,8 +19,9 @@ const Header = ({ activeTab }) => {
   const [allProducts, setAllProducts] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
 
-  // Voice Search Modal State
+  // Voice & Image Search Modal States
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   // State 2 UI Dropdown visibility
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -253,7 +255,7 @@ const Header = ({ activeTab }) => {
         }
       }
       cleanedSearch = cleanedSearch.replace(/\s+(gì đó|nè|à|nhỉ|với|ạ|với ạ|nha|nhé|dùm|dùm tôi|giúp tôi|giúp mình|không|với nào|đó)$/i, "").trim();
-      
+
       const finalSearch = cleanedSearch || aiResult.search;
       setSearchQuery(finalSearch);
       currentParams.set("search", finalSearch);
@@ -294,6 +296,22 @@ const Header = ({ activeTab }) => {
     navigate(`/products/listing?${currentParams.toString()}`);
   };
 
+  const handleImageSearchResult = (aiResult) => {
+    if (!aiResult) return;
+    const currentParams = new URLSearchParams(searchParams);
+    const searchKeyword = aiResult.recognizedProduct || aiResult.search || "";
+    if (searchKeyword) {
+      currentParams.set("search", searchKeyword);
+      setSearchQuery(searchKeyword);
+    }
+    if (aiResult.category) {
+      currentParams.set("category", aiResult.category);
+    }
+    currentParams.set("isImageSearch", "true");
+    setSearchParams(currentParams);
+    navigate(`/products/listing?${currentParams.toString()}`);
+  };
+
   const processVoiceText = async (text) => {
     if (!text || !text.trim()) return;
     setIsVoiceAnalyzing(true);
@@ -311,7 +329,7 @@ const Header = ({ activeTab }) => {
   const handleMicClick = () => {
     if (isVoiceListening) {
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
+        try { recognitionRef.current.stop(); } catch (e) { }
       }
       setIsVoiceListening(false);
       return;
@@ -512,9 +530,9 @@ const Header = ({ activeTab }) => {
                   <Link
                     to={link.path}
                     className={`nav-link-pill ${activeTab === link.id ||
-                        (link.id === "home" && activeTab === undefined && isHomepage)
-                        ? "active"
-                        : ""
+                      (link.id === "home" && activeTab === undefined && isHomepage)
+                      ? "active"
+                      : ""
                       }`}
                   >
                     {link.icon}
@@ -557,6 +575,17 @@ const Header = ({ activeTab }) => {
                   </svg>
                 </button>
               )}
+              <button
+                type="button"
+                className="search-camera-trigger-btn"
+                onClick={() => setIsImageModalOpen(true)}
+                title="Tìm kiếm bằng hình ảnh AI"
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
               <button
                 type="button"
                 className="search-voice-trigger-btn"
@@ -654,8 +683,8 @@ const Header = ({ activeTab }) => {
 
                 {isProfileDropdownOpen && (
                   <div className="profile-dropdown-menu">
-                    <button 
-                      className="profile-dropdown-item" 
+                    <button
+                      className="profile-dropdown-item"
                       onClick={() => {
                         setIsProfileDropdownOpen(false);
                         navigate("/profile");
@@ -667,8 +696,8 @@ const Header = ({ activeTab }) => {
                       Vào trang cá nhân
                     </button>
                     {user.role === 'farmer' && (
-                      <button 
-                        className="profile-dropdown-item" 
+                      <button
+                        className="profile-dropdown-item"
                         onClick={() => {
                           setIsProfileDropdownOpen(false);
                           navigate("/farmer/dashboard");
@@ -680,8 +709,8 @@ const Header = ({ activeTab }) => {
                         Kênh nhà vườn
                       </button>
                     )}
-                    <button 
-                      className="profile-dropdown-item logout" 
+                    <button
+                      className="profile-dropdown-item logout"
                       onClick={() => {
                         setIsProfileDropdownOpen(false);
                         handleLogout();
@@ -711,6 +740,12 @@ const Header = ({ activeTab }) => {
         isOpen={isVoiceModalOpen}
         onClose={() => setIsVoiceModalOpen(false)}
         onSearchParsed={handleVoiceSearchResult}
+      />
+
+      <ImageSearchModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        onSearchParsed={handleImageSearchResult}
       />
     </header>
   );
