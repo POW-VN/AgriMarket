@@ -377,6 +377,26 @@
   transform: scale(1.1);
 }
 
+.search-camera-trigger-btn {
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 6px;
+  color: #16a34a;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  margin-right: 4px;
+}
+
+.search-camera-trigger-btn:hover {
+  background-color: #dcfce7;
+  color: #15803d;
+  transform: scale(1.1);
+}
+
 .search-voice-trigger-btn.listening {
   color: #dc2626;
   background-color: #fee2e2;

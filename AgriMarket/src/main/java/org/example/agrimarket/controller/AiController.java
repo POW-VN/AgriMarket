@@ -6,6 +6,7 @@ import org.example.agrimarket.dto.AiDescriptionRequest;
 import org.example.agrimarket.dto.AiDescriptionResponse;
 import org.example.agrimarket.dto.AiPriceRequest;
 import org.example.agrimarket.dto.AiPriceResponse;
+import org.example.agrimarket.dto.ImageSearchDTO;
 import org.example.agrimarket.service.AiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -96,6 +97,19 @@ public class AiController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Lỗi khi bóc tách tìm kiếm giọng nói: " + e.getMessage());
+        }
+    }
+
+    /**
+     * AI Image Search – Endpoint công khai nhận diện nông sản bằng hình ảnh.
+     */
+    @PostMapping("/image-search")
+    public ResponseEntity<?> imageSearch(@RequestBody ImageSearchDTO.Request request) {
+        try {
+            ImageSearchDTO.Response response = aiService.parseImageSearch(request.getImageBase64(), request.getMimeType());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Lỗi khi bóc tách nhận diện hình ảnh: " + e.getMessage());
         }
     }
 }
